@@ -7,28 +7,34 @@ export default async function handler(req, res) {
     const { imageBase64 } = req.body;
 
     try {
-        // Gemma 3 1b/4b class - Optimized for speed
-        const model = genAI.getGenerativeModel({ model: "gemma-3-4b-it" });
+        // Switching back to 12b for the "Smart" OCR
+        const model = genAI.getGenerativeModel({ model: "gemma-3-12b-it" });
         
         const result = await model.generateContent({
             contents: [{
                 role: "user",
                 parts: [
-                    { text: "List players and ratings. JSON ONLY: [{\"n\":\"Name\",\"r\":88}]" },
+                    { text: "ACT AS OCR: Find every football player card in this DLS screenshot. For each card, extract the NAME and the main OVERALL RATING number. Output ONLY a valid JSON array: [{\"n\":\"Name\",\"r\":88}]. Ensure names are spelled exactly as shown." },
                     { inlineData: { data: imageBase64, mimeType: "image/jpeg" } }
                 ]
             }],
             generationConfig: {
-                temperature: 0.0, // Absolute zero for maximum speed and accuracy
-                maxOutputTokens: 300,
+                temperature: 0.1, // Low temp keeps it focused
+                topP: 0.1,
+                maxOutputTokens: 800,
             }
         });
 
         const text = result.response.text();
-        const players = JSON.parse(text.match(/\[.*\]/s)[0]);
+        const jsonMatch = text.match(/\[.*\]/s);
+        
+        if (!jsonMatch) throw new Error("Could not find player data");
+        
+        const players = JSON.parse(jsonMatch[0]);
 
         res.status(200).json({ success: true, players, playersFound: players.length });
     } catch (error) {
-        res.status(500).json({ success: false, error: "AI Busy. Try again." });
+        console.error(error);
+        res.status(500).json({ success: false, error: "AI failed to read image" });
     }
 }
