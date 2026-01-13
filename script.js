@@ -2,7 +2,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getDatabase, ref, set, get, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-// --- CONFIGURATION ---
 const firebaseConfig = {
     apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
     authDomain: "itzhoyoo-f9f7e.firebaseapp.com",
@@ -17,38 +16,22 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
-// --- UI ELEMENTS ---
+let isLoginMode = true;
 const loader = document.getElementById('main-loader');
 const modal = document.getElementById('modalOverlay');
-const openAuthBtn = document.getElementById('openAuth');
-const switchAuthBtn = document.getElementById('switchAuth');
-const mainSubmitBtn = document.getElementById('mainSubmitBtn');
-const regFields = document.getElementById('regFields');
-const modalTitle = document.getElementById('modalTitle');
 
-let isLoginMode = true;
-
-// --- UTILITY FUNCTIONS ---
-function hideLoader() {
-    loader.style.opacity = '0';
-    setTimeout(() => loader.style.display = 'none', 500);
-}
-
-const closeModal = () => modal.classList.remove('active');
-
-// --- EVENT LISTENERS ---
-openAuthBtn.onclick = () => modal.classList.add('active');
-document.getElementById('closeModalX').onclick = closeModal;
-
-switchAuthBtn.onclick = () => {
+// UI Toggles
+document.getElementById('closeModalX').onclick = () => modal.classList.remove('active');
+document.getElementById('openAuth').onclick = () => modal.classList.add('active');
+document.getElementById('switchAuth').onclick = () => {
     isLoginMode = !isLoginMode;
-    regFields.style.display = isLoginMode ? 'none' : 'block';
-    modalTitle.innerText = isLoginMode ? 'Welcome Back' : 'Create Account';
-    switchAuthBtn.innerText = isLoginMode ? 'Need an account? Register' : 'Have an account? Login';
+    document.getElementById('regFields').style.display = isLoginMode ? 'none' : 'block';
+    document.getElementById('modalTitle').innerText = isLoginMode ? 'Welcome Back' : 'Create Account';
+    document.getElementById('switchAuth').innerText = isLoginMode ? 'Need an account? Register' : 'Have an account? Login';
 };
 
-// --- CORE AUTH LOGIC ---
-mainSubmitBtn.onclick = async () => {
+// Auth Submission
+document.getElementById('mainSubmitBtn').onclick = async () => {
     const email = document.getElementById('authEmail').value;
     const pass = document.getElementById('authPass').value;
 
@@ -57,72 +40,49 @@ mainSubmitBtn.onclick = async () => {
     } else {
         const username = document.getElementById('regUsername').value.toLowerCase().trim().replace(/\s+/g, '');
         const avatar = document.querySelector('input[name="pfp"]:checked').value;
-        
-        if(!username || username.length < 3) return alert("Username too short");
+        if(username.length < 3) return alert("Username too short");
 
-        try {
-            // Check for unique username
-            const snapshot = await get(ref(db, 'usernames/' + username));
-            if (snapshot.exists()) return alert("Username taken!");
+        const snapshot = await get(ref(db, 'usernames/' + username));
+        if (snapshot.exists()) return alert("Username taken");
 
-            const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+        createUserWithEmailAndPassword(auth, email, pass).then(async (userCredential) => {
             const uid = userCredential.user.uid;
-
-            // Initialize User Data
-            await set(ref(db, 'users/' + uid), {
-                username: username,
-                avatar: avatar,
-                tokens: 50,
-                tier: 'free',
-                lastClaim: Date.now()
+            await set(ref(db, 'users/' + uid), { 
+                username, avatar, tokens: 50, tier: 'free', lastClaim: Date.now() 
             });
-
-            // Map username to UID
             await set(ref(db, 'usernames/' + username), uid);
-            closeModal();
-        } catch (err) {
-            alert(err.message);
-        }
+            modal.classList.remove('active');
+        }).catch(err => alert(err.message));
     }
 };
 
-// --- AUTH STATE & TOKEN CLAIM ---
+// State Change & Reward Logic
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         const userRef = ref(db, 'users/' + user.uid);
         const snapshot = await get(userRef);
-
         if (snapshot.exists()) {
-            let userData = snapshot.val();
+            let data = snapshot.val();
             const now = Date.now();
             const oneDay = 24 * 60 * 60 * 1000;
 
-            // Handle Daily Token Refill
-            if (now - userData.lastClaim >= oneDay) {
-                const refill = userData.tier === 'pro' ? 250 : 50;
-                userData.tokens += refill;
-                userData.lastClaim = now;
-                await update(userRef, { tokens: userData.tokens, lastClaim: now });
-                alert(`Refilled ${refill} tokens!`);
+            if (!data.lastClaim || (now - data.lastClaim >= oneDay)) {
+                const reward = data.tier === 'pro' ? 250 : 50;
+                data.tokens = (data.tokens || 0) + reward;
+                await update(userRef, { tokens: data.tokens, lastClaim: now });
+                alert(`Refilled ${reward} daily tokens!`);
             }
 
-            // Update UI
-            document.getElementById('headerUsername').innerText = userData.username;
-            document.getElementById('headerAvatar').src = userData.avatar;
-            document.getElementById('tokenDisplay').innerText = `${userData.tokens} Tokens`;
-            
-            const tag = document.getElementById('tierTag');
-            tag.innerText = userData.tier;
-            tag.className = `tier-tag ${userData.tier === 'pro' ? 'tier-pro' : 'tier-free'}`;
-
-            openAuthBtn.style.display = 'none';
+            document.getElementById('openAuth').style.display = 'none';
             document.getElementById('userDisplay').style.display = 'flex';
+            document.getElementById('headerUsername').innerText = data.username;
+            document.getElementById('headerAvatar').src = data.avatar;
+            document.getElementById('tokenDisplay').innerText = `${data.tokens} Tokens`;
+            const tag = document.getElementById('tierTag');
+            tag.innerText = data.tier;
+            tag.className = `tier-tag ${data.tier === 'pro' ? 'tier-pro' : 'tier-free'}`;
         }
-        hideLoader();
-        closeModal();
-    } else {
-        hideLoader();
-        openAuthBtn.style.display = 'block';
-        document.getElementById('userDisplay').style.display = 'none';
     }
+    loader.style.opacity = '0';
+    setTimeout(() => loader.style.display = 'none', 500);
 });
