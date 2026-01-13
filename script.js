@@ -1,5 +1,6 @@
 import { auth, db } from './firebase-config.js';
 import { notify, updateProfileUI } from './ui-utils.js';
+import { ChatSection } from './sections/chat.js';
 import { 
     signInWithEmailAndPassword, 
     createUserWithEmailAndPassword, 
@@ -9,8 +10,85 @@ import {
 import { ref, set, get, update, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 let isLoginMode = true;
+let chatHistory = [];
 
-// Modal Logic
+// --- 1. CHAT CORE LOGIC ---
+function initChat(userData) {
+    if (document.getElementById('chatModal')) return; // Prevent duplicates
+    
+    // Inject HTML
+    document.body.insertAdjacentHTML('beforeend', ChatSection);
+    
+    const modal = document.getElementById('chatModal');
+    const closeBtn = document.getElementById('closeChatBtn');
+    const chatForm = document.getElementById('chatForm');
+    const container = document.getElementById('chatContainer');
+    const chatInput = document.getElementById('chatInput');
+
+    // Find the "ASK DLS AI" button in your Hero
+    const askAiBtns = document.querySelectorAll('button');
+    const openBtn = Array.from(askAiBtns).find(b => b.innerText.includes('ASK DLS AI'));
+
+    if (openBtn) {
+        openBtn.onclick = () => {
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+        };
+    }
+
+    closeBtn.onclick = () => {
+        modal.classList.add('opacity-0', 'pointer-events-none');
+    };
+
+    chatForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const text = chatInput.value.trim();
+        if (!text) return;
+
+        // Add User Message
+        appendMessage('user', text);
+        chatInput.value = '';
+        chatHistory.push({ role: 'user', content: text });
+
+        // Add Thinking Bubble
+        const tempId = appendMessage('ai', 'Scanning Database...');
+
+        try {
+            const response = await fetch('/api/aichat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ messages: chatHistory })
+            });
+            const data = await response.json();
+            
+            updateMessage(tempId, data.reply);
+            chatHistory.push({ role: 'assistant', content: data.reply });
+        } catch (err) {
+            updateMessage(tempId, "Connection lost. Check internet.");
+        }
+    };
+
+    function appendMessage(role, text) {
+        const id = 'msg-' + Date.now();
+        const isAi = role === 'ai';
+        const html = `
+            <div id="${id}" class="flex ${isAi ? 'justify-start' : 'justify-end'} animate-fade-in">
+                <div class="${isAi ? 'bg-zinc-900 border-white/5 text-gray-300' : 'bg-white text-black font-bold'} border p-4 rounded-2xl max-w-[85%] shadow-lg">
+                    <p class="text-[12px] leading-relaxed">${text}</p>
+                </div>
+            </div>`;
+        container.insertAdjacentHTML('beforeend', html);
+        container.scrollTop = container.scrollHeight;
+        return id;
+    }
+
+    function updateMessage(id, text) {
+        const el = document.getElementById(id);
+        if (el) el.querySelector('p').innerText = text;
+        container.scrollTop = container.scrollHeight;
+    }
+}
+
+// --- 2. EXISTING MODAL & AUTH LOGIC ---
 const closeModal = () => document.getElementById('modalOverlay').classList.remove('active');
 document.getElementById('closeModalX').onclick = closeModal;
 document.getElementById('openAuth').onclick = () => document.getElementById('modalOverlay').classList.add('active');
@@ -25,6 +103,7 @@ document.getElementById('switchAuth').onclick = () => {
     document.getElementById('switchAuth').innerText = isLoginMode ? 'Need an account? Register' : 'Have an account? Login';
 };
 
+// --- 3. REVENUE & TOKEN SYSTEM ---
 async function handleDailyTokens(uid, data) {
     const now = Date.now();
     const oneDay = 24 * 60 * 60 * 1000;
@@ -42,25 +121,27 @@ async function handleDailyTokens(uid, data) {
     }
 }
 
-// Logo Interaction
-document.getElementById('logoTrigger').onclick = async () => {
-    if (navigator.vibrate) navigator.vibrate(10);
-    const user = auth.currentUser;
+// --- 4. AUTH STATE OBSERVER ---
+onAuthStateChanged(auth, (user) => {
     if (user) {
-        const valueSpan = document.querySelector('.logo-value');
-        valueSpan.style.animationDuration = '1s';
-        try {
-            const snap = await get(ref(db, 'users/' + user.uid));
-            if (snap.exists()) {
-                updateProfileUI(user.uid, snap.val());
-                notify("Profile Synced");
+        get(ref(db, 'users/' + user.uid)).then(s => {
+            if (s.exists()) {
+                const userData = s.val();
+                document.getElementById('openAuth').style.display = 'none';
+                document.getElementById('userDisplay').style.display = 'flex';
+                handleDailyTokens(user.uid, userData);
+                
+                // Initialize AI Chat once logged in
+                initChat(userData);
             }
-        } catch (e) { notify("Sync failed", "error"); }
-        setTimeout(() => { valueSpan.style.animationDuration = '6s'; }, 1000);
+            document.getElementById('main-loader').style.display = 'none';
+        });
+    } else { 
+        document.getElementById('main-loader').style.display = 'none'; 
     }
-};
+});
 
-// Main Auth Submission
+// Submit Logic
 document.getElementById('mainSubmitBtn').onclick = async () => {
     const email = document.getElementById('authEmail').value;
     const pass = document.getElementById('authPass').value;
@@ -84,18 +165,3 @@ document.getElementById('mainSubmitBtn').onclick = async () => {
         closeModal();
     } catch (e) { notify(e.message, "error"); }
 };
-
-onAuthStateChanged(auth, (user) => {
-    if (user) {
-        get(ref(db, 'users/' + user.uid)).then(s => {
-            if (s.exists()) {
-                document.getElementById('openAuth').style.display = 'none';
-                document.getElementById('userDisplay').style.display = 'flex';
-                handleDailyTokens(user.uid, s.val());
-            }
-            document.getElementById('main-loader').style.display = 'none';
-        });
-    } else { 
-        document.getElementById('main-loader').style.display = 'none'; 
-    }
-});
