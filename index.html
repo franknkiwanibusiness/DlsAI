@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DLS Value | Premium Football Stats</title>
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+ <link rel="stylesheet" href="styles.css" />
+ 
+</head>
+<body>
+
+    <header>
+        <div class="logo-container">
+            <svg class="football-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" stroke="url(#grad)" stroke-width="1.5"/>
+                <path d="M12 2C12 2 15 5.5 15 12C15 18.5 12 22 12 22" stroke="url(#grad)" stroke-width="1.5"/>
+                <path d="M12 2C12 2 9 5.5 9 12C9 18.5 12 22 12 22" stroke="url(#grad)" stroke-width="1.5"/>
+                <path d="M2.5 9H21.5" stroke="url(#grad)" stroke-width="1.5"/>
+                <path d="M2.5 15H21.5" stroke="url(#grad)" stroke-width="1.5"/>
+                <defs>
+                    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:var(--cyan)" />
+                        <stop offset="100%" style="stop-color:var(--pink)" />
+                    </linearGradient>
+                </defs>
+            </svg>
+            <span class="logo-text">DLS Value</span>
+        </div>
+
+        <div class="btn-wrapper">
+            <button class="login-trigger">Login</button>
+        </div>
+    </header>
+
+    <div class="ticker-wrap">
+        <div id="price-ticker" class="ticker-move">
+            <div class="ticker-item">SCAN A CARD TO START •</div>
+            <div class="ticker-item">MBAPPE: $--.-- •</div>
+            <div class="ticker-item">HAALAND: $--.-- •</div>
+        </div>
+    </div>
+
+    <main>
+        <h1 class="hero-title">NEXT GEN<br>STATS.</h1>
+        
+        <div class="glass-card">
+            <span class="card-tag">AI Market Vision</span>
+            <p class="sub-text">
+                Upload a screenshot of your DLS card. Gemini 2.5 will analyze the stats and update the global value.
+            </p>
+            
+            <input type="file" id="cardUpload" accept="image/*" style="display: none;">
+            
+            <button class="scan-btn" onclick="document.getElementById('cardUpload').click()">
+                Scan DLS Card
+            </button>
+            <p id="status" class="status-msg">Analyzing Card...</p>
+        </div>
+    </main>
+
+    <script>
+        const fileInput = document.getElementById('cardUpload');
+        const statusMsg = document.getElementById('status');
+
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            statusMsg.style.display = 'block';
+            statusMsg.innerText = "Processing Image...";
+
+            const reader = new FileReader();
+            reader.onloadend = async () => {
+                const base64String = reader.result.split(',')[1];
+
+                try {
+                    const response = await fetch('/api/analyze', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ imageBase64: base64String })
+                    });
+
+                    const result = await response.json();
+                    if (result.success) {
+                        statusMsg.innerText = `Successfully learned: ${result.learnedData.name} (${result.learnedData.rating})`;
+                        statusMsg.style.color = "#00ffff";
+                    }
+                } catch (err) {
+                    statusMsg.innerText = "Error: Check Vercel logs";
+                    statusMsg.style.color = "#ff00ff";
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Optional: Function to refresh prices from Firebase
+        async function fetchLivePrices() {
+            // Add your fetch logic here later to show prices on the ticker
+        }
+    </script>
+</body>
+</html>
