@@ -19,21 +19,22 @@
                 <path d="M2.5 15H21.5" stroke="url(#grad)" stroke-width="1.5"/>
                 <defs>
                     <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" style="stop-color:#00ffff" />
-                        <stop offset="100%" style="stop-color:#ff00ff" />
+                        <stop offset="0%" style="stop-color:var(--cyan)" />
+                        <stop offset="100%" style="stop-color:var(--pink)" />
                     </linearGradient>
                 </defs>
             </svg>
             <span class="logo-text">DLS Value</span>
         </div>
+
         <div class="btn-wrapper">
-            <div id="model-status" class="status-indicator">Gemini Active</div>
+            <button class="login-trigger">Login</button>
         </div>
     </header>
 
     <div class="ticker-wrap">
         <div id="price-ticker" class="ticker-move">
-            <div class="ticker-item">LOADING LIVE MARKET DATA... •</div>
+            <div class="ticker-item">CONNECTING TO MARKET DATA... •</div>
         </div>
     </div>
 
@@ -43,15 +44,15 @@
         <div class="glass-card">
             <span class="card-tag">AI Market Vision</span>
             <p class="sub-text">
-                Upload a squad screenshot. Our AI (Gemini 2.5/Gemma 3) will analyze the players and update the global market floor.
+                Upload a screenshot of your DLS card. Gemini 2.5 will analyze the stats and update the global value.
             </p>
             
             <input type="file" id="cardUpload" accept="image/*" style="display: none;">
             
             <button class="scan-btn" onclick="document.getElementById('cardUpload').click()">
-                Scan DLS Squad
+                Scan DLS Card
             </button>
-            <p id="status" class="status-msg" style="display:none;">Ready to scan...</p>
+            <p id="status" class="status-msg" style="display: none;">Analyzing Card...</p>
         </div>
     </main>
 
@@ -59,66 +60,53 @@
         const fileInput = document.getElementById('cardUpload');
         const statusMsg = document.getElementById('status');
         const ticker = document.getElementById('price-ticker');
-        const modelIndicator = document.getElementById('model-status');
 
-        // 1. Fetch Prices for the Ticker
-        async function updateTicker() {
+        // FUNCTION TO UPDATE TICKER FROM FIREBASE
+        async function loadPrices() {
             try {
-                const res = await fetch('/api/get-prices'); // This calls your Firebase read API
+                const res = await fetch('/api/get-prices');
                 const players = await res.json();
-                
                 if (players.length > 0) {
                     ticker.innerHTML = players.map(p => 
                         `<div class="ticker-item">${p.name.toUpperCase()}: $${p.current_worth} •</div>`
-                    ).join('') + ticker.innerHTML; // Keeps it looping
+                    ).join('');
                 }
-            } catch (err) {
-                console.error("Ticker update failed", err);
-            }
+            } catch (e) { console.log("Ticker offline"); }
         }
 
-        // 2. Handle Image Upload & AI Analysis
         fileInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
 
             statusMsg.style.display = 'block';
-            statusMsg.innerText = "Processing Image...";
-            statusMsg.style.color = "#fff";
+            statusMsg.innerText = "Scanning Squad...";
 
             const reader = new FileReader();
             reader.onloadend = async () => {
                 const base64String = reader.result.split(',')[1];
-
                 try {
                     const response = await fetch('/api/analyze', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ imageBase64: base64String })
                     });
-
                     const result = await response.json();
-                    
                     if (result.success) {
-                        statusMsg.innerText = `Scan Complete! Found ${result.playersFound} players.`;
+                        statusMsg.innerText = `Market Updated! Found ${result.playersFound} players.`;
                         statusMsg.style.color = "#00ffff";
-                        modelIndicator.innerText = `${result.activeBrain.includes('gemini') ? 'Gemini' : 'Gemma'} Active`;
-                        updateTicker(); // Refresh ticker with new prices
-                    } else {
-                        throw new Error(result.error);
+                        loadPrices(); // Refresh ticker
                     }
                 } catch (err) {
-                    statusMsg.innerText = "Limit Reached or Error. Try again in 24h.";
+                    statusMsg.innerText = "Scan Failed. Try smaller image.";
                     statusMsg.style.color = "#ff00ff";
                 }
             };
             reader.readAsDataURL(file);
         });
 
-        // Run ticker on load
-        updateTicker();
-        // Refresh ticker every 60 seconds
-        setInterval(updateTicker, 60000);
+        // Initial Load
+        loadPrices();
+        setInterval(loadPrices, 30000); // Update every 30s
     </script>
 </body>
 </html>
