@@ -1,84 +1,64 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import admin from "firebase-admin";
 
-// 1. Initialize Firebase
+// 1. IMPROVED FIREBASE INIT (Fixes the Decoder error)
 if (!admin.apps.length) {
-    admin.initializeApp({
-        credential: admin.credential.cert({
-            projectId: process.env.FIREBASE_PROJECT_ID,
-            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-            // Fixing the private key format for Vercel
-            privateKey: process.env.FIREBASE_PRIVATE_KEY ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n') : undefined,
-        })
-    });
+    try {
+        const privateKey = process.env.FIREBASE_PRIVATE_KEY 
+            ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/gm, '\n') 
+            : undefined;
+
+        admin.initializeApp({
+            credential: admin.credential.cert({
+                projectId: process.env.FIREBASE_PROJECT_ID,
+                clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+                privateKey: privateKey,
+            })
+        });
+    } catch (e) {
+        console.error("Firebase Init Error:", e.message);
+    }
 }
 
 const db = admin.firestore();
-
-// 2. Initialize Gemini with your SPECIFIC Key Name
-// We use process.env.GEMINI_API_KEY because that's what you set in Vercel
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 export default async function handler(req, res) {
-    if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+    if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
     
-    // Check if API key exists before running
-    if (!process.env.GEMINI_API_KEY) {
-        return res.status(500).json({ error: 'GEMINI_API_KEY is missing in Vercel settings' });
-    }
-
     const { imageBase64 } = req.body;
 
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+        // USE THE CORRECT 2026 MODEL NAME
+        const model = genAI.getGenerativeModel({ model: "gemma-3-12b-it" });
         
-        const prompt = "Analyze this DLS squad. Extract every player name and their current rating. Return ONLY a JSON array like this: [{\"n\": \"Mbappe\", \"r\": 98}]";
+        const prompt = "Extract DLS player names and ratings. Return ONLY JSON array: [{\"n\":\"Name\",\"r\":85}]";
         
-        const visionResult = await model.generateContent([
+        const result = await model.generateContent([
             prompt,
-            { inlineData: { data: imageBase64, mimeType: "image/png" } }
+            { inlineData: { data: imageBase64, mimeType: "image/jpeg" } }
         ]);
+
+        const text = result.response.text();
+        const match = text.match(/\[.*\]/s);
+        if (!match) throw new Error("AI did not return valid JSON");
         
-        // Clean the AI response (remove markdown ```json blocks if present)
-        const cleanJson = visionResult.response.text().replace(/```json|```/g, "").trim();
-        const players = JSON.parse(cleanJson);
+        const players = JSON.parse(match[0]);
 
-        // 3. Update Database with "Price Floor" Logic
-        for (const player of players) {
-            const docRef = db.collection("dlsvalueapi").doc(player.n);
-
-            await db.runTransaction(async (t) => {
-                const doc = await t.get(docRef);
-                
-                let totalPoints = player.r;
-                let scanCount = 1;
-
-                if (doc.exists) {
-                    const data = doc.data();
-                    totalPoints = (data.total_points || 0) + player.r;
-                    scanCount = (data.scan_count || 0) + 1;
-                }
-
-                const avgRating = totalPoints / scanCount;
-                let calculatedWorth = avgRating * 0.65; 
-
-                // HARD FLOOR: Price never goes under $45.00
-                const finalWorth = Math.max(calculatedWorth, 45.00).toFixed(2);
-
-                t.set(docRef, {
-                    total_points: totalPoints,
-                    scan_count: scanCount,
-                    avg_rating: avgRating.toFixed(1),
-                    current_worth: finalWorth,
-                    last_update: new Date().toISOString()
-                }, { merge: true });
-            });
-        }
+        const batch = db.batch();
+        players.forEach(p => {
+            const docRef = db.collection("dlsvalueapi").doc(p.n);
+            batch.set(docRef, { 
+                current_worth: Math.max(p.r * 0.65, 45).toFixed(2), 
+                updatedAt: new Date().toISOString() 
+            }, { merge: true });
+        });
+        await batch.commit();
 
         res.status(200).json({ success: true, playersFound: players.length });
 
     } catch (error) {
-        console.error("API Error:", error);
-        res.status(500).json({ error: "Analysis failed", details: error.message });
+        console.error("API Error Detail:", error.message);
+        res.status(500).json({ success: false, error: error.message });
     }
 }
