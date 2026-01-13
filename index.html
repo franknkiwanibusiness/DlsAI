@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>DLS Value | Premium Football Stats</title>
     <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
- <link rel="stylesheet" href="style.css" />
- 
+    <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
@@ -20,24 +19,21 @@
                 <path d="M2.5 15H21.5" stroke="url(#grad)" stroke-width="1.5"/>
                 <defs>
                     <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" style="stop-color:var(--cyan)" />
-                        <stop offset="100%" style="stop-color:var(--pink)" />
+                        <stop offset="0%" style="stop-color:#00ffff" />
+                        <stop offset="100%" style="stop-color:#ff00ff" />
                     </linearGradient>
                 </defs>
             </svg>
             <span class="logo-text">DLS Value</span>
         </div>
-
         <div class="btn-wrapper">
-            <button class="login-trigger">Login</button>
+            <div id="model-status" class="status-indicator">Gemini Active</div>
         </div>
     </header>
 
     <div class="ticker-wrap">
         <div id="price-ticker" class="ticker-move">
-            <div class="ticker-item">SCAN A CARD TO START •</div>
-            <div class="ticker-item">MBAPPE: $--.-- •</div>
-            <div class="ticker-item">HAALAND: $--.-- •</div>
+            <div class="ticker-item">LOADING LIVE MARKET DATA... •</div>
         </div>
     </div>
 
@@ -47,28 +43,48 @@
         <div class="glass-card">
             <span class="card-tag">AI Market Vision</span>
             <p class="sub-text">
-                Upload a screenshot of your DLS card. Gemini 2.5 will analyze the stats and update the global value.
+                Upload a squad screenshot. Our AI (Gemini 2.5/Gemma 3) will analyze the players and update the global market floor.
             </p>
             
             <input type="file" id="cardUpload" accept="image/*" style="display: none;">
             
             <button class="scan-btn" onclick="document.getElementById('cardUpload').click()">
-                Scan DLS Card
+                Scan DLS Squad
             </button>
-            <p id="status" class="status-msg">Analyzing Card...</p>
+            <p id="status" class="status-msg" style="display:none;">Ready to scan...</p>
         </div>
     </main>
 
     <script>
         const fileInput = document.getElementById('cardUpload');
         const statusMsg = document.getElementById('status');
+        const ticker = document.getElementById('price-ticker');
+        const modelIndicator = document.getElementById('model-status');
 
+        // 1. Fetch Prices for the Ticker
+        async function updateTicker() {
+            try {
+                const res = await fetch('/api/get-prices'); // This calls your Firebase read API
+                const players = await res.json();
+                
+                if (players.length > 0) {
+                    ticker.innerHTML = players.map(p => 
+                        `<div class="ticker-item">${p.name.toUpperCase()}: $${p.current_worth} •</div>`
+                    ).join('') + ticker.innerHTML; // Keeps it looping
+                }
+            } catch (err) {
+                console.error("Ticker update failed", err);
+            }
+        }
+
+        // 2. Handle Image Upload & AI Analysis
         fileInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
 
             statusMsg.style.display = 'block';
             statusMsg.innerText = "Processing Image...";
+            statusMsg.style.color = "#fff";
 
             const reader = new FileReader();
             reader.onloadend = async () => {
@@ -82,22 +98,27 @@
                     });
 
                     const result = await response.json();
+                    
                     if (result.success) {
-                        statusMsg.innerText = `Successfully learned: ${result.learnedData.name} (${result.learnedData.rating})`;
+                        statusMsg.innerText = `Scan Complete! Found ${result.playersFound} players.`;
                         statusMsg.style.color = "#00ffff";
+                        modelIndicator.innerText = `${result.activeBrain.includes('gemini') ? 'Gemini' : 'Gemma'} Active`;
+                        updateTicker(); // Refresh ticker with new prices
+                    } else {
+                        throw new Error(result.error);
                     }
                 } catch (err) {
-                    statusMsg.innerText = "Error: Check Vercel logs";
+                    statusMsg.innerText = "Limit Reached or Error. Try again in 24h.";
                     statusMsg.style.color = "#ff00ff";
                 }
             };
             reader.readAsDataURL(file);
         });
 
-        // Optional: Function to refresh prices from Firebase
-        async function fetchLivePrices() {
-            // Add your fetch logic here later to show prices on the ticker
-        }
+        // Run ticker on load
+        updateTicker();
+        // Refresh ticker every 60 seconds
+        setInterval(updateTicker, 60000);
     </script>
 </body>
 </html>
