@@ -1,7 +1,17 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import admin from "firebase-admin";
 
-// Firebase initialization remains same...
+// 1. GLOBAL INITIALIZATION
+if (!admin.apps.length) {
+    admin.initializeApp({
+        credential: admin.credential.cert({
+            projectId: process.env.FIREBASE_PROJECT_ID,
+            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+            privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/gm, '\n'),
+        })
+    });
+}
+const db = admin.firestore(); // Defined globally so it's accessible everywhere
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: "Method not allowed" });
@@ -9,8 +19,12 @@ export default async function handler(req, res) {
     const { imageBase64 } = req.body;
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     
-    // THE FALLBACK LIST: Try in this order
-    const modelsToTry = ["gemma-3-12b-it", "gemma-3-4b-it", "gemini-1.5-flash"];
+    // UPDATED 2026 MODEL LIST
+    const modelsToTry = [
+        "gemma-3-12b-it", 
+        "gemma-3-4b-it", 
+        "gemini-2.5-flash" // Replaced 1.5-flash with 2.5-flash
+    ];
     
     for (const modelId of modelsToTry) {
         try {
@@ -27,10 +41,10 @@ export default async function handler(req, res) {
             const responseText = result.response.text().replace(/```json|```/g, "").trim();
             const aiData = JSON.parse(responseText);
 
-            // SUCCESS: Save to DB and return
+            // Using the global 'db' variable
             await db.collection("valuations").add({
                 ...aiData,
-                modelUsed: modelId, // Track which model actually worked!
+                modelUsed: modelId,
                 timestamp: admin.firestore.FieldValue.serverTimestamp()
             });
 
@@ -38,11 +52,9 @@ export default async function handler(req, res) {
 
         } catch (error) {
             console.error(`${modelId} failed:`, error.message);
-            // If this was the last model, we give up and send an error
             if (modelId === modelsToTry[modelsToTry.length - 1]) {
-                return res.status(503).json({ error: "All AI models are busy. Please try again." });
+                return res.status(503).json({ error: "All AI engines are offline. Try again later." });
             }
-            // Otherwise, the 'continue' is implicit and it tries the next modelId in the loop
         }
     }
 }
