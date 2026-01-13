@@ -1,6 +1,5 @@
 import { auth, db } from './firebase-config.js';
 import { notify, updateProfileUI } from './ui-utils.js';
-import { ChatSection } from './sections/chat.js';
 import { 
     signInWithEmailAndPassword, 
     createUserWithEmailAndPassword, 
@@ -12,45 +11,50 @@ import { ref, set, get, update, increment } from "https://www.gstatic.com/fireba
 let isLoginMode = true;
 let chatHistory = [];
 
-// --- 1. CHAT CORE LOGIC ---
+// --- 1. NEAT CHAT LOGIC ---
 function initChat(userData) {
-    if (document.getElementById('chatModal')) return; // Prevent duplicates
-    
-    // Inject HTML
-    document.body.insertAdjacentHTML('beforeend', ChatSection);
-    
     const modal = document.getElementById('chatModal');
+    const chatBox = document.getElementById('chatBox');
     const closeBtn = document.getElementById('closeChatBtn');
     const chatForm = document.getElementById('chatForm');
     const container = document.getElementById('chatContainer');
     const chatInput = document.getElementById('chatInput');
 
-    // Find the "ASK DLS AI" button in your Hero
-    const askAiBtns = document.querySelectorAll('button');
-    const openBtn = Array.from(askAiBtns).find(b => b.innerText.includes('ASK DLS AI'));
+    // Select the button from your Hero Section
+    const openBtn = Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('ASK DLS AI'));
 
-    if (openBtn) {
-        openBtn.onclick = () => {
+    // Toggle with "Neat" Animation
+    const toggleModal = (show) => {
+        if (show) {
+            modal.classList.add('active'); // CSS should handle opacity/pointer-events
             modal.classList.remove('opacity-0', 'pointer-events-none');
-        };
-    }
-
-    closeBtn.onclick = () => {
-        modal.classList.add('opacity-0', 'pointer-events-none');
+            if(chatBox) chatBox.classList.remove('scale-95', 'translate-y-8');
+        } else {
+            modal.classList.remove('active');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            if(chatBox) chatBox.classList.add('scale-95', 'translate-y-8');
+        }
     };
 
+    if (openBtn) openBtn.onclick = () => toggleModal(true);
+    if (closeBtn) closeBtn.onclick = () => toggleModal(false);
+
+    // Close on outside click
+    modal.onclick = (e) => { if(e.target === modal) toggleModal(false); };
+
+    // Handle GROQ AI Chat
     chatForm.onsubmit = async (e) => {
         e.preventDefault();
         const text = chatInput.value.trim();
         if (!text) return;
 
-        // Add User Message
+        // User Side
         appendMessage('user', text);
         chatInput.value = '';
         chatHistory.push({ role: 'user', content: text });
 
-        // Add Thinking Bubble
-        const tempId = appendMessage('ai', 'Scanning Database...');
+        // AI "Thinking" state
+        const tempId = appendMessage('ai', 'Scanning DLS Database...');
 
         try {
             const response = await fetch('/api/aichat', {
@@ -63,7 +67,8 @@ function initChat(userData) {
             updateMessage(tempId, data.reply);
             chatHistory.push({ role: 'assistant', content: data.reply });
         } catch (err) {
-            updateMessage(tempId, "Connection lost. Check internet.");
+            updateMessage(tempId, "Connection lost. AI engine offline.");
+            notify("Chat Error", "error");
         }
     };
 
@@ -88,7 +93,7 @@ function initChat(userData) {
     }
 }
 
-// --- 2. EXISTING MODAL & AUTH LOGIC ---
+// --- 2. AUTH MODAL LOGIC ---
 const closeModal = () => document.getElementById('modalOverlay').classList.remove('active');
 document.getElementById('closeModalX').onclick = closeModal;
 document.getElementById('openAuth').onclick = () => document.getElementById('modalOverlay').classList.add('active');
@@ -103,7 +108,7 @@ document.getElementById('switchAuth').onclick = () => {
     document.getElementById('switchAuth').innerText = isLoginMode ? 'Need an account? Register' : 'Have an account? Login';
 };
 
-// --- 3. REVENUE & TOKEN SYSTEM ---
+// --- 3. REVENUE SYSTEM ---
 async function handleDailyTokens(uid, data) {
     const now = Date.now();
     const oneDay = 24 * 60 * 60 * 1000;
@@ -121,7 +126,25 @@ async function handleDailyTokens(uid, data) {
     }
 }
 
-// --- 4. AUTH STATE OBSERVER ---
+// --- 4. LOGO INTERACTION ---
+document.getElementById('logoTrigger').onclick = async () => {
+    if (navigator.vibrate) navigator.vibrate(10);
+    const user = auth.currentUser;
+    if (user) {
+        const valueSpan = document.querySelector('.logo-value');
+        valueSpan.style.animationDuration = '1s';
+        try {
+            const snap = await get(ref(db, 'users/' + user.uid));
+            if (snap.exists()) {
+                updateProfileUI(user.uid, snap.val());
+                notify("Profile Synced");
+            }
+        } catch (e) { notify("Sync failed", "error"); }
+        setTimeout(() => { valueSpan.style.animationDuration = '6s'; }, 1000);
+    }
+};
+
+// --- 5. AUTH OBSERVER ---
 onAuthStateChanged(auth, (user) => {
     if (user) {
         get(ref(db, 'users/' + user.uid)).then(s => {
@@ -131,7 +154,7 @@ onAuthStateChanged(auth, (user) => {
                 document.getElementById('userDisplay').style.display = 'flex';
                 handleDailyTokens(user.uid, userData);
                 
-                // Initialize AI Chat once logged in
+                // Initialize Chat listeners once logged in
                 initChat(userData);
             }
             document.getElementById('main-loader').style.display = 'none';
@@ -141,7 +164,7 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
-// Submit Logic
+// Auth Submit
 document.getElementById('mainSubmitBtn').onclick = async () => {
     const email = document.getElementById('authEmail').value;
     const pass = document.getElementById('authPass').value;
