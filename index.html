@@ -5,174 +5,229 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DLSVALUE | AI Account Valuation</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #000; color: #fff; }
+        body { font-family: 'Inter', sans-serif; background-color: #000; color: #fff; transition: background-color 0.8s ease; scroll-behavior: smooth; }
         .scan-line { position: absolute; width: 100%; height: 2px; background: #22c55e; box-shadow: 0 0 15px #22c55e; animation: scan 2s linear infinite; }
         @keyframes scan { 0% { top: 0%; opacity: 0; } 50% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
-        .terminal-line { margin-bottom: 2px; border-left: 2px solid #333; padding-left: 8px; }
+        @keyframes colorShift { 0%, 100% { color: #22c55e; } 25% { color: #a855f7; } 50% { color: #06b6d4; } 75% { color: #ef4444; } }
+        .valuation-text { animation: colorShift 4s infinite; }
         .hidden { display: none !important; }
+        .reveal { opacity: 0; transform: translateY(30px); transition: all 0.8s ease-out; }
+        .reveal.active { opacity: 1; transform: translateY(0); }
+        .avatar-option { transition: all 0.3s ease; border: 2px solid transparent; }
+        .avatar-option.selected { border-color: #22c55e; transform: scale(1.1); background: rgba(34, 197, 94, 0.2); }
     </style>
 </head>
 <body class="antialiased overflow-x-hidden">
 
-    <header class="sticky top-0 z-50 flex items-center justify-between px-5 py-3 bg-black/40 backdrop-blur-xl border-b border-white/10">
+    <header class="fixed top-0 w-full z-50 flex items-center justify-between px-5 py-3 bg-black/80 backdrop-blur-xl border-b border-white/10">
         <div class="text-xl font-black tracking-tighter uppercase italic">DLS<span class="text-green-500 italic-none">VALUE</span></div>
-        <div class="flex items-center gap-3">
-            <div id="userPointsDisplay" class="hidden text-[10px] font-bold text-green-500 bg-green-500/10 px-3 py-1 rounded-full border border-green-500/20">
-                POINTS: <span id="pointsVal">0</span>
+        <div class="flex items-center gap-4">
+            <button id="loginBtn" onclick="toggleModal('authModal')" class="px-5 py-1.5 rounded-full bg-white text-black text-[10px] font-bold tracking-widest uppercase hover:bg-gray-200 transition-all">Login</button>
+            <div id="userProfile" class="hidden flex items-center gap-3">
+                <div class="flex flex-col items-end">
+                    <span id="navUsername" class="text-[10px] font-black uppercase tracking-widest text-white">---</span>
+                    <span class="text-[9px] font-bold text-green-500 bg-green-500/10 px-2 rounded">PTS: <span id="navPoints">0</span></span>
+                </div>
+                <img id="navAvatar" onclick="firebase.auth().signOut()" class="w-8 h-8 rounded-full border border-white/20 cursor-pointer hover:border-red-500" src="">
             </div>
-            <button id="authBtn" class="px-4 py-1.5 rounded-full bg-white text-black text-[10px] font-bold tracking-widest uppercase">Login</button>
         </div>
     </header>
 
-    <div id="scanOverlay" class="fixed inset-0 z-[100] bg-black/95 backdrop-blur-2xl flex flex-col items-center justify-center p-6 hidden">
-        <div class="relative w-full max-w-xs aspect-video rounded-2xl overflow-hidden border border-white/10 mb-6 bg-zinc-900">
-            <img id="previewImg" class="w-full h-full object-cover opacity-60">
-            <div id="scannerBar" class="scan-line"></div>
-        </div>
-        <div class="w-full max-w-xs">
-            <div id="terminalContainer" class="bg-black/80 p-4 rounded-xl border border-white/5 font-mono text-[10px] text-gray-400 h-32 overflow-y-auto text-left mb-4">
-                <div id="terminalText"></div>
-            </div>
-            <button id="closeOverlay" class="hidden w-full py-3 bg-white/10 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest border border-white/10">Close Window</button>
-        </div>
-    </div>
-
-    <section class="relative w-full pt-24 pb-10 flex flex-col items-center justify-center text-center px-6 min-h-screen">
+    <section class="relative w-full min-h-screen flex flex-col items-center justify-center text-center px-6 overflow-hidden">
         <div class="absolute inset-0 z-0">
-            <img src="https://i.ytimg.com/vi/Agj4RwNLNfc/maxresdefault.jpg" class="w-full h-full object-cover opacity-30">
-            <div class="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent"></div>
+            <img src="https://i.ytimg.com/vi/Agj4RwNLNfc/maxresdefault.jpg" class="w-full h-full object-cover opacity-40 brightness-[0.4]">
+            <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/60"></div>
         </div>
-        
         <div class="relative z-10 max-w-sm">
-            <h1 class="text-5xl font-black tracking-tighter uppercase italic leading-none mb-4">AI SQUAD<br><span class="text-green-500">SCANNER</span></h1>
-            <p class="text-gray-400 text-xs mb-8">Requires 10 points per successful scan. Only DLS screenshots are accepted.</p>
-            
+            <div class="inline-block bg-green-500/20 text-green-400 text-[8px] font-bold px-3 py-1 rounded-full mb-4 border border-green-500/30 uppercase tracking-[0.3em]">NKIWANI VISION V1</div>
+            <h1 class="text-4xl font-black tracking-tighter mb-3 uppercase italic">SQUAD<span class="valuation-text">VALUATION</span></h1>
+            <p class="text-gray-300 text-[12px] mb-8 font-medium">Instant AI scanning for DLS accounts. Gemma-3 Powered.</p>
             <input type="file" id="fileInput" class="hidden" accept="image/*">
-            <button id="uploadBtn" class="w-full bg-white text-black font-black py-4 rounded-xl uppercase text-xs tracking-widest shadow-2xl active:scale-95 transition-all">Upload Squad</button>
-            <p id="authWarning" class="mt-4 text-[10px] text-red-500 font-bold uppercase tracking-widest">Login required to scan</p>
+            <div class="flex flex-col gap-2 w-full max-w-[260px] mx-auto">
+                <button id="uploadTrigger" class="bg-white text-black font-black py-4 rounded-xl uppercase text-[11px] tracking-widest active:scale-95 transition-all">Upload Squad</button>
+            </div>
         </div>
     </section>
 
+    <section id="about" data-bg="#0a0a0a" class="reveal relative w-full py-24 px-8 bg-[#0a0a0a]">
+        <div class="max-w-4xl mx-auto">
+            <h2 class="text-2xl font-black uppercase italic mb-6">WHY <span class="text-green-500">DLSVALUE?</span></h2>
+            <p class="text-gray-400 text-sm leading-relaxed">Our Market Intelligence Engine uses Gemma-3-12b to analyze player rarities and current trade market values in real-time.</p>
+        </div>
+    </section>
+
+    <div id="authModal" class="fixed inset-0 z-[110] bg-black/90 backdrop-blur-lg flex items-center justify-center p-6 hidden">
+        <div class="bg-zinc-900 border border-white/10 w-full max-w-sm rounded-3xl p-8">
+            <div class="flex justify-center gap-8 mb-8">
+                <button id="tabLogin" onclick="switchTab('login')" class="text-xs font-black uppercase tracking-widest text-white border-b-2 border-green-500 pb-1">Login</button>
+                <button id="tabRegister" onclick="switchTab('register')" class="text-xs font-black uppercase tracking-widest text-gray-500 pb-1">Register</button>
+            </div>
+            <form id="authForm" class="space-y-4">
+                <div id="usernameField" class="hidden">
+                    <input type="text" id="authUsername" placeholder="USERNAME" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-[11px] text-white">
+                </div>
+                <input type="email" id="authEmail" placeholder="EMAIL ADDRESS" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-[11px] text-white">
+                <input type="password" id="authPass" placeholder="PASSWORD" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-[11px] text-white">
+                
+                <div id="avatarSection" class="hidden space-y-3">
+                    <p class="text-[9px] font-bold text-center text-gray-500 tracking-widest uppercase">Select Profile Pic</p>
+                    <div class="flex justify-center gap-4">
+                        <img onclick="selectAvatar(this, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix')" class="avatar-option w-12 h-12 rounded-full cursor-pointer" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix">
+                        <img onclick="selectAvatar(this, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka')" class="avatar-option w-12 h-12 rounded-full cursor-pointer" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka">
+                        <img onclick="selectAvatar(this, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Max')" class="avatar-option w-12 h-12 rounded-full cursor-pointer" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Max">
+                    </div>
+                </div>
+                <button type="submit" id="authSubmit" class="w-full bg-green-500 text-black font-black py-4 rounded-xl uppercase text-[11px]">Sign In</button>
+                <button type="button" onclick="toggleModal('authModal')" class="w-full text-[10px] text-gray-500 uppercase font-bold">Cancel</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="scanOverlay" class="fixed inset-0 z-[100] bg-black/95 backdrop-blur-2xl flex flex-col items-center justify-center p-6 hidden">
+        <div class="relative w-full max-w-xs aspect-video rounded-2xl overflow-hidden border border-white/10 mb-6">
+            <img id="previewImg" class="w-full h-full object-cover opacity-60">
+            <div id="scannerLine" class="scan-line"></div>
+        </div>
+        <div id="terminal" class="w-full max-w-xs bg-black/50 p-4 rounded-xl border border-white/5 font-mono text-[10px] text-gray-400 h-32 overflow-y-auto mb-4"></div>
+        <button id="closeOverlay" onclick="location.reload()" class="hidden w-full max-w-xs py-3 bg-white text-black rounded-xl font-bold uppercase text-[10px]">Close Analysis</button>
+    </div>
+
     <script>
-        // --- 1. CONFIGURATION ---
+        // 1. FIREBASE INITIALIZATION
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT.firebaseapp.com",
-            databaseURL: "https://YOUR_PROJECT.firebaseio.com",
-            projectId: "YOUR_PROJECT",
-            storageBucket: "YOUR_PROJECT.appspot.com",
-            messagingSenderId: "YOUR_ID",
-            appId: "YOUR_APP_ID"
+            apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
+            authDomain: "itzhoyoo-f9f7e.firebaseapp.com",
+            projectId: "itzhoyoo-f9f7e",
+            databaseURL: "https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com", // Ensure this matches your RTDB URL
+            storageBucket: "itzhoyoo-f9f7e.filestorage.app",
+            messagingSenderId: "1094792075584",
+            appId: "1:1094792075584:web:d49e9c3f899d3cd31082a5"
         };
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.database();
 
-        // --- 2. AUTH LOGIC ---
-        document.getElementById('authBtn').addEventListener('click', () => {
-            if (auth.currentUser) { auth.signOut(); } 
-            else { 
-                const provider = new firebase.auth.GoogleAuthProvider();
-                auth.signInWithPopup(provider);
-            }
-        });
+        let currentTab = 'login';
+        let selectedAvatarUrl = 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix';
+
+        // 2. AUTH FUNCTIONS
+        window.toggleModal = (id) => document.getElementById(id).classList.toggle('hidden');
+
+        window.switchTab = (tab) => {
+            currentTab = tab;
+            const isReg = tab === 'register';
+            document.getElementById('usernameField').classList.toggle('hidden', !isReg);
+            document.getElementById('avatarSection').classList.toggle('hidden', !isReg);
+            document.getElementById('authSubmit').innerText = isReg ? 'Create Account' : 'Sign In';
+            
+            // UI Toggle
+            document.getElementById('tabRegister').classList.toggle('text-white', isReg);
+            document.getElementById('tabRegister').classList.toggle('border-b-2', isReg);
+            document.getElementById('tabRegister').classList.toggle('text-gray-500', !isReg);
+            
+            document.getElementById('tabLogin').classList.toggle('text-white', !isReg);
+            document.getElementById('tabLogin').classList.toggle('border-b-2', !isReg);
+            document.getElementById('tabLogin').classList.toggle('text-gray-500', isReg);
+        };
+
+        window.selectAvatar = (el, url) => {
+            document.querySelectorAll('.avatar-option').forEach(img => img.classList.remove('selected'));
+            el.classList.add('selected');
+            selectedAvatarUrl = url;
+        };
+
+        document.getElementById('authForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('authEmail').value;
+            const pass = document.getElementById('authPass').value;
+            const username = document.getElementById('authUsername').value;
+
+            try {
+                if (currentTab === 'register') {
+                    const cred = await auth.createUserWithEmailAndPassword(email, pass);
+                    await db.ref(`users/${cred.user.uid}`).set({ 
+                        username: username, 
+                        photo: selectedAvatarUrl, 
+                        points: 50 
+                    });
+                } else {
+                    await auth.signInWithEmailAndPassword(email, pass);
+                }
+                toggleModal('authModal');
+            } catch (err) { alert(err.message); }
+        };
 
         auth.onAuthStateChanged(user => {
-            const btn = document.getElementById('authBtn');
-            const warning = document.getElementById('authWarning');
-            const pointsDisplay = document.getElementById('userPointsDisplay');
-            
             if (user) {
-                btn.innerText = "Logout";
-                warning.classList.add('hidden');
-                pointsDisplay.classList.remove('hidden');
-                // Sync Points
-                db.ref(`users/${user.uid}/points`).on('value', snap => {
-                    document.getElementById('pointsVal').innerText = snap.val() || 0;
+                document.getElementById('loginBtn').classList.add('hidden');
+                document.getElementById('userProfile').classList.remove('hidden');
+                db.ref(`users/${user.uid}`).on('value', snap => {
+                    const data = snap.val();
+                    if (data) {
+                        document.getElementById('navUsername').innerText = data.username;
+                        document.getElementById('navPoints').innerText = data.points;
+                        document.getElementById('navAvatar').src = data.photo;
+                    }
                 });
             } else {
-                btn.innerText = "Login";
-                warning.classList.remove('hidden');
-                pointsDisplay.classList.add('hidden');
+                document.getElementById('loginBtn').classList.remove('hidden');
+                document.getElementById('userProfile').classList.add('hidden');
             }
         });
 
-        // --- 3. TERMINAL SYSTEM ---
-        function log(msg, type = 'info') {
-            const term = document.getElementById('terminalText');
-            const colors = { info: 'text-gray-400', error: 'text-red-500 font-bold', success: 'text-green-500 font-bold' };
-            const div = document.createElement('div');
-            div.className = `terminal-line ${colors[type]}`;
-            div.innerHTML = `> ${msg}`;
-            term.appendChild(div);
-            document.getElementById('terminalContainer').scrollTop = term.scrollHeight;
-        }
+        // 3. SCANNER LOGIC
+        const log = (m, c='text-gray-400') => {
+            const p = document.createElement('p'); p.className = c; p.innerText = `> ${m}`;
+            const t = document.getElementById('terminal'); t.appendChild(p); t.scrollTop = t.scrollHeight;
+        };
 
-        // --- 4. PROCESSING ---
-        document.getElementById('uploadBtn').addEventListener('click', () => {
-            if (!auth.currentUser) return alert("Please login first!");
+        document.getElementById('uploadTrigger').onclick = () => {
+            if (!auth.currentUser) return toggleModal('authModal');
             document.getElementById('fileInput').click();
-        });
+        };
 
-        document.getElementById('fileInput').addEventListener('change', async (e) => {
+        document.getElementById('fileInput').onchange = (e) => {
             const file = e.target.files[0];
             if (!file) return;
-
-            // Reset UI
-            document.getElementById('terminalText').innerHTML = "";
             document.getElementById('scanOverlay').classList.remove('hidden');
-            document.getElementById('closeOverlay').classList.add('hidden');
-            document.getElementById('scannerBar').classList.remove('hidden');
             document.getElementById('previewImg').src = URL.createObjectURL(file);
-
+            document.getElementById('terminal').innerHTML = "";
             log("Initializing Neural Pipeline...");
-            log("User ID: " + auth.currentUser.uid.substring(0,8) + "...");
 
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = async () => {
-                const base64 = reader.result.split(',')[1];
-                
                 try {
-                    log("Uploading to Gemma-3-12b-it Uplink...");
-                    log("Analyzing DLS visual patterns...");
-                    
+                    log("Uploading to Gemma-3-12b-it...");
                     const res = await fetch('/api/analyze', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ imageBase64: base64, userId: auth.currentUser.uid })
+                        body: JSON.stringify({ imageBase64: reader.result.split(',')[1], userId: auth.currentUser.uid })
                     });
-
                     const data = await res.json();
-
-                    if (!res.ok) {
-                        log(data.message || "Uplink Failed", "error");
-                        document.getElementById('scannerBar').classList.add('hidden');
-                    } else {
-                        log("Success! Visual Data Parsed.", "success");
-                        log("Model Used: " + data.modelUsed);
-                        log("-------------------------");
-                        log(`VALUE FOUND: $${data.value}`, "success");
-                        log(`GOLD CARDS: ${data.legendary}`);
-                        log(`BLUE CARDS: ${data.rare}`);
-                        log("10 POINTS DEDUCTED.", "success");
-                        document.getElementById('scannerBar').classList.add('hidden');
-                    }
-                } catch (err) {
-                    log("Critical Uplink Error: " + err.message, "error");
-                }
+                    if (!res.ok) throw new Error(data.message);
+                    log("Success!", "text-green-500");
+                    log(`Legendary: ${data.legendary} | Rare: ${data.rare}`);
+                    log(`Total Value: $${data.value}`, "text-green-500");
+                } catch (err) { log(`Error: ${err.message}`, "text-red-500"); }
+                document.getElementById('scannerLine').classList.add('hidden');
                 document.getElementById('closeOverlay').classList.remove('hidden');
             };
-        });
+        };
 
-        document.getElementById('closeOverlay').addEventListener('click', () => {
-            document.getElementById('scanOverlay').classList.add('hidden');
-        });
+        // Scroll reveals
+        const observer = new IntersectionObserver(entries => {
+            entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('active'); document.body.style.backgroundColor = e.target.dataset.bg || '#000'; }});
+        }, { threshold: 0.1 });
+        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
     </script>
 </body>
 </html>
