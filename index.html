@@ -1,17 +1,90 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DLSVALUE | AI Account Valuation</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DLS App</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+ <link rel="stylesheet" href="styles.css" />
+
 </head>
-<body class="antialiased overflow-x-hidden bg-black text-white">
+<body>
 
-    <div id="app"></div>
+    <header>
+        <div class="text-logo" id="logoTrigger">
+    <span class="logo-dls">DLS</span><span class="logo-value">VALUE</span>
+</div>
+    
+        <div id="authHeaderArea">
+            <div class="btn-wrapper" id="openAuth"><button class="login-trigger">Login</button></div>
+            <div class="user-profile-head" id="userDisplay" style="display: none; align-items: center; gap: 12px; cursor: pointer;">
+                <div style="text-align: right;">
+                    <span id="headerUsername" style="font-weight: 800; font-size: 0.85rem; display: block; margin-bottom: 2px;"></span>
+                    <div class="token-pill">
+                        <span id="tokenBalance" style="font-size: 0.7rem; font-weight: 600; color: var(--cyan);">0</span>
+                    </div>
+                </div>
+                <img id="headerAvatar" src="" style="width: 38px; height: 38px; border-radius: 10px; border: 1px solid var(--glass-border);">
+            </div>
+        </div>
+    </header>
 
-    <script type="module" src="script.js"></script>
+    <div id="toast-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 10px;"></div>
+
+    <div id="profileModal" class="profile-modal">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+            <div id="closeProfile" style="font-size: 1.5rem; cursor: pointer;">&larr;</div>
+            <div id="logoutBtn" style="color: #ff4444; font-size: 0.8rem; font-weight: 600; cursor: pointer;">Logout</div>
+        </div>
+
+        <div style="text-align: center; margin-bottom: 30px;">
+            <img id="modalLargeAvatar" src="" style="width: 80px; height: 80px; border-radius: 20px; margin-bottom: 12px; border: 1px solid #222;">
+            <h2 id="modalFullUser" style="letter-spacing: -0.5px;">@username</h2>
+            <div id="accountTier" style="margin-top: 5px;"></div>
+        </div>
+
+        <h3 style="font-size: 0.7rem; color: #444; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px;">Account Usage</h3>
+        <div style="background: #0a0a0a; padding: 20px; border-radius: 16px; border: 1px solid #1a1a1a; margin-bottom: 30px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.85rem;">
+                <span>Daily Tokens</span>
+                <span id="usageText" style="font-weight: 800;">0 / 50</span>
+            </div>
+            <div style="width: 100%; height: 6px; background: #1a1a1a; border-radius: 3px; overflow: hidden;">
+                <div id="usageBar" style="width: 0%; height: 100%; background: var(--cyan); transition: 0.5s;"></div>
+            </div>
+        </div>
+
+        <h3 style="font-size: 0.7rem; color: #444; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px;">Saved Links</h3>
+        <div id="linksContainer">
+            <p style="color: #222; font-size: 0.8rem; text-align: center; margin-top: 20px;">No links saved yet.</p>
+        </div>
+
+        <div id="premiumUpsell" style="margin-top: auto; padding: 20px; background: linear-gradient(to bottom, #111, #000); border-radius: 20px; border: 1px solid #d4af3733; text-align: center;">
+            <h4 style="color: #d4af37; margin-bottom: 5px;">Go Premium</h4>
+            <p style="font-size: 0.75rem; color: #666; margin-bottom: 15px;">Get 250 daily tokens & priority access.</p>
+            <button style="width: 100%; padding: 12px; background: #d4af37; border: none; border-radius: 12px; font-weight: 800; color: #000;">$4.99 / MONTHLY</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-card">
+            <button class="modal-close-x" id="closeModalX">&times;</button>
+            <h2 id="modalTitle">Welcome Back</h2>
+            <div class="reg-only" id="regFields" style="margin-top: 20px;">
+                <div class="avatar-selection">
+                    <label class="avatar-option"><input type="radio" name="pfp" value="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRY-dw0IBfaPuAREbw56qbkWGpH2CEJCU6IuWjwJCkYXw&s=10" checked><img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRY-dw0IBfaPuAREbw56qbkWGpH2CEJCU6IuWjwJCkYXw&s=10" class="avatar-img"></label>
+                    <label class="avatar-option"><input type="radio" name="pfp" value="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR2meqn8ZTEDrwmq_U7r12Ts1JC7_d9ttWIb2nW_k54b5DYQj8_5vsrMgj2&s=10"><img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR2meqn8ZTEDrwmq_U7r12Ts1JC7_d9ttWIb2nW_k54b5DYQj8_5vsrMgj2&s=10" class="avatar-img"></label>
+                </div>
+                <div class="input-group"><label>Username</label><input type="text" id="regUsername" placeholder="handle"></div>
+            </div>
+            <div class="input-group" style="margin-top: 15px;"><label>Email</label><input type="email" id="authEmail"></div>
+            <div class="input-group"><label>Password</label><input type="password" id="authPass"></div>
+            <div class="btn-wrapper" style="width: 100%; height: 45px;"><button class="login-trigger" id="mainSubmitBtn">Continue</button></div>
+            <p class="toggle-text" style="margin-top:20px; font-size:0.8rem"><span id="switchAuth">Register</span></p>
+        </div>
+    </div>
+
+  <script type="module" src="./script.js"></script>
+
 </body>
 </html>
