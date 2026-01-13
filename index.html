@@ -5,16 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DLSVALUE | AI Account Valuation</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #000; color: #fff; transition: background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
-        .scan-line { position: absolute; width: 100%; height: 2px; background: linear-gradient(to right, transparent, #22c55e, transparent); box-shadow: 0 0 15px #22c55e; animation: scan 2s linear infinite; }
+        body { font-family: 'Inter', sans-serif; background-color: #000; color: #fff; }
+        .scan-line { position: absolute; width: 100%; height: 2px; background: #22c55e; box-shadow: 0 0 15px #22c55e; animation: scan 2s linear infinite; }
         @keyframes scan { 0% { top: 0%; opacity: 0; } 50% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
-        @keyframes scroll-ping-pong { 0% { transform: translateX(0); } 100% { transform: translateX(calc(-100% + 100vw)); } }
-        .animate-infinite-scroll { display: flex; width: max-content; animation: scroll-ping-pong 15s ease-in-out infinite alternate; }
-        .reveal { opacity: 0; transform: translateY(20px); transition: all 0.6s ease-out; }
-        .reveal.active { opacity: 1; transform: translateY(0); }
+        .terminal-line { margin-bottom: 2px; border-left: 2px solid #333; padding-left: 8px; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body class="antialiased overflow-x-hidden">
@@ -22,120 +22,157 @@
     <header class="sticky top-0 z-50 flex items-center justify-between px-5 py-3 bg-black/40 backdrop-blur-xl border-b border-white/10">
         <div class="text-xl font-black tracking-tighter uppercase italic">DLS<span class="text-green-500 italic-none">VALUE</span></div>
         <div class="flex items-center gap-3">
-            <div id="statusIndicator" class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10">
-                <div id="statusDot" class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
-                <span id="statusText" class="text-[9px] font-bold uppercase tracking-widest text-white/70">Online</span>
+            <div id="userPointsDisplay" class="hidden text-[10px] font-bold text-green-500 bg-green-500/10 px-3 py-1 rounded-full border border-green-500/20">
+                POINTS: <span id="pointsVal">0</span>
             </div>
-            <button class="px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-[10px] font-bold tracking-widest uppercase">Login</button>
+            <button id="authBtn" class="px-4 py-1.5 rounded-full bg-white text-black text-[10px] font-bold tracking-widest uppercase">Login</button>
         </div>
     </header>
 
     <div id="scanOverlay" class="fixed inset-0 z-[100] bg-black/95 backdrop-blur-2xl flex flex-col items-center justify-center p-6 hidden">
         <div class="relative w-full max-w-xs aspect-video rounded-2xl overflow-hidden border border-white/10 mb-6 bg-zinc-900">
             <img id="previewImg" class="w-full h-full object-cover opacity-60">
-            <div class="scan-line"></div>
+            <div id="scannerBar" class="scan-line"></div>
         </div>
-        <div class="w-full max-w-xs text-center">
-            <h3 class="text-xs font-black uppercase tracking-[0.3em] text-green-500 mb-2">Analyzing Squad</h3>
-            <div id="terminalContainer" class="bg-black/50 p-4 rounded-xl border border-white/5 font-mono text-[10px] text-gray-400 h-24 overflow-y-auto text-left">
-                <p id="terminalText" class="leading-relaxed">> Initializing Gemma-3-12b...</p>
+        <div class="w-full max-w-xs">
+            <div id="terminalContainer" class="bg-black/80 p-4 rounded-xl border border-white/5 font-mono text-[10px] text-gray-400 h-32 overflow-y-auto text-left mb-4">
+                <div id="terminalText"></div>
             </div>
+            <button id="closeOverlay" class="hidden w-full py-3 bg-white/10 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest border border-white/10">Close Window</button>
         </div>
     </div>
 
-    <section class="relative w-full pt-16 pb-10 flex flex-col items-center justify-center text-center px-6 overflow-hidden">
+    <section class="relative w-full pt-24 pb-10 flex flex-col items-center justify-center text-center px-6 min-h-screen">
         <div class="absolute inset-0 z-0">
-            <img src="https://i.ytimg.com/vi/Agj4RwNLNfc/maxresdefault.jpg" class="w-full h-full object-cover opacity-50 brightness-[0.4] contrast-[1.1]">
-            <div class="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
+            <img src="https://i.ytimg.com/vi/Agj4RwNLNfc/maxresdefault.jpg" class="w-full h-full object-cover opacity-30">
+            <div class="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent"></div>
         </div>
+        
         <div class="relative z-10 max-w-sm">
-            <div class="inline-block bg-green-500/20 backdrop-blur-md text-green-400 text-[8px] font-bold px-3 py-1 rounded-full mb-4 border border-green-500/30 uppercase tracking-[0.3em]">NKIWANI VISION V1</div>
-            <h1 class="text-4xl font-black tracking-tighter leading-none mb-3 uppercase italic leading-tight">SQUAD<br><span class="text-green-500">VALUATION</span></h1>
-            <p class="text-gray-300 text-[12px] mb-8 leading-tight font-medium">Upload your team management screen for 14k daily free scans.</p>
+            <h1 class="text-5xl font-black tracking-tighter uppercase italic leading-none mb-4">AI SQUAD<br><span class="text-green-500">SCANNER</span></h1>
+            <p class="text-gray-400 text-xs mb-8">Requires 10 points per successful scan. Only DLS screenshots are accepted.</p>
             
-            <input type="file" id="fileInput" class="hidden" accept="image/*" onchange="processImage(event)">
-            <div class="flex flex-col gap-2 w-full max-w-[260px] mx-auto">
-                <button id="uploadBtn" onclick="document.getElementById('fileInput').click()" class="bg-white text-black font-black py-4 rounded-xl uppercase text-[11px] tracking-widest shadow-xl active:scale-95 transition-all">Upload Squad</button>
-                <button class="bg-black/40 backdrop-blur-md border border-white/20 text-white font-bold py-4 rounded-xl uppercase text-[11px] tracking-widest">Global Rankings</button>
-            </div>
+            <input type="file" id="fileInput" class="hidden" accept="image/*">
+            <button id="uploadBtn" class="w-full bg-white text-black font-black py-4 rounded-xl uppercase text-xs tracking-widest shadow-2xl active:scale-95 transition-all">Upload Squad</button>
+            <p id="authWarning" class="mt-4 text-[10px] text-red-500 font-bold uppercase tracking-widest">Login required to scan</p>
         </div>
     </section>
 
     <script>
-        // 1. ONLINE/OFFLINE CHECKER
-        function updateStatus() {
-            const dot = document.getElementById('statusDot');
-            const text = document.getElementById('statusText');
-            const btn = document.getElementById('uploadBtn');
-            
-            if (navigator.onLine) {
-                dot.className = "w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse";
-                text.innerText = "Online";
-                text.className = "text-[9px] font-bold uppercase tracking-widest text-green-500/80";
-                btn.disabled = false;
-                btn.style.opacity = "1";
-            } else {
-                dot.className = "w-1.5 h-1.5 rounded-full bg-red-500";
-                text.innerText = "Offline";
-                text.className = "text-[9px] font-bold uppercase tracking-widest text-red-500/80";
-                btn.disabled = true;
-                btn.style.opacity = "0.5";
-            }
-        }
-        window.addEventListener('online', updateStatus);
-        window.addEventListener('offline', updateStatus);
-        updateStatus();
+        // --- 1. CONFIGURATION ---
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT.firebaseapp.com",
+            databaseURL: "https://YOUR_PROJECT.firebaseio.com",
+            projectId: "YOUR_PROJECT",
+            storageBucket: "YOUR_PROJECT.appspot.com",
+            messagingSenderId: "YOUR_ID",
+            appId: "YOUR_APP_ID"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.database();
 
-        // 2. LIVE AI LOGIC
-        async function processImage(event) {
-            const file = event.target.files[0];
+        // --- 2. AUTH LOGIC ---
+        document.getElementById('authBtn').addEventListener('click', () => {
+            if (auth.currentUser) { auth.signOut(); } 
+            else { 
+                const provider = new firebase.auth.GoogleAuthProvider();
+                auth.signInWithPopup(provider);
+            }
+        });
+
+        auth.onAuthStateChanged(user => {
+            const btn = document.getElementById('authBtn');
+            const warning = document.getElementById('authWarning');
+            const pointsDisplay = document.getElementById('userPointsDisplay');
+            
+            if (user) {
+                btn.innerText = "Logout";
+                warning.classList.add('hidden');
+                pointsDisplay.classList.remove('hidden');
+                // Sync Points
+                db.ref(`users/${user.uid}/points`).on('value', snap => {
+                    document.getElementById('pointsVal').innerText = snap.val() || 0;
+                });
+            } else {
+                btn.innerText = "Login";
+                warning.classList.remove('hidden');
+                pointsDisplay.classList.add('hidden');
+            }
+        });
+
+        // --- 3. TERMINAL SYSTEM ---
+        function log(msg, type = 'info') {
+            const term = document.getElementById('terminalText');
+            const colors = { info: 'text-gray-400', error: 'text-red-500 font-bold', success: 'text-green-500 font-bold' };
+            const div = document.createElement('div');
+            div.className = `terminal-line ${colors[type]}`;
+            div.innerHTML = `> ${msg}`;
+            term.appendChild(div);
+            document.getElementById('terminalContainer').scrollTop = term.scrollHeight;
+        }
+
+        // --- 4. PROCESSING ---
+        document.getElementById('uploadBtn').addEventListener('click', () => {
+            if (!auth.currentUser) return alert("Please login first!");
+            document.getElementById('fileInput').click();
+        });
+
+        document.getElementById('fileInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
             if (!file) return;
 
-            const overlay = document.getElementById('scanOverlay');
-            const terminal = document.getElementById('terminalText');
-            const preview = document.getElementById('previewImg');
+            // Reset UI
+            document.getElementById('terminalText').innerHTML = "";
+            document.getElementById('scanOverlay').classList.remove('hidden');
+            document.getElementById('closeOverlay').classList.add('hidden');
+            document.getElementById('scannerBar').classList.remove('hidden');
+            document.getElementById('previewImg').src = URL.createObjectURL(file);
 
-            overlay.classList.remove('hidden');
-            preview.src = URL.createObjectURL(file);
-            terminal.innerHTML = "> Reading file data...";
+            log("Initializing Neural Pipeline...");
+            log("User ID: " + auth.currentUser.uid.substring(0,8) + "...");
 
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = async () => {
-                const base64Image = reader.result.split(',')[1];
+                const base64 = reader.result.split(',')[1];
                 
                 try {
-                    terminal.innerHTML += "<br>> Sending to Gemma-3-12b...";
+                    log("Uploading to Gemma-3-12b-it Uplink...");
+                    log("Analyzing DLS visual patterns...");
                     
-                    const response = await fetch('/api/analyze', {
+                    const res = await fetch('/api/analyze', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            imageBase64: base64Image, // FIXED: Changed 'image' to 'imageBase64'
-                            mimeType: file.type 
-                        })
+                        body: JSON.stringify({ imageBase64: base64, userId: auth.currentUser.uid })
                     });
 
-                    if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
-                    
-                    const data = await response.json();
+                    const data = await res.json();
 
-                    if (data.value !== undefined) {
-                        terminal.innerHTML += `<br>> Success! Value: $${data.value}`;
-                        terminal.innerHTML += `<br>> Legendary: ${data.legendary} | Rare: ${data.rare}`;
-                        
-                        setTimeout(() => {
-                            overlay.classList.add('hidden');
-                            alert(`VALUATION COMPLETE\nTotal Value: $${data.value}\nLegendaries: ${data.legendary}\nRares: ${data.rare}`);
-                        }, 2500);
+                    if (!res.ok) {
+                        log(data.message || "Uplink Failed", "error");
+                        document.getElementById('scannerBar').classList.add('hidden');
+                    } else {
+                        log("Success! Visual Data Parsed.", "success");
+                        log("Model Used: " + data.modelUsed);
+                        log("-------------------------");
+                        log(`VALUE FOUND: $${data.value}`, "success");
+                        log(`GOLD CARDS: ${data.legendary}`);
+                        log(`BLUE CARDS: ${data.rare}`);
+                        log("10 POINTS DEDUCTED.", "success");
+                        document.getElementById('scannerBar').classList.add('hidden');
                     }
                 } catch (err) {
-                    terminal.innerHTML += `<br>> ERROR: ${err.message}`;
-                    terminal.innerHTML += "<br>> Checking Vercel Uplink...";
-                    setTimeout(() => overlay.classList.add('hidden'), 5000);
+                    log("Critical Uplink Error: " + err.message, "error");
                 }
+                document.getElementById('closeOverlay').classList.remove('hidden');
             };
-        }
+        });
+
+        document.getElementById('closeOverlay').addEventListener('click', () => {
+            document.getElementById('scanOverlay').classList.add('hidden');
+        });
     </script>
 </body>
 </html>
