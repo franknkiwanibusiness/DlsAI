@@ -1,78 +1,185 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DLS App</title>
-    <link rel="stylesheet" href="style.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DLSVALUE | AI Account Valuation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #000; 
+            color: #fff; 
+            transition: background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+
+        /* Laser Scan Animation */
+        @keyframes scan {
+            0% { top: 0%; opacity: 0; }
+            50% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+        .scan-line {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(to right, transparent, #22c55e, transparent);
+            box-shadow: 0 0 15px #22c55e;
+            animation: scan 2s linear infinite;
+        }
+
+        /* Ping-Pong Scroll Animation */
+        @keyframes scroll-ping-pong {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(calc(-100% + 100vw)); }
+        }
+        .animate-infinite-scroll {
+            display: flex;
+            width: max-content;
+            animation: scroll-ping-pong 15s ease-in-out infinite alternate;
+        }
+
+        @keyframes colorShift {
+            0%, 100% { color: #22c55e; }
+            50% { color: #06b6d4; }
+        }
+        .valuation-text { animation: colorShift 4s infinite; }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s ease-out;
+        }
+        .reveal.active { opacity: 1; transform: translateY(0); }
+    </style>
 </head>
-<body>
+<body class="antialiased overflow-x-hidden">
 
-    <div id="main-loader">
-        <div class="sk-card">
-            <div class="sk-header"><div class="sk-avatar"><div class="shimmer"></div></div><div class="sk-name"><div class="shimmer"></div></div></div>
-            <div class="sk-media"><div class="shimmer"></div></div>
-        </div>
-        <div class="sk-card">
-            <div class="sk-header"><div class="sk-avatar"><div class="shimmer"></div></div><div class="sk-name"><div class="shimmer"></div></div></div>
-            <div class="sk-media" style="height: 150px;"><div class="shimmer"></div></div>
-        </div>
-    </div>
-
-    <header>
-        <img src="https://i.imgur.com/ko1awGI.png" alt="Logo" class="app-logo">
-        <div id="authHeaderArea">
-            <div class="btn-wrapper" id="openAuth">
-                <button class="login-trigger">Login</button>
-            </div>
-            
-            <div class="user-profile-head" id="userDisplay" style="display: none;">
-                <div class="user-info-stack">
-                    <span id="headerUsername"></span>
-                    <div class="stat-line">
-                        <span id="tokenDisplay">0 Tokens</span>
-                        <span id="tierTag" class="tier-tag">Free</span>
-                    </div>
-                </div>
-                <img id="headerAvatar" src="" alt="Avatar">
-            </div>
-        </div>
+    <header class="sticky top-0 z-50 flex items-center justify-between px-5 py-3 bg-black/40 backdrop-blur-xl border-b border-white/10">
+        <div class="text-xl font-black tracking-tighter uppercase italic">DLS<span class="text-green-500 italic-none">VALUE</span></div>
+        <button class="px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-[10px] font-bold tracking-widest uppercase">Login</button>
     </header>
 
-    <div class="modal-overlay" id="modalOverlay">
-        <div class="modal-card">
-            <button class="modal-close-x" id="closeModalX">&times;</button>
-            <h2 id="modalTitle">Welcome Back</h2>
-            <p id="modalSub">DLS Authentication</p>
-
-            <div class="reg-only" id="regFields" style="display: none;">
-                <div class="avatar-selection">
-                    <label class="avatar-option">
-                        <input type="radio" name="pfp" value="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRY-dw0IBfaPuAREbw56qbkWGpH2CEJCU6IuWjwJCkYXw&s=10" checked>
-                        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRY-dw0IBfaPuAREbw56qbkWGpH2CEJCU6IuWjwJCkYXw&s=10" class="avatar-img">
-                    </label>
-                    <label class="avatar-option">
-                        <input type="radio" name="pfp" value="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR2meqn8ZTEDrwmq_U7r12Ts1JC7_d9ttWIb2nW_k54b5DYQj8_5vsrMgj2&s=10">
-                        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR2meqn8ZTEDrwmq_U7r12Ts1JC7_d9ttWIb2nW_k54b5DYQj8_5vsrMgj2&s=10" class="avatar-img">
-                    </label>
-                    <label class="avatar-option">
-                        <input type="radio" name="pfp" value="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRcALF9jD7yktea7PTGRdKmnH_l22iMeofmGs5sWbWPKb_vMtBUBIAvWew&s=10">
-                        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRcALF9jD7yktea7PTGRdKmnH_l22iMeofmGs5sWbWPKb_vMtBUBIAvWew&s=10" class="avatar-img">
-                    </label>
-                </div>
-                <div class="input-group"><label>Unique Username</label><input type="text" id="regUsername" placeholder="@handle"></div>
+    <div id="scanOverlay" class="fixed inset-0 z-[100] bg-black/95 backdrop-blur-2xl flex flex-col items-center justify-center p-6 hidden">
+        <div class="relative w-full max-w-xs aspect-video rounded-2xl overflow-hidden border border-white/10 mb-6 bg-zinc-900">
+            <img id="previewImg" class="w-full h-full object-cover opacity-60">
+            <div class="scan-line"></div>
+        </div>
+        <div class="w-full max-w-xs text-center">
+            <h3 class="text-xs font-black uppercase tracking-[0.3em] text-green-500 mb-2">Analyzing Squad</h3>
+            <div class="bg-black/50 p-4 rounded-xl border border-white/5 font-mono text-[10px] text-gray-400 h-24 overflow-hidden text-left">
+                <p id="terminalText" class="leading-relaxed">> Awaiting file...</p>
             </div>
-
-            <div class="input-group"><label>Email</label><input type="email" id="authEmail"></div>
-            <div class="input-group"><label>Password</label><input type="password" id="authPass"></div>
-
-            <div class="btn-wrapper" style="width: 100%; height: 45px; margin-top: 10px;">
-                <button class="login-trigger" id="mainSubmitBtn">Continue</button>
-            </div>
-            <p class="toggle-text"><span id="switchAuth">Need an account? Register</span></p>
         </div>
     </div>
 
-    <script type="module" src="script.js"></script>
+    <section class="relative w-full pt-16 pb-10 flex flex-col items-center justify-center text-center px-6 overflow-hidden">
+        <div class="absolute inset-0 z-0">
+            <img src="https://i.ytimg.com/vi/Agj4RwNLNfc/maxresdefault.jpg" class="w-full h-full object-cover opacity-50 brightness-[0.4] contrast-[1.1]">
+            <div class="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
+        </div>
+
+        <div class="relative z-10 max-w-sm">
+            <div class="inline-block bg-green-500/20 backdrop-blur-md text-green-400 text-[8px] font-bold px-3 py-1 rounded-full mb-4 border border-green-500/30 uppercase tracking-[0.3em]">NKIWANI VISION V1</div>
+            <h1 class="text-4xl font-black tracking-tighter leading-none mb-3 uppercase italic">SQUAD<span class="valuation-text">VALUE</span></h1>
+            <p class="text-gray-300 text-[12px] mb-8 leading-tight font-medium">Upload your team management screen for an instant AI valuation.</p>
+            
+            <input type="file" id="fileInput" class="hidden" accept="image/*" onchange="processImage(event)">
+            <div class="flex flex-col gap-2 w-full max-w-[260px] mx-auto">
+                <button onclick="document.getElementById('fileInput').click()" class="bg-white text-black font-black py-4 rounded-xl uppercase text-[11px] tracking-widest shadow-xl active:scale-95 transition-all">Upload Squad</button>
+                <button class="bg-black/40 backdrop-blur-md border border-white/20 text-white font-bold py-4 rounded-xl uppercase text-[11px] tracking-widest">Global Rankings</button>
+            </div>
+        </div>
+    </section>
+
+    <div class="py-2.5 bg-zinc-950 border-y border-white/5 overflow-hidden">
+        <div class="animate-infinite-scroll flex gap-4 px-4">
+            <div class="flex items-center gap-2 px-4 py-1 rounded-lg bg-white/5 border border-white/5 whitespace-nowrap">
+                <span class="text-green-500 material-icons text-[12px]">check_circle</span>
+                <span class="text-[9px] font-bold text-white/50 uppercase">Gemini 3 Flash Active</span>
+            </div>
+            <div class="flex items-center gap-2 px-4 py-1 rounded-lg bg-white/5 border border-white/5 whitespace-nowrap">
+                <span class="text-blue-500 material-icons text-[12px]">security</span>
+                <span class="text-[9px] font-bold text-white/50 uppercase">Firestore Secure</span>
+            </div>
+        </div>
+    </div>
+
+    <section class="py-10 px-6 reveal border-b border-white/5" data-bg="#0b0b1a">
+        <h2 class="text-[10px] font-black uppercase tracking-[0.4em] text-white/30 mb-6 text-center italic">Top Valued Accounts</h2>
+        </section>
+
+    <script>
+        // Background Color Switcher
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                    if (entry.target.dataset.bg) document.body.style.backgroundColor = entry.target.dataset.bg;
+                }
+            });
+        }, { threshold: 0.3 });
+
+        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+        // RESET BG
+        window.addEventListener('scroll', () => {
+            if (window.scrollY < 100) document.body.style.backgroundColor = "#000000";
+        });
+
+        // LIVE AI LOGIC
+        async function processImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const overlay = document.getElementById('scanOverlay');
+            const terminal = document.getElementById('terminalText');
+            const preview = document.getElementById('previewImg');
+
+            // 1. Show UI
+            overlay.classList.remove('hidden');
+            preview.src = URL.createObjectURL(file);
+            terminal.innerHTML = "> Reading file data...";
+
+            // 2. Base64 Conversion
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = async () => {
+                const base64Image = reader.result.split(',')[1];
+                
+                try {
+                    terminal.innerHTML += "<br>> Sending to Vercel Analyze...";
+                    
+                    const response = await fetch('/api/analyze', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            image: base64Image, 
+                            mimeType: file.type 
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.value) {
+                        terminal.innerHTML += `<br>> Success! Value: $${data.value}`;
+                        terminal.innerHTML += `<br>> Legendary: ${data.legendary} | Rare: ${data.rare}`;
+                        
+                        setTimeout(() => {
+                            overlay.classList.add('hidden');
+                            alert(`VALUATION COMPLETE\nTotal Value: $${data.value}\nLegendaries: ${data.legendary}`);
+                        }, 2000);
+                    }
+                } catch (err) {
+                    terminal.innerHTML += "<br>> ERROR: AI Uplink Failed.";
+                }
+            };
+        }
+    </script>
 </body>
 </html>
