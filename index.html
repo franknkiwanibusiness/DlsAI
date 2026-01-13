@@ -3,215 +3,237 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DLS Value | Premium Football Stats</title>
-    <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <title>DLS App</title>
     <style>
-        /* --- VARIABLES --- */
         :root {
             --bg-pure: #000000;
-            --glass-bg: rgba(10, 10, 10, 0.75);
-            --glass-border: rgba(255, 255, 255, 0.12);
+            --glass-bg: rgba(15, 15, 15, 0.8);
+            --glass-border: rgba(255, 255, 255, 0.1);
             --pink: #ff00ff;
             --cyan: #00ffff;
-            --text-main: #ffffff;
-            --text-dim: #a0a0a0;
+            --text: #ffffff;
+            --skeleton: #111;
         }
 
-        /* --- RESET --- */
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background-color: var(--bg-pure); color: var(--text); overflow-x: hidden; }
 
-        body {
-            background-color: var(--bg-pure);
-            color: var(--text-main);
-            overflow-x: hidden;
-            -webkit-font-smoothing: antialiased;
-            min-height: 100vh;
+        /* --- SKELETON LOADER --- */
+        #main-loader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-pure); z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.5s ease;
         }
-
-        /* --- MODERN BACKGROUND --- */
-        .bg-image {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(0,0,0,0.9)), 
-                        url('https://m.media-amazon.com/images/I/812o88N7NQL._AC_UF1000,1000_QL80_.jpg');
-            background-size: cover;
-            background-position: center;
-            z-index: -1;
-            filter: saturate(1.2) brightness(0.8);
+        .skeleton-logo {
+            width: 80px; height: 80px; background: var(--skeleton);
+            border-radius: 20px; position: relative; overflow: hidden;
         }
+        .shimmer {
+            position: absolute; top: 0; left: -150%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+            animation: shimmer 1.5s infinite;
+        }
+        @keyframes shimmer { 100% { left: 150%; } }
 
         /* --- HEADER --- */
         header {
             position: fixed; top: 0; width: 100%; height: 65px; z-index: 100;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            background: rgba(0, 0, 0, 0.3); backdrop-filter: blur(15px);
             border-bottom: 1px solid var(--glass-border);
             display: flex; align-items: center; justify-content: space-between; padding: 0 5%;
         }
+        .app-logo { height: 45px; width: auto; }
 
-        .logo-container { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-        .football-icon { width: 30px; height: 30px; transform: rotate(-15deg); filter: drop-shadow(0 0 8px var(--cyan)); }
-        .logo-text {
-            font-family: 'Pacifico', cursive; font-size: 1.4rem;
-            background: linear-gradient(45deg, var(--cyan), var(--pink));
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        }
-
-        /* --- LIVE TICKER --- */
-        .ticker-wrap {
-            position: fixed; top: 65px; width: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            border-bottom: 1px solid var(--glass-border);
-            overflow: hidden; height: 35px; display: flex; align-items: center; z-index: 99;
-        }
-        .ticker-move { display: flex; white-space: nowrap; animation: ticker 40s linear infinite; }
-        .ticker-item { padding: 0 30px; font-size: 13px; color: var(--cyan); font-weight: 700; text-transform: uppercase; }
-        @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-
-        /* --- MAIN --- */
-        main { padding: 160px 20px 60px; display: flex; flex-direction: column; align-items: center; text-align: center; }
-        .hero-title {
-            font-size: clamp(3rem, 12vw, 7rem); font-weight: 800; line-height: 0.85; margin-bottom: 10px;
-            background: linear-gradient(to bottom, #fff 40%, rgba(255,255,255,0.2) 100%);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -2px;
-        }
-
-        .glass-card {
-            margin-top: 30px; background: var(--glass-bg); border: 1px solid var(--glass-border);
-            padding: 40px 30px; border-radius: 32px; max-width: 450px; width: 100%;
-            backdrop-filter: blur(12px); box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-        }
-
-        .card-tag { 
-            display: inline-block; padding: 6px 12px; border-radius: 20px; 
-            background: rgba(255,0,255,0.2); color: var(--pink); font-size: 10px; 
-            font-weight: 800; text-transform: uppercase; margin-bottom: 15px;
-        }
-
-        .sub-text { font-size: 14px; color: var(--text-dim); line-height: 1.6; }
-
-        /* --- BUTTONS --- */
-        .scan-btn {
-            margin-top: 25px; width: 100%; height: 55px; border-radius: 20px;
-            background: linear-gradient(90deg, var(--cyan), var(--pink));
-            color: white; border: none; font-weight: 800; font-size: 14px;
-            text-transform: uppercase; cursor: pointer; transition: 0.3s;
-        }
-        .scan-btn:hover { transform: scale(1.02); filter: brightness(1.1); }
-
-        .status-msg { margin-top: 15px; font-size: 12px; font-weight: 600; color: var(--cyan); }
-
+        /* --- AUTH DISPLAY --- */
+        .user-profile-head { display: none; align-items: center; gap: 12px; }
+        .user-profile-head img { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--cyan); }
+        
+        .btn-wrapper { position: relative; width: 110px; height: 36px; padding: 1.5px; border-radius: 18px; overflow: hidden; cursor: pointer; }
+        .btn-wrapper::before { content: ''; position: absolute; width: 300%; height: 300%; background: conic-gradient(transparent 0deg, var(--pink) 30deg, transparent 90deg, transparent 180deg, var(--cyan) 210deg, transparent 270deg); animation: rotate 3s linear infinite; top: -100%; left: -100%; }
         @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .login-trigger { position: relative; z-index: 1; width: 100%; height: 100%; background: var(--glass-bg); color: white; border: none; border-radius: 17px; font-weight: 600; font-size: 11px; cursor: pointer; }
+
+        /* --- MODAL --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.9); backdrop-filter: blur(12px);
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transition: 0.4s ease; z-index: 1000;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: all; }
+        .modal-card {
+            background: #0a0a0a; border: 1px solid var(--glass-border);
+            padding: 40px 30px; border-radius: 28px; width: 90%; max-width: 400px;
+            text-align: center; position: relative;
+        }
+        .modal-close-x {
+            position: absolute; top: 20px; right: 20px; background: none; border: none;
+            color: #444; font-size: 24px; cursor: pointer; transition: 0.3s;
+        }
+        .modal-close-x:hover { color: #fff; }
+
+        /* Avatar Picker styles (same as before) */
+        .avatar-selection { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; }
+        .avatar-option input { display: none; }
+        .avatar-img { width: 60px; height: 60px; border-radius: 50%; filter: grayscale(1); border: 2px solid transparent; transition: 0.3s; }
+        .avatar-option input:checked + .avatar-img { filter: grayscale(0); border-color: var(--pink); transform: scale(1.1); }
+
+        .input-group { margin-bottom: 15px; text-align: left; }
+        .input-group label { display: block; font-size: 0.7rem; color: #555; margin-bottom: 5px; }
+        .input-group input { width: 100%; background: #111; border: 1px solid #222; padding: 12px; border-radius: 12px; color: white; outline: none; }
+        
+        .reg-only { display: none; }
+        .toggle-text span { color: var(--cyan); cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <div class="bg-image"></div>
+    <div id="main-loader">
+        <div class="skeleton-logo"><div class="shimmer"></div></div>
+        <p style="margin-top: 20px; color: #444; font-size: 0.8rem; letter-spacing: 2px;">INITIALIZING</p>
+    </div>
 
     <header>
-        <div class="logo-container">
-            <svg class="football-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="12" cy="12" r="10" stroke="url(#grad)" stroke-width="1.5"/>
-                <path d="M12 2C12 2 15 5.5 15 12C15 18.5 12 22 12 22" stroke="url(#grad)" stroke-width="1.5"/>
-                <path d="M12 2C12 2 9 5.5 9 12C9 18.5 12 22 12 22" stroke="url(#grad)" stroke-width="1.5"/>
-                <path d="M2.5 9H21.5" stroke="url(#grad)" stroke-width="1.5"/>
-                <path d="M2.5 15H21.5" stroke="url(#grad)" stroke-width="1.5"/>
-                <defs>
-                    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" style="stop-color:var(--cyan)" />
-                        <stop offset="100%" style="stop-color:var(--pink)" />
-                    </linearGradient>
-                </defs>
-            </svg>
-            <span class="logo-text">DLS Value</span>
+        <img src="https://i.imgur.com/ko1awGI.png" alt="Logo" class="app-logo">
+        <div id="authHeaderArea">
+            <div class="btn-wrapper" id="openAuth">
+                <button class="login-trigger">Login</button>
+            </div>
+            <div class="user-profile-head" id="userDisplay">
+                <span id="headerUsername"></span>
+                <img id="headerAvatar" src="" alt="Avatar">
+            </div>
         </div>
     </header>
 
-    <div class="ticker-wrap">
-        <div id="price-ticker" class="ticker-move">
-            <div class="ticker-item">READY FOR SCAN • UPLOAD SQUAD SCREENSHOT •</div>
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-card">
+            <button class="modal-close-x" id="closeModalX">&times;</button>
+            <h2 id="modalTitle">Welcome Back</h2>
+            <p id="modalSub" style="color: #444; margin-bottom: 25px; font-size: 0.9rem;">DLS Authentication</p>
+
+            <div class="reg-only" id="regFields">
+                <div class="avatar-selection">
+                    <label class="avatar-option">
+                        <input type="radio" name="pfp" value="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRY-dw0IBfaPuAREbw56qbkWGpH2CEJCU6IuWjwJCkYXw&s=10" checked>
+                        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRY-dw0IBfaPuAREbw56qbkWGpH2CEJCU6IuWjwJCkYXw&s=10" class="avatar-img">
+                    </label>
+                    <label class="avatar-option">
+                        <input type="radio" name="pfp" value="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR2meqn8ZTEDrwmq_U7r12Ts1JC7_d9ttWIb2nW_k54b5DYQj8_5vsrMgj2&s=10">
+                        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR2meqn8ZTEDrwmq_U7r12Ts1JC7_d9ttWIb2nW_k54b5DYQj8_5vsrMgj2&s=10" class="avatar-img">
+                    </label>
+                    <label class="avatar-option">
+                        <input type="radio" name="pfp" value="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRcALF9jD7yktea7PTGRdKmnH_l22iMeofmGs5sWbWPKb_vMtBUBIAvWew&s=10">
+                        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRcALF9jD7yktea7PTGRdKmnH_l22iMeofmGs5sWbWPKb_vMtBUBIAvWew&s=10" class="avatar-img">
+                    </label>
+                </div>
+                <div class="input-group">
+                    <label>Unique Username</label>
+                    <input type="text" id="regUsername" placeholder="handle">
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>Email</label>
+                <input type="email" id="authEmail">
+            </div>
+            <div class="input-group">
+                <label>Password</label>
+                <input type="password" id="authPass">
+            </div>
+
+            <div class="btn-wrapper" style="width: 100%; height: 45px;">
+                <button class="login-trigger" id="mainSubmitBtn">Continue</button>
+            </div>
+
+            <p class="toggle-text" style="margin-top:20px; font-size:0.8rem">
+                <span id="switchAuth">Need an account? Register</span>
+            </p>
         </div>
     </div>
 
-    <main>
-        <h1 class="hero-title">SCAN.<br>VALUE.</h1>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
+            authDomain: "itzhoyoo-f9f7e.firebaseapp.com",
+            projectId: "itzhoyoo-f9f7e",
+            databaseURL: "https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com",
+            storageBucket: "itzhoyoo-f9f7e.filestorage.app",
+            messagingSenderId: "1094792075584",
+            appId: "1:1094792075584:web:d49e9c3f899d3cd31082a5"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+
+        let isLoginMode = true;
+        const loader = document.getElementById('main-loader');
+
+        // Close logic
+        const closeModal = () => document.getElementById('modalOverlay').classList.remove('active');
+        document.getElementById('closeModalX').onclick = closeModal;
+
+        document.getElementById('openAuth').onclick = () => document.getElementById('modalOverlay').classList.add('active');
         
-        <div class="glass-card">
-            <span class="card-tag">Gemma 3 Vision</span>
-            <p class="sub-text">
-                Identify players instantly. Our AI analyzes stats to give you current market worth.
-            </p>
-            
-            <input type="file" id="cardUpload" accept="image/*" style="display: none;">
-            
-            <button class="scan-btn" onclick="document.getElementById('cardUpload').click()">
-                Scan DLS Squad
-            </button>
-            <p id="status" class="status-msg" style="display: none;">Ready...</p>
-        </div>
-    </main>
+        document.getElementById('switchAuth').onclick = () => {
+            isLoginMode = !isLoginMode;
+            document.getElementById('regFields').style.display = isLoginMode ? 'none' : 'block';
+            document.getElementById('modalTitle').innerText = isLoginMode ? 'Welcome Back' : 'Create Account';
+            document.getElementById('switchAuth').innerText = isLoginMode ? 'Need an account? Register' : 'Have an account? Login';
+        };
 
-    <script>
-        const fileInput = document.getElementById('cardUpload');
-        const statusMsg = document.getElementById('status');
-        const ticker = document.getElementById('price-ticker');
+        document.getElementById('mainSubmitBtn').onclick = async () => {
+            const email = document.getElementById('authEmail').value;
+            const pass = document.getElementById('authPass').value;
 
-        fileInput.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
+            if (isLoginMode) {
+                signInWithEmailAndPassword(auth, email, pass).catch(err => alert(err.message));
+            } else {
+                const username = document.getElementById('regUsername').value.toLowerCase();
+                const avatar = document.querySelector('input[name="pfp"]:checked').value;
+                if(!username) return alert("Username required");
 
-            statusMsg.style.display = 'block';
-            statusMsg.innerText = "Analyzing Squad...";
+                const snapshot = await get(ref(db, 'usernames/' + username));
+                if (snapshot.exists()) return alert("Username taken");
 
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const img = new Image();
-                img.src = event.target.result;
-                img.onload = async () => {
-                    const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 1000; 
-                    let width = img.width;
-                    let height = img.height;
+                createUserWithEmailAndPassword(auth, email, pass)
+                    .then((userCredential) => {
+                        const uid = userCredential.user.uid;
+                        set(ref(db, 'users/' + uid), { username, avatar });
+                        set(ref(db, 'usernames/' + username), uid);
+                    }).catch(err => alert(err.message));
+            }
+        };
 
-                    if (width > MAX_WIDTH) {
-                        height *= MAX_WIDTH / width;
-                        width = MAX_WIDTH;
+        // Handle State & Loader
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                get(ref(db, 'users/' + user.uid)).then((snapshot) => {
+                    if (snapshot.exists()) {
+                        const data = snapshot.val();
+                        document.getElementById('openAuth').style.display = 'none';
+                        document.getElementById('userDisplay').style.display = 'flex';
+                        document.getElementById('headerUsername').innerText = data.username;
+                        document.getElementById('headerAvatar').src = data.avatar;
                     }
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-
-                    const base64String = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
-
-                    try {
-                        const response = await fetch('/api/analyze', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ imageBase64: base64String })
-                        });
-
-                        const result = await response.json();
-                        
-                        if (result.success) {
-                            statusMsg.innerText = `Found ${result.playersFound} players.`;
-                            
-                            const marketData = result.players.map(p => 
-                                `<div class="ticker-item">${p.n.toUpperCase()}: $${(p.r * 0.65).toFixed(2)} •</div>`
-                            ).join('');
-                            
-                            ticker.innerHTML = marketData + marketData; // Double for infinite scroll
-                        } else {
-                            statusMsg.innerText = "Error: " + result.error;
-                        }
-                    } catch (err) {
-                        statusMsg.innerText = "Connection Error.";
-                    }
-                };
-            };
-            reader.readAsDataURL(file);
+                    hideLoader();
+                });
+                closeModal();
+            } else {
+                hideLoader();
+            }
         });
+
+        function hideLoader() {
+            loader.style.opacity = '0';
+            setTimeout(() => loader.style.display = 'none', 500);
+        }
     </script>
 </body>
 </html>
