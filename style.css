@@ -1,104 +1,133 @@
-       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+:root {
+            --bg-pure: #000000;
+            --glass-bg: rgba(15, 15, 15, 0.8);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --pink: #ff00ff;
+            --cyan: #00ffff;
+            --text: #ffffff;
+            --skeleton: #111;
+        }
+
+        * { 
+            margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; 
+            -webkit-user-select: none; -ms-user-select: none; user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
         
-        body { 
-            font-family: 'Inter', sans-serif; 
-            background-color: #000; 
-            color: #fff; 
-            transition: background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        body { background-color: var(--bg-pure); color: var(--text); overflow-x: hidden; }
+
+        /* --- HEADER & TOKENS --- */
+        header {
+            position: fixed; top: 0; width: 100%; height: 65px; z-index: 100;
+            background: rgba(0, 0, 0, 0.3); backdrop-filter: blur(15px);
+            border-bottom: 1px solid var(--glass-border);
+            display: flex; align-items: center; justify-content: space-between; padding: 0 5%;
+        }
+        
+        .token-pill {
+            display: flex; align-items: center; gap: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 4px 10px; border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        /* --- SKELETON LOADER --- */
+        #main-loader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-pure); z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.5s ease;
+        }
+        .skeleton-logo { width: 80px; height: 80px; background: var(--skeleton); border-radius: 20px; position: relative; overflow: hidden; }
+        .shimmer { position: absolute; top: 0; left: -150%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent); animation: shimmer 1.5s infinite; }
+        @keyframes shimmer { 100% { left: 150%; } }
 
-        /* Ping-Pong Scroll Animation (Left to Right and Back) */
-        @keyframes scroll-ping-pong {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(calc(-100% + 100vw)); }
+        /* --- LOGO --- */
+        .text-logo { font-weight: 800; font-size: 1.4rem; letter-spacing: -0.5px; text-transform: uppercase; }
+        
+        /* --- PROFILE MODAL --- */
+        .profile-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 2000;
+            display: none; flex-direction: column; padding: 30px; overflow-y: auto;
         }
-        .animate-infinite-scroll {
-            display: flex;
-            width: max-content;
-            animation: scroll-ping-pong 15s ease-in-out infinite alternate;
+        .profile-modal.active { display: flex; }
+        .premium-badge {
+            background: linear-gradient(45deg, #d4af37, #f9f295);
+            color: #000; padding: 2px 8px; border-radius: 4px;
+            font-size: 0.65rem; font-weight: 800; text-transform: uppercase;
+        }
+        .link-card {
+            background: #0a0a0a; border: 1px solid #1a1a1a;
+            padding: 15px; border-radius: 12px; margin-bottom: 10px;
+            display: flex; justify-content: space-between; align-items: center;
         }
 
-        /* Color Shifting Valuation Text */
-        @keyframes colorShift {
-            0%, 100% { color: #22c55e; } /* Green */
-            25% { color: #a855f7; }    /* Purple */
-            50% { color: #06b6d4; }    /* Cyan */
-            75% { color: #ef4444; }    /* Red */
+        /* --- MODALS & INPUTS --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.9); backdrop-filter: blur(12px);
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transition: 0.4s ease; z-index: 1000;
         }
-        .valuation-text {
-            animation: colorShift 4s infinite;
-        }
+        .modal-overlay.active { opacity: 1; pointer-events: all; }
+        .modal-card { background: #0a0a0a; border: 1px solid var(--glass-border); padding: 40px 30px; border-radius: 28px; width: 90%; max-width: 400px; text-align: center; position: relative; }
+        .avatar-selection { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; }
+        .avatar-option input { display: none; }
+        .avatar-img { width: 60px; height: 60px; border-radius: 50%; filter: grayscale(1); border: 2px solid transparent; transition: 0.3s; }
+        .avatar-option input:checked + .avatar-img { filter: grayscale(0); border-color: var(--pink); transform: scale(1.1); }
+        .input-group { margin-bottom: 15px; text-align: left; }
+        .input-group label { display: block; font-size: 0.7rem; color: #555; margin-bottom: 5px; }
+        .input-group input { width: 100%; background: #111; border: 1px solid #222; padding: 12px; border-radius: 12px; color: white; outline: none; -webkit-user-select: text; user-select: text; }
+        
+        .btn-wrapper { position: relative; width: 110px; height: 36px; padding: 1.5px; border-radius: 18px; overflow: hidden; cursor: pointer; }
+        .btn-wrapper::before { content: ''; position: absolute; width: 300%; height: 300%; background: conic-gradient(transparent 0deg, var(--pink) 30deg, transparent 90deg, transparent 180deg, var(--cyan) 210deg, transparent 270deg); animation: rotate 3s linear infinite; top: -100%; left: -100%; }
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .login-trigger { position: relative; z-index: 1; width: 100%; height: 100%; background: var(--glass-bg); color: white; border: none; border-radius: 17px; font-weight: 600; font-size: 11px; cursor: pointer; }
 
-        .reveal {
-            opacity: 0;
-            transform: translateY(20px);
-            transition: all 0.6s ease-out;
-        }
-        .reveal.active {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        /* --- LOGIN BUTTON GLOW ENGINE --- */
-.btn-wrapper { 
-    position: relative; 
-    width: 100px; /* Adjust size to fit header */
-    height: 34px; 
-    padding: 1.5px; 
-    border-radius: 17px; 
-    overflow: hidden; 
-    cursor: pointer; 
+        .toast { background: rgba(15, 15, 15, 0.9); backdrop-filter: blur(10px); border: 1px solid var(--glass-border); color: white; padding: 12px 20px; border-radius: 12px; font-size: 0.85rem; position: relative; animation: slideIn 0.3s ease forwards; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+.text-logo {
+    font-weight: 800;
+    font-size: 1.5rem;
+    letter-spacing: -1.2px;
     display: flex;
     align-items: center;
-    justify-content: center;
+    cursor: pointer;
+    user-select: none;
 }
 
-/* The spinning gradient light */
-.btn-wrapper::before { 
-    content: ''; 
-    position: absolute; 
-    width: 300%; 
-    height: 300%; 
-    background: conic-gradient(
-        transparent 0deg, 
-        #ff00ff 30deg, /* Pink */
-        transparent 90deg, 
-        transparent 180deg, 
-        #00ffff 210deg, /* Cyan */
-        transparent 270deg
-    ); 
-    animation: rotate-glow 3s linear infinite; 
-    top: -100%; 
-    left: -100%; 
+.logo-dls {
+    color: #ffffff;
+    margin-right: 2px;
 }
 
-@keyframes rotate-glow { 
-    from { transform: rotate(0deg); } 
-    to { transform: rotate(360deg); } 
+.logo-value {
+    /* Multi-color metallic gradient */
+    background: linear-gradient(
+        90deg, 
+        #00ffff, /* Cyan */
+        #ff00ff, /* Pink */
+        #ffffff, /* White Shine */
+        #00ffff, /* Loop back to Cyan */
+        #ff00ff
+    );
+    background-size: 300% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    
+    /* The Animation */
+    animation: liquidFlow 6s linear infinite;
+    filter: drop-shadow(0 0 2px rgba(255,255,255,0.1));
 }
 
-/* The button surface sitting on top of the glow */
-.login-trigger { 
-    position: relative; 
-    z-index: 1; 
-    width: 100%; 
-    height: 100%; 
-    background: #000; /* Pure black center */
-    color: white; 
-    border: none; 
-    border-radius: 16px; 
-    font-weight: 800; 
-    font-size: 10px; 
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    cursor: pointer; 
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.3s;
+@keyframes liquidFlow {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 300% 50%; }
 }
 
-.login-trigger:hover {
-    background: rgba(255, 255, 255, 0.1);
+/* Tactile feedback when pressing the logo */
+.text-logo:active {
+    transform: scale(0.95);
+    transition: 0.1s;
 }
