@@ -20,9 +20,12 @@ let isLoginMode = true;
 const loader = document.getElementById('main-loader');
 const modal = document.getElementById('modalOverlay');
 
-// --- UI EVENT LISTENERS ---
+// UI Controls
+const openAuthBtn = document.getElementById('openAuth');
+const userDisplay = document.getElementById('userDisplay');
+
 document.getElementById('closeModalX').onclick = () => modal.classList.remove('active');
-document.getElementById('openAuth').onclick = () => modal.classList.add('active');
+openAuthBtn.onclick = () => modal.classList.add('active');
 
 document.getElementById('switchAuth').onclick = () => {
     isLoginMode = !isLoginMode;
@@ -31,59 +34,46 @@ document.getElementById('switchAuth').onclick = () => {
     document.getElementById('switchAuth').innerText = isLoginMode ? 'Need an account? Register' : 'Have an account? Login';
 };
 
-// --- AUTH SUBMISSION ---
+// Authentication Submission
 document.getElementById('mainSubmitBtn').onclick = async () => {
     const email = document.getElementById('authEmail').value;
     const pass = document.getElementById('authPass').value;
 
     if (isLoginMode) {
-        signInWithEmailAndPassword(auth, email, pass)
-            .then(() => modal.classList.remove('active'))
-            .catch(err => alert(err.message));
+        signInWithEmailAndPassword(auth, email, pass).catch(err => alert(err.message));
     } else {
         const username = document.getElementById('regUsername').value.toLowerCase().trim().replace(/\s+/g, '');
         const avatar = document.querySelector('input[name="pfp"]:checked').value;
-        
         if(username.length < 3) return alert("Username too short");
 
         try {
             const snapshot = await get(ref(db, 'usernames/' + username));
-            if (snapshot.exists()) return alert("Username already taken");
+            if (snapshot.exists()) return alert("Username taken");
 
             const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
             const uid = userCredential.user.uid;
 
-            // 1. Set User Profile
-            await set(ref(db, 'users/' + uid), { 
-                username: username, 
-                avatar: avatar, 
-                tier: 'free' 
-            });
-
-            // 2. Set AITOKENS separately
-            await set(ref(db, 'AITOKENS/' + uid), { 
-                tokens: 50, 
-                lastClaim: Date.now() 
-            });
-
-            // 3. Map Username
+            // Step 1: Profile
+            await set(ref(db, 'users/' + uid), { username, avatar, tier: 'free' });
+            // Step 2: Tokens
+            await set(ref(db, 'AITOKENS/' + uid), { tokens: 50, lastClaim: Date.now() });
+            // Step 3: Handle
             await set(ref(db, 'usernames/' + username), uid);
             
             modal.classList.remove('active');
-        } catch (err) {
-            alert(err.message);
-        }
+        } catch (err) { alert(err.message); }
     }
 };
 
-// --- STATE CHANGE & TOKEN REWARDS ---
+// The Logic "Fixer"
 onAuthStateChanged(auth, async (user) => {
     if (user) {
+        console.log("User detected:", user.uid);
         try {
-            const userRef = ref(db, 'users/' + user.uid);
-            const tokenRef = ref(db, 'AITOKENS/' + user.uid);
-            
-            const [userSnap, tokenSnap] = await Promise.all([get(userRef), get(tokenRef)]);
+            const [userSnap, tokenSnap] = await Promise.all([
+                get(ref(db, 'users/' + user.uid)),
+                get(ref(db, 'AITOKENS/' + user.uid))
+            ]);
 
             if (userSnap.exists()) {
                 const userData = userSnap.val();
@@ -92,16 +82,15 @@ onAuthStateChanged(auth, async (user) => {
                 const now = Date.now();
                 const oneDay = 24 * 60 * 60 * 1000;
 
-                // Daily Reward Logic (Refs AITOKENS node)
+                // Daily Reward
                 if (!tokenData.lastClaim || (now - tokenData.lastClaim >= oneDay)) {
                     const reward = userData.tier === 'pro' ? 250 : 50;
                     tokenData.tokens = (tokenData.tokens || 0) + reward;
                     tokenData.lastClaim = now;
-                    await set(tokenRef, tokenData);
-                    alert(`Daily Gift: +${reward} tokens!`);
+                    await update(ref(db, 'AITOKENS/' + user.uid), tokenData);
                 }
 
-                // --- UPDATE UI ---
+                // UI UPDATE - Force Switch
                 document.getElementById('headerUsername').innerText = `@${userData.username}`;
                 document.getElementById('headerAvatar').src = userData.avatar;
                 document.getElementById('tokenDisplay').innerText = tokenData.tokens;
@@ -110,18 +99,19 @@ onAuthStateChanged(auth, async (user) => {
                 tag.innerText = userData.tier.toUpperCase();
                 tag.className = `tier-tag ${userData.tier === 'pro' ? 'tier-pro' : 'tier-free'}`;
 
-                document.getElementById('openAuth').style.display = 'none';
-                document.getElementById('userDisplay').style.display = 'flex';
+                // Critical: Hide Login, Show Profile
+                openAuthBtn.style.display = 'none';
+                userDisplay.style.display = 'flex';
+                modal.classList.remove('active');
             }
-        } catch (error) {
-            console.error("Sync Error:", error);
-        }
+        } catch (e) { console.error("Database fetch failed", e); }
     } else {
-        document.getElementById('openAuth').style.display = 'block';
-        document.getElementById('userDisplay').style.display = 'none';
+        console.log("No user session found.");
+        openAuthBtn.style.display = 'block';
+        userDisplay.style.display = 'none';
     }
     
-    // Hide loader regardless of state
+    // Smooth loader exit
     if (loader) {
         loader.style.opacity = '0';
         setTimeout(() => loader.style.display = 'none', 500);
