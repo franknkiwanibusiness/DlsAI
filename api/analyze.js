@@ -1,7 +1,7 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import admin from "firebase-admin";
 
-// Initialize Firebase Admin correctly for Vercel
+// 1. Firebase Admin Setup
 if (!admin.apps.length) {
     admin.initializeApp({
         credential: admin.credential.cert({
@@ -11,78 +11,51 @@ if (!admin.apps.length) {
         })
     });
 }
-
 const db = admin.firestore();
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: "Method not allowed" });
 
     try {
         const { imageBase64 } = req.body;
-        if (!imageBase64) return res.status(400).json({ error: "No image data provided" });
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-        // 1. Host on Imgur (Provides a URL for better AI processing and Leaderboard history)
-        const imgurResponse = await fetch("https://api.imgur.com/3/image", {
-            method: "POST",
-            headers: {
-                Authorization: `Client-ID ${process.env.IMGUR_CLIENT_ID}`,
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ image: imageBase64, type: "base64" }),
+        // 2. IMPORTANT: The exact model ID for Gemma 3 Multimodal in 2026
+        const model = genAI.getGenerativeModel({ 
+            model: "models/gemma-3-12b-it",
+            // This forces the AI to ONLY talk in JSON
+            generationConfig: { responseMimeType: "application/json" }
         });
-        
-        const imgurData = await imgurResponse.json();
-        const imageUrl = imgurData.success ? imgurData.data.link : null;
 
-        // 2. Call Gemma 3 12B (State-of-the-art vision model for 2026)
-        // Note: Using the official model string for the Gemma 3 12B multimodal model
-        const model = genAI.getGenerativeModel({ model: "gemma-3-12b-it" });
-        
         const prompt = `
-            Analyze this Dream League Soccer (DLS) squad screenshot.
-            - Count Legendary players (Gold cards).
-            - Count Rare players (Blue cards).
-            - Estimate account value ($10/Legendary, $4/Rare).
-            Return ONLY a valid JSON object: {"value": 0, "legendary": 0, "rare": 0}
+            Identify player cards in this DLS screenshot. 
+            Count Legendary (Gold) and Rare (Blue). 
+            Calculate value: $10/Legendary, $4/Rare.
+            Format: {"value": number, "legendary": number, "rare": number}
         `;
 
         const result = await model.generateContent([
-            {
-                inlineData: {
-                    data: imageBase64,
-                    mimeType: "image/jpeg"
-                }
-            },
+            { inlineData: { data: imageBase64, mimeType: "image/jpeg" } },
             prompt
         ]);
 
-        const responseText = result.response.text();
-        // Clean up markdown markers if AI adds them
-        const cleanJson = responseText.replace(/```json|```/g, "").trim();
-        const aiData = JSON.parse(cleanJson);
+        // 3. Parse the result (No cleaning needed with responseMimeType!)
+        const aiData = JSON.parse(result.response.text());
 
-        // 3. Save Record to Firestore for Leaderboard/History
+        // 4. Save to Firestore
         const docRef = await db.collection("valuations").add({
             ...aiData,
-            imageUrl: imageUrl,
-            source: "gemma-3-12b",
+            model: "gemma-3-12b",
             timestamp: admin.firestore.FieldValue.serverTimestamp()
         });
 
-        // 4. Send Result back to UI
-        return res.status(200).json({
-            id: docRef.id,
-            ...aiData,
-            imageUrl: imageUrl
-        });
+        return res.status(200).json({ id: docRef.id, ...aiData });
 
     } catch (error) {
-        console.error("Critical Analysis Error:", error);
-        // Fallback: If Gemma-3-12b is not found in your specific region, use 1.5-flash
-        return res.status(500).json({ 
+        console.error("Gemma 3 Uplink Error:", error.message);
+        return res.status(400).json({ 
             error: "Uplink Failed", 
-            message: "Verify your Model string and Region in Google AI Studio." 
+            reason: error.message.includes("not found") ? "Model ID Mismatch" : "Invalid Image Data" 
         });
     }
 }
