@@ -10,7 +10,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-    <script src="https://www.paypal.com/sdk/js?client-id=YOUR_CLIENT_ID_HERE&currency=USD"></script>
+    <script src="https://www.paypal.com/sdk/js?client-id=test&currency=USD"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
@@ -22,80 +22,91 @@
         .hidden { display: none !important; }
         .reveal { opacity: 0; transform: translateY(30px); transition: all 0.8s ease-out; }
         .reveal.active { opacity: 1; transform: translateY(0); }
-        .avatar-option { transition: all 0.3s ease; border: 2px solid transparent; }
+        .avatar-option { transition: all 0.3s ease; border: 2px solid transparent; border-radius: 999px; }
         .avatar-option.selected { border-color: #22c55e; transform: scale(1.1); background: rgba(34, 197, 94, 0.2); }
     </style>
 </head>
 <body class="antialiased overflow-x-hidden">
 
     <header class="fixed top-0 w-full z-50 flex items-center justify-between px-5 py-3 bg-black/80 backdrop-blur-xl border-b border-white/10">
-        <div class="text-xl font-black tracking-tighter uppercase italic">DLS<span class="text-green-500 italic-none">VALUE</span></div>
+        <div class="text-xl font-black tracking-tighter uppercase italic">DLS<span class="text-green-500">VALUE</span></div>
         <div class="flex items-center gap-4">
-            <button id="loginBtn" onclick="toggleModal('authModal')" class="px-5 py-1.5 rounded-full bg-white text-black text-[10px] font-bold tracking-widest uppercase hover:bg-gray-200 transition-all">Login</button>
+            <button id="loginBtn" onclick="toggleModal('authModal')" class="px-5 py-1.5 rounded-full bg-white text-black text-[10px] font-bold tracking-widest uppercase hover:bg-gray-200">Login</button>
             <div id="userProfile" class="hidden flex items-center gap-3">
                 <div class="flex flex-col items-end">
                     <span id="navUsername" class="text-[10px] font-black uppercase tracking-widest text-white">---</span>
                     <span class="text-[9px] font-bold text-green-500 bg-green-500/10 px-2 rounded">PTS: <span id="navPoints">0</span></span>
                 </div>
-                <img id="navAvatar" onclick="firebase.auth().signOut()" class="w-8 h-8 rounded-full border border-white/20 cursor-pointer hover:border-red-500" src="">
+                <img id="navAvatar" onclick="firebase.auth().signOut()" class="w-8 h-8 rounded-full border border-white/20 cursor-pointer hover:border-red-500">
             </div>
         </div>
     </header>
 
-    <section class="relative w-full min-h-screen flex flex-col items-center justify-center text-center px-6 overflow-hidden">
+    <section class="relative w-full min-h-screen flex flex-col items-center justify-center text-center px-6">
         <div class="absolute inset-0 z-0">
             <img src="https://i.ytimg.com/vi/Agj4RwNLNfc/maxresdefault.jpg" class="w-full h-full object-cover opacity-40 brightness-[0.4]">
-            <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/60"></div>
+            <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black"></div>
         </div>
+        
         <div class="relative z-10 max-w-sm">
-            <div class="inline-block bg-green-500/20 text-green-400 text-[8px] font-bold px-3 py-1 rounded-full mb-4 border border-green-500/30 uppercase tracking-[0.3em]">NKIWANI VISION V1</div>
+            <div class="inline-block bg-green-500/20 text-green-400 text-[8px] font-bold px-3 py-1 rounded-full mb-4 border border-green-500/30 uppercase tracking-[0.3em]">NKIWANI VISION</div>
             
-            <div class="flex items-center justify-center gap-2 mb-6 bg-white/5 p-1 rounded-full border border-white/10 w-max mx-auto backdrop-blur-md">
-                <button id="btnV1" onclick="setEngine('v1')" class="px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-tighter transition-all bg-green-500 text-black shadow-lg">V1 PRO (Gemini)</button>
-                <button id="btnV2" onclick="setEngine('v2')" class="px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-tighter transition-all text-gray-400 hover:text-white">V2 LITE (Gemma)</button>
+            <div class="flex items-center justify-center gap-2 mb-6 bg-white/5 p-1 rounded-full border border-white/10 w-max mx-auto">
+                <button id="btnV1" onclick="setEngine('v1')" class="px-3 py-1.5 rounded-full text-[8px] font-black uppercase bg-green-500 text-black">V1 PRO</button>
+                <button id="btnV2" onclick="setEngine('v2')" class="px-3 py-1.5 rounded-full text-[8px] font-black uppercase text-gray-400">V2 LITE</button>
             </div>
 
-            <h1 class="text-4xl font-black tracking-tighter mb-3 uppercase italic">SQUAD<span class="valuation-text">VALUATION</span></h1>
-            <p class="text-gray-300 text-[12px] mb-8 font-medium">Instant AI scanning for DLS accounts. Gemma-3 Powered.</p>
+            <h1 class="text-4xl font-black tracking-tighter mb-3 uppercase italic leading-none">SQUAD<br><span class="valuation-text">VALUATION</span></h1>
+            <p class="text-gray-300 text-[12px] mb-8 font-medium">Instant AI scanning for DLS accounts.</p>
+            
             <input type="file" id="fileInput" class="hidden" accept="image/*">
-            <div class="flex flex-col gap-2 w-full max-w-[260px] mx-auto">
-                <button id="uploadTrigger" class="bg-white text-black font-black py-4 rounded-xl uppercase text-[11px] tracking-widest active:scale-95 transition-all">Upload Squad</button>
-            </div>
+            <button id="uploadTrigger" onclick="handleUploadClick()" class="w-full bg-white text-black font-black py-4 rounded-xl uppercase text-[11px] tracking-widest active:scale-95">Upload Squad</button>
         </div>
     </section>
 
     <div id="scanOverlay" class="fixed inset-0 z-[100] bg-black/95 backdrop-blur-2xl flex flex-col items-center justify-center p-6 hidden">
-        <div class="w-full max-w-sm flex flex-col items-center">
-            
-            <div class="relative w-full aspect-video rounded-2xl overflow-hidden border border-white/10 mb-6 bg-zinc-900 shadow-2xl">
+        <div class="w-full max-w-sm">
+            <div class="relative w-full aspect-video rounded-2xl overflow-hidden border border-white/10 mb-6 shadow-2xl">
                 <img id="previewImg" class="w-full h-full object-cover opacity-60">
                 <div id="scannerLine" class="scan-line"></div>
             </div>
-
             <div id="terminal" class="w-full bg-black/50 p-4 rounded-xl border border-white/5 font-mono text-[10px] text-gray-400 h-24 overflow-y-auto mb-6"></div>
 
-            <div id="premiumPromo" class="w-full bg-gradient-to-br from-zinc-900 to-black border border-white/10 rounded-2xl p-5 mb-6 text-left">
-                <div class="flex justify-between items-start mb-3">
-                    <div>
-                        <h4 class="text-[10px] font-black text-green-500 uppercase tracking-widest">NKIWANI PREMIUM</h4>
-                        <p class="text-[14px] font-bold text-white">Upgrade Your Scan</p>
-                    </div>
-                    <span class="text-[12px] font-black text-white">$4.99<span class="text-[8px] text-gray-500">/mo</span></span>
+            <div class="w-full bg-zinc-900 border border-white/10 rounded-2xl p-5 mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <p class="text-[12px] font-black text-white uppercase">Go Premium <span class="text-green-500">$4.99</span></p>
+                    <span class="text-[8px] bg-white/10 px-2 py-0.5 rounded uppercase font-bold text-gray-400">Monthly</span>
                 </div>
-                <ul class="text-[9px] text-gray-400 space-y-1 mb-4">
-                    <li class="flex items-center gap-2"><span class="material-icons text-[12px] text-green-500">check_circle</span> Unlimited Detail Accuracy</li>
-                    <li class="flex items-center gap-2"><span class="material-icons text-[12px] text-green-500">check_circle</span> Faster Priority Pipeline</li>
-                    <li class="flex items-center gap-2"><span class="material-icons text-[12px] text-green-500">check_circle</span> Hidden Player Attributes Detected</li>
-                </ul>
-                <div id="paypal-button-container" class="w-full"></div>
+                <div id="paypal-button-container"></div>
             </div>
 
-            <button id="closeOverlay" onclick="location.reload()" class="hidden w-full py-4 bg-white text-black rounded-xl font-black uppercase text-[11px] tracking-widest">Close Analysis</button>
+            <button onclick="location.reload()" id="closeOverlay" class="hidden w-full py-4 bg-white text-black rounded-xl font-black uppercase text-[11px]">Close Analysis</button>
+        </div>
+    </div>
+
+    <div id="authModal" class="fixed inset-0 z-[110] bg-black/90 backdrop-blur-lg flex items-center justify-center p-6 hidden">
+        <div class="bg-zinc-900 border border-white/10 w-full max-w-sm rounded-3xl p-8">
+            <div class="flex justify-center gap-8 mb-8">
+                <button id="tabLogin" onclick="switchTab('login')" class="text-xs font-black uppercase tracking-widest text-white border-b-2 border-green-500 pb-1">Login</button>
+                <button id="tabRegister" onclick="switchTab('register')" class="text-xs font-black uppercase tracking-widest text-gray-500 pb-1">Register</button>
+            </div>
+            <form id="authForm" class="space-y-4">
+                <input type="text" id="authUsername" placeholder="USERNAME" class="hidden w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-[11px]">
+                <input type="email" id="authEmail" placeholder="EMAIL ADDRESS" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-[11px]" required>
+                <input type="password" id="authPass" placeholder="PASSWORD" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-[11px]" required>
+                <div id="avatarSection" class="hidden grid grid-cols-3 gap-4 py-2">
+                    <img onclick="selectAvatar(this, 'https://api.dicebear.com/7.x/avataaars/svg?seed=1')" class="avatar-option w-full aspect-square bg-white/5 p-1" src="https://api.dicebear.com/7.x/avataaars/svg?seed=1">
+                    <img onclick="selectAvatar(this, 'https://api.dicebear.com/7.x/avataaars/svg?seed=2')" class="avatar-option w-full aspect-square bg-white/5 p-1" src="https://api.dicebear.com/7.x/avataaars/svg?seed=2">
+                    <img onclick="selectAvatar(this, 'https://api.dicebear.com/7.x/avataaars/svg?seed=3')" class="avatar-option w-full aspect-square bg-white/5 p-1" src="https://api.dicebear.com/7.x/avataaars/svg?seed=3">
+                </div>
+                <button type="submit" id="authSubmit" class="w-full bg-green-500 text-black font-black py-4 rounded-xl uppercase text-[11px]">Sign In</button>
+                <button type="button" onclick="toggleModal('authModal')" class="w-full text-[10px] text-gray-500 font-bold uppercase">Cancel</button>
+            </form>
         </div>
     </div>
 
     <script>
-        // 1. CONFIG & ENGINES
+        // --- 1. CONFIG ---
         const firebaseConfig = {
             apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
             authDomain: "itzhoyoo-f9f7e.firebaseapp.com",
@@ -109,38 +120,73 @@
         const auth = firebase.auth();
         const db = firebase.database();
 
-        let currentEngine = 'v1'; 
+        let currentEngine = 'v1';
+        let currentTab = 'login';
+        let selectedAvatar = "https://api.dicebear.com/7.x/avataaars/svg?seed=1";
+
+        // --- 2. UI FUNCTIONS ---
+        window.toggleModal = (id) => document.getElementById(id).classList.toggle('hidden');
 
         window.setEngine = (v) => {
             currentEngine = v;
-            const isV1 = v === 'v1';
-            document.getElementById('btnV1').className = isV1 ? 'px-3 py-1.5 rounded-full text-[8px] font-black uppercase bg-green-500 text-black shadow-lg' : 'px-3 py-1.5 rounded-full text-[8px] font-black uppercase text-gray-400 hover:text-white';
-            document.getElementById('btnV2').className = !isV1 ? 'px-3 py-1.5 rounded-full text-[8px] font-black uppercase bg-green-500 text-black shadow-lg' : 'px-3 py-1.5 rounded-full text-[8px] font-black uppercase text-gray-400 hover:text-white';
+            document.getElementById('btnV1').className = v === 'v1' ? 'px-3 py-1.5 rounded-full text-[8px] font-black uppercase bg-green-500 text-black' : 'px-3 py-1.5 rounded-full text-[8px] font-black uppercase text-gray-400';
+            document.getElementById('btnV2').className = v === 'v2' ? 'px-3 py-1.5 rounded-full text-[8px] font-black uppercase bg-green-500 text-black' : 'px-3 py-1.5 rounded-full text-[8px] font-black uppercase text-gray-400';
         };
 
-        // 2. PAYPAL INTEGRATION
-        paypal.Buttons({
-            style: { layout: 'horizontal', color: 'white', shape: 'pill', label: 'pay', height: 35 },
-            createOrder: function(data, actions) {
-                return actions.order.create({ purchase_units: [{ amount: { value: '4.99' } }] });
-            },
-            onApprove: function(data, actions) {
-                return actions.order.capture().then(function(details) {
-                    alert('Transaction completed by ' + details.payer.name.given_name);
+        window.switchTab = (tab) => {
+            currentTab = tab;
+            const isReg = tab === 'register';
+            document.getElementById('authUsername').classList.toggle('hidden', !isReg);
+            document.getElementById('avatarSection').classList.toggle('hidden', !isReg);
+            document.getElementById('authSubmit').innerText = isReg ? 'Create Account' : 'Sign In';
+            document.getElementById('tabLogin').className = isReg ? 'text-xs font-black uppercase text-gray-500' : 'text-xs font-black uppercase text-white border-b-2 border-green-500 pb-1';
+            document.getElementById('tabRegister').className = !isReg ? 'text-xs font-black uppercase text-gray-500' : 'text-xs font-black uppercase text-white border-b-2 border-green-500 pb-1';
+        };
+
+        window.selectAvatar = (el, url) => {
+            document.querySelectorAll('.avatar-option').forEach(img => img.classList.remove('selected'));
+            el.classList.add('selected');
+            selectedAvatar = url;
+        };
+
+        // --- 3. AUTH & LOGIC ---
+        document.getElementById('authForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('authEmail').value;
+            const pass = document.getElementById('authPass').value;
+            try {
+                if (currentTab === 'register') {
+                    const cred = await auth.createUserWithEmailAndPassword(email, pass);
+                    await db.ref(`users/${cred.user.uid}`).set({ 
+                        username: document.getElementById('authUsername').value, 
+                        photo: selectedAvatar, 
+                        points: 50 
+                    });
+                } else {
+                    await auth.signInWithEmailAndPassword(email, pass);
+                }
+                toggleModal('authModal');
+            } catch (err) { alert(err.message); }
+        };
+
+        auth.onAuthStateChanged(user => {
+            document.getElementById('loginBtn').classList.toggle('hidden', !!user);
+            document.getElementById('userProfile').classList.toggle('hidden', !user);
+            if (user) {
+                db.ref(`users/${user.uid}`).on('value', snap => {
+                    const d = snap.val();
+                    if (d) {
+                        document.getElementById('navUsername').innerText = d.username;
+                        document.getElementById('navPoints').innerText = d.points;
+                        document.getElementById('navAvatar').src = d.photo;
+                    }
                 });
             }
-        }).render('#paypal-button-container');
+        });
 
-        // ... (Auth Logic functions stay same) ...
-
-        // 3. SCANNER LOGIC
-        const log = (m, c='text-gray-400') => {
-            const p = document.createElement('p'); p.className = c; p.innerText = `> ${m}`;
-            const t = document.getElementById('terminal'); t.appendChild(p); t.scrollTop = t.scrollHeight;
-        };
-
-        document.getElementById('uploadTrigger').onclick = () => {
-            if (!auth.currentUser && currentEngine === 'v1') return toggleModal('authModal');
+        // --- 4. SCANNER ---
+        window.handleUploadClick = () => {
+            if (currentEngine === 'v1' && !auth.currentUser) return toggleModal('authModal');
             document.getElementById('fileInput').click();
         };
 
@@ -149,16 +195,18 @@
             if (!file) return;
             document.getElementById('scanOverlay').classList.remove('hidden');
             document.getElementById('previewImg').src = URL.createObjectURL(file);
-            document.getElementById('terminal').innerHTML = "";
-            log(`Initializing ${currentEngine.toUpperCase()} Pipeline...`);
+            
+            const log = (m, c='text-gray-400') => {
+                const p = document.createElement('p'); p.className = c; p.innerText = `> ${m}`;
+                const t = document.getElementById('terminal'); t.appendChild(p); t.scrollTop = t.scrollHeight;
+            };
 
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = async () => {
                 try {
+                    log(`Using ${currentEngine.toUpperCase()}...`);
                     const endpoint = currentEngine === 'v1' ? '/api/analyze' : '/api/analyze-v2';
-                    log(`Uploading to AI Engine...`);
-                    
                     const res = await fetch(endpoint, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -169,21 +217,22 @@
                     });
                     const data = await res.json();
                     if (!res.ok) throw new Error(data.message);
-                    
-                    log("Analysis Success!", "text-green-500");
-                    log(`Cards: ${data.legendary} Gold, ${data.rare} Blue`);
-                    log(`Market Value: $${data.value}`, "text-green-500");
+                    log("Scan Complete!", "text-green-500");
+                    log(`Valuation: $${data.value}`, "text-green-400 font-bold text-xs");
                 } catch (err) { log(`Error: ${err.message}`, "text-red-500"); }
                 document.getElementById('scannerLine').classList.add('hidden');
                 document.getElementById('closeOverlay').classList.remove('hidden');
             };
         };
 
-        // Scroll reveals
-        const observer = new IntersectionObserver(entries => {
-            entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('active'); document.body.style.backgroundColor = e.target.dataset.bg || '#000'; }});
-        }, { threshold: 0.1 });
-        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+        // --- 5. PAYPAL ---
+        if (window.paypal) {
+            paypal.Buttons({
+                style: { layout: 'horizontal', color: 'black', shape: 'rect', label: 'pay', height: 40 },
+                createOrder: (d, a) => a.order.create({ purchase_units: [{ amount: { value: '4.99' } }] }),
+                onApprove: (d, a) => a.order.capture().then(() => alert('Premium Activated!'))
+            }).render('#paypal-button-container');
+        }
     </script>
 </body>
 </html>
