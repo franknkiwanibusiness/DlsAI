@@ -4,14 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>DLS App</title>
-  <link rel="stylesheet" href="style.css" />
-  
+    <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
     <div id="main-loader">
-        <div class="skeleton-logo"><div class="shimmer"></div></div>
-        <p style="margin-top: 20px; color: #444; font-size: 0.8rem; letter-spacing: 2px;">INITIALIZING</p>
+        <div class="sk-card">
+            <div class="sk-header">
+                <div class="sk-avatar"><div class="shimmer"></div></div>
+                <div class="sk-name"><div class="shimmer"></div></div>
+            </div>
+            <div class="sk-media"><div class="shimmer"></div></div>
+        </div>
+        <div class="sk-card">
+            <div class="sk-header">
+                <div class="sk-avatar"><div class="shimmer"></div></div>
+                <div class="sk-name"><div class="shimmer"></div></div>
+            </div>
+            <div class="sk-media" style="height: 150px;"><div class="shimmer"></div></div>
+        </div>
     </div>
 
     <header>
@@ -30,8 +41,9 @@
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal-card">
             <button class="modal-close-x" id="closeModalX">&times;</button>
+            
             <h2 id="modalTitle">Welcome Back</h2>
-            <p id="modalSub" style="color: #444; margin-bottom: 25px; font-size: 0.9rem;">DLS Authentication</p>
+            <p id="modalSub">DLS Authentication</p>
 
             <div class="reg-only" id="regFields">
                 <div class="avatar-selection">
@@ -48,30 +60,35 @@
                         <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRcALF9jD7yktea7PTGRdKmnH_l22iMeofmGs5sWbWPKb_vMtBUBIAvWew&s=10" class="avatar-img">
                     </label>
                 </div>
+                
                 <div class="input-group">
                     <label>Unique Username</label>
-                    <input type="text" id="regUsername" placeholder="handle">
+                    <input type="text" id="regUsername" placeholder="@handle">
                 </div>
             </div>
 
             <div class="input-group">
-                <label>Email</label>
-                <input type="email" id="authEmail">
+                <label>Email Address</label>
+                <input type="email" id="authEmail" placeholder="name@email.com">
             </div>
+            
             <div class="input-group">
                 <label>Password</label>
-                <input type="password" id="authPass">
+                <input type="password" id="authPass" placeholder="••••••••">
             </div>
 
-            <div class="btn-wrapper" style="width: 100%; height: 45px;">
+            <div class="btn-wrapper" style="width: 100%; height: 45px; margin-top: 10px;">
                 <button class="login-trigger" id="mainSubmitBtn">Continue</button>
             </div>
 
-            <p class="toggle-text" style="margin-top:20px; font-size:0.8rem">
+            <p class="toggle-text">
                 <span id="switchAuth">Need an account? Register</span>
             </p>
         </div>
     </div>
+
+    <main style="padding-top: 100px; display: flex; flex-direction: column; align-items: center;">
+        </main>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -94,12 +111,12 @@
 
         let isLoginMode = true;
         const loader = document.getElementById('main-loader');
+        const modal = document.getElementById('modalOverlay');
 
-        // Close logic
-        const closeModal = () => document.getElementById('modalOverlay').classList.remove('active');
+        // Toggle UI logic
+        const closeModal = () => modal.classList.remove('active');
         document.getElementById('closeModalX').onclick = closeModal;
-
-        document.getElementById('openAuth').onclick = () => document.getElementById('modalOverlay').classList.add('active');
+        document.getElementById('openAuth').onclick = () => modal.classList.add('active');
         
         document.getElementById('switchAuth').onclick = () => {
             isLoginMode = !isLoginMode;
@@ -108,6 +125,7 @@
             document.getElementById('switchAuth').innerText = isLoginMode ? 'Need an account? Register' : 'Have an account? Login';
         };
 
+        // Authentication Submission
         document.getElementById('mainSubmitBtn').onclick = async () => {
             const email = document.getElementById('authEmail').value;
             const pass = document.getElementById('authPass').value;
@@ -115,12 +133,14 @@
             if (isLoginMode) {
                 signInWithEmailAndPassword(auth, email, pass).catch(err => alert(err.message));
             } else {
-                const username = document.getElementById('regUsername').value.toLowerCase();
+                const username = document.getElementById('regUsername').value.toLowerCase().replace(/\s+/g, '');
                 const avatar = document.querySelector('input[name="pfp"]:checked').value;
-                if(!username) return alert("Username required");
+                
+                if(!username) return alert("Please pick a username");
 
+                // Check for unique username
                 const snapshot = await get(ref(db, 'usernames/' + username));
-                if (snapshot.exists()) return alert("Username taken");
+                if (snapshot.exists()) return alert("This username is already taken");
 
                 createUserWithEmailAndPassword(auth, email, pass)
                     .then((userCredential) => {
@@ -131,7 +151,7 @@
             }
         };
 
-        // Handle State & Loader
+        // On Auth Change
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 get(ref(db, 'users/' + user.uid)).then((snapshot) => {
@@ -147,6 +167,8 @@
                 closeModal();
             } else {
                 hideLoader();
+                document.getElementById('openAuth').style.display = 'block';
+                document.getElementById('userDisplay').style.display = 'none';
             }
         });
 
