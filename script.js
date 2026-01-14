@@ -14,7 +14,7 @@ window.chatHistory = [];
 const PLAN_ID = 'P-47S21200XM2944742NFPLPEA';
 const PFP_PLACEHOLDER = "https://i.ytimg.com/vi/7p4LBOLGpFg/hq720.jpg?sqp=-oaymwEhCK4FEIIDSFryq4qpAxMIARUAAAAAGAElAADIQj0AgKJD&rs=AOn4CLAFu1lISn--VT-CrIS7Nc1LbUTy6Q";
 
-// --- 1. THE VISION CHAT ENGINE ---
+// --- 1. THE VISION CHAT ENGINE (Groq + 0.10 Token Logic) ---
 function initChat(user) {
     const modal = document.getElementById('chatModal');
     const openBtn = document.getElementById('askAiBtn'); 
@@ -22,8 +22,6 @@ function initChat(user) {
     const chatForm = document.getElementById('chatForm');
     const container = document.getElementById('chatContainer');
     const chatInput = document.getElementById('chatInput');
-    const fileInput = document.getElementById('fileInput');
-    const uploadTrigger = document.getElementById('uploadBtn');
 
     const toggleModal = (show) => {
         if (!modal) return;
@@ -38,7 +36,6 @@ function initChat(user) {
 
     if (openBtn) openBtn.onclick = () => toggleModal(true);
     if (closeBtn) closeBtn.onclick = () => toggleModal(false);
-    if (uploadTrigger && fileInput) uploadTrigger.onclick = (e) => { e.preventDefault(); fileInput.click(); };
 
     if (chatForm) {
         chatForm.addEventListener('submit', async (e) => {
@@ -46,33 +43,60 @@ function initChat(user) {
             const text = chatInput.value.trim();
             if (!text) return;
 
+            // 1. Precise Token Validation
             const userRef = ref(db, `users/${user.uid}`);
             const snap = await get(userRef);
-            if (snap.exists() && snap.val().tokens <= 0) return notify("Out of tokens!", "error");
+            const currentTokens = snap.exists() ? (snap.val().tokens || 0) : 0;
+            
+            if (currentTokens < 0.10) {
+                return notify("Neural link failed: Minimum 0.10 tokens required!", "error");
+            }
 
+            // 2. UI Update: User Message
             appendMessage('user', text);
             chatInput.value = '';
             window.chatHistory.push({ role: 'user', content: text });
-            const tempId = appendMessage('ai', 'Processing...');
+            
+            // 3. UI Update: AI Loading State
+            const tempId = appendMessage('ai', 'Synchronizing with Neural Net...');
 
             try {
+                // 4. Groq AI API Call
                 const response = await fetch('/api/aichat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ messages: window.chatHistory, uid: user.uid })
+                    body: JSON.stringify({ 
+                        messages: window.chatHistory, 
+                        uid: user.uid 
+                    })
                 });
+                
                 const data = await response.json();
-                await update(userRef, { tokens: increment(-1) });
+                
+                // 5. Decimal Deduction (Math.round/toFixed prevents JS floating point bugs)
+                const newBalance = Number((currentTokens - 0.10).toFixed(2));
+                await update(userRef, { tokens: newBalance });
+                
                 updateMessage(tempId, data.reply);
                 window.chatHistory.push({ role: 'assistant', content: data.reply });
-            } catch (err) { updateMessage(tempId, "Connection lost."); }
+            } catch (err) { 
+                updateMessage(tempId, "Connection to Vision Engine lost. Check your network."); 
+            }
         });
     }
 
     function appendMessage(role, text) {
         if (!container) return;
         const id = 'msg-' + Date.now();
-        const html = `<div id="${id}" class="message-wrapper ${role === 'ai' ? 'ai-align' : 'user-align'}"><div class="${role === 'ai' ? 'ai-bubble' : 'user-bubble'}"><p>${text}</p></div></div>`;
+        const isAi = role === 'ai';
+        
+        const html = `
+            <div id="${id}" class="message-wrapper ${isAi ? 'ai-align' : 'user-align'}">
+                <div class="${isAi ? 'ai-bubble' : 'user-bubble'}">
+                    <p style="margin: 0; font-size: 0.85rem;">${text}</p>
+                </div>
+            </div>`;
+            
         container.insertAdjacentHTML('beforeend', html);
         container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
         return id;
@@ -84,6 +108,7 @@ function initChat(user) {
         if (container) container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
     }
 }
+
 
 // --- 2. REFILL, SUBSCRIPTION & UTILS ---
 window.copyToClipboard = (text) => {
