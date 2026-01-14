@@ -2,206 +2,145 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NKIWANI V2 ENGINE</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NKIWANI V2 | AD DEPLOYER</title>
     <style>
-        :root { --cyan: #00ffff; --bg: #000; --panel: #111; --border: #333; }
-        * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
-        body { background: var(--bg); color: white; margin: 0; overflow-x: hidden; }
-
-        /* THE MODAL */
-        .vision-modal-fs {
-            position: fixed; inset: 0; background: var(--bg);
-            display: none; flex-direction: column; z-index: 9999;
-        }
-        .vision-modal-fs.active { display: flex; }
-
-        /* HEADER & AD AREA */
-        .chat-header-fs {
-            flex-shrink: 0; background: #000; border-bottom: 1px solid var(--panel);
-            position: sticky; top: 0; z-index: 100;
-        }
-        .header-top-row { display: flex; justify-content: space-between; align-items: center; padding: 12px; }
-        .sticky-ad-raw { width: 100%; min-height: 50px; background: #080808; display: flex; justify-content: center; border-top: 1px solid #111; overflow: hidden; }
-
-        /* CHAT BODY */
-        #chatContainer {
-            flex: 1; overflow-y: auto; padding: 20px;
-            display: flex; flex-direction: column; gap: 15px;
-            scroll-behavior: smooth; background: #050505;
-        }
-
-        /* BUBBLES */
-        .message-wrapper { display: flex; width: 100%; margin-bottom: 10px; }
-        .ai-align { justify-content: flex-start; }
-        .user-align { justify-content: flex-end; }
+        :root { --cyan: #00ffff; --bg: #050505; --card: #111; }
+        body { background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
         
-        .bubble { 
-            max-width: 80%; padding: 12px; border-radius: 12px; 
-            font-size: 0.85rem; line-height: 1.5; white-space: pre-wrap; 
+        .deployer-card {
+            background: var(--card); border: 1px solid #222; padding: 30px;
+            border-radius: 20px; width: 100%; max-width: 400px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
         }
-        .ai-bubble { background: #111; border: 1px solid rgba(0,255,255,0.2); border-bottom-left-radius: 2px; }
-        .user-bubble { background: var(--cyan); color: #000; font-weight: 600; border-bottom-right-radius: 2px; }
+        h2 { color: var(--cyan); font-size: 1.2rem; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 25px; text-align: center; }
+        
+        .input-group { margin-bottom: 20px; }
+        label { display: block; font-size: 0.65rem; color: #666; font-weight: 800; margin-bottom: 8px; text-transform: uppercase; }
+        
+        input[type="text"], input[type="file"] {
+            width: 100%; background: #000; border: 1px solid #333; padding: 12px;
+            color: #fff; border-radius: 8px; font-size: 0.8rem; box-sizing: border-box;
+        }
 
-        /* INPUT AREA */
-        .chat-footer-fs { padding: 15px; background: #000; border-top: 1px solid var(--panel); }
-        .input-box { 
-            display: flex; background: #111; border: 1px solid var(--border); 
-            border-radius: 12px; padding: 5px 15px; 
+        #status { font-size: 0.7rem; text-align: center; margin: 10px 0; min-height: 15px; font-weight: bold; }
+        
+        .btn-deploy {
+            width: 100%; padding: 15px; background: var(--cyan); color: #000;
+            border: none; border-radius: 10px; font-weight: 900; cursor: pointer;
+            text-transform: uppercase; letter-spacing: 1px; transition: 0.3s;
         }
-        .input-box input { 
-            flex: 1; background: transparent; border: none; color: white; 
-            height: 40px; outline: none; 
-        }
-        .send-btn { background: none; border: none; cursor: pointer; color: var(--cyan); }
-
-        /* ADS IN CHAT */
-        .chat-ad-inline { margin: 15px 0; border: 1px solid #222; border-radius: 15px; overflow: hidden; animation: slideUp 0.4s ease; }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .btn-deploy:disabled { background: #333; cursor: not-allowed; }
+        
+        .preview-box { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 10px; margin-bottom: 15px; border: 1px dashed #333; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        .preview-box img { width: 100%; height: 100%; object-fit: cover; display: none; }
     </style>
 </head>
 <body>
 
-<div style="padding: 50px; text-align: center;">
-    <button id="askAiBtn" style="padding: 15px 30px; background: var(--cyan); border: none; border-radius: 8px; font-weight: 800; cursor: pointer;">
-        START NKIWANI V2
-    </button>
-</div>
-
-<div id="chatModal" class="vision-modal-fs">
-    <div class="chat-header-fs">
-        <div class="header-top-row">
-            <div style="display: flex; gap: 10px; align-items: center;">
-                <img id="chatUserPfp" src="https://via.placeholder.com/32" style="width: 32px; height: 32px; border-radius: 6px; border: 1px solid var(--cyan);">
-                <div>
-                    <h3 id="chatUsernameDisplay" style="font-size: 0.75rem; margin: 0; letter-spacing: 1px;">USER</h3>
-                    <p style="font-size: 0.55rem; color: var(--cyan); margin: 0; font-weight: 800;">ENGINE V2 ACTIVE</p>
-                </div>
-            </div>
-            <button id="closeChatBtn" style="background:none; border:none; color:#555; font-size: 20px;">&times;</button>
-        </div>
-        
-        <div class="sticky-ad-raw" id="headerAd">
-             <div style="color: #222; font-size: 10px; align-self: center;">ADVERTISEMENT</div>
-        </div>
+<div class="deployer-card">
+    <h2>Ad Deployer V2</h2>
+    
+    <div class="preview-box" id="previewBox">
+        <span style="color:#333; font-size: 0.7rem;">IMAGE PREVIEW</span>
+        <img id="imgPreview" src="">
     </div>
 
-    <div id="chatContainer"></div>
+    <div id="status"></div>
 
-    <div class="chat-footer-fs">
-        <form id="chatForm" class="input-box">
-            <input type="text" id="chatInput" placeholder="Command NKIWANI V2..." autocomplete="off">
-            <button type="submit" class="send-btn">SEND</button>
-        </form>
+    <div class="input-group">
+        <label>1. Select Ad Creative</label>
+        <input type="file" id="adFile" accept="image/*">
     </div>
+
+    <div class="input-group">
+        <label>2. Destination Link (URL)</label>
+        <input type="text" id="adUrl" placeholder="https://example.com">
+    </div>
+
+    <button id="deployBtn" class="btn-deploy">Deploy to Engine</button>
 </div>
 
 <script type="module">
-    // 1. FIREBASE IMPORTS
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, onValue, get, update, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    // Import your existing config
+    import { db } from './firebase-config.js';
+    import { ref, push, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    // PASTE YOUR CONFIG OBJECT HERE
-    const firebaseConfig = {
-        apiKey: "YOUR_API_KEY",
-        authDomain: "YOUR_PROJECT.firebaseapp.com",
-        databaseURL: "https://YOUR_PROJECT.firebaseio.com",
-        projectId: "YOUR_PROJECT_ID",
-        storageBucket: "YOUR_PROJECT.appspot.com",
-        messagingSenderId: "YOUR_ID",
-        appId: "YOUR_APP_ID"
+    const IMGUR_CLIENT_ID = "891e5bb4aa94282";
+    const fileInput = document.getElementById('adFile');
+    const urlInput = document.getElementById('adUrl');
+    const deployBtn = document.getElementById('deployBtn');
+    const status = document.getElementById('status');
+    const previewImg = document.getElementById('imgPreview');
+
+    // Show preview when file selected
+    fileInput.onchange = (e) => {
+        const [file] = e.target.files;
+        if (file) {
+            previewImg.src = URL.createObjectURL(file);
+            previewImg.style.display = 'block';
+            document.querySelector('#previewBox span').style.display = 'none';
+        }
     };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-    const auth = getAuth(app);
+    deployBtn.onclick = async () => {
+        const file = fileInput.files[0];
+        const targetUrl = urlInput.value.trim();
 
-    const AI_NAME = "@NKIWANI AI V2";
-    const AI_PFP = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTzVSbd57etdSJc7XQWpZLhwdMYyys0f-yfx-eN1g-BxNcy0ZLRVn-mjR3X&s=10";
-
-    // 2. AD ENGINE (Standalone Logic)
-    function initAdEngine() {
-        onValue(ref(db, 'ads'), (snap) => {
-            const data = snap.val();
-            if(!data) return;
-            const ads = Object.values(data);
-            const ad = ads[Math.floor(Math.random() * ads.length)];
-            document.getElementById('headerAd').innerHTML = `
-                <a href="${ad.url}" target="_blank" style="width:100%; height:50px; display:block;">
-                    <img src="${ad.image}" style="width:100%; height:100%; object-fit:cover;">
-                </a>`;
-        });
-    }
-
-    // 3. CHAT ENGINE
-    const modal = document.getElementById('chatModal');
-    const container = document.getElementById('chatContainer');
-    const chatInput = document.getElementById('chatInput');
-    let messageCounter = 0;
-
-    function appendMessage(role, text, typing = false) {
-        const id = 'msg-' + Date.now();
-        const isAi = role === 'ai';
-        const html = `
-            <div id="${id}" class="message-wrapper ${isAi ? 'ai-align' : 'user-align'}">
-                <div class="bubble ${isAi ? 'ai-bubble' : 'user-bubble'}">${typing ? '' : text}</div>
-            </div>`;
-        container.insertAdjacentHTML('beforeend', html);
-        
-        if(typing) {
-            let i = 0;
-            const p = document.getElementById(id).querySelector('.bubble');
-            const interval = setInterval(() => {
-                p.textContent += text.charAt(i);
-                i++;
-                container.scrollTop = container.scrollHeight;
-                if(i >= text.length) clearInterval(interval);
-            }, 15);
+        if (!file || !targetUrl) {
+            updateStatus("ERR: Missing Data", "#ff4444");
+            return;
         }
-        container.scrollTop = container.scrollHeight;
-        return id;
-    }
 
-    // 4. MAIN LOGIC
-    document.getElementById('askAiBtn').onclick = () => modal.classList.add('active');
-    document.getElementById('closeChatBtn').onclick = () => modal.classList.remove('active');
+        deployBtn.disabled = true;
+        updateStatus("Uploading to Imgur...", var(--cyan));
 
-    document.getElementById('chatForm').onsubmit = async (e) => {
-        e.preventDefault();
-        const msg = chatInput.value.trim();
-        if(!msg) return;
+        try {
+            // 1. UPLOAD TO IMGUR RAW
+            const formData = new FormData();
+            formData.append('image', file);
 
-        appendMessage('user', msg);
-        chatInput.value = '';
-        messageCounter++;
+            const imgurRes = await fetch('https://api.imgur.com/3/image', {
+                method: 'POST',
+                headers: { Authorization: `Client-ID ${IMGUR_CLIENT_ID}` },
+                body: formData
+            });
 
-        // Fake AI response for this demo - connect your /api/aichat here
-        setTimeout(() => {
-            appendMessage('ai', "SYSTEM READY. ANALYZING SQUAD DATA...", true);
-            if(messageCounter % 3 === 0) injectInChatAd();
-        }, 1000);
+            const imgurData = await imgurRes.json();
+            if (!imgurData.success) throw new Error("Imgur Upload Failed");
+
+            const directLink = imgurData.data.link;
+            updateStatus("Saving to Firebase...", "#fff");
+
+            // 2. SAVE TO FIREBASE /ADS
+            const adsRef = ref(db, 'ads');
+            const newAdRef = push(adsRef);
+            await set(newAdRef, {
+                image: directLink,
+                url: targetUrl,
+                timestamp: Date.now()
+            });
+
+            updateStatus("DEPLOYED SUCCESSFULLY", "#00ff00");
+            fileInput.value = "";
+            urlInput.value = "";
+            
+            setTimeout(() => {
+                deployBtn.disabled = false;
+                updateStatus("", "");
+            }, 3000);
+
+        } catch (err) {
+            updateStatus("ERROR: " + err.message, "#ff4444");
+            deployBtn.disabled = false;
+        }
     };
 
-    function injectInChatAd() {
-        get(ref(db, 'ads')).then(snap => {
-            const ads = Object.values(snap.val());
-            const ad = ads[Math.floor(Math.random() * ads.length)];
-            container.insertAdjacentHTML('beforeend', `
-                <div class="chat-ad-inline">
-                    <img src="${ad.image}" style="width:100%; height:150px; object-fit:cover;">
-                    <a href="${ad.url}" target="_blank" style="display:block; background:#fff; color:#000; text-align:center; padding:10px; font-weight:800; text-decoration:none;">VISIT SPONSOR</a>
-                </div>`);
-        });
+    function updateStatus(msg, color) {
+        status.innerText = msg;
+        status.style.color = color;
     }
-
-    onAuthStateChanged(auth, (user) => {
-        if(user) {
-            initAdEngine();
-            // Sync user details to header...
-        }
-    });
 </script>
+
 </body>
 </html>
