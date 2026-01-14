@@ -267,9 +267,21 @@ function syncUserUI(uid) {
         const data = snapshot.val();
         if (data) {
             const pfp = data.avatars || PFP_PLACEHOLDER; 
+            
+            // Header & Profile Fixes
             document.getElementById('headerUsername').innerText = data.username || "User";
             document.getElementById('tokenBalance').innerText = data.tokens || 0;
             document.getElementById('headerAvatar').src = pfp;
+            
+            // Fixed: Modal Profile & @Username
+            document.getElementById('modalFullUser').innerText = "@" + (data.username || "user");
+            document.getElementById('modalLargeAvatar').src = pfp;
+
+            // Fixed: Tier Indicator Badge
+            const tierEl = document.getElementById('accountTier');
+            if(tierEl) {
+                tierEl.innerHTML = `<span style="background:${data.isPremium ? '#d4af37':'#222'}; color:${data.isPremium ? '#000':'#888'}; font-size:0.6rem; padding:2px 8px; border-radius:4px; font-weight:800; letter-spacing:1px;">${data.isPremium ? 'PREMIUM':'FREE'}</span>`;
+            }
 
             // Define the Max Limit based on Tier
             const limit = data.isPremium ? 250 : 25; 
@@ -284,16 +296,16 @@ function syncUserUI(uid) {
             if (!isClaiming && (now - (data.lastDailyClaim || 0) >= oneDay)) {
                 isClaiming = true; 
                 
-                // Instead of adding, we RESET the value to the limit
                 update(ref(db, `users/${uid}`), {
-                    tokens: limit, // This refills them to 25 or 250
+                    tokens: limit, 
                     lastDailyClaim: now
                 }).then(() => {
-                    notify(`DLSVALUE: Tokens refilled to ${limit}!`);
+                    notify(`DLSVALE: Tokens refilled to ${limit}!`);
                 }).catch(() => { isClaiming = false; });
             }
         }
     });
+
 
     // Watch Links & Countdown
     onValue(ref(db, `links/${uid}`), (snapshot) => {
