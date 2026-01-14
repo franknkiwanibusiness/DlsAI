@@ -14,7 +14,10 @@ window.chatHistory = [];
 const PLAN_ID = 'P-47S21200XM2944742NFPLPEA';
 const PFP_PLACEHOLDER = "https://i.ytimg.com/vi/7p4LBOLGpFg/hq720.jpg?sqp=-oaymwEhCK4FEIIDSFryq4qpAxMIARUAAAAAGAElAADIQj0AgKJD&rs=AOn4CLAFu1lISn--VT-CrIS7Nc1LbUTy6Q";
 
-// --- 1. THE VISION CHAT ENGINE (Groq + 0.10 Token Logic) ---
+// --- 1. THE VISION CHAT ENGINE (Upgraded: $0.35 Logic & Identity Sync) ---
+const AI_PFP = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTzVSbd57etdSJc7XQWpZLhwdMYyys0f-yfx-eN1g-BxNcy0ZLRVn-mjR3X&s=10";
+const AI_NAME = "@NKIWANI AI V2";
+
 function initChat(user) {
     const modal = document.getElementById('chatModal');
     const openBtn = document.getElementById('askAiBtn'); 
@@ -22,6 +25,17 @@ function initChat(user) {
     const chatForm = document.getElementById('chatForm');
     const container = document.getElementById('chatContainer');
     const chatInput = document.getElementById('chatInput');
+
+    // Sync User Identity to Modal Header instantly
+    onValue(ref(db, `users/${user.uid}`), (snap) => {
+        const data = snap.val();
+        if(data) {
+            if(document.getElementById('chatUsernameDisplay')) 
+                document.getElementById('chatUsernameDisplay').innerText = (data.username || "User").toUpperCase();
+            if(document.getElementById('chatUserPfp')) 
+                document.getElementById('chatUserPfp').src = data.avatars || PFP_PLACEHOLDER;
+        }
+    });
 
     const toggleModal = (show) => {
         if (!modal) return;
@@ -43,16 +57,16 @@ function initChat(user) {
             const text = chatInput.value.trim();
             if (!text) return;
 
-            // 1. Precise Token Validation
+            // 1. Precise Token Validation (Need 0.35 for full interaction)
             const userRef = ref(db, `users/${user.uid}`);
             const snap = await get(userRef);
             const currentTokens = snap.exists() ? (snap.val().tokens || 0) : 0;
             
-            if (currentTokens < 0.10) {
-                return notify("Neural link failed: Minimum 0.10 tokens required!", "error");
+            if (currentTokens < 0.35) {
+                return notify("Neural link failed: 0.35 tokens required per interaction!", "error");
             }
 
-            // 2. UI Update: User Message
+            // 2. UI Update: User Message with Identity
             appendMessage('user', text);
             chatInput.value = '';
             window.chatHistory.push({ role: 'user', content: text });
@@ -61,7 +75,7 @@ function initChat(user) {
             const tempId = appendMessage('ai', 'Synchronizing with Neural Net...');
 
             try {
-                // 4. Groq AI API Call
+                // 4. API Call to backend
                 const response = await fetch('/api/aichat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -73,8 +87,8 @@ function initChat(user) {
                 
                 const data = await response.json();
                 
-                // 5. Decimal Deduction (Math.round/toFixed prevents JS floating point bugs)
-                const newBalance = Number((currentTokens - 0.10).toFixed(2));
+                // 5. Deduct 0.35 (0.10 User Input + 0.25 AI Response)
+                const newBalance = Number((currentTokens - 0.35).toFixed(2));
                 await update(userRef, { tokens: newBalance });
                 
                 updateMessage(tempId, data.reply);
@@ -90,10 +104,18 @@ function initChat(user) {
         const id = 'msg-' + Date.now();
         const isAi = role === 'ai';
         
+        // Dynamic Identity Selection
+        const pfp = isAi ? AI_PFP : document.getElementById('chatUserPfp').src;
+        const name = isAi ? AI_NAME : document.getElementById('chatUsernameDisplay').innerText;
+
         const html = `
             <div id="${id}" class="message-wrapper ${isAi ? 'ai-align' : 'user-align'}">
-                <div class="${isAi ? 'ai-bubble' : 'user-bubble'}">
-                    <p style="margin: 0; font-size: 0.85rem;">${text}</p>
+                <div style="display: flex; flex-direction: ${isAi ? 'row' : 'row-reverse'}; gap: 10px; align-items: flex-end; margin-bottom: 10px;">
+                    <img src="${pfp}" style="width: 28px; height: 28px; border-radius: 8px; border: 1px solid ${isAi ? 'var(--cyan)' : '#333'}; background: #000;">
+                    <div class="${isAi ? 'ai-bubble' : 'user-bubble'}" style="max-width: 75%;">
+                        <span style="font-size: 0.6rem; display: block; margin-bottom: 4px; color: ${isAi ? 'var(--cyan)' : '#888'}; font-weight: 800; letter-spacing: 0.5px;">${name}</span>
+                        <p style="margin: 0; font-size: 0.85rem; line-height: 1.4;">${text}</p>
+                    </div>
                 </div>
             </div>`;
             
@@ -108,6 +130,7 @@ function initChat(user) {
         if (container) container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
     }
 }
+
 
 
 // --- 2. REFILL, SUBSCRIPTION & UTILS ---
