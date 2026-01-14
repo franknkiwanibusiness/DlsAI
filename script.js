@@ -363,32 +363,109 @@ if (mainSubmitBtn) {
 
 if(document.getElementById('logoutBtn')) document.getElementById('logoutBtn').onclick = () => signOut(auth).then(() => { location.reload(); });
 
-// --- 5. MODAL TOGGLES ---
+// --- 5. MODAL TOGGLES & GLOBAL SCROLL LOCK ---
+
+// 1. Master Scroll Lock Function
+const toggleScrollLock = (isLocked) => {
+    if (isLocked) {
+        // Prevent background jumps on mobile by locking scroll position
+        const scrollY = window.scrollY;
+        document.body.style.top = `-${scrollY}px`;
+        document.body.classList.add('modal-open');
+    } else {
+        // Restore scroll position when modal closes
+        const scrollY = document.body.style.top;
+        document.body.classList.remove('modal-open');
+        document.body.style.top = '';
+        window.scrollTo(0, parseInt(scrollY || '0') * -1);
+    }
+};
+
+// 2. Global Modal Observer 
+// Automatically locks scroll when any element in this list gets the 'active' class
+const modalObserver = new MutationObserver(() => {
+    const activeModals = [
+        '.modal-overlay.active', 
+        '.profile-modal.active', 
+        '.vision-modal-fs.active', 
+        '#refillModal.active',
+        '#chatModal.active'
+    ];
+    const isAnyActive = document.querySelector(activeModals.join(','));
+    toggleScrollLock(!!isAnyActive);
+});
+
+// Watch the document body for modal state changes
+modalObserver.observe(document.body, { 
+    attributes: true, 
+    subtree: true, 
+    attributeFilter: ['class'] 
+});
+
+// 3. Auth UI Setup
 const switchBtn = document.getElementById('switchAuth');
+const mainSubmitBtn = document.getElementById('mainSubmitBtn');
+const regFields = document.getElementById('regFields');
+const modalTitle = document.getElementById('modalTitle');
+
+// Force Login state on script load
+if (regFields) regFields.style.display = 'none';
+isLoginMode = true; 
+
 if(switchBtn) {
     switchBtn.onclick = () => {
         isLoginMode = !isLoginMode;
-        document.getElementById('regFields').style.display = isLoginMode ? 'none' : 'block';
-        document.getElementById('modalTitle').innerText = isLoginMode ? 'Welcome Back' : 'Create Account';
-        switchBtn.innerText = isLoginMode ? 'Need an account? Register' : 'Have an account? Login';
+        if (regFields) regFields.style.display = isLoginMode ? 'none' : 'block';
+        if (modalTitle) modalTitle.innerText = isLoginMode ? 'Welcome Back' : 'Create Account';
+        if (mainSubmitBtn) mainSubmitBtn.innerText = isLoginMode ? 'Login' : 'Register';
+        switchBtn.innerText = isLoginMode ? 'Register' : 'Login';
+        
+        const parentPara = switchBtn.closest('.toggle-text');
+        if (parentPara && parentPara.firstChild.nodeType === Node.TEXT_NODE) {
+            parentPara.firstChild.textContent = isLoginMode ? 'Need an account? ' : 'Have an account? ';
+        }
     };
 }
 
-document.getElementById('openAuth').onclick = () => document.getElementById('modalOverlay').classList.add('active');
-document.getElementById('userDisplay').onclick = () => document.getElementById('profileModal').classList.add('active');
-document.getElementById('closeProfile').onclick = () => document.getElementById('profileModal').classList.remove('active');
-document.getElementById('closeModalX').onclick = () => document.getElementById('modalOverlay').classList.remove('active');
-// Global Hero Button Handler
+// 4. Modal Open/Close Event Handlers
+const openAuth = document.getElementById('openAuth');
+if (openAuth) {
+    openAuth.onclick = () => {
+        if (!isLoginMode && switchBtn) switchBtn.click(); 
+        document.getElementById('modalOverlay').classList.add('active');
+    };
+}
+
+const userDisplay = document.getElementById('userDisplay');
+if (userDisplay) {
+    userDisplay.onclick = () => document.getElementById('profileModal').classList.add('active');
+}
+
+const closeProfile = document.getElementById('closeProfile');
+if (closeProfile) {
+    closeProfile.onclick = () => document.getElementById('profileModal').classList.remove('active');
+}
+
+const closeModalX = document.getElementById('closeModalX');
+if (closeModalX) {
+    closeModalX.onclick = () => document.getElementById('modalOverlay').classList.remove('active');
+}
+
+// 5. Global Hero Button Handler
 document.addEventListener('click', (e) => {
-    if (e.target.closest('#askAiBtn')) {
-        if (auth.currentUser) {
-            // User is logged in, initChat logic handles the modal
-            // (The click will be caught by the listener inside initChat)
-        } else {
-            // User is guest, show login modal
+    const aiBtn = e.target.closest('#askAiBtn');
+    if (aiBtn) {
+        if (!auth.currentUser) {
             notify("Identity required for Neural Link", "error");
             document.getElementById('modalOverlay').classList.add('active');
+            if (!isLoginMode && switchBtn) switchBtn.click();
+        } else {
+            // Logic for opening Chat Modal when logged in
+            const chatModal = document.getElementById('chatModal');
+            if (chatModal) {
+                chatModal.style.display = 'flex';
+                setTimeout(() => chatModal.classList.add('active'), 10);
+            }
         }
     }
 });
-
