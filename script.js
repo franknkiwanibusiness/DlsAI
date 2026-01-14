@@ -22,7 +22,6 @@ function initChat(user) {
     const chatForm = document.getElementById('chatForm');
     const container = document.getElementById('chatContainer');
     const chatInput = document.getElementById('chatInput');
-    
     const fileInput = document.getElementById('fileInput');
     const uploadTrigger = document.getElementById('uploadBtn');
 
@@ -39,10 +38,7 @@ function initChat(user) {
 
     if (openBtn) openBtn.onclick = () => toggleModal(true);
     if (closeBtn) closeBtn.onclick = () => toggleModal(false);
-
-    if (uploadTrigger && fileInput) {
-        uploadTrigger.onclick = (e) => { e.preventDefault(); fileInput.click(); };
-    }
+    if (uploadTrigger && fileInput) uploadTrigger.onclick = (e) => { e.preventDefault(); fileInput.click(); };
 
     if (chatForm) {
         chatForm.addEventListener('submit', async (e) => {
@@ -52,14 +48,11 @@ function initChat(user) {
 
             const userRef = ref(db, `users/${user.uid}`);
             const snap = await get(userRef);
-            if (snap.exists() && snap.val().tokens <= 0) {
-                return notify("Out of tokens! Upgrade to Premium.", "error");
-            }
+            if (snap.exists() && snap.val().tokens <= 0) return notify("Out of tokens!", "error");
 
             appendMessage('user', text);
             chatInput.value = '';
             window.chatHistory.push({ role: 'user', content: text });
-
             const tempId = appendMessage('ai', 'Processing...');
 
             try {
@@ -69,22 +62,17 @@ function initChat(user) {
                     body: JSON.stringify({ messages: window.chatHistory, uid: user.uid })
                 });
                 const data = await response.json();
-                
                 await update(userRef, { tokens: increment(-1) });
                 updateMessage(tempId, data.reply);
                 window.chatHistory.push({ role: 'assistant', content: data.reply });
-            } catch (err) {
-                updateMessage(tempId, "Connection lost. Vision Engine offline.");
-            }
+            } catch (err) { updateMessage(tempId, "Connection lost."); }
         });
     }
 
     function appendMessage(role, text) {
         if (!container) return;
         const id = 'msg-' + Date.now();
-        const wrapperClass = role === 'ai' ? 'message-wrapper ai-align' : 'message-wrapper user-align';
-        const bubbleClass = role === 'ai' ? 'ai-bubble' : 'user-bubble';
-        const html = `<div id="${id}" class="${wrapperClass}"><div class="${bubbleClass}"><p>${text}</p></div></div>`;
+        const html = `<div id="${id}" class="message-wrapper ${role === 'ai' ? 'ai-align' : 'user-align'}"><div class="${role === 'ai' ? 'ai-bubble' : 'user-bubble'}"><p>${text}</p></div></div>`;
         container.insertAdjacentHTML('beforeend', html);
         container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
         return id;
@@ -96,48 +84,33 @@ function initChat(user) {
         if (container) container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
     }
 }
-// --- 2. REFILL & SUBSCRIPTION LOGIC ---
 
-// Open Modal and ensure it sits on top
+// --- 2. REFILL, SUBSCRIPTION & UTILS ---
+window.copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text).then(() => notify("Link copied!"));
+};
+
 window.openRefillModal = () => {
     const modal = document.getElementById('refillModal');
     if (modal) {
-        modal.style.display = 'flex'; // Force display flex for layering
-        // Small timeout to allow transition if CSS is used
+        modal.style.display = 'flex';
         setTimeout(() => modal.classList.add('active'), 10);
-        modal.classList.remove('hidden'); 
     }
 };
 
-// Close Logic
 const closeRefill = document.getElementById('closeRefill');
 if (closeRefill) {
     closeRefill.onclick = () => {
         const modal = document.getElementById('refillModal');
         modal.classList.remove('active');
-        modal.classList.add('hidden');
-        
-        // Reset the PayPal container message
-        const payBox = document.getElementById('paypal-tokens-container');
-        if (payBox) payBox.innerHTML = '<p class="text-zinc-500 text-[10px] text-center italic">Select a pack above to pay</p>';
+        setTimeout(() => { modal.style.display = 'none'; }, 300);
     };
 }
-
-// Close on clicking the dark background (outside the content box)
-window.addEventListener('click', (e) => {
-    const modal = document.getElementById('refillModal');
-    if (e.target === modal) {
-        modal.classList.add('hidden');
-        modal.classList.remove('active');
-    }
-});
 
 window.selectPack = (qty) => {
     const pricing = { 100: 1.10, 500: 3.00, 1000: 5.00 };
     const base = pricing[qty];
-    // Fee Calculation: (Base + $0.30) / (1 - 4.4%)
     const finalAmount = ((base + 0.30) / (1 - 0.044)).toFixed(2);
-    
     const container = document.getElementById('paypal-tokens-container');
     if(container) container.innerHTML = '';
 
@@ -145,119 +118,102 @@ window.selectPack = (qty) => {
         style: { shape: 'pill', color: 'gold', layout: 'vertical' },
         createOrder: (data, actions) => {
             return actions.order.create({
-                purchase_units: [{ 
-                    description: `${qty} Tokens Pack`, 
-                    amount: { currency_code: "USD", value: finalAmount } 
-                }]
+                purchase_units: [{ description: `${qty} Tokens Pack`, amount: { currency_code: "USD", value: finalAmount } }]
             });
         },
         onApprove: async (data, actions) => {
             await actions.order.capture();
-            // Database update
-            await update(ref(db, `users/${auth.currentUser.uid}`), { 
-                tokens: increment(qty) 
-            });
+            await update(ref(db, `users/${auth.currentUser.uid}`), { tokens: increment(qty) });
             notify(`Success! ${qty} tokens added.`);
-            document.getElementById('refillModal').classList.add('hidden');
-            document.getElementById('refillModal').classList.remove('active');
+            document.getElementById('closeRefill').click();
         }
     }).render('#paypal-tokens-container');
 };
 
 function initPaypalSystems(user) {
     const subContainer = document.getElementById(`paypal-button-container-${PLAN_ID}`);
-    // Only render if container exists and is empty
     if (subContainer && !subContainer.hasChildNodes()) {
         paypal.Buttons({
             style: { shape: 'pill', color: 'gold', layout: 'vertical', label: 'subscribe' },
-            createSubscription: (data, actions) => {
-                return actions.subscription.create({ 
-                    plan_id: PLAN_ID, 
-                    custom_id: user.uid 
-                });
-            },
-            onApprove: async (data) => {
-                await update(ref(db, `users/${user.uid}`), { 
-                    isPremium: true, 
-                    tokens: increment(250), 
-                    tier: 'Premium' 
-                });
+            createSubscription: (data, actions) => actions.subscription.create({ plan_id: PLAN_ID, custom_id: user.uid }),
+            onApprove: async () => {
+                await update(ref(db, `users/${user.uid}`), { isPremium: true, tokens: increment(250), tier: 'Premium' });
                 notify("Premium Activated!");
             }
         }).render(subContainer);
     }
 }
 
-
-// --- 3. DATA WATCHER & UI SYNC ---
+// --- 3. DATA WATCHER (LINKS & COUNTDOWN) ---
 function syncUserUI(uid) {
+    // Watch Profile Data
     onValue(ref(db, `users/${uid}`), (snapshot) => {
         const data = snapshot.val();
         if (data) {
             const pfp = data.avatars || PFP_PLACEHOLDER; 
-            
             document.getElementById('headerUsername').innerText = data.username || "User";
             document.getElementById('tokenBalance').innerText = data.tokens || 0;
             document.getElementById('modalFullUser').innerText = "@" + (data.username || "user");
-            
             document.getElementById('headerAvatar').src = pfp;
             document.getElementById('modalLargeAvatar').src = pfp;
-
-            const tokens = data.tokens || 0;
             const limit = data.isPremium ? 250 : 50;
-            document.getElementById('usageText').innerText = `${tokens} / ${limit}`;
-            document.getElementById('usageBar').style.width = `${Math.min((tokens / limit) * 100, 100)}%`;
-            
+            document.getElementById('usageText').innerText = `${data.tokens || 0} / ${limit}`;
+            document.getElementById('usageBar').style.width = `${Math.min(((data.tokens || 0) / limit) * 100, 100)}%`;
             const tierEl = document.getElementById('accountTier');
-            if(tierEl) {
-                tierEl.innerHTML = `<span style="background:${data.isPremium ? '#d4af37':'#222'}; color:${data.isPremium ? '#000':'#888'}; font-size:0.6rem; padding:2px 8px; border-radius:4px; font-weight:800;">${data.isPremium ? 'PREMIUM':'FREE'}</span>`;
-            }
+            if(tierEl) tierEl.innerHTML = `<span style="background:${data.isPremium ? '#d4af37':'#222'}; color:${data.isPremium ? '#000':'#888'}; font-size:0.6rem; padding:2px 8px; border-radius:4px; font-weight:800;">${data.isPremium ? 'PREMIUM':'FREE'}</span>`;
         }
+    });
+
+    // Watch Links & Countdown
+    onValue(ref(db, `links/${uid}`), (snapshot) => {
+        const container = document.getElementById('linksContainer');
+        if (!container) return;
+        container.innerHTML = '';
+        const links = snapshot.val();
+        if (!links) return container.innerHTML = '<p style="text-align:center; color:#444; font-size:0.7rem;">No active links</p>';
+
+        Object.entries(links).forEach(([key, link]) => {
+            const linkId = `timer-${key}`;
+            const html = `
+                <div class="link-card" style="background:#1a1a1a; padding:15px; border-radius:15px; margin-bottom:10px; border:1px solid #333;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <span style="color:#fff; font-weight:800; font-size:0.8rem;">${link.title || 'Vision Link'}</span>
+                        <span id="${linkId}" style="color:#d4af37; font-size:0.65rem; font-family:monospace; font-weight:bold;">--:--</span>
+                    </div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                        <button onclick="window.copyToClipboard('${link.url}')" style="background:#222; color:#fff; border:none; padding:8px; border-radius:8px; font-size:0.6rem; font-weight:800; cursor:pointer;">COPY</button>
+                        <a href="${link.url}" target="_blank" style="background:#d4af37; color:#000; text-align:center; text-decoration:none; padding:8px; border-radius:8px; font-size:0.6rem; font-weight:800;">OPEN</a>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', html);
+
+            // Start Countdown Timer
+            const countdownInterval = setInterval(() => {
+                const now = new Date().getTime();
+                const distance = link.expiresAt - now;
+                const el = document.getElementById(linkId);
+                if (!el) return clearInterval(countdownInterval);
+
+                if (distance < 0) {
+                    el.innerText = "EXPIRED";
+                    el.style.color = "#ff4444";
+                    clearInterval(countdownInterval);
+                } else {
+                    const h = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                    const s = Math.floor((distance % (1000 * 60)) / 1000);
+                    el.innerText = `${h}h ${m}m ${s}s`;
+                }
+            }, 1000);
+        });
     });
 }
 
-// --- 4. AUTH HANDLERS ---
-const mainSubmitBtn = document.getElementById('mainSubmitBtn');
-if (mainSubmitBtn) {
-    mainSubmitBtn.onclick = async () => {
-        const email = document.getElementById('authEmail').value;
-        const pass = document.getElementById('authPass').value;
-        const usernameInput = document.getElementById('regUsername');
-
-        try {
-            if (isLoginMode) {
-                await signInWithEmailAndPassword(auth, email, pass);
-            } else {
-                const avatarRadio = document.querySelector('input[name="pfp"]:checked');
-                const avatarUrl = avatarRadio ? avatarRadio.value : PFP_PLACEHOLDER;
-                const res = await createUserWithEmailAndPassword(auth, email, pass);
-                await set(ref(db, 'users/' + res.user.uid), {
-                    username: usernameInput.value,
-                    avatars: avatarUrl, 
-                    tokens: 50,
-                    isPremium: false,
-                    tier: 'Free'
-                });
-            }
-            document.getElementById('modalOverlay').classList.remove('active');
-        } catch (err) { notify(err.message, "error"); }
-    };
-}
-
-const logoutBtn = document.getElementById('logoutBtn');
-if (logoutBtn) {
-    logoutBtn.onclick = async () => {
-        await signOut(auth);
-        document.getElementById('profileModal').classList.remove('active');
-        notify("Logged out");
-    };
-}
-
+// --- 4. AUTH & OBSERVER ---
 onAuthStateChanged(auth, (user) => {
-    const openAuth = document.getElementById('openAuth');
     const userDisplay = document.getElementById('userDisplay');
-    const loader = document.getElementById('main-loader');
-
+    const openAuth = document.getElementById('openAuth');
     if (user) {
         if (openAuth) openAuth.style.display = 'none';
         if (userDisplay) userDisplay.style.display = 'flex';
@@ -268,8 +224,28 @@ onAuthStateChanged(auth, (user) => {
         if (openAuth) openAuth.style.display = 'block';
         if (userDisplay) userDisplay.style.display = 'none';
     }
-    if (loader) loader.style.display = 'none';
+    if (document.getElementById('main-loader')) document.getElementById('main-loader').style.display = 'none';
 });
+
+const mainSubmitBtn = document.getElementById('mainSubmitBtn');
+if (mainSubmitBtn) {
+    mainSubmitBtn.onclick = async () => {
+        const email = document.getElementById('authEmail').value;
+        const pass = document.getElementById('authPass').value;
+        try {
+            if (isLoginMode) {
+                await signInWithEmailAndPassword(auth, email, pass);
+            } else {
+                const avatar = document.querySelector('input[name="pfp"]:checked')?.value || PFP_PLACEHOLDER;
+                const res = await createUserWithEmailAndPassword(auth, email, pass);
+                await set(ref(db, 'users/' + res.user.uid), { username: document.getElementById('regUsername').value, avatars: avatar, tokens: 50, isPremium: false });
+            }
+            document.getElementById('modalOverlay').classList.remove('active');
+        } catch (err) { notify(err.message, "error"); }
+    };
+}
+
+if(document.getElementById('logoutBtn')) document.getElementById('logoutBtn').onclick = () => signOut(auth).then(() => { location.reload(); });
 
 // --- 5. MODAL TOGGLES ---
 const switchBtn = document.getElementById('switchAuth');
