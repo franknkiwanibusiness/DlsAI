@@ -227,9 +227,15 @@ if (closeRefill) {
 window.selectPack = (qty) => {
     const pricing = { 100: 1.10, 500: 3.00, 1000: 5.00 };
     const base = pricing[qty];
-    const finalAmount = ((base + 0.30) / (1 - 0.044)).toFixed(2);
+    // PayPal requires the value to be a string formatted to 2 decimal places
+    const finalAmount = ((base + 0.30) / (1 - 0.044)).toFixed(2).toString();
+    
     const container = document.getElementById('paypal-tokens-container');
-    if(container) container.innerHTML = '';
+    
+    if (container) {
+        // Clear previous button instance to prevent "Duplicate Render" error
+        container.innerHTML = ''; 
+    }
 
     paypal.Buttons({
         style: { shape: 'pill', color: 'gold', layout: 'vertical' },
@@ -237,16 +243,26 @@ window.selectPack = (qty) => {
             return actions.order.create({
                 purchase_units: [{ 
                     description: `${qty} Tokens Pack`, 
-                    amount: { currency_code: "USD", value: finalAmount } 
+                    amount: { 
+                        currency_code: "USD", 
+                        value: finalAmount 
+                    } 
                 }]
             });
         },
         onApprove: async (data, actions) => {
             await actions.order.capture();
-            // Direct update for one-time tokens is fine
-            await update(ref(db, `users/${auth.currentUser.uid}`), { tokens: increment(qty) });
+            // Direct update for one-time tokens using variables from your main script
+            await update(ref(db, `users/${auth.currentUser.uid}`), { 
+                tokens: increment(qty) 
+            });
             notify(`Success! ${qty} tokens added.`);
-            document.getElementById('closeRefill').click();
+            
+            const closeBtn = document.getElementById('closeRefill');
+            if (closeBtn) closeBtn.click();
+        },
+        onError: (err) => {
+            console.error("PayPal Render Error:", err);
         }
     }).render('#paypal-tokens-container');
 };
