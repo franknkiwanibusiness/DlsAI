@@ -1,45 +1,44 @@
-import { initializeApp, cert, getApps } from 'firebase-admin/app';
-import { getDatabase } from 'firebase-admin/database';
+import admin from 'firebase-admin';
 
-// 1. Initialize Firebase Admin (Only once)
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-
-if (!getApps().length) {
-  initializeApp({
-    credential: cert(serviceAccount),
-    databaseURL: process.env.FIREBASE_DATABASE_URL
+// Initialize Admin SDK using the Environment Variable
+if (!admin.apps.length) {
+  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL: process.env.FIREBASE_DATABASE_URL // Make sure to add this to Vercel too!
   });
 }
 
-const db = getDatabase();
+const db = admin.database();
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
   const event = req.body;
+  
+  // Extract UID from the custom_id we passed in the frontend script
+  const uid = event.resource?.custom_id || event.resource?.custom;
 
-  // 2. Handle Subscription Success
-  if (event.event_type === 'BILLING.SUBSCRIPTION.ACTIVATED' || 
-      event.event_type === 'PAYMENT.SALE.COMPLETED') {
-    
-    // custom_id was passed in your createSubscription logic
-    const uid = event.resource.custom_id || event.resource.custom;
-
-    if (uid) {
-      try {
-        await db.ref(`users/${uid}`).update({
-          isPremium: true,
-          tokens: 250 // Give them their premium daily start
-        });
-        console.log(`Premium activated for: ${uid}`);
-        return res.status(200).json({ message: 'User updated' });
-      } catch (error) {
-        console.error('Firebase Update Error:', error);
-        return res.status(500).send('Internal Error');
-      }
+  try {
+    // Event 1: Subscription Started (The Plan)
+    if (event.event_type === 'BILLING.SUBSCRIPTION.ACTIVATED' && uid) {
+      await db.ref(`users/${uid}`).update({
+        isPremium: true,
+        tier: 'PREMIUM',
+        tokens: 250 // Instant reward for subbing
+      });
+      console.log(`User ${uid} upgraded to Premium`);
     }
-  }
 
-  // 3. Acknowledge receipt to PayPal
-  res.status(200).send('Event received');
+    // Event 2: One-time Token Purchase (One-off)
+    // Use this if you want the webhook to handle Refills instead of the frontend
+    if (event.event_type === 'PAYMENT.SALE.COMPLETED' && uid) {
+       // Logic for one-time sales if needed
+    }
+
+    res.status(200).send('Webhook Received');
+  } catch (err) {
+    console.error('Webhook Error:', err);
+    res.status(500).send('Internal Server Error');
+  }
 }
