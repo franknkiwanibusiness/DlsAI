@@ -14,34 +14,61 @@ window.chatHistory = [];
 const PLAN_ID = 'P-47S21200XM2944742NFPLPEA';
 const PFP_PLACEHOLDER = "https://i.ytimg.com/vi/7p4LBOLGpFg/hq720.jpg?sqp=-oaymwEhCK4FEIIDSFryq4qpAxMIARUAAAAAGAElAADIQj0AgKJD&rs=AOn4CLAFu1lISn--VT-CrIS7Nc1LbUTy6Q";
 
-// --- 1. THE VISION CHAT ENGINE (Upgraded: $0.35 Logic & Identity Sync) ---
+// --- 1. THE VISION CHAT ENGINE (NKIWANI AI V2: Typing, Tiered Storage & Random Ads) ---
 const AI_PFP = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTzVSbd57etdSJc7XQWpZLhwdMYyys0f-yfx-eN1g-BxNcy0ZLRVn-mjR3X&s=10";
 const AI_NAME = "@NKIWANI AI V2";
 
-function initChat(user) {
+async function initChat(user) {
     const modal = document.getElementById('chatModal');
     const openBtn = document.getElementById('askAiBtn'); 
     const closeBtn = document.getElementById('closeChatBtn');
     const chatForm = document.getElementById('chatForm');
     const container = document.getElementById('chatContainer');
     const chatInput = document.getElementById('chatInput');
+    
+    let messageCounter = 0; 
+    let isPremiumUser = false;
 
-    // Sync User Identity to Modal Header instantly
+    // 1. IDENTITY & PREMIUM STATUS WATCHER
     onValue(ref(db, `users/${user.uid}`), (snap) => {
         const data = snap.val();
         if(data) {
+            isPremiumUser = data.isPremium || false;
             if(document.getElementById('chatUsernameDisplay')) 
                 document.getElementById('chatUsernameDisplay').innerText = (data.username || "User").toUpperCase();
             if(document.getElementById('chatUserPfp')) 
                 document.getElementById('chatUserPfp').src = data.avatars || PFP_PLACEHOLDER;
+            
+            const statusText = document.querySelector('.header-left p');
+            if(statusText) statusText.innerText = "NKIWANI ENGINE V2 ACTIVE";
         }
     });
+
+    // 2. LOAD HISTORY
+    const loadHistory = async () => {
+        container.innerHTML = '<p style="text-align:center; color:#444; font-size:0.7rem; padding:20px; letter-spacing:1px;">INITIALIZING NKIWANI V2 ENGINE...</p>';
+        let savedHistory = [];
+        const localData = localStorage.getItem(`chat_cache_${user.uid}`);
+        
+        if (isPremiumUser) {
+            const cloudSnap = await get(ref(db, `chats/${user.uid}`));
+            if (cloudSnap.exists()) savedHistory = cloudSnap.val();
+            else if (localData) savedHistory = JSON.parse(localData);
+        } else if (localData) {
+            savedHistory = JSON.parse(localData);
+        }
+
+        container.innerHTML = ''; 
+        window.chatHistory = savedHistory;
+        savedHistory.forEach(msg => appendMessage(msg.role === 'user' ? 'user' : 'ai', msg.content, true));
+    };
 
     const toggleModal = (show) => {
         if (!modal) return;
         if (show) {
             modal.style.display = 'flex';
             setTimeout(() => modal.classList.add('active'), 10);
+            if (container.children.length === 0) loadHistory();
         } else {
             modal.classList.remove('active');
             setTimeout(() => modal.style.display = 'none', 300);
@@ -51,86 +78,127 @@ function initChat(user) {
     if (openBtn) openBtn.onclick = () => toggleModal(true);
     if (closeBtn) closeBtn.onclick = () => toggleModal(false);
 
+    // 3. RANDOM AD INJECTION (Firebase /ads Source)
+    async function injectAd() {
+        try {
+            const adsRef = ref(db, 'ads');
+            const snap = await get(adsRef);
+            
+            if (snap.exists()) {
+                const adsData = snap.val();
+                // Handle both array and object formats from Firebase
+                const adsList = Object.values(adsData); 
+                const randomAd = adsList[Math.floor(Math.random() * adsList.length)];
+
+                const adHtml = `
+                    <div class="chat-ad-inline" style="margin: 20px 0; width: 100%; animation: slideUp 0.4s ease; transform-origin: bottom;">
+                        <p style="font-size: 0.5rem; color: #555; margin-bottom: 6px; text-align: left; letter-spacing: 1px; font-weight: 800; text-transform: uppercase;">Engine Sponsor</p>
+                        <div style="aspect-ratio: 16/9; width: 100%; border-radius: 20px; overflow: hidden; border: 1px solid #1a1a1a; position: relative; background: #000; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+                            <img src="${randomAd.image}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.8;">
+                            <div style="position: absolute; inset: 0; background: linear-gradient(to top, #000000ee, transparent 60%); display: flex; flex-direction: column; justify-content: flex-end; padding: 15px;">
+                                 <a href="${randomAd.url}" target="_blank" style="display: block; width: 100%; padding: 12px; background: #fff; color: #000; text-align: center; border-radius: 12px; font-weight: 900; font-size: 0.75rem; text-decoration: none; text-transform: uppercase; letter-spacing: 0.5px;">Visit Site</a>
+                            </div>
+                        </div>
+                    </div>`;
+                container.insertAdjacentHTML('beforeend', adHtml);
+                container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+            }
+        } catch (e) { console.error("Ad Engine Sync Error", e); }
+    }
+
+    // 4. SEND MESSAGE LOGIC
     if (chatForm) {
         chatForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const text = chatInput.value.trim();
             if (!text) return;
 
-            // 1. Precise Token Validation (Need 0.35 for full interaction)
             const userRef = ref(db, `users/${user.uid}`);
             const snap = await get(userRef);
             const currentTokens = snap.exists() ? (snap.val().tokens || 0) : 0;
             
-            if (currentTokens < 0.35) {
-                return notify("Neural link failed: 0.35 tokens required per interaction!", "error");
-            }
+            if (currentTokens < 0.35) return notify("Inadequate Credits for NKIWANI V2 Analysis", "error");
 
-            // 2. UI Update: User Message with Identity
             appendMessage('user', text);
             chatInput.value = '';
             window.chatHistory.push({ role: 'user', content: text });
-            
-            // 3. UI Update: AI Loading State
-            const tempId = appendMessage('ai', 'Synchronizing with Neural Net...');
+            messageCounter++;
+
+            const tempId = appendMessage('ai', 'STARTING NKIWANI AI V2...');
 
             try {
-                // 4. API Call to backend
                 const response = await fetch('/api/aichat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        messages: window.chatHistory, 
-                        uid: user.uid 
-                    })
+                    body: JSON.stringify({ messages: window.chatHistory, uid: user.uid })
                 });
                 
                 const data = await response.json();
-                
-                // 5. Deduct 0.35 (0.10 User Input + 0.25 AI Response)
-                const newBalance = Number((currentTokens - 0.35).toFixed(2));
-                await update(userRef, { tokens: newBalance });
+                await update(userRef, { tokens: Number((currentTokens - 0.35).toFixed(2)) });
                 
                 updateMessage(tempId, data.reply);
                 window.chatHistory.push({ role: 'assistant', content: data.reply });
+                messageCounter++;
+
+                // Ad Logic: Trigger roughly every 2-3 individual messages
+                if (messageCounter % 3 === 0) {
+                    await injectAd();
+                }
+
+                // Tiered Storage
+                localStorage.setItem(`chat_cache_${user.uid}`, JSON.stringify(window.chatHistory));
+                if (isPremiumUser) await set(ref(db, `chats/${user.uid}`), window.chatHistory);
+
             } catch (err) { 
-                updateMessage(tempId, "Connection to Vision Engine lost. Check your network."); 
+                updateMessage(tempId, "Engine Error: Communication lost."); 
             }
         });
     }
 
-    function appendMessage(role, text) {
+    function appendMessage(role, text, isInitialLoad = false) {
         if (!container) return;
         const id = 'msg-' + Date.now();
-        const isAi = role === 'ai';
-        
-        // Dynamic Identity Selection
+        const isAi = role === 'ai' || role === 'assistant';
         const pfp = isAi ? AI_PFP : document.getElementById('chatUserPfp').src;
         const name = isAi ? AI_NAME : document.getElementById('chatUsernameDisplay').innerText;
 
         const html = `
             <div id="${id}" class="message-wrapper ${isAi ? 'ai-align' : 'user-align'}">
-                <div style="display: flex; flex-direction: ${isAi ? 'row' : 'row-reverse'}; gap: 10px; align-items: flex-end; margin-bottom: 10px;">
-                    <img src="${pfp}" style="width: 28px; height: 28px; border-radius: 8px; border: 1px solid ${isAi ? 'var(--cyan)' : '#333'}; background: #000;">
+                <div style="display: flex; flex-direction: ${isAi ? 'row' : 'row-reverse'}; gap: 10px; align-items: flex-end; margin-bottom: 15px;">
+                    <img src="${pfp}" style="width: 28px; height: 28px; border-radius: 8px; border: 1px solid ${isAi ? '#00ffff' : '#333'};">
                     <div class="${isAi ? 'ai-bubble' : 'user-bubble'}" style="max-width: 75%;">
-                        <span style="font-size: 0.6rem; display: block; margin-bottom: 4px; color: ${isAi ? 'var(--cyan)' : '#888'}; font-weight: 800; letter-spacing: 0.5px;">${name}</span>
-                        <p style="margin: 0; font-size: 0.85rem; line-height: 1.4;">${text}</p>
+                        <span style="font-size: 0.6rem; display: block; margin-bottom: 4px; color: ${isAi ? '#00ffff' : '#888'}; font-weight: 800;">${name}</span>
+                        <p style="margin: 0; font-size: 0.85rem; line-height: 1.4; color: #fff;"></p>
                     </div>
                 </div>
             </div>`;
-            
         container.insertAdjacentHTML('beforeend', html);
-        container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+        
+        const pTag = document.getElementById(id).querySelector('p');
+        if (isInitialLoad || !isAi) {
+            pTag.innerText = text;
+            container.scrollTop = container.scrollHeight;
+        }
         return id;
     }
 
     function updateMessage(id, text) {
         const el = document.getElementById(id);
-        if (el) el.querySelector('p').innerText = text;
-        if (container) container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+        if (!el) return;
+        const p = el.querySelector('p');
+        p.innerText = '';
+        let i = 0;
+        const typeEffect = () => {
+            if (i < text.length) {
+                p.innerText += text.charAt(i);
+                i++;
+                setTimeout(typeEffect, 12);
+                container.scrollTop = container.scrollHeight;
+            }
+        };
+        typeEffect();
     }
 }
-
 
 
 // --- 2. REFILL, SUBSCRIPTION & UTILS ---
