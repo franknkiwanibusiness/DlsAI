@@ -96,25 +96,46 @@ function initChat(user) {
         if (container) container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
     }
 }
-
 // --- 2. REFILL & SUBSCRIPTION LOGIC ---
+
+// Open Modal and ensure it sits on top
 window.openRefillModal = () => {
     const modal = document.getElementById('refillModal');
-    if (modal) modal.classList.remove('hidden');
+    if (modal) {
+        modal.style.display = 'flex'; // Force display flex for layering
+        // Small timeout to allow transition if CSS is used
+        setTimeout(() => modal.classList.add('active'), 10);
+        modal.classList.remove('hidden'); 
+    }
 };
 
+// Close Logic
 const closeRefill = document.getElementById('closeRefill');
 if (closeRefill) {
     closeRefill.onclick = () => {
-        document.getElementById('refillModal').classList.add('hidden');
+        const modal = document.getElementById('refillModal');
+        modal.classList.remove('active');
+        modal.classList.add('hidden');
+        
+        // Reset the PayPal container message
         const payBox = document.getElementById('paypal-tokens-container');
         if (payBox) payBox.innerHTML = '<p class="text-zinc-500 text-[10px] text-center italic">Select a pack above to pay</p>';
     };
 }
 
+// Close on clicking the dark background (outside the content box)
+window.addEventListener('click', (e) => {
+    const modal = document.getElementById('refillModal');
+    if (e.target === modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('active');
+    }
+});
+
 window.selectPack = (qty) => {
     const pricing = { 100: 1.10, 500: 3.00, 1000: 5.00 };
     const base = pricing[qty];
+    // Fee Calculation: (Base + $0.30) / (1 - 4.4%)
     const finalAmount = ((base + 0.30) / (1 - 0.044)).toFixed(2);
     
     const container = document.getElementById('paypal-tokens-container');
@@ -124,33 +145,49 @@ window.selectPack = (qty) => {
         style: { shape: 'pill', color: 'gold', layout: 'vertical' },
         createOrder: (data, actions) => {
             return actions.order.create({
-                purchase_units: [{ description: `${qty} Tokens`, amount: { currency_code: "USD", value: finalAmount } }]
+                purchase_units: [{ 
+                    description: `${qty} Tokens Pack`, 
+                    amount: { currency_code: "USD", value: finalAmount } 
+                }]
             });
         },
         onApprove: async (data, actions) => {
             await actions.order.capture();
-            await update(ref(db, `users/${auth.currentUser.uid}`), { tokens: increment(qty) });
+            // Database update
+            await update(ref(db, `users/${auth.currentUser.uid}`), { 
+                tokens: increment(qty) 
+            });
             notify(`Success! ${qty} tokens added.`);
             document.getElementById('refillModal').classList.add('hidden');
+            document.getElementById('refillModal').classList.remove('active');
         }
     }).render('#paypal-tokens-container');
 };
 
 function initPaypalSystems(user) {
     const subContainer = document.getElementById(`paypal-button-container-${PLAN_ID}`);
+    // Only render if container exists and is empty
     if (subContainer && !subContainer.hasChildNodes()) {
         paypal.Buttons({
             style: { shape: 'pill', color: 'gold', layout: 'vertical', label: 'subscribe' },
             createSubscription: (data, actions) => {
-                return actions.subscription.create({ plan_id: PLAN_ID, custom_id: user.uid });
+                return actions.subscription.create({ 
+                    plan_id: PLAN_ID, 
+                    custom_id: user.uid 
+                });
             },
             onApprove: async (data) => {
-                await update(ref(db, `users/${user.uid}`), { isPremium: true, tokens: increment(250), tier: 'Premium' });
+                await update(ref(db, `users/${user.uid}`), { 
+                    isPremium: true, 
+                    tokens: increment(250), 
+                    tier: 'Premium' 
+                });
                 notify("Premium Activated!");
             }
         }).render(subContainer);
     }
 }
+
 
 // --- 3. DATA WATCHER & UI SYNC ---
 function syncUserUI(uid) {
