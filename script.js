@@ -11,7 +11,7 @@ import { ref, set, get, update, increment, onValue } from "https://www.gstatic.c
 // Global State
 let isLoginMode = true;
 window.chatHistory = [];
-const PLAN_ID = 'P-47S21200XM2944742NFPLPEA';
+const PLAN_ID = 'P-9GX41892X09700340NFT6UOQ';
 const PFP_PLACEHOLDER = "https://i.ytimg.com/vi/7p4LBOLGpFg/hq720.jpg?sqp=-oaymwEhCK4FEIIDSFryq4qpAxMIARUAAAAAGAElAADIQj0AgKJD&rs=AOn4CLAFu1lISn--VT-CrIS7Nc1LbUTy6Q";
 
 // --- 1. THE VISION CHAT ENGINE (NKIWANI AI V2: Typing, Tiered Storage & Random Ads) ---
@@ -223,6 +223,7 @@ if (closeRefill) {
     };
 }
 
+// Handler for One-Time Token Purchases
 window.selectPack = (qty) => {
     const pricing = { 100: 1.10, 500: 3.00, 1000: 5.00 };
     const base = pricing[qty];
@@ -234,11 +235,15 @@ window.selectPack = (qty) => {
         style: { shape: 'pill', color: 'gold', layout: 'vertical' },
         createOrder: (data, actions) => {
             return actions.order.create({
-                purchase_units: [{ description: `${qty} Tokens Pack`, amount: { currency_code: "USD", value: finalAmount } }]
+                purchase_units: [{ 
+                    description: `${qty} Tokens Pack`, 
+                    amount: { currency_code: "USD", value: finalAmount } 
+                }]
             });
         },
         onApprove: async (data, actions) => {
             await actions.order.capture();
+            // Direct update for one-time tokens is fine
             await update(ref(db, `users/${auth.currentUser.uid}`), { tokens: increment(qty) });
             notify(`Success! ${qty} tokens added.`);
             document.getElementById('closeRefill').click();
@@ -246,15 +251,35 @@ window.selectPack = (qty) => {
     }).render('#paypal-tokens-container');
 };
 
+// Handler for Monthly Premium Subscriptions
 function initPaypalSystems(user) {
     const subContainer = document.getElementById(`paypal-button-container-${PLAN_ID}`);
+    
+    // Safety check: only render if container exists and is empty
     if (subContainer && !subContainer.hasChildNodes()) {
         paypal.Buttons({
-            style: { shape: 'pill', color: 'gold', layout: 'vertical', label: 'subscribe' },
-            createSubscription: (data, actions) => actions.subscription.create({ plan_id: PLAN_ID, custom_id: user.uid }),
-            onApprove: async () => {
-                await update(ref(db, `users/${user.uid}`), { isPremium: true, tokens: increment(250), tier: 'Premium' });
-                notify("Premium Activated!");
+            style: { 
+                shape: 'pill', 
+                color: 'gold', 
+                layout: 'vertical', 
+                label: 'subscribe' 
+            },
+            createSubscription: (data, actions) => {
+                return actions.subscription.create({
+                    plan_id: PLAN_ID,
+                    // IMPORTANT: This passes the User UID to your Vercel Webhook
+                    custom_id: user.uid 
+                });
+            },
+            onApprove: async (data) => {
+                // The Vercel Webhook handles the database upgrade (isPremium: true)
+                // We just show a pending message to the user
+                notify("Payment success! Syncing Premium status...", "success");
+                console.log("Subscription ID:", data.subscriptionID);
+            },
+            onError: (err) => {
+                console.error("PayPal Error:", err);
+                notify("Payment Engine Error. Please retry.", "error");
             }
         }).render(subContainer);
     }
@@ -263,57 +288,68 @@ function initPaypalSystems(user) {
 let isClaiming = false; // Prevents loops
 
 function syncUserUI(uid) {
+    // A. Profile & Premium Status Watcher
     onValue(ref(db, `users/${uid}`), (snapshot) => {
         const data = snapshot.val();
         if (data) {
+            const now = Date.now();
+
+            // 1. PREMIUM EXPIRATION SAFETY CHECK
+            // Automatically demotes user if the premium period (from Vercel) has ended
+            if (data.isPremium && data.premiumUntil && now > data.premiumUntil) {
+                update(ref(db, `users/${uid}`), { 
+                    isPremium: false, 
+                    tier: 'Free' 
+                });
+                return; 
+            }
+
             const pfp = data.avatars || PFP_PLACEHOLDER; 
             
-            // Header & Profile Fixes
+            // 2. HEADER & PROFILE UI UPDATES
             document.getElementById('headerUsername').innerText = data.username || "User";
             document.getElementById('tokenBalance').innerText = data.tokens || 0;
             document.getElementById('headerAvatar').src = pfp;
-            
-            // Fixed: Modal Profile & @Username
             document.getElementById('modalFullUser').innerText = "@" + (data.username || "user");
             document.getElementById('modalLargeAvatar').src = pfp;
 
-            // Fixed: Tier Indicator Badge
+            // 3. TIER INDICATOR BADGE
             const tierEl = document.getElementById('accountTier');
             if(tierEl) {
                 tierEl.innerHTML = `<span style="background:${data.isPremium ? '#d4af37':'#222'}; color:${data.isPremium ? '#000':'#888'}; font-size:0.6rem; padding:2px 8px; border-radius:4px; font-weight:800; letter-spacing:1px;">${data.isPremium ? 'PREMIUM':'FREE'}</span>`;
             }
 
-            // Define the Max Limit based on Tier
+            // 4. USAGE BAR LOGIC
             const limit = data.isPremium ? 250 : 25; 
-            
             document.getElementById('usageText').innerText = `${data.tokens || 0} / ${limit}`;
             document.getElementById('usageBar').style.width = `${Math.min(((data.tokens || 0) / limit) * 100, 100)}%`;
 
-            // --- DAILY REFILL LOGIC ---
-            const now = Date.now();
+            // 5. DAILY REFILL LOGIC
             const oneDay = 24 * 60 * 60 * 1000;
-
             if (!isClaiming && (now - (data.lastDailyClaim || 0) >= oneDay)) {
                 isClaiming = true; 
-                
                 update(ref(db, `users/${uid}`), {
                     tokens: limit, 
                     lastDailyClaim: now
                 }).then(() => {
                     notify(`DLSVALE: Tokens refilled to ${limit}!`);
+                    isClaiming = false;
                 }).catch(() => { isClaiming = false; });
             }
         }
     });
 
-
-    // Watch Links & Countdown
+    // B. WATCH LINKS & COUNTDOWN (Only one instance)
     onValue(ref(db, `links/${uid}`), (snapshot) => {
         const container = document.getElementById('linksContainer');
         if (!container) return;
         container.innerHTML = '';
+        
         const links = snapshot.val();
-        if (!links) return container.innerHTML = '<p style="text-align:center; color:#444; font-size:0.7rem;">No active links</p>';
+        if (!links) {
+            container.innerHTML = '<p style="text-align:center; color:#444; font-size:0.7rem;">No active links</p>';
+            return;
+        }
 
         Object.entries(links).forEach(([key, link]) => {
             const linkId = `timer-${key}`;
@@ -336,7 +372,11 @@ function syncUserUI(uid) {
                 const now = new Date().getTime();
                 const distance = link.expiresAt - now;
                 const el = document.getElementById(linkId);
-                if (!el) return clearInterval(countdownInterval);
+                
+                if (!el) {
+                    clearInterval(countdownInterval);
+                    return;
+                }
 
                 if (distance < 0) {
                     el.innerText = "EXPIRED";
@@ -352,6 +392,7 @@ function syncUserUI(uid) {
         });
     });
 }
+
 // --- 4. AUTH & OBSERVER ---
 
 // A. Fingerprint Engine: Mixes hardware specs into a unique ID
