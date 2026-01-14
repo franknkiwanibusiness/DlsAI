@@ -362,18 +362,17 @@ if (mainSubmitBtn) {
 }
 
 if(document.getElementById('logoutBtn')) document.getElementById('logoutBtn').onclick = () => signOut(auth).then(() => { location.reload(); });
-
 // --- 5. MODAL TOGGLES & GLOBAL SCROLL LOCK ---
 
 // 1. Master Scroll Lock Function
 const toggleScrollLock = (isLocked) => {
     if (isLocked) {
-        // Prevent background jumps on mobile by locking scroll position
+        if (document.body.classList.contains('modal-open')) return;
         const scrollY = window.scrollY;
         document.body.style.top = `-${scrollY}px`;
         document.body.classList.add('modal-open');
     } else {
-        // Restore scroll position when modal closes
+        if (!document.body.classList.contains('modal-open')) return;
         const scrollY = document.body.style.top;
         document.body.classList.remove('modal-open');
         document.body.style.top = '';
@@ -382,25 +381,29 @@ const toggleScrollLock = (isLocked) => {
 };
 
 // 2. Global Modal Observer 
-// Automatically locks scroll when any element in this list gets the 'active' class
+// Watches for any modal being opened/closed across the entire app
 const modalObserver = new MutationObserver(() => {
-    const activeModals = [
+    const activeSelectors = [
         '.modal-overlay.active', 
         '.profile-modal.active', 
         '.vision-modal-fs.active', 
         '#refillModal.active',
-        '#chatModal.active'
+        '#chatModal.active',
+        '.preview-modal[style*="flex"]',
+        '.preview-modal[style*="block"]'
     ];
-    const isAnyActive = document.querySelector(activeModals.join(','));
+    const isAnyActive = document.querySelector(activeSelectors.join(','));
     toggleScrollLock(!!isAnyActive);
 });
 
-// Watch the document body for modal state changes
-modalObserver.observe(document.body, { 
-    attributes: true, 
-    subtree: true, 
-    attributeFilter: ['class'] 
-});
+// Initialize observer on body
+if (document.body) {
+    modalObserver.observe(document.body, { 
+        attributes: true, 
+        subtree: true, 
+        attributeFilter: ['class', 'style'] 
+    });
+}
 
 // 3. Auth UI Setup
 const switchBtn = document.getElementById('switchAuth');
@@ -408,21 +411,27 @@ const mainSubmitBtn = document.getElementById('mainSubmitBtn');
 const regFields = document.getElementById('regFields');
 const modalTitle = document.getElementById('modalTitle');
 
-// Force Login state on script load
+// Force Login state on script load to prevent glitches
 if (regFields) regFields.style.display = 'none';
 isLoginMode = true; 
 
 if(switchBtn) {
-    switchBtn.onclick = () => {
+    switchBtn.onclick = (e) => {
+        e.preventDefault();
         isLoginMode = !isLoginMode;
         if (regFields) regFields.style.display = isLoginMode ? 'none' : 'block';
         if (modalTitle) modalTitle.innerText = isLoginMode ? 'Welcome Back' : 'Create Account';
         if (mainSubmitBtn) mainSubmitBtn.innerText = isLoginMode ? 'Login' : 'Register';
-        switchBtn.innerText = isLoginMode ? 'Register' : 'Login';
         
+        // Update helper text around the switch link
         const parentPara = switchBtn.closest('.toggle-text');
-        if (parentPara && parentPara.firstChild.nodeType === Node.TEXT_NODE) {
-            parentPara.firstChild.textContent = isLoginMode ? 'Need an account? ' : 'Have an account? ';
+        if (parentPara) {
+            parentPara.innerHTML = isLoginMode ? 
+                `Need an account? <span id="switchAuth" style="color:#00ffff; text-decoration:underline; cursor:pointer;">Register</span>` : 
+                `Have an account? <span id="switchAuth" style="color:#00ffff; text-decoration:underline; cursor:pointer;">Login</span>`;
+            // Re-bind the click event because we replaced the innerHTML
+            const newSwitchBtn = document.getElementById('switchAuth');
+            if(newSwitchBtn) newSwitchBtn.onclick = switchBtn.onclick;
         }
     };
 }
@@ -469,3 +478,4 @@ document.addEventListener('click', (e) => {
         }
     }
 });
+
