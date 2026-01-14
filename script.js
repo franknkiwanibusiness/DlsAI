@@ -327,6 +327,26 @@ function syncUserUI(uid) {
 }
 
 // --- 4. AUTH & OBSERVER ---
+
+// A. Fingerprint Engine: Mixes hardware specs into a unique ID
+const getDeviceID = () => {
+    const traits = [
+        navigator.userAgent,
+        screen.width + "x" + screen.height,
+        navigator.language,
+        new Date().getTimezoneOffset(),
+        navigator.hardwareConcurrency || '4'
+    ].join('|');
+    
+    let hash = 0;
+    for (let i = 0; i < traits.length; i++) {
+        hash = ((hash << 5) - hash) + traits.charCodeAt(i);
+        hash |= 0;
+    }
+    return "NKI-" + Math.abs(hash);
+};
+
+// B. Auth State Observer
 onAuthStateChanged(auth, (user) => {
     const userDisplay = document.getElementById('userDisplay');
     const openAuth = document.getElementById('openAuth');
@@ -343,25 +363,83 @@ onAuthStateChanged(auth, (user) => {
     if (document.getElementById('main-loader')) document.getElementById('main-loader').style.display = 'none';
 });
 
+// C. Auth Submission with Shadow Token Logic
 const mainSubmitBtn = document.getElementById('mainSubmitBtn');
 if (mainSubmitBtn) {
     mainSubmitBtn.onclick = async () => {
         const email = document.getElementById('authEmail').value;
         const pass = document.getElementById('authPass').value;
+        const deviceID = getDeviceID(); // Capture fingerprint
+
         try {
             if (isLoginMode) {
+                // LOGIN MODE
                 await signInWithEmailAndPassword(auth, email, pass);
             } else {
+                // REGISTRATION MODE: Check if device is already registered
+                const deviceRef = ref(db, 'registered_devices/' + deviceID);
+                const deviceSnap = await get(deviceRef);
+                
+                let startingTokens = 50;
+                let isCheatAttempt = false;
+
+                if (deviceSnap.exists()) {
+                    startingTokens = 0; // Shadow Token: Block bonus
+                    isCheatAttempt = true;
+                }
+
                 const avatar = document.querySelector('input[name="pfp"]:checked')?.value || PFP_PLACEHOLDER;
+                const username = document.getElementById('regUsername').value;
+                
+                // Create Firebase User
                 const res = await createUserWithEmailAndPassword(auth, email, pass);
-                await set(ref(db, 'users/' + res.user.uid), { username: document.getElementById('regUsername').value, avatars: avatar, tokens: 50, isPremium: false });
+                
+                // Save User Profile
+                await set(ref(db, 'users/' + res.user.uid), { 
+                    username: username, 
+                    avatars: avatar, 
+                    tokens: startingTokens, 
+                    isPremium: false,
+                    fingerprint: deviceID 
+                });
+
+                // If new device, mark it as used in Firebase
+                if (!isCheatAttempt) {
+                    await set(deviceRef, { claimedBy: res.user.uid, timestamp: Date.now() });
+                } else {
+                    // Trigger the Security Warning Popup for duplicate devices
+                    const secModal = document.getElementById('securityModal');
+                    if(secModal) {
+                        secModal.style.display = 'flex';
+                        setTimeout(() => secModal.classList.add('active'), 10);
+                        if(typeof toggleScroll === 'function') toggleScroll(true);
+                    }
+                }
             }
             document.getElementById('modalOverlay').classList.remove('active');
-        } catch (err) { notify(err.message, "error"); }
+            if(typeof toggleScroll === 'function') toggleScroll(false);
+        } catch (err) { 
+            notify(err.message, "error"); 
+        }
     };
 }
 
-if(document.getElementById('logoutBtn')) document.getElementById('logoutBtn').onclick = () => signOut(auth).then(() => { location.reload(); });
+// D. Logout & Security Modal Close
+if(document.getElementById('logoutBtn')) {
+    document.getElementById('logoutBtn').onclick = () => signOut(auth).then(() => { location.reload(); });
+}
+
+const closeSecurity = document.getElementById('closeSecurity');
+if (closeSecurity) {
+    closeSecurity.onclick = () => {
+        const secModal = document.getElementById('securityModal');
+        secModal.classList.remove('active');
+        setTimeout(() => { 
+            secModal.style.display = 'none'; 
+            if(typeof toggleScroll === 'function') toggleScroll(false);
+        }, 300);
+    };
+}
 
 // --- 5. MODAL TOGGLES ---
 const switchBtn = document.getElementById('switchAuth');
