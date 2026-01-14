@@ -6,11 +6,12 @@ import {
     onAuthStateChanged, 
     signOut 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { ref, set, get, update, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { ref, set, get, update, increment, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 // Global State
 let isLoginMode = true;
 window.chatHistory = [];
+const PLAN_ID = 'P-47S21200XM2944742NFPLPEA';
 
 // --- 1. THE VISION CHAT ENGINE ---
 function initChat(user) {
@@ -69,7 +70,6 @@ function initChat(user) {
                 const data = await response.json();
                 
                 await update(userRef, { tokens: increment(-1) });
-                refreshUserData(user.uid); 
 
                 updateMessage(tempId, data.reply);
                 window.chatHistory.push({ role: 'assistant', content: data.reply });
@@ -96,7 +96,6 @@ function initChat(user) {
         if (el) el.querySelector('p').innerText = text;
         if (container) container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
     }
-    window.appendChatMessage = appendMessage;
 }
 
 // --- 2. AUTH SUBMIT & LOGOUT ---
@@ -112,17 +111,17 @@ if (mainSubmitBtn) {
                 await signInWithEmailAndPassword(auth, email, pass);
                 notify("Welcome back!");
             } else {
-                // GET AVATAR FROM RADIO BUTTONS
                 const avatarRadio = document.querySelector('input[name="pfp"]:checked');
                 const avatarUrl = avatarRadio ? avatarRadio.value : "";
                 
                 const res = await createUserWithEmailAndPassword(auth, email, pass);
                 
-                // SAVE WITH AVATAR
+                // SAVING TO 'avatars' KEY AS REQUESTED
                 await set(ref(db, 'users/' + res.user.uid), {
                     username: usernameInput.value,
-                    avatar: avatarUrl,
+                    avatars: avatarUrl, 
                     tokens: 50,
+                    isPremium: false,
                     tier: 'Free'
                 });
                 notify("Account created!");
@@ -141,31 +140,75 @@ if (logoutBtn) {
     };
 }
 
-// --- 3. UI SYNC (FETCHING USERNAME/TOKENS/AVATAR) ---
-async function refreshUserData(uid) {
-    const snapshot = await get(ref(db, `users/${uid}`));
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        
-        // Update Text
-        document.getElementById('headerUsername').innerText = data.username || "User";
-        document.getElementById('tokenBalance').innerText = data.tokens || 0;
-        document.getElementById('modalFullUser').innerText = "@" + (data.username || "user");
-        
-        // Update Avatar Images
-        if (data.avatar) {
-            document.getElementById('headerAvatar').src = data.avatar;
-            document.getElementById('modalLargeAvatar').src = data.avatar;
-        }
-
-        // Update Progress Bar
-        const tokens = data.tokens || 0;
-        document.getElementById('usageText').innerText = `${tokens} / 50`;
-        document.getElementById('usageBar').style.width = `${(tokens / 50) * 100}%`;
+// --- 3. UI SYNC & PAYPAL INTEGRATION ---
+function initPaypalSystems(user) {
+    // 1. Subscription Button
+    const subContainer = document.getElementById(`paypal-button-container-${PLAN_ID}`);
+    if (subContainer && !subContainer.hasChildNodes()) {
+        paypal.Buttons({
+            style: { shape: 'pill', color: 'gold', layout: 'vertical', label: 'subscribe' },
+            createSubscription: (data, actions) => {
+                return actions.subscription.create({ plan_id: PLAN_ID, custom_id: user.uid });
+            },
+            onApprove: async (data) => {
+                await update(ref(db, `users/${user.uid}`), { isPremium: true, tokens: increment(250), tier: 'Premium' });
+                notify("Premium Activated!");
+            }
+        }).render(subContainer);
     }
 }
 
-// --- 4. FIREBASE OBSERVER ---
+// Pricing: 100=$1.10, 500=$3, 1000=$5 (Calculates Fees Automatically)
+window.buyTokens = (qty) => {
+    const pricing = { 100: 1.10, 500: 3.00, 1000: 5.00 };
+    const base = pricing[qty];
+    const finalAmount = ((base + 0.30) / (1 - 0.044)).toFixed(2);
+    
+    const container = document.getElementById('paypal-tokens-container');
+    if(container) container.innerHTML = '';
+
+    paypal.Buttons({
+        style: { shape: 'pill', color: 'gold', layout: 'vertical' },
+        createOrder: (data, actions) => {
+            return actions.order.create({
+                purchase_units: [{ description: `${qty} Tokens`, amount: { currency_code: "USD", value: finalAmount } }]
+            });
+        },
+        onApprove: async (data, actions) => {
+            await actions.order.capture();
+            await update(ref(db, `users/${auth.currentUser.uid}`), { tokens: increment(qty) });
+            notify(`Success! ${qty} tokens added.`);
+        }
+    }).render('#paypal-tokens-container');
+};
+
+// --- 4. DATA WATCHER ---
+function syncUserUI(uid) {
+    onValue(ref(db, `users/${uid}`), (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            const pfp = data.avatars || ""; // Reading from 'avatars'
+            document.getElementById('headerUsername').innerText = data.username || "User";
+            document.getElementById('tokenBalance').innerText = data.tokens || 0;
+            document.getElementById('modalFullUser').innerText = "@" + (data.username || "user");
+            
+            if (pfp) {
+                document.getElementById('headerAvatar').src = pfp;
+                document.getElementById('modalLargeAvatar').src = pfp;
+            }
+
+            const tokens = data.tokens || 0;
+            const limit = data.isPremium ? 250 : 50;
+            document.getElementById('usageText').innerText = `${tokens} / ${limit}`;
+            document.getElementById('usageBar').style.width = `${Math.min((tokens / limit) * 100, 100)}%`;
+            
+            const tierEl = document.getElementById('accountTier');
+            if(tierEl) tierEl.innerHTML = `<span style="background:${data.isPremium ? '#d4af37':'#222'}; color:${data.isPremium ? '#000':'#888'}; font-size:0.6rem; padding:2px 8px; border-radius:4px; font-weight:800;">${data.isPremium ? 'PREMIUM':'FREE'}</span>`;
+        }
+    });
+}
+
+// --- 5. FIREBASE OBSERVER ---
 onAuthStateChanged(auth, (user) => {
     const openAuth = document.getElementById('openAuth');
     const userDisplay = document.getElementById('userDisplay');
@@ -174,20 +217,17 @@ onAuthStateChanged(auth, (user) => {
     if (user) {
         if (openAuth) openAuth.style.display = 'none';
         if (userDisplay) userDisplay.style.display = 'flex';
-        refreshUserData(user.uid);
+        syncUserUI(user.uid);
         initChat(user);
+        initPaypalSystems(user);
     } else {
         if (openAuth) openAuth.style.display = 'block';
         if (userDisplay) userDisplay.style.display = 'none';
-        
-        // Reset images to placeholder on logout
-        document.getElementById('headerAvatar').src = ""; 
-        document.getElementById('modalLargeAvatar').src = "";
     }
     if (loader) loader.style.display = 'none';
 });
 
-// --- 5. MODAL TOGGLES ---
+// --- 6. MODAL TOGGLES ---
 const switchBtn = document.getElementById('switchAuth');
 if(switchBtn) {
     switchBtn.onclick = () => {
@@ -198,11 +238,7 @@ if(switchBtn) {
     };
 }
 
-// Standard Modal Listeners
-const overlay = document.getElementById('modalOverlay');
-const profModal = document.getElementById('profileModal');
-
-if(document.getElementById('openAuth')) document.getElementById('openAuth').onclick = () => overlay.classList.add('active');
-if(document.getElementById('userDisplay')) document.getElementById('userDisplay').onclick = () => profModal.classList.add('active');
-if(document.getElementById('closeProfile')) document.getElementById('closeProfile').onclick = () => profModal.classList.remove('active');
-if(document.getElementById('closeModalX')) document.getElementById('closeModalX').onclick = () => overlay.classList.remove('active');
+if(document.getElementById('openAuth')) document.getElementById('openAuth').onclick = () => document.getElementById('modalOverlay').classList.add('active');
+if(document.getElementById('userDisplay')) document.getElementById('userDisplay').onclick = () => document.getElementById('profileModal').classList.add('active');
+if(document.getElementById('closeProfile')) document.getElementById('closeProfile').onclick = () => document.getElementById('profileModal').classList.remove('active');
+if(document.getElementById('closeModalX')) document.getElementById('closeModalX').onclick = () => document.getElementById('modalOverlay').classList.remove('active');
