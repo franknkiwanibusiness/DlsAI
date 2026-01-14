@@ -378,3 +378,17 @@ document.getElementById('openAuth').onclick = () => document.getElementById('mod
 document.getElementById('userDisplay').onclick = () => document.getElementById('profileModal').classList.add('active');
 document.getElementById('closeProfile').onclick = () => document.getElementById('profileModal').classList.remove('active');
 document.getElementById('closeModalX').onclick = () => document.getElementById('modalOverlay').classList.remove('active');
+// Global Hero Button Handler
+document.addEventListener('click', (e) => {
+    if (e.target.closest('#askAiBtn')) {
+        if (auth.currentUser) {
+            // User is logged in, initChat logic handles the modal
+            // (The click will be caught by the listener inside initChat)
+        } else {
+            // User is guest, show login modal
+            notify("Identity required for Neural Link", "error");
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+    }
+});
+
