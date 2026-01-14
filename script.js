@@ -259,24 +259,39 @@ function initPaypalSystems(user) {
         }).render(subContainer);
     }
 }
-
 // --- 3. DATA WATCHER (LINKS & COUNTDOWN) ---
+let isClaiming = false; // Prevents loops
+
 function syncUserUI(uid) {
-    // Watch Profile Data
     onValue(ref(db, `users/${uid}`), (snapshot) => {
         const data = snapshot.val();
         if (data) {
             const pfp = data.avatars || PFP_PLACEHOLDER; 
             document.getElementById('headerUsername').innerText = data.username || "User";
             document.getElementById('tokenBalance').innerText = data.tokens || 0;
-            document.getElementById('modalFullUser').innerText = "@" + (data.username || "user");
             document.getElementById('headerAvatar').src = pfp;
-            document.getElementById('modalLargeAvatar').src = pfp;
-            const limit = data.isPremium ? 250 : 50;
+
+            // Define the Max Limit based on Tier
+            const limit = data.isPremium ? 250 : 25; 
+            
             document.getElementById('usageText').innerText = `${data.tokens || 0} / ${limit}`;
             document.getElementById('usageBar').style.width = `${Math.min(((data.tokens || 0) / limit) * 100, 100)}%`;
-            const tierEl = document.getElementById('accountTier');
-            if(tierEl) tierEl.innerHTML = `<span style="background:${data.isPremium ? '#d4af37':'#222'}; color:${data.isPremium ? '#000':'#888'}; font-size:0.6rem; padding:2px 8px; border-radius:4px; font-weight:800;">${data.isPremium ? 'PREMIUM':'FREE'}</span>`;
+
+            // --- DAILY REFILL LOGIC ---
+            const now = Date.now();
+            const oneDay = 24 * 60 * 60 * 1000;
+
+            if (!isClaiming && (now - (data.lastDailyClaim || 0) >= oneDay)) {
+                isClaiming = true; 
+                
+                // Instead of adding, we RESET the value to the limit
+                update(ref(db, `users/${uid}`), {
+                    tokens: limit, // This refills them to 25 or 250
+                    lastDailyClaim: now
+                }).then(() => {
+                    notify(`DLSVALUE: Tokens refilled to ${limit}!`);
+                }).catch(() => { isClaiming = false; });
+            }
         }
     });
 
@@ -325,7 +340,6 @@ function syncUserUI(uid) {
         });
     });
 }
-
 // --- 4. AUTH & OBSERVER ---
 
 // A. Fingerprint Engine: Mixes hardware specs into a unique ID
@@ -369,14 +383,12 @@ if (mainSubmitBtn) {
     mainSubmitBtn.onclick = async () => {
         const email = document.getElementById('authEmail').value;
         const pass = document.getElementById('authPass').value;
-        const deviceID = getDeviceID(); // Capture fingerprint
+        const deviceID = getDeviceID(); 
 
         try {
             if (isLoginMode) {
-                // LOGIN MODE
                 await signInWithEmailAndPassword(auth, email, pass);
             } else {
-                // REGISTRATION MODE: Check if device is already registered
                 const deviceRef = ref(db, 'registered_devices/' + deviceID);
                 const deviceSnap = await get(deviceRef);
                 
@@ -384,30 +396,29 @@ if (mainSubmitBtn) {
                 let isCheatAttempt = false;
 
                 if (deviceSnap.exists()) {
-                    startingTokens = 0; // Shadow Token: Block bonus
+                    startingTokens = 0; 
                     isCheatAttempt = true;
                 }
 
                 const avatar = document.querySelector('input[name="pfp"]:checked')?.value || PFP_PLACEHOLDER;
                 const username = document.getElementById('regUsername').value;
+                const now = Date.now(); // Create timestamp for refill timer
                 
-                // Create Firebase User
                 const res = await createUserWithEmailAndPassword(auth, email, pass);
                 
-                // Save User Profile
+                // Save User Profile with lastDailyClaim included
                 await set(ref(db, 'users/' + res.user.uid), { 
                     username: username, 
                     avatars: avatar, 
                     tokens: startingTokens, 
                     isPremium: false,
-                    fingerprint: deviceID 
+                    fingerprint: deviceID,
+                    lastDailyClaim: now // Starts the 24h clock for the refill
                 });
 
-                // If new device, mark it as used in Firebase
                 if (!isCheatAttempt) {
-                    await set(deviceRef, { claimedBy: res.user.uid, timestamp: Date.now() });
+                    await set(deviceRef, { claimedBy: res.user.uid, timestamp: now });
                 } else {
-                    // Trigger the Security Warning Popup for duplicate devices
                     const secModal = document.getElementById('securityModal');
                     if(secModal) {
                         secModal.style.display = 'flex';
@@ -440,6 +451,7 @@ if (closeSecurity) {
         }, 300);
     };
 }
+
 
 // --- 5. MODAL TOGGLES ---
 const switchBtn = document.getElementById('switchAuth');
