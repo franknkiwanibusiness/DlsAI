@@ -7,7 +7,6 @@ import {
     signOut 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { ref, set, get, update, increment, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-import { initVisionScanner } from './vision-engine.js';
 // Global State
 let isLoginMode = true;
 window.chatHistory = [];
