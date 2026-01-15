@@ -1,40 +1,50 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import Groq from "groq-sdk";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: "METHOD_NOT_ALLOWED" });
 
-    const { image } = req.body;
-    if (!image) return res.status(400).json({ error: "NO_IMAGE" });
+    const { image, uid } = req.body;
+    if (!image) return res.status(400).json({ error: "NO_IMAGE_PROVIDED" });
 
     try {
-        // Using the 2026 Flagship Model
-        const model = genAI.getGenerativeModel({ 
-            model: "gemini-3-pro-preview",
-            // Enables the 'Deep Think' mode for maximum math accuracy
-            thinkingConfig: { thinkingBudget: 2048 } 
+        const response = await groq.chat.completions.create({
+            model: "meta-llama/llama-4-scout-17b-16e-instruct",
+            messages: [
+                {
+                    role: "system",
+                    content: `You are a professional DLS Squad Valuator. Your task is to extract data and perform precise math:
+                    1. IDENTIFY: List Starting 11 and Subs with ratings.
+                    2. CURRENCY: Extract Coin and Diamond totals.
+                    3. MATH - PERFORMANCE VALUE: Calculate the average rating of the entire squad (Starting 11 + Subs). The "Performance Value" is exactly equal to the average rating in USD (e.g., 86.1 average = $86.10).
+                    4. MATH - ASSET VALUE: Calculate Coin Value ($1.50 per 1,000 coins). Formula: (Coins / 1000) * 1.5.
+                    5. TOTAL NETWORTH: Sum of Performance Value + Asset Value.
+                    6. REPORT: Provide a breakdown and a final 'Price Tag' for the account.`
+                },
+                {
+                    role: "user",
+                    content: [
+                        { 
+                            type: "text", 
+                            text: "Analyze this DLS squad. Calculate the average rating and the total net worth based on the $1.50/1k coins and $1/average-point rules." 
+                        },
+                        { 
+                            type: "image_url", 
+                            image_url: { url: image } 
+                        }
+                    ]
+                }
+            ],
+            temperature: 0.1, // Lower temperature for more accurate math
+            max_tokens: 1024
         });
 
-        const prompt = `
-            Perform a Deep Scan of this DLS Squad. 
-            1. Extract all player ratings. 
-            2. Identify total Coins and Diamonds precisely.
-            3. Apply the valuation formula: ($1.50 per 1k coins) + ($1 per squad average point).
-            4. Output a professional 'Neural Scout Report' with a clear final Price Tag.
-        `;
-
-        const base64Data = image.split(",")[1];
-        const result = await model.generateContent([
-            prompt,
-            { inlineData: { data: base64Data, mimeType: "image/jpeg" } }
-        ]);
-
-        const response = await result.response;
-        res.status(200).json({ analysis: response.text() });
+        const report = response.choices[0]?.message?.content;
+        res.status(200).json({ analysis: report, report: report });
 
     } catch (error) {
-        console.error("GEMINI_3_ERROR:", error);
+        console.error("STABLE_LINK_ERROR:", error.message);
         res.status(500).json({ error: "ENGINE_FAULT", details: error.message });
     }
 }
