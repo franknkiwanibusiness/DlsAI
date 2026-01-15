@@ -605,12 +605,12 @@ document.addEventListener('click', (e) => {
         }
     }
 });
-
 // --- INTEGRATED VISION SCANNER ENGINE ---
 function initVisionScanner() {
     const uploadBtn = document.getElementById('uploadSquadBtn');
     const previewModal = document.getElementById('scanPreviewModal');
     const previewImg = document.getElementById('previewImg');
+    const cancelScan = document.getElementById('cancelScan'); // Added Cancel Btn
     const confirmScan = document.getElementById('confirmScan');
     const statusContainer = document.getElementById('scanStatusContainer');
     const statusText = document.getElementById('liveStatusText');
@@ -618,6 +618,7 @@ function initVisionScanner() {
     let selectedFile = null;
     if (!uploadBtn) return;
 
+    // 1. FILE PICKER LOGIC
     uploadBtn.onclick = () => {
         if (!auth.currentUser) return notify("Identity required for Neural Link", "error");
         
@@ -637,13 +638,25 @@ function initVisionScanner() {
         input.click();
     };
 
+    // 2. CANCEL SCAN LOGIC (Added)
+    if (cancelScan) {
+        cancelScan.onclick = () => {
+            previewModal.classList.remove('active');
+            selectedFile = null;
+            // Reset UI states
+            confirmScan.classList.remove('loading');
+            statusContainer.style.display = 'none';
+        };
+    }
+
+    // 3. SCAN EXECUTION LOGIC (Talks to Vercel/Groq)
     confirmScan.onclick = async () => {
         if (!selectedFile || !auth.currentUser) return;
         
         confirmScan.classList.add('loading');
         statusContainer.style.display = 'block';
         
-        // Animated Status Sequence
+        // Animated Status UI
         const updates = ["Initializing...", "Scanning Image...", "Extracting Ratings...", "Finalizing..."];
         let i = 0;
         const interval = setInterval(() => {
@@ -655,6 +668,7 @@ function initVisionScanner() {
         reader.onload = async () => {
             const base64 = reader.result.split(',')[1];
             try {
+                // Call Vercel Backend
                 const response = await fetch('/api/scan', { 
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -664,17 +678,21 @@ function initVisionScanner() {
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.error || "SCAN_FAILED");
 
-                // Deduct Tokens on Client Side
+                // Deduct 2 Tokens for successful analysis
                 const userRef = ref(db, `users/${auth.currentUser.uid}`);
                 await update(userRef, { tokens: increment(-2) });
 
                 clearInterval(interval);
-                window.openVisionChat(result.report); // Trigger the Full Screen Results
+                
+                // Hide scanner and trigger Full-Screen Results Page
+                previewModal.classList.remove('active');
+                window.openVisionChat(result.report); 
                 
             } catch (err) {
+                console.error("Scan error:", err);
                 statusText.innerText = "> NEURAL LINK FAILED";
                 statusText.style.color = "#ff4444";
-                notify(err.message, "error");
+                notify("Link Error: Check console or tokens", "error");
             } finally {
                 clearInterval(interval);
                 confirmScan.classList.remove('loading');
@@ -683,3 +701,4 @@ function initVisionScanner() {
         };
     };
 }
+
