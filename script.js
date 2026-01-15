@@ -902,3 +902,32 @@ if (scanConfirm) {
     };
 }
 
+// --- GLOBAL MODAL SCROLL LOCKER ---
+const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+        if (mutation.attributeName === "class") {
+            const anyModalActive = document.querySelector('.modal-overlay.active, .modal.active');
+            
+            if (anyModalActive) {
+                document.body.classList.add('modal-open');
+            } else {
+                document.body.classList.remove('modal-open');
+            }
+        }
+    });
+});
+
+// Start watching the body for modal changes
+document.addEventListener('DOMContentLoaded', () => {
+    // Watch the Scanner Modal
+    const scannerModal = document.getElementById('scanPreviewModal');
+    if (scannerModal) {
+        observer.observe(scannerModal, { attributes: true });
+    }
+    
+    // Watch your Chat/Results Modal
+    const chatModal = document.querySelector('.vision-chat-container'); // Adjust to your actual chat ID/Class
+    if (chatModal) {
+        observer.observe(chatModal, { attributes: true });
+    }
+});
