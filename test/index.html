@@ -2,101 +2,82 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GROQ VISION TESTER v2026</title>
+    <title>GROQ STABLE SCANNER TEST</title>
     <style>
-        body { background: #050505; color: #00ffff; font-family: 'Courier New', monospace; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .test-box { width: 100%; max-width: 500px; border: 1px solid #00ffff44; padding: 25px; border-radius: 15px; background: #0a0a0a; box-shadow: 0 0 30px rgba(0, 255, 255, 0.1); }
-        h1 { font-size: 1.2rem; text-align: center; letter-spacing: 2px; margin-bottom: 20px; }
-        input, button { width: 100%; padding: 12px; margin-top: 10px; border-radius: 8px; border: 1px solid #333; box-sizing: border-box; }
+        body { background: #050505; color: #00ffff; font-family: monospace; padding: 30px; }
+        .test-card { max-width: 500px; margin: auto; border: 1px solid #00ffff44; padding: 20px; border-radius: 10px; background: #0a0a0a; box-shadow: 0 0 20px rgba(0,255,255,0.1); }
+        input, button { width: 100%; padding: 12px; margin-top: 10px; border-radius: 5px; border: 1px solid #333; box-sizing: border-box; }
         input { background: #000; color: #fff; }
-        button { background: #00ffff; color: #000; font-weight: 900; border: none; cursor: pointer; transition: 0.3s; }
-        button:hover { background: #fff; transform: scale(1.02); }
-        #log { margin-top: 20px; padding: 15px; background: #000; border: 1px solid #222; min-height: 150px; font-size: 0.8rem; line-height: 1.6; white-space: pre-wrap; color: #00ff00; overflow-y: auto; max-height: 400px; }
-        #preview { width: 100%; margin-top: 15px; border-radius: 8px; display: none; border: 1px solid #00ffff22; }
+        button { background: #00ffff; color: #000; font-weight: bold; border: none; cursor: pointer; }
+        #log { margin-top: 20px; padding: 15px; background: #000; border: 1px solid #222; min-height: 100px; color: #00ff00; white-space: pre-wrap; font-size: 0.85rem; }
+        #preview { width: 100%; margin-top: 15px; display: none; border-radius: 5px; }
     </style>
 </head>
 <body>
 
-    <h1>SQUAD SCANNER DEBUGGER</h1>
-
-    <div class="test-box">
-        <label style="font-size: 0.7rem;">STEP 1: ENTER API KEY</label>
-        <input type="password" id="apiKey" placeholder="gsk_xxxxxxxxxxxx">
-
-        <label style="font-size: 0.7rem; margin-top: 15px; display: block;">STEP 2: UPLOAD DLS SCREENSHOT</label>
+    <div class="test-card">
+        <h2 style="text-align: center;">STABLE NEURAL LINK TEST</h2>
+        
+        <input type="password" id="apiKey" placeholder="GSK KEY HERE">
         <input type="file" id="imageInput" accept="image/*">
-        <img id="preview" alt="Preview">
+        <img id="preview">
+        
+        <button id="runBtn">SCAN SQUAD</button>
 
-        <button id="runBtn" style="margin-top: 20px;">INITIALIZE NEURAL LINK</button>
-
-        <div id="log">> SYSTEM STANDBY...</div>
+        <div id="log">> STANDBY...</div>
     </div>
 
     <script>
-        const log = document.getElementById('log');
+        let base64 = "";
         const preview = document.getElementById('preview');
-        let base64String = "";
+        const log = document.getElementById('log');
 
-        // Handle Image Loading
         document.getElementById('imageInput').onchange = (e) => {
-            const file = e.target.files[0];
             const reader = new FileReader();
             reader.onload = () => {
                 preview.src = reader.result;
                 preview.style.display = 'block';
-                base64String = reader.result.split(',')[1];
-                log.innerText = "> IMAGE LOADED. READY TO SCAN.";
+                base64 = reader.result.split(',')[1];
+                log.innerText = "> IMAGE LOADED. READY.";
             };
-            reader.readAsDataURL(file);
+            reader.readAsDataURL(e.target.files[0]);
         };
 
-        // Execute API Call
         document.getElementById('runBtn').onclick = async () => {
             const key = document.getElementById('apiKey').value;
-            if(!key || !base64String) {
-                alert("Please provide both API Key and Image.");
-                return;
-            }
+            if(!key || !base64) return alert("Missing Key or Image");
 
-            log.innerText = "> REQUESTING DATA FROM LLAMA 4 SCOUT CORE...\n> PLEASE WAIT...";
+            log.innerText = "> INITIALIZING STABLE ENGINE: llama-4-scout...";
             log.style.color = "#00ffff";
 
             try {
-                const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: "POST",
-                    headers: {
-                        "Authorization": `Bearer ${key}`,
-                        "Content-Type": "application/json"
-                    },
+                    headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
                     body: JSON.stringify({
+                        // UPDATED TO 2026 STABLE VISION MODEL
                         model: "meta-llama/llama-4-scout-17b-16e-instruct",
-                        messages: [
-                            {
-                                role: "user",
-                                content: [
-                                    { type: "text", text: "Identify the players and their ratings in this image. Also list the Coins and Gems." },
-                                    { type: "image_url", image_url: { url: `data:image/jpeg;base64,${base64String}` } }
-                                ]
-                            }
-                        ],
-                        temperature: 0.2
+                        messages: [{
+                            role: "user",
+                            content: [
+                                { type: "text", text: "Analyze this DLS squad. List the players and their ratings clearly." },
+                                { type: "image_url", image_url: { url: `data:image/jpeg;base64,${base64}` } }
+                            ]
+                        }]
                     })
                 });
 
-                const data = await response.json();
-
-                if (data.error) {
+                const data = await res.json();
+                
+                if(data.error) {
                     log.style.color = "#ff4444";
-                    log.innerText = "❌ ENGINE ERROR:\n" + JSON.stringify(data.error, null, 2);
+                    log.innerText = "❌ ERROR: " + data.error.message;
                 } else {
                     log.style.color = "#00ff00";
-                    log.innerText = "✅ DECRYPTION SUCCESSFUL:\n\n" + data.choices[0].message.content;
+                    log.innerText = "✅ SCAN COMPLETE:\n\n" + data.choices[0].message.content;
                 }
-
-            } catch (err) {
-                log.style.color = "#ff4444";
-                log.innerText = "❌ NETWORK CRASH:\n" + err.message;
+            } catch (e) {
+                log.innerText = "❌ CRASH: " + e.message;
             }
         };
     </script>
