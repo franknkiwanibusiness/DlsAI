@@ -565,14 +565,14 @@ document.addEventListener('click', (e) => {
             document.getElementById('modalOverlay').classList.add('active');
         }
     }
-});
+// --- SQUAD SCANNER SYSTEM V2 (2026) ---
 const uploadBtn = document.getElementById('uploadSquadBtn');
 const previewModal = document.getElementById('scanPreviewModal');
 const previewImg = document.getElementById('previewImg');
 const cancelScan = document.getElementById('cancelScan');
 const confirmScan = document.getElementById('confirmScan');
-const retryContainer = document.getElementById('retryContainer'); // Added
-const scanActions = document.getElementById('scanActions');       // Added
+const retryContainer = document.getElementById('retryContainer'); 
+const scanActions = document.getElementById('scanActions');       
 
 let selectedFile = null;
 let statusInterval = null; 
@@ -585,7 +585,7 @@ window.openVisionChat = (reportText) => {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         background: rgba(0, 0, 0, 0.95); backdrop-filter: blur(10px);
         display: flex; align-items: center; justify-content: center;
-        z-index: 9999; padding: 20px;
+        z-index: 10001; padding: 20px;
     `;
     
     modal.innerHTML = `
@@ -597,7 +597,7 @@ window.openVisionChat = (reportText) => {
             
             <div id="typewriterText" style="color: #fff; font-family: monospace; font-size: 0.9rem; line-height: 1.6; height: 300px; overflow-y: auto; white-space: pre-wrap;"></div>
 
-            <button id="closeResultBtn" style="width: 100%; margin-top: 20px; padding: 12px; background: #fff; border: none; color: #000; border-radius: 8px; cursor: pointer; font-weight: 800; transition: 0.3s;">
+            <button id="closeResultBtn" style="width: 100%; margin-top: 20px; padding: 12px; background: #fff; border: none; color: #000; border-radius: 8px; cursor: pointer; font-weight: 800; transition: 0.3s; width: 100%;">
                 DISMISS
             </button>
         </div>
@@ -629,7 +629,6 @@ const resetScannerUI = () => {
     confirmScan.classList.remove('loading');
     confirmScan.disabled = false;
     
-    // UI Reset
     if(scanActions) scanActions.style.display = 'flex';
     if(retryContainer) retryContainer.style.display = 'none';
     
@@ -664,16 +663,16 @@ uploadBtn.onclick = () => {
 cancelScan.onclick = resetScannerUI;
 previewModal.onclick = (e) => { if (e.target === previewModal) resetScannerUI(); };
 
-// --- 4. RETRY LOGIC ---
+// --- 4. RETRY LOGIC (ABNORMAL STATE) ---
 if(retryContainer) {
     retryContainer.onclick = () => {
         scanActions.style.display = 'flex';
         retryContainer.style.display = 'none';
-        confirmScan.click(); // Re-trigger the logic
+        confirmScan.click(); 
     };
 }
 
-// --- 5. SCAN LOGIC ---
+// --- 5. SCAN LOGIC (API LINK) ---
 confirmScan.onclick = async () => {
     if (!selectedFile) return;
     
@@ -682,12 +681,13 @@ confirmScan.onclick = async () => {
     const statusContainer = document.getElementById('scanStatusContainer');
     const statusText = document.getElementById('liveStatusText');
     statusContainer.style.display = 'block';
-    statusText.style.color = "#00ffff"; // Ensure it starts cyan
+    statusText.style.color = "#00ffff"; 
 
     const updates = [
-        "Initializing Engine...",
-        "Scanning Image...",
-        "Extracting Data...",
+        "Initializing Neural Engine...",
+        "Scanning Full Image...",
+        "Detecting Player Ratings...",
+        "Analyzing Squad Value...",
         "Finalizing Report..."
     ];
 
@@ -702,15 +702,16 @@ confirmScan.onclick = async () => {
     const reader = new FileReader();
     reader.readAsDataURL(selectedFile);
     reader.onload = async () => {
-        const base64Image = reader.result.split(',')[1];
+        // Send the COMPLETE reader.result (Data URI) to the API
+        const fullImageData = reader.result;
         
         try {
             const response = await fetch('/api/scan', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    image: base64Image, 
-                    uid: typeof auth !== 'undefined' ? auth.currentUser.uid : 'guest' 
+                    image: fullImageData, 
+                    uid: typeof auth !== 'undefined' && auth.currentUser ? auth.currentUser.uid : 'guest' 
                 })
             });
 
@@ -739,7 +740,7 @@ confirmScan.onclick = async () => {
             if(scanActions) scanActions.style.display = 'none';
             if(retryContainer) retryContainer.style.display = 'block';
 
-            if (err.message === "SYSTEM_OVERLOAD") {
+            if (err.message === "SYSTEM_OVERLOAD" || err.message.includes("api_key")) {
                 statusText.innerText = "!! ERROR: ENGINE BUSY. TAP TRIANGLE.";
             } else if (err.message === "EMPTY_DATA") {
                 statusText.innerText = "!! ERROR: SCAN FAILED. TAP TRIANGLE.";
@@ -749,5 +750,3 @@ confirmScan.onclick = async () => {
         }
     };
 };
-
-
