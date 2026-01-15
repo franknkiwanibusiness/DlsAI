@@ -572,3 +572,80 @@ document.addEventListener('click', (e) => {
     }
 });
 
+// --- INTEGRATED VISION SCANNER ENGINE ---
+function initVisionScanner() {
+    const uploadBtn = document.getElementById('uploadSquadBtn');
+    const previewModal = document.getElementById('scanPreviewModal');
+    const previewImg = document.getElementById('previewImg');
+    const confirmScan = document.getElementById('confirmScan');
+    const statusContainer = document.getElementById('scanStatusContainer');
+    const statusText = document.getElementById('liveStatusText');
+
+    let selectedFile = null;
+    if (!uploadBtn) return;
+
+    uploadBtn.onclick = () => {
+        if (!auth.currentUser) return notify("Identity required for Neural Link", "error");
+        
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = (e) => {
+            selectedFile = e.target.files[0];
+            if (!selectedFile) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                previewImg.src = ev.target.result;
+                previewModal.classList.add('active');
+            };
+            reader.readAsDataURL(selectedFile);
+        };
+        input.click();
+    };
+
+    confirmScan.onclick = async () => {
+        if (!selectedFile || !auth.currentUser) return;
+        
+        confirmScan.classList.add('loading');
+        statusContainer.style.display = 'block';
+        
+        // Animated Status Sequence
+        const updates = ["Initializing...", "Scanning Image...", "Extracting Ratings...", "Finalizing..."];
+        let i = 0;
+        const interval = setInterval(() => {
+            if (i < updates.length - 1) statusText.innerText = "> " + updates[i++];
+        }, 800);
+
+        const reader = new FileReader();
+        reader.readAsDataURL(selectedFile);
+        reader.onload = async () => {
+            const base64 = reader.result.split(',')[1];
+            try {
+                const response = await fetch('/api/scan', { 
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: base64, uid: auth.currentUser.uid })
+                });
+
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || "SCAN_FAILED");
+
+                // Deduct Tokens on Client Side
+                const userRef = ref(db, `users/${auth.currentUser.uid}`);
+                await update(userRef, { tokens: increment(-2) });
+
+                clearInterval(interval);
+                window.openVisionChat(result.report); // Trigger the Full Screen Results
+                
+            } catch (err) {
+                statusText.innerText = "> NEURAL LINK FAILED";
+                statusText.style.color = "#ff4444";
+                notify(err.message, "error");
+            } finally {
+                clearInterval(interval);
+                confirmScan.classList.remove('loading');
+                statusContainer.style.display = 'none';
+            }
+        };
+    };
+}
