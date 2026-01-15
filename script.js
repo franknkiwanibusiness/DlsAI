@@ -566,4 +566,188 @@ document.addEventListener('click', (e) => {
         }
     }
 });
+const uploadBtn = document.getElementById('uploadSquadBtn');
+const previewModal = document.getElementById('scanPreviewModal');
+const previewImg = document.getElementById('previewImg');
+const cancelScan = document.getElementById('cancelScan');
+const confirmScan = document.getElementById('confirmScan');
+const retryContainer = document.getElementById('retryContainer'); // Added
+const scanActions = document.getElementById('scanActions');       // Added
+
+let selectedFile = null;
+let statusInterval = null; 
+
+// --- 1. NEAT POPUP SYSTEM (Results Window) ---
+window.openVisionChat = (reportText) => {
+    const modal = document.createElement('div');
+    modal.className = 'scan-result-modal active';
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.95); backdrop-filter: blur(10px);
+        display: flex; align-items: center; justify-content: center;
+        z-index: 9999; padding: 20px;
+    `;
+    
+    modal.innerHTML = `
+        <div style="background: #0a0c10; border: 1px solid #00ffff; border-radius: 15px; width: 100%; max-width: 500px; padding: 25px; box-shadow: 0 0 30px rgba(0,255,255,0.2);">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                <span style="color: #00ffff; font-weight: 900; letter-spacing: 2px; font-size: 0.8rem;">NEURAL DEBRIEF</span>
+                <div style="flex: 1; height: 1px; background: linear-gradient(90deg, #00ffff, transparent);"></div>
+            </div>
+            
+            <div id="typewriterText" style="color: #fff; font-family: monospace; font-size: 0.9rem; line-height: 1.6; height: 300px; overflow-y: auto; white-space: pre-wrap;"></div>
+
+            <button id="closeResultBtn" style="width: 100%; margin-top: 20px; padding: 12px; background: #fff; border: none; color: #000; border-radius: 8px; cursor: pointer; font-weight: 800; transition: 0.3s;">
+                DISMISS
+            </button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    const container = document.getElementById('typewriterText');
+    const closeBtn = document.getElementById('closeResultBtn');
+    
+    let i = 0;
+    const type = () => {
+        if (i < reportText.length) {
+            container.innerHTML += reportText.charAt(i);
+            i++;
+            container.scrollTop = container.scrollHeight;
+            setTimeout(type, 10);
+        }
+    };
+    type();
+
+    closeBtn.onclick = () => modal.remove();
+};
+
+// --- 2. RESET & CLEANUP ---
+const resetScannerUI = () => {
+    previewModal.classList.remove('active');
+    if (statusInterval) clearInterval(statusInterval);
+    
+    confirmScan.classList.remove('loading');
+    confirmScan.disabled = false;
+    
+    // UI Reset
+    if(scanActions) scanActions.style.display = 'flex';
+    if(retryContainer) retryContainer.style.display = 'none';
+    
+    const statusContainer = document.getElementById('scanStatusContainer');
+    const statusText = document.getElementById('liveStatusText');
+    statusContainer.style.display = 'none';
+    statusText.innerText = "";
+    statusText.style.color = "#00ffff"; 
+    
+    previewImg.src = "";
+    selectedFile = null;
+};
+
+// --- 3. INPUT & EVENT LISTENERS ---
+uploadBtn.onclick = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+        selectedFile = e.target.files[0];
+        if (!selectedFile) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            previewImg.src = event.target.result;
+            previewModal.classList.add('active'); 
+        };
+        reader.readAsDataURL(selectedFile);
+    };
+    input.click();
+};
+
+cancelScan.onclick = resetScannerUI;
+previewModal.onclick = (e) => { if (e.target === previewModal) resetScannerUI(); };
+
+// --- 4. RETRY LOGIC ---
+if(retryContainer) {
+    retryContainer.onclick = () => {
+        scanActions.style.display = 'flex';
+        retryContainer.style.display = 'none';
+        confirmScan.click(); // Re-trigger the logic
+    };
+}
+
+// --- 5. SCAN LOGIC ---
+confirmScan.onclick = async () => {
+    if (!selectedFile) return;
+    
+    confirmScan.classList.add('loading');
+    confirmScan.disabled = true;
+    const statusContainer = document.getElementById('scanStatusContainer');
+    const statusText = document.getElementById('liveStatusText');
+    statusContainer.style.display = 'block';
+    statusText.style.color = "#00ffff"; // Ensure it starts cyan
+
+    const updates = [
+        "Initializing Engine...",
+        "Scanning Image...",
+        "Extracting Data...",
+        "Finalizing Report..."
+    ];
+
+    let i = 0;
+    statusInterval = setInterval(() => {
+        if (i < updates.length) {
+            statusText.innerText = "> " + updates[i];
+            i++;
+        }
+    }, 800);
+
+    const reader = new FileReader();
+    reader.readAsDataURL(selectedFile);
+    reader.onload = async () => {
+        const base64Image = reader.result.split(',')[1];
+        
+        try {
+            const response = await fetch('/api/scan', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    image: base64Image, 
+                    uid: typeof auth !== 'undefined' ? auth.currentUser.uid : 'guest' 
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.details || "SYSTEM_OVERLOAD");
+            }
+
+            const result = await response.json();
+            const finalReport = result.analysis || result.report;
+            
+            if (finalReport) {
+                resetScannerUI();
+                window.openVisionChat(finalReport); 
+            } else {
+                throw new Error("EMPTY_DATA");
+            }
+            
+        } catch (err) {
+            clearInterval(statusInterval);
+            statusText.style.color = "#ff4444"; 
+            confirmScan.classList.remove('loading');
+            confirmScan.disabled = false;
+
+            // SWITCH TO ABNORMAL ERROR UI
+            if(scanActions) scanActions.style.display = 'none';
+            if(retryContainer) retryContainer.style.display = 'block';
+
+            if (err.message === "SYSTEM_OVERLOAD") {
+                statusText.innerText = "!! ERROR: ENGINE BUSY. TAP TRIANGLE.";
+            } else if (err.message === "EMPTY_DATA") {
+                statusText.innerText = "!! ERROR: SCAN FAILED. TAP TRIANGLE.";
+            } else {
+                statusText.innerText = `!! ERROR: ${err.message.toUpperCase()}`;
+            }
+        }
+    };
+};
+
 
