@@ -634,9 +634,11 @@ const resetScannerUI = () => {
     
     const statusContainer = document.getElementById('scanStatusContainer');
     const statusText = document.getElementById('liveStatusText');
-    statusContainer.style.display = 'none';
-    statusText.innerText = "";
-    statusText.style.color = "#00ffff"; 
+    if(statusContainer) statusContainer.style.display = 'none';
+    if(statusText) {
+        statusText.innerText = "";
+        statusText.style.color = "#00ffff"; 
+    }
     
     previewImg.src = "";
     selectedFile = null;
@@ -663,7 +665,7 @@ uploadBtn.onclick = () => {
 cancelScan.onclick = resetScannerUI;
 previewModal.onclick = (e) => { if (e.target === previewModal) resetScannerUI(); };
 
-// --- 4. RETRY LOGIC (ABNORMAL STATE) ---
+// --- 4. RETRY LOGIC ---
 if(retryContainer) {
     retryContainer.onclick = () => {
         scanActions.style.display = 'flex';
@@ -675,22 +677,22 @@ if(retryContainer) {
 // --- 5. SCAN LOGIC (API LINK) ---
 confirmScan.onclick = async () => {
     if (!selectedFile) return;
+
+    // CREDITS CHECK (PRE-SCAN)
+    if (typeof auth !== 'undefined' && auth.currentUser) {
+        const userRef = ref(db, `users/${auth.currentUser.uid}`);
+        const snap = await get(userRef);
+        const tokens = snap.exists() ? snap.val().tokens : 0;
+        if (tokens < 0.50) return notify("Insufficient Tokens (0.50 Required)", "error");
+    }
     
     confirmScan.classList.add('loading');
     confirmScan.disabled = true;
     const statusContainer = document.getElementById('scanStatusContainer');
     const statusText = document.getElementById('liveStatusText');
     statusContainer.style.display = 'block';
-    statusText.style.color = "#00ffff"; 
 
-    const updates = [
-        "Initializing Neural Engine...",
-        "Scanning Full Image...",
-        "Detecting Player Ratings...",
-        "Analyzing Squad Value...",
-        "Finalizing Report..."
-    ];
-
+    const updates = ["Initialising...", "Scanning Squad...", "Reading Cards...", "Finalising..."];
     let i = 0;
     statusInterval = setInterval(() => {
         if (i < updates.length) {
@@ -702,51 +704,37 @@ confirmScan.onclick = async () => {
     const reader = new FileReader();
     reader.readAsDataURL(selectedFile);
     reader.onload = async () => {
-        // Send the COMPLETE reader.result (Data URI) to the API
-        const fullImageData = reader.result;
-        
         try {
             const response = await fetch('/api/scan', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    image: fullImageData, 
+                    image: reader.result, 
                     uid: typeof auth !== 'undefined' && auth.currentUser ? auth.currentUser.uid : 'guest' 
                 })
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.details || "SYSTEM_OVERLOAD");
-            }
+            if (!response.ok) throw new Error("SYSTEM_OVERLOAD");
 
             const result = await response.json();
-            const finalReport = result.analysis || result.report;
+            const report = result.analysis || result.report;
             
-            if (finalReport) {
+            if (report) {
+                // SUCCESS: DEDUCT TOKENS
+                if (typeof auth !== 'undefined' && auth.currentUser) {
+                    await update(ref(db, `users/${auth.currentUser.uid}`), { tokens: increment(-0.50) });
+                }
                 resetScannerUI();
-                window.openVisionChat(finalReport); 
-            } else {
-                throw new Error("EMPTY_DATA");
+                window.openVisionChat(report); 
             }
-            
         } catch (err) {
             clearInterval(statusInterval);
             statusText.style.color = "#ff4444"; 
+            statusText.innerText = "!! ERROR: " + err.message.toUpperCase();
+            scanActions.style.display = 'none';
+            retryContainer.style.display = 'block';
             confirmScan.classList.remove('loading');
             confirmScan.disabled = false;
-
-            // SWITCH TO ABNORMAL ERROR UI
-            if(scanActions) scanActions.style.display = 'none';
-            if(retryContainer) retryContainer.style.display = 'block';
-
-            if (err.message === "SYSTEM_OVERLOAD" || err.message.includes("api_key")) {
-                statusText.innerText = "!! ERROR: ENGINE BUSY. TAP TRIANGLE.";
-            } else if (err.message === "EMPTY_DATA") {
-                statusText.innerText = "!! ERROR: SCAN FAILED. TAP TRIANGLE.";
-            } else {
-                statusText.innerText = `!! ERROR: ${err.message.toUpperCase()}`;
-            }
         }
     };
 };
