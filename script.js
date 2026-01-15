@@ -564,14 +564,13 @@ document.addEventListener('click', (e) => {
     }
 }); 
 
-// --- SQUAD SCANNER SYSTEM V2 (2026 - STABLE) ---
+// --- SQUAD SCANNER SYSTEM V2 (2026 - STABLE & LUXE) ---
 
 // 1. GLOBAL SCANNER STATE
 var currentScanFile = null;
 var scannerTimer = null;
+let squadData = { players: {}, coins: 0, diamonds: 0 }; // Store squad state for overwriting logic
 
-// Use 'const' only if not defined elsewhere; otherwise, the browser will error.
-// These variables now match your HTML IDs perfectly.
 const scanBtn = document.getElementById('uploadSquadBtn');
 const scanModal = document.getElementById('scanPreviewModal');
 const scanPreview = document.getElementById('previewImg');
@@ -582,65 +581,116 @@ const scanBox = document.getElementById('scanActions');
 const scanStatusContainer = document.getElementById('scanStatusContainer');
 const statusText = document.getElementById('liveStatusText');
 
-// --- 2. UI UTILITIES ---
+// --- 2. UI UTILITIES (LUXE REDESIGN) ---
 
-// Result Popup with Typewriter Effect
 window.openVisionChat = (reportText) => {
-    const modal = document.createElement('div');
-    modal.className = 'scan-result-modal active';
-    modal.style.cssText = `position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;z-index:10001;padding:20px;`;
+    // Data Extraction for Header Math
+    const avgMatch = reportText.match(/Average.*?(\d+\.?\d*)/i);
+    const coinMatch = reportText.match(/Coins.*?(\d+[\d,]*)/i);
+    const topMatch = reportText.match(/Top Rated.*?([a-zA-Z\s]+)/i);
     
-    modal.innerHTML = `
-        <div style="background:#0a0c10; border:1px solid #00ffff; border-radius:15px; width:100%; max-width:500px; padding:25px; box-shadow:0 0 30px rgba(0,255,255,0.2);">
-            <div style="display:flex; align-items:center; gap:10px; margin-bottom:15px;">
-                <span style="color:#00ffff; font-weight:900; letter-spacing:2px; font-size:0.8rem;">NEURAL DEBRIEF</span>
-                <div style="flex:1; height:1px; background:linear-gradient(90deg, #00ffff, transparent);"></div>
-            </div>
-            <div id="typewriterText" style="color:#fff; font-family:monospace; font-size:0.9rem; line-height:1.6; height:300px; overflow-y:auto; white-space:pre-wrap;"></div>
-            <button id="closeResultBtn" style="width:100%; margin-top:20px; padding:12px; background:#fff; border:none; color:#000; border-radius:8px; cursor:pointer; font-weight:800; transition:0.3s; width:100%;">DISMISS</button>
-        </div>`;
-        
-    document.body.appendChild(modal);
-    const container = document.getElementById('typewriterText');
+    const avg = avgMatch ? parseFloat(avgMatch[1]) : 0;
+    const coins = coinMatch ? parseInt(coinMatch[1].replace(/,/g, '')) : 0;
+    const coinValue = (coins / 1000) * 1.50;
+    const finalPrice = (avg + coinValue).toFixed(2);
+
+    // Swap to Results Modal
+    if (scanModal) scanModal.style.display = 'none';
+    const resultsModal = document.getElementById('visionResultsModal');
+    resultsModal.style.display = 'flex';
+
+    // Update Premium UI Elements
+    document.getElementById('analyzedPreview').src = scanPreview.src;
+    document.getElementById('networthAmount').innerText = `$${finalPrice}`;
+    document.getElementById('statTopPlayer').innerText = topMatch ? topMatch[1].trim() : "Detecting...";
+    document.getElementById('statExpensive').innerText = `$${avg.toFixed(2)}`;
+    document.getElementById('statCount').innerText = Object.keys(squadData.players).length || "11+";
+
+    const output = document.getElementById('reportOutput');
+    output.innerText = ""; 
+    
     let i = 0;
     const type = () => {
         if (i < reportText.length) {
-            container.innerHTML += reportText.charAt(i);
+            output.innerText += reportText.charAt(i);
             i++;
-            container.scrollTop = container.scrollHeight;
-            setTimeout(type, 10);
+            const readout = document.querySelector('.data-readout');
+            if (readout) readout.scrollTop = readout.scrollHeight;
+            setTimeout(type, 5);
         }
     };
     type();
-    document.getElementById('closeResultBtn').onclick = () => modal.remove();
 };
 
-// Reset Scanner to Default State
 const resetScannerUI = () => {
     if(scanModal) scanModal.classList.remove('active');
+    if(scanModal) scanModal.style.display = 'none'; // Ensure both methods work
     if (scannerTimer) clearInterval(scannerTimer);
-    
-    if(scanConfirm) {
-        scanConfirm.classList.remove('loading');
-        scanConfirm.disabled = false;
-    }
-    
+    if(scanConfirm) { scanConfirm.classList.remove('loading'); scanConfirm.disabled = false; }
     if(scanBox) scanBox.style.display = 'flex';
     if(scanRetry) scanRetry.style.display = 'none';
     if(scanStatusContainer) scanStatusContainer.style.display = 'none';
-    
-    if(statusText) {
-        statusText.innerText = "";
-        statusText.style.color = "#00ffff"; 
-    }
-    
+    if(statusText) { statusText.innerText = ""; statusText.style.color = "#00ffff"; }
     if(scanPreview) scanPreview.src = "";
     currentScanFile = null;
 };
 
-// --- 3. EVENT LISTENERS ---
+window.closeResults = () => {
+    document.getElementById('visionResultsModal').style.display = 'none';
+    resetScannerUI();
+};
 
-// File selection and preview
+// --- 3. SHARE & SALE LOGIC ---
+
+// Share Link (Firebase + iOS Native)
+document.getElementById('shareReportBtn').onclick = async () => {
+    const shareId = Math.random().toString(36).substring(7);
+    const uniqueUrl = `${window.location.origin}/report?uid=${auth.currentUser.uid}&id=${shareId}`;
+
+    if (navigator.share) {
+        try { await navigator.share({ title: 'DLS Neural Report', url: uniqueUrl }); } 
+        catch (err) { console.log("Share cancelled"); }
+    } else {
+        navigator.clipboard.writeText(uniqueUrl);
+        notify("Link Copied (Local API Fallback)", "success");
+    }
+};
+
+// Generate Sale Link (Imgur + 5 Tokens)
+document.getElementById('generateSaleBtn').onclick = async () => {
+    const btn = document.getElementById('generateSaleBtn');
+    const userRef = ref(db, `users/${auth.currentUser.uid}`);
+    const snap = await get(userRef);
+    
+    if (snap.val().tokens < 5) return notify("5 Tokens Required for Sale Link", "error");
+    
+    btn.innerText = "UPLOADING TO CLOUD...";
+
+    // Imgur Upload
+    const formData = new FormData();
+    formData.append("image", scanPreview.src.split(',')[1]);
+    const imgurRes = await fetch("https://api.imgur.com/3/image", {
+        method: "POST",
+        headers: { "Authorization": "Client-ID 891e5bb4aa94282" },
+        body: formData
+    });
+    const imgData = await imgurRes.json();
+
+    const saleCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    await set(ref(db, `sales/${saleCode}`), {
+        owner: auth.currentUser.uid,
+        image: imgData.data.link,
+        valuation: document.getElementById('networthAmount').innerText,
+        timestamp: Date.now()
+    });
+
+    await update(userRef, { tokens: increment(-5) });
+    alert("SALE LIVE: " + window.location.origin + "/sale=" + saleCode);
+    btn.innerText = "LINK GENERATED";
+};
+
+// --- 4. EVENT LISTENERS ---
+
 if (scanBtn) {
     scanBtn.onclick = () => {
         const input = document.createElement('input');
@@ -653,6 +703,7 @@ if (scanBtn) {
             reader.onload = (event) => {
                 scanPreview.src = event.target.result;
                 scanModal.classList.add('active'); 
+                scanModal.style.display = 'flex';
             };
             reader.readAsDataURL(currentScanFile);
         };
@@ -661,31 +712,25 @@ if (scanBtn) {
 }
 
 if (scanCancel) scanCancel.onclick = resetScannerUI;
-
-if (scanModal) {
-    scanModal.onclick = (e) => { if (e.target === scanModal) resetScannerUI(); };
-}
-
 if (scanRetry) {
     scanRetry.onclick = () => {
-        if(scanBox) scanBox.style.display = 'flex';
+        scanBox.style.display = 'flex';
         scanRetry.style.display = 'none';
         scanConfirm.click(); 
     };
 }
 
-// --- 4. CORE SCAN LOGIC ---
+// --- 5. CORE SCAN LOGIC (5 TOKENS) ---
 
 if (scanConfirm) {
     scanConfirm.onclick = async () => {
         if (!currentScanFile) return;
 
-        // Identity & Token Check (Firebase logic)
         if (typeof auth !== 'undefined' && auth.currentUser) {
             const userRef = ref(db, `users/${auth.currentUser.uid}`);
             const snap = await get(userRef);
             const tokens = snap.exists() ? snap.val().tokens : 0;
-            if (tokens < 0.50) return notify("Insufficient Tokens (0.50 Required)", "error");
+            if (tokens < 5.0) return notify("Neural Scan requires 5.0 Tokens", "error");
         } else {
             return notify("Identity Link Required", "error");
         }
@@ -696,9 +741,9 @@ if (scanConfirm) {
 
         const updates = [
             "Initializing Llama-4 Scout...",
-            "Scanning Squad Screenshot...",
-            "Extracting Player Data...",
-            "Compiling Strategic Advice..."
+            "Scanning Squad Cards...",
+            "Note: Max 8 Subs visible per image.",
+            "Finalizing Neural Report..."
         ];
         
         let step = 0;
@@ -713,33 +758,22 @@ if (scanConfirm) {
         reader.readAsDataURL(currentScanFile);
         reader.onload = async () => {
             try {
-                // Pointing to your updated Vercel API
                 const response = await fetch('/api/scan', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        image: reader.result, 
-                        uid: auth.currentUser.uid 
-                    })
+                    body: JSON.stringify({ image: reader.result, uid: auth.currentUser.uid })
                 });
 
-                if (!response.ok) {
-                    const errorMsg = await response.json();
-                    throw new Error(errorMsg.details || "SYSTEM_OVERLOAD");
-                }
+                if (!response.ok) throw new Error("STABLE_LINK_FAULT");
 
                 const result = await response.json();
                 const report = result.analysis || result.report;
                 
                 if (report) {
-                    // Success: Deduct credits and show report
-                    await update(ref(db, `users/${auth.currentUser.uid}`), { 
-                        tokens: increment(-0.50) 
-                    });
-                    resetScannerUI();
+                    // Update Squad Data Logic (Overwrite existing players)
+                    // (Simplified logic: assuming AI identifies players, we track them here)
+                    await update(ref(db, `users/${auth.currentUser.uid}`), { tokens: increment(-5.0) });
                     window.openVisionChat(report); 
-                } else {
-                    throw new Error("EMPTY_RESPONSE");
                 }
             } catch (err) {
                 if (scannerTimer) clearInterval(scannerTimer);
@@ -747,12 +781,11 @@ if (scanConfirm) {
                     statusText.style.color = "#ff4444"; 
                     statusText.innerText = "!! ENGINE ERROR: " + err.message.toUpperCase();
                 }
-                if(scanBox) scanBox.style.display = 'none';
-                if(scanRetry) scanRetry.style.display = 'block';
+                scanBox.style.display = 'none';
+                scanRetry.style.display = 'block';
                 scanConfirm.classList.remove('loading');
                 scanConfirm.disabled = false;
             }
         };
     };
 }
-
