@@ -901,40 +901,10 @@ if (scanConfirm) {
         reader.readAsDataURL(currentScanFile);
     };
 }
-
-// --- DLSVALUE GLOBAL MODAL CONTROLLER ---
-const modalObserver = new MutationObserver((mutations) => {
-    mutations.forEach(() => {
-        // Look for ANY active modal in your HTML
-        const activeModals = [
-            document.getElementById('scanPreviewModal'),
-            document.getElementById('visionResultsModal'),
-            document.getElementById('chatModal'),
-            document.getElementById('profileModal'),
-            document.getElementById('refillModal'),
-            document.getElementById('modalOverlay'),
-            document.getElementById('securityModal')
-        ];
-
-        // Check if at least one is visible/active
-        const isAnyOpen = activeModals.some(modal => {
-            if (!modal) return false;
-            return modal.classList.contains('active') || 
-                   (modal.style.display !== 'none' && modal.id !== 'refillModal') ||
-                   (!modal.classList.contains('hidden') && modal.id === 'refillModal');
-        });
-
-        if (isAnyOpen) {
-            document.body.classList.add('modal-open');
-        } else {
-            document.body.classList.remove('modal-open');
-        }
-    });
-});
-
-// Initialize on Load
-document.addEventListener('DOMContentLoaded', () => {
-    const idsToWatch = [
+ // --- DLSVALUE GLOBAL SCROLL LOCKER (STABLE V2) ---
+const globalScrollLock = () => {
+    // 1. Define all possible modal IDs from your HTML
+    const modalIds = [
         'scanPreviewModal', 
         'visionResultsModal', 
         'chatModal', 
@@ -944,11 +914,51 @@ document.addEventListener('DOMContentLoaded', () => {
         'securityModal'
     ];
 
+    // 2. Check if ANY of them are currently visible to the user
+    const isAnyModalVisible = modalIds.some(id => {
+        const el = document.getElementById(id);
+        if (!el) return false;
+
+        // Check for 'active' class OR 'display: flex/block' OR lack of 'hidden' class
+        const hasActiveClass = el.classList.contains('active');
+        const isNotDisplayNone = window.getComputedStyle(el).display !== 'none';
+        const isNotHidden = !el.classList.contains('hidden');
+
+        // Special check for refillModal which uses 'hidden'
+        if (id === 'refillModal') return isNotHidden && isNotDisplayNone;
+        
+        return hasActiveClass || isNotDisplayNone;
+    });
+
+    // 3. Apply or remove the lock
+    if (isAnyModalVisible) {
+        document.body.classList.add('modal-open');
+    } else {
+        document.body.classList.remove('modal-open');
+    }
+};
+
+// --- OBSERVER TO WATCH CHANGES ---
+const globalObserver = new MutationObserver(() => {
+    globalScrollLock();
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    const idsToWatch = [
+        'scanPreviewModal', 'visionResultsModal', 'chatModal', 
+        'profileModal', 'refillModal', 'modalOverlay', 'securityModal'
+    ];
+
     idsToWatch.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
-            // Watch for class changes or style attribute changes
-            modalObserver.observe(el, { attributes: true, attributeFilter: ['class', 'style'] });
+            globalObserver.observe(el, { 
+                attributes: true, 
+                attributeFilter: ['class', 'style'] 
+            });
         }
     });
+
+    // Initial check
+    globalScrollLock();
 });
