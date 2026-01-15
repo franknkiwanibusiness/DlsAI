@@ -27,6 +27,40 @@ async function initChat(user) {
     
     let messageCounter = 0; 
     let isPremiumUser = false;
+// --- THE BRIDGE: Open Full-Screen Results Modal ---
+window.openVisionChat = (report) => {
+    // 1. Force close the scanner UI
+    const previewModal = document.getElementById('scanPreviewModal');
+    if (previewModal) previewModal.classList.remove('active');
+
+    // 2. Open the Full-Screen Results Modal (visionResultsModal)
+    const resultsModal = document.getElementById('visionResultsModal');
+    const reportOutput = document.getElementById('reportOutput');
+
+    if (resultsModal && reportOutput) {
+        // Inject the text
+        reportOutput.innerText = report;
+        
+        // Show the modal
+        resultsModal.style.display = 'flex';
+        setTimeout(() => resultsModal.classList.add('active'), 10);
+        
+        // Lock body scrolling
+        document.body.style.overflow = 'hidden';
+        notify("Neural Sync Complete", "success");
+    }
+};
+
+// Global function to close the results
+window.closeResults = () => {
+    const resultsModal = document.getElementById('visionResultsModal');
+    if (resultsModal) {
+        resultsModal.classList.remove('active');
+        setTimeout(() => resultsModal.style.display = 'none', 300);
+        document.body.style.overflow = 'auto';
+    }
+};
+
 
     // 1. IDENTITY & PREMIUM STATUS WATCHER
     onValue(ref(db, `users/${user.uid}`), (snap) => {
