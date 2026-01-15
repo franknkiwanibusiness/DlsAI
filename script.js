@@ -311,7 +311,6 @@ function syncUserUI(uid) {
             const now = Date.now();
 
             // 1. PREMIUM EXPIRATION SAFETY CHECK
-            // Automatically demotes user if the premium period (from Vercel) has ended
             if (data.isPremium && data.premiumUntil && now > data.premiumUntil) {
                 update(ref(db, `users/${uid}`), { 
                     isPremium: false, 
@@ -340,22 +339,39 @@ function syncUserUI(uid) {
             document.getElementById('usageText').innerText = `${data.tokens || 0} / ${limit}`;
             document.getElementById('usageBar').style.width = `${Math.min(((data.tokens || 0) / limit) * 100, 100)}%`;
 
-            // 5. DAILY REFILL LOGIC
+            // 5. NEW SAFE DAILY REFILL LOGIC (Top-up Only)
             const oneDay = 24 * 60 * 60 * 1000;
-            if (!isClaiming && (now - (data.lastDailyClaim || 0) >= oneDay)) {
+            const lastClaim = data.lastDailyClaim || 0;
+
+            if (!isClaiming && (now - lastClaim >= oneDay)) {
                 isClaiming = true; 
-                update(ref(db, `users/${uid}`), {
-                    tokens: limit, 
-                    lastDailyClaim: now
-                }).then(() => {
-                    notify(`DLSVALE: Tokens refilled to ${limit}!`);
-                    isClaiming = false;
-                }).catch(() => { isClaiming = false; });
+                const currentTokens = data.tokens || 0;
+                const dailyAllowance = data.isPremium ? 250 : 25;
+
+                // Scenario: User has less than their daily allowance -> Top them up to the limit
+                if (currentTokens < dailyAllowance) {
+                    update(ref(db, `users/${uid}`), {
+                        tokens: dailyAllowance, 
+                        lastDailyClaim: now
+                    }).then(() => {
+                        notify(`DLSVALE: Daily Engine Refill Active (${dailyAllowance} Tokens)`);
+                        isClaiming = false;
+                    }).catch(() => { isClaiming = false; });
+                } 
+                // Scenario: User has "Extra" tokens (Paid) -> Just reset the 24h timer, don't touch tokens
+                else {
+                    update(ref(db, `users/${uid}`), {
+                        lastDailyClaim: now
+                    }).then(() => {
+                        // Silent update, no need to notify as they kept their higher balance
+                        isClaiming = false;
+                    }).catch(() => { isClaiming = false; });
+                }
             }
         }
     });
 
-    // B. WATCH LINKS & COUNTDOWN (Only one instance)
+    // B. WATCH LINKS & COUNTDOWN (Remains unchanged)
     onValue(ref(db, `links/${uid}`), (snapshot) => {
         const container = document.getElementById('linksContainer');
         if (!container) return;
@@ -383,7 +399,6 @@ function syncUserUI(uid) {
             `;
             container.insertAdjacentHTML('beforeend', html);
 
-            // Start Countdown Timer
             const countdownInterval = setInterval(() => {
                 const now = new Date().getTime();
                 const distance = link.expiresAt - now;
@@ -408,6 +423,7 @@ function syncUserUI(uid) {
         });
     });
 }
+
 
 // --- 4. AUTH & OBSERVER ---
 
