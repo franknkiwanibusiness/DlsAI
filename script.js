@@ -668,52 +668,101 @@ window.closeResults = () => {
     resetScannerUI();
 };
 
-// --- 3. SHARE & SALE LOGIC ---
+// --- 3. SHARE & SALE LOGIC (2026 FULL DATA SYNC PATCH) ---
 
+// Helper: Common Imgur Upload
+const uploadToImgur = async (base64Data) => {
+    const formData = new FormData();
+    formData.append("image", base64Data.split(',')[1]);
+    const res = await fetch("https://api.imgur.com/3/image", {
+        method: "POST",
+        headers: { "Authorization": "Client-ID 891e5bb4aa94282" },
+        body: formData
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error("IMGUR_FAIL");
+    return data.data.link;
+};
+
+// A. SHARE REPORT LOGIC
 document.getElementById('shareReportBtn').onclick = async () => {
-    const shareId = Math.random().toString(36).substring(7);
-    const uniqueUrl = `${window.location.origin}/report?uid=${auth.currentUser.uid}&id=${shareId}`;
+    const btn = document.getElementById('shareReportBtn');
+    const originalText = btn.innerText;
+    btn.innerText = "UPLOADING...";
+    btn.disabled = true;
 
-    if (navigator.share) {
-        try { await navigator.share({ title: 'DLS Neural Report', url: uniqueUrl }); } 
-        catch (err) { console.log("Share cancelled"); }
-    } else {
-        navigator.clipboard.writeText(uniqueUrl);
-        notify("Link Copied to Clipboard", "success");
+    try {
+        const imgUrl = await uploadToImgur(scanPreview.src);
+        const shareId = Math.random().toString(36).substring(7);
+        
+        const reportData = {
+            image: imgUrl,
+            valuation: document.getElementById('networthAmount').innerText,
+            reportText: document.getElementById('reportOutput').innerText,
+            topPlayer: document.getElementById('statTopPlayer').innerText,
+            avgRating: document.getElementById('statExpensive').innerText,
+            timestamp: Date.now()
+        };
+
+        // Save so the report.html page can read it
+        await set(ref(db, `reports/${auth.currentUser.uid}/${shareId}`), reportData);
+
+        const uniqueUrl = `${window.location.origin}/report.html?uid=${auth.currentUser.uid}&id=${shareId}`;
+
+        if (navigator.share) {
+            await navigator.share({ title: 'DLS Neural Report', url: uniqueUrl });
+        } else {
+            await navigator.clipboard.writeText(uniqueUrl);
+            notify("Link Copied to Clipboard", "success");
+        }
+    } catch (err) {
+        notify("Share Failed: Check Connection", "error");
+    } finally {
+        btn.innerText = originalText;
+        btn.disabled = false;
     }
 };
 
+// B. GENERATE SALE LINK LOGIC
 document.getElementById('generateSaleBtn').onclick = async () => {
     const btn = document.getElementById('generateSaleBtn');
     const userRef = ref(db, `users/${auth.currentUser.uid}`);
     const snap = await get(userRef);
     
-    if (snap.val().tokens < 5) return notify("5 Tokens Required for Sale Link", "error");
+    if (snap.val().tokens < 5) return notify("5 Tokens Required", "error");
     
-    btn.innerText = "UPLOADING TO CLOUD...";
+    btn.innerText = "SECURING LINK...";
     btn.disabled = true;
 
     try {
-        const formData = new FormData();
-        formData.append("image", scanPreview.src.split(',')[1]);
-        const imgurRes = await fetch("https://api.imgur.com/3/image", {
-            method: "POST",
-            headers: { "Authorization": "Client-ID 891e5bb4aa94282" },
-            body: formData
-        });
-        const imgData = await imgurRes.json();
-
+        const imgUrl = await uploadToImgur(scanPreview.src);
         const saleCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-        await set(ref(db, `sales/${saleCode}`), {
+        const valuation = document.getElementById('networthAmount').innerText;
+        const expiresAt = Date.now() + (24 * 60 * 60 * 1000); 
+
+        const salePayload = {
             owner: auth.currentUser.uid,
-            image: imgData.data.link,
-            valuation: document.getElementById('networthAmount').innerText,
-            timestamp: Date.now()
+            image: imgUrl,
+            valuation: valuation,
+            topPlayer: document.getElementById('statTopPlayer').innerText,
+            description: document.getElementById('reportOutput').innerText,
+            timestamp: Date.now(),
+            expiresAt: expiresAt
+        };
+
+        // 1. Save to global sales
+        await set(ref(db, `sales/${saleCode}`), salePayload);
+
+        // 2. Save to user links so it appears in your "Data Watcher" dashboard
+        await set(ref(db, `links/${auth.currentUser.uid}/${saleCode}`), {
+            title: `SALE: ${valuation} Squad`,
+            url: `${window.location.origin}/sale.html?code=${saleCode}`,
+            expiresAt: expiresAt
         });
 
         await update(userRef, { tokens: increment(-5) });
         notify("Sale Live: " + saleCode, "success");
-        btn.innerText = "LINK GENERATED";
+        btn.innerText = "SALE LINK ACTIVE";
     } catch (e) {
         btn.innerText = "GENERATE SALE LINK";
         btn.disabled = false;
