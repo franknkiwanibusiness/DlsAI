@@ -587,7 +587,7 @@ window.openVisionChat = (reportText) => {
     const output = document.getElementById('reportOutput');
     const networthDisplay = document.getElementById('networthAmount');
 
-    // Robust Regex to handle AI variations (Average, Coins, Top Rated)
+    // 1. MATH LOGIC (Kept your working regex)
     const avgMatch = reportText.match(/(?:Average|Avg|Rating).*?(\d+\.?\d*)/i);
     const coinMatch = reportText.match(/(?:Coins|Gold|C).*?(\d+[\d,.]*)/i);
     const topMatch = reportText.match(/(?:Top Rated|Best|Captain).*?[:\-]\s*([a-zA-Z\s]+)/i);
@@ -595,39 +595,55 @@ window.openVisionChat = (reportText) => {
     const avg = avgMatch ? parseFloat(avgMatch[1]) : 0;
     const coinsRaw = coinMatch ? coinMatch[1].replace(/[,.]/g, '') : "0";
     const coins = parseInt(coinsRaw);
-    
-    const coinValue = (coins / 1000) * 1.50;
-    const finalPrice = (avg + coinValue).toFixed(2);
+    const finalPrice = (avg + (coins / 1000) * 1.50).toFixed(2);
 
-    // Close preview, show Luxe Results Modal
-    if (scanModal) scanModal.style.display = 'none';
+    // 2. UI OPENING SEQUENCE
+    if (scanModal) {
+        scanModal.classList.remove('active');
+        scanModal.style.display = 'none';
+    }
+
     if (resultsModal) {
         resultsModal.style.display = 'flex';
+        // Small delay to ensure display:flex is registered before adding opacity/active class
+        setTimeout(() => {
+            resultsModal.classList.add('active');
+            document.body.classList.add('modal-open'); // Prevents background scroll
+        }, 10);
         resultsModal.scrollTop = 0;
     }
 
-    // Update Stats Display
+    // 3. STATS UPDATE
     if (networthDisplay) networthDisplay.innerText = `$${finalPrice}`;
     document.getElementById('analyzedPreview').src = scanPreview.src;
     document.getElementById('statTopPlayer').innerText = topMatch ? topMatch[1].trim().split('\n')[0] : "Detecting...";
     document.getElementById('statExpensive').innerText = `$${avg.toFixed(2)}`;
     document.getElementById('statCount').innerText = "11+";
 
-    // Typewriter with Auto-Scroll
+    // 4. TYPEWRITER (With Auto-Scroll Fix)
     if (output) {
         output.innerText = ""; 
         let i = 0;
-        const type = () => {
-            if (i < reportText.length) {
-                output.innerText += reportText.charAt(i);
-                i++;
-                // Targets the container of the report for scrolling
-                const chatBody = document.querySelector('.chat-body-fs');
-                if (chatBody) chatBody.scrollTop = chatBody.scrollHeight;
-                setTimeout(type, 8);
-            }
-        };
-        type();
+        
+        // Wait for modal animation to settle before typing
+        setTimeout(() => {
+            const type = () => {
+                if (i < reportText.length) {
+                    output.innerText += reportText.charAt(i);
+                    i++;
+                    
+                    // Crucial: Scroll the modal itself if it's the one with the scrollbar
+                    resultsModal.scrollTop = resultsModal.scrollHeight;
+                    
+                    // Also try scrolling the chat body if that's where your overflow is
+                    const chatBody = document.querySelector('.chat-body-fs');
+                    if (chatBody) chatBody.scrollTop = chatBody.scrollHeight;
+                    
+                    setTimeout(type, 8);
+                }
+            };
+            type();
+        }, 200); 
     }
 };
 
