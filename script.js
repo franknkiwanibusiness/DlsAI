@@ -563,13 +563,12 @@ document.addEventListener('click', (e) => {
         }
     }
 }); 
-
-// --- SQUAD SCANNER SYSTEM V2 (2026 - STABLE & LUXE) ---
+// --- SQUAD SCANNER SYSTEM V2 (2026 - STABLE & LUXE - FULLY PATCHED) ---
 
 // 1. GLOBAL SCANNER STATE
 var currentScanFile = null;
 var scannerTimer = null;
-let squadData = { players: {}, coins: 0, diamonds: 0 }; // Store squad state for overwriting logic
+let squadData = { players: {}, coins: 0, diamonds: 0 };
 
 const scanBtn = document.getElementById('uploadSquadBtn');
 const scanModal = document.getElementById('scanPreviewModal');
@@ -581,50 +580,62 @@ const scanBox = document.getElementById('scanActions');
 const scanStatusContainer = document.getElementById('scanStatusContainer');
 const statusText = document.getElementById('liveStatusText');
 
-// --- 2. UI UTILITIES (LUXE REDESIGN) ---
+// --- 2. UI UTILITIES (LUXE REDESIGN + MATH PATCH) ---
 
 window.openVisionChat = (reportText) => {
-    // Data Extraction for Header Math
-    const avgMatch = reportText.match(/Average.*?(\d+\.?\d*)/i);
-    const coinMatch = reportText.match(/Coins.*?(\d+[\d,]*)/i);
-    const topMatch = reportText.match(/Top Rated.*?([a-zA-Z\s]+)/i);
+    const resultsModal = document.getElementById('visionResultsModal');
+    const output = document.getElementById('reportOutput');
+    const networthDisplay = document.getElementById('networthAmount');
+
+    // Robust Regex to handle AI variations (Average, Coins, Top Rated)
+    const avgMatch = reportText.match(/(?:Average|Avg|Rating).*?(\d+\.?\d*)/i);
+    const coinMatch = reportText.match(/(?:Coins|Gold|C).*?(\d+[\d,.]*)/i);
+    const topMatch = reportText.match(/(?:Top Rated|Best|Captain).*?[:\-]\s*([a-zA-Z\s]+)/i);
     
     const avg = avgMatch ? parseFloat(avgMatch[1]) : 0;
-    const coins = coinMatch ? parseInt(coinMatch[1].replace(/,/g, '')) : 0;
+    const coinsRaw = coinMatch ? coinMatch[1].replace(/[,.]/g, '') : "0";
+    const coins = parseInt(coinsRaw);
+    
     const coinValue = (coins / 1000) * 1.50;
     const finalPrice = (avg + coinValue).toFixed(2);
 
-    // Swap to Results Modal
+    // Close preview, show Luxe Results Modal
     if (scanModal) scanModal.style.display = 'none';
-    const resultsModal = document.getElementById('visionResultsModal');
-    resultsModal.style.display = 'flex';
+    if (resultsModal) {
+        resultsModal.style.display = 'flex';
+        resultsModal.scrollTop = 0;
+    }
 
-    // Update Premium UI Elements
+    // Update Stats Display
+    if (networthDisplay) networthDisplay.innerText = `$${finalPrice}`;
     document.getElementById('analyzedPreview').src = scanPreview.src;
-    document.getElementById('networthAmount').innerText = `$${finalPrice}`;
-    document.getElementById('statTopPlayer').innerText = topMatch ? topMatch[1].trim() : "Detecting...";
+    document.getElementById('statTopPlayer').innerText = topMatch ? topMatch[1].trim().split('\n')[0] : "Detecting...";
     document.getElementById('statExpensive').innerText = `$${avg.toFixed(2)}`;
-    document.getElementById('statCount').innerText = Object.keys(squadData.players).length || "11+";
+    document.getElementById('statCount').innerText = "11+";
 
-    const output = document.getElementById('reportOutput');
-    output.innerText = ""; 
-    
-    let i = 0;
-    const type = () => {
-        if (i < reportText.length) {
-            output.innerText += reportText.charAt(i);
-            i++;
-            const readout = document.querySelector('.data-readout');
-            if (readout) readout.scrollTop = readout.scrollHeight;
-            setTimeout(type, 5);
-        }
-    };
-    type();
+    // Typewriter with Auto-Scroll
+    if (output) {
+        output.innerText = ""; 
+        let i = 0;
+        const type = () => {
+            if (i < reportText.length) {
+                output.innerText += reportText.charAt(i);
+                i++;
+                // Targets the container of the report for scrolling
+                const chatBody = document.querySelector('.chat-body-fs');
+                if (chatBody) chatBody.scrollTop = chatBody.scrollHeight;
+                setTimeout(type, 8);
+            }
+        };
+        type();
+    }
 };
 
 const resetScannerUI = () => {
-    if(scanModal) scanModal.classList.remove('active');
-    if(scanModal) scanModal.style.display = 'none'; // Ensure both methods work
+    if(scanModal) {
+        scanModal.classList.remove('active');
+        scanModal.style.display = 'none';
+    }
     if (scannerTimer) clearInterval(scannerTimer);
     if(scanConfirm) { scanConfirm.classList.remove('loading'); scanConfirm.disabled = false; }
     if(scanBox) scanBox.style.display = 'flex';
@@ -636,13 +647,13 @@ const resetScannerUI = () => {
 };
 
 window.closeResults = () => {
-    document.getElementById('visionResultsModal').style.display = 'none';
+    const resModal = document.getElementById('visionResultsModal');
+    if (resModal) resModal.style.display = 'none';
     resetScannerUI();
 };
 
 // --- 3. SHARE & SALE LOGIC ---
 
-// Share Link (Firebase + iOS Native)
 document.getElementById('shareReportBtn').onclick = async () => {
     const shareId = Math.random().toString(36).substring(7);
     const uniqueUrl = `${window.location.origin}/report?uid=${auth.currentUser.uid}&id=${shareId}`;
@@ -652,11 +663,10 @@ document.getElementById('shareReportBtn').onclick = async () => {
         catch (err) { console.log("Share cancelled"); }
     } else {
         navigator.clipboard.writeText(uniqueUrl);
-        notify("Link Copied (Local API Fallback)", "success");
+        notify("Link Copied to Clipboard", "success");
     }
 };
 
-// Generate Sale Link (Imgur + 5 Tokens)
 document.getElementById('generateSaleBtn').onclick = async () => {
     const btn = document.getElementById('generateSaleBtn');
     const userRef = ref(db, `users/${auth.currentUser.uid}`);
@@ -665,28 +675,34 @@ document.getElementById('generateSaleBtn').onclick = async () => {
     if (snap.val().tokens < 5) return notify("5 Tokens Required for Sale Link", "error");
     
     btn.innerText = "UPLOADING TO CLOUD...";
+    btn.disabled = true;
 
-    // Imgur Upload
-    const formData = new FormData();
-    formData.append("image", scanPreview.src.split(',')[1]);
-    const imgurRes = await fetch("https://api.imgur.com/3/image", {
-        method: "POST",
-        headers: { "Authorization": "Client-ID 891e5bb4aa94282" },
-        body: formData
-    });
-    const imgData = await imgurRes.json();
+    try {
+        const formData = new FormData();
+        formData.append("image", scanPreview.src.split(',')[1]);
+        const imgurRes = await fetch("https://api.imgur.com/3/image", {
+            method: "POST",
+            headers: { "Authorization": "Client-ID 891e5bb4aa94282" },
+            body: formData
+        });
+        const imgData = await imgurRes.json();
 
-    const saleCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-    await set(ref(db, `sales/${saleCode}`), {
-        owner: auth.currentUser.uid,
-        image: imgData.data.link,
-        valuation: document.getElementById('networthAmount').innerText,
-        timestamp: Date.now()
-    });
+        const saleCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+        await set(ref(db, `sales/${saleCode}`), {
+            owner: auth.currentUser.uid,
+            image: imgData.data.link,
+            valuation: document.getElementById('networthAmount').innerText,
+            timestamp: Date.now()
+        });
 
-    await update(userRef, { tokens: increment(-5) });
-    alert("SALE LIVE: " + window.location.origin + "/sale=" + saleCode);
-    btn.innerText = "LINK GENERATED";
+        await update(userRef, { tokens: increment(-5) });
+        notify("Sale Live: " + saleCode, "success");
+        btn.innerText = "LINK GENERATED";
+    } catch (e) {
+        btn.innerText = "GENERATE SALE LINK";
+        btn.disabled = false;
+        notify("Upload Failed", "error");
+    }
 };
 
 // --- 4. EVENT LISTENERS ---
@@ -702,8 +718,8 @@ if (scanBtn) {
             const reader = new FileReader();
             reader.onload = (event) => {
                 scanPreview.src = event.target.result;
-                scanModal.classList.add('active'); 
                 scanModal.style.display = 'flex';
+                setTimeout(() => scanModal.classList.add('active'), 10);
             };
             reader.readAsDataURL(currentScanFile);
         };
@@ -714,25 +730,26 @@ if (scanBtn) {
 if (scanCancel) scanCancel.onclick = resetScannerUI;
 if (scanRetry) {
     scanRetry.onclick = () => {
-        scanBox.style.display = 'flex';
-        scanRetry.style.display = 'none';
+        if(scanBox) scanBox.style.display = 'flex';
+        if(scanRetry) scanRetry.style.display = 'none';
         scanConfirm.click(); 
     };
 }
 
-// --- 5. CORE SCAN LOGIC (5 TOKENS) ---
+// --- 5. CORE SCAN LOGIC (STABILIZED) ---
 
 if (scanConfirm) {
     scanConfirm.onclick = async () => {
         if (!currentScanFile) return;
 
+        // Identity & Token Check
         if (typeof auth !== 'undefined' && auth.currentUser) {
             const userRef = ref(db, `users/${auth.currentUser.uid}`);
             const snap = await get(userRef);
             const tokens = snap.exists() ? snap.val().tokens : 0;
-            if (tokens < 5.0) return notify("Neural Scan requires 5.0 Tokens", "error");
+            if (tokens < 5.0) return notify("Insufficient Tokens (5.0 Required)", "error");
         } else {
-            return notify("Identity Link Required", "error");
+            return notify("Please Login First", "error");
         }
         
         scanConfirm.classList.add('loading');
@@ -740,10 +757,10 @@ if (scanConfirm) {
         if(scanStatusContainer) scanStatusContainer.style.display = 'block';
 
         const updates = [
-            "Initializing Llama-4 Scout...",
+            "Initializing Engine...",
             "Scanning Squad Cards...",
-            "Note: Max 8 Subs visible per image.",
-            "Finalizing Neural Report..."
+            "Analyzing Performance...",
+            "Generating Report..."
         ];
         
         let step = 0;
@@ -755,24 +772,29 @@ if (scanConfirm) {
         }, 900);
 
         const reader = new FileReader();
-        reader.readAsDataURL(currentScanFile);
-        reader.onload = async () => {
+        // Crucial: define onload BEFORE readAsDataURL
+        reader.onload = async (event) => {
             try {
                 const response = await fetch('/api/scan', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image: reader.result, uid: auth.currentUser.uid })
+                    body: JSON.stringify({ 
+                        image: event.target.result, 
+                        uid: auth.currentUser.uid 
+                    })
                 });
 
-                if (!response.ok) throw new Error("STABLE_LINK_FAULT");
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.details || "API_FAULT");
+                }
 
                 const result = await response.json();
                 const report = result.analysis || result.report;
                 
                 if (report) {
-                    // Update Squad Data Logic (Overwrite existing players)
-                    // (Simplified logic: assuming AI identifies players, we track them here)
                     await update(ref(db, `users/${auth.currentUser.uid}`), { tokens: increment(-5.0) });
+                    if (scannerTimer) clearInterval(scannerTimer);
                     window.openVisionChat(report); 
                 }
             } catch (err) {
@@ -781,11 +803,13 @@ if (scanConfirm) {
                     statusText.style.color = "#ff4444"; 
                     statusText.innerText = "!! ENGINE ERROR: " + err.message.toUpperCase();
                 }
-                scanBox.style.display = 'none';
-                scanRetry.style.display = 'block';
+                if(scanBox) scanBox.style.display = 'none';
+                if(scanRetry) scanRetry.style.display = 'block';
                 scanConfirm.classList.remove('loading');
                 scanConfirm.disabled = false;
             }
         };
+        reader.readAsDataURL(currentScanFile);
     };
 }
+
