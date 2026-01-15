@@ -902,32 +902,53 @@ if (scanConfirm) {
     };
 }
 
-// --- GLOBAL MODAL SCROLL LOCKER ---
-const observer = new MutationObserver((mutations) => {
-    mutations.forEach((mutation) => {
-        if (mutation.attributeName === "class") {
-            const anyModalActive = document.querySelector('.modal-overlay.active, .modal.active');
-            
-            if (anyModalActive) {
-                document.body.classList.add('modal-open');
-            } else {
-                document.body.classList.remove('modal-open');
-            }
+// --- DLSVALUE GLOBAL MODAL CONTROLLER ---
+const modalObserver = new MutationObserver((mutations) => {
+    mutations.forEach(() => {
+        // Look for ANY active modal in your HTML
+        const activeModals = [
+            document.getElementById('scanPreviewModal'),
+            document.getElementById('visionResultsModal'),
+            document.getElementById('chatModal'),
+            document.getElementById('profileModal'),
+            document.getElementById('refillModal'),
+            document.getElementById('modalOverlay'),
+            document.getElementById('securityModal')
+        ];
+
+        // Check if at least one is visible/active
+        const isAnyOpen = activeModals.some(modal => {
+            if (!modal) return false;
+            return modal.classList.contains('active') || 
+                   (modal.style.display !== 'none' && modal.id !== 'refillModal') ||
+                   (!modal.classList.contains('hidden') && modal.id === 'refillModal');
+        });
+
+        if (isAnyOpen) {
+            document.body.classList.add('modal-open');
+        } else {
+            document.body.classList.remove('modal-open');
         }
     });
 });
 
-// Start watching the body for modal changes
+// Initialize on Load
 document.addEventListener('DOMContentLoaded', () => {
-    // Watch the Scanner Modal
-    const scannerModal = document.getElementById('scanPreviewModal');
-    if (scannerModal) {
-        observer.observe(scannerModal, { attributes: true });
-    }
-    
-    // Watch your Chat/Results Modal
-    const chatModal = document.querySelector('.vision-chat-container'); // Adjust to your actual chat ID/Class
-    if (chatModal) {
-        observer.observe(chatModal, { attributes: true });
-    }
+    const idsToWatch = [
+        'scanPreviewModal', 
+        'visionResultsModal', 
+        'chatModal', 
+        'profileModal', 
+        'refillModal', 
+        'modalOverlay',
+        'securityModal'
+    ];
+
+    idsToWatch.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            // Watch for class changes or style attribute changes
+            modalObserver.observe(el, { attributes: true, attributeFilter: ['class', 'style'] });
+        }
+    });
 });
