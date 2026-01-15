@@ -7,6 +7,7 @@ import {
     signOut 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { ref, set, get, update, increment, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
 // Global State
 let isLoginMode = true;
 window.chatHistory = [];
@@ -27,40 +28,6 @@ async function initChat(user) {
     
     let messageCounter = 0; 
     let isPremiumUser = false;
-// --- THE BRIDGE: Open Full-Screen Results Modal ---
-window.openVisionChat = (report) => {
-    // 1. Force close the scanner UI
-    const previewModal = document.getElementById('scanPreviewModal');
-    if (previewModal) previewModal.classList.remove('active');
-
-    // 2. Open the Full-Screen Results Modal (visionResultsModal)
-    const resultsModal = document.getElementById('visionResultsModal');
-    const reportOutput = document.getElementById('reportOutput');
-
-    if (resultsModal && reportOutput) {
-        // Inject the text
-        reportOutput.innerText = report;
-        
-        // Show the modal
-        resultsModal.style.display = 'flex';
-        setTimeout(() => resultsModal.classList.add('active'), 10);
-        
-        // Lock body scrolling
-        document.body.style.overflow = 'hidden';
-        notify("Neural Sync Complete", "success");
-    }
-};
-
-// Global function to close the results
-window.closeResults = () => {
-    const resultsModal = document.getElementById('visionResultsModal');
-    if (resultsModal) {
-        resultsModal.classList.remove('active');
-        setTimeout(() => resultsModal.style.display = 'none', 300);
-        document.body.style.overflow = 'auto';
-    }
-};
-
 
     // 1. IDENTITY & PREMIUM STATUS WATCHER
     onValue(ref(db, `users/${user.uid}`), (snap) => {
@@ -477,6 +444,7 @@ const getDeviceID = () => {
     }
     return "NKI-" + Math.abs(hash);
 };
+
 // B. Auth State Observer
 onAuthStateChanged(auth, (user) => {
     const userDisplay = document.getElementById('userDisplay');
@@ -484,22 +452,15 @@ onAuthStateChanged(auth, (user) => {
     if (user) {
         if (openAuth) openAuth.style.display = 'none';
         if (userDisplay) userDisplay.style.display = 'flex';
-        
-        // --- Core Systems Initialization ---
         syncUserUI(user.uid);
         initChat(user);
         initPaypalSystems(user);
-        
-        // --- Activate the Image Scanner ---
-        initVisionScanner(); 
-        
     } else {
         if (openAuth) openAuth.style.display = 'block';
         if (userDisplay) userDisplay.style.display = 'none';
     }
     if (document.getElementById('main-loader')) document.getElementById('main-loader').style.display = 'none';
 });
-
 
 // C. Auth Submission with Shadow Token Logic
 const mainSubmitBtn = document.getElementById('mainSubmitBtn');
@@ -605,100 +566,4 @@ document.addEventListener('click', (e) => {
         }
     }
 });
-// --- INTEGRATED VISION SCANNER ENGINE ---
-function initVisionScanner() {
-    const uploadBtn = document.getElementById('uploadSquadBtn');
-    const previewModal = document.getElementById('scanPreviewModal');
-    const previewImg = document.getElementById('previewImg');
-    const cancelScan = document.getElementById('cancelScan'); // Added Cancel Btn
-    const confirmScan = document.getElementById('confirmScan');
-    const statusContainer = document.getElementById('scanStatusContainer');
-    const statusText = document.getElementById('liveStatusText');
-
-    let selectedFile = null;
-    if (!uploadBtn) return;
-
-    // 1. FILE PICKER LOGIC
-    uploadBtn.onclick = () => {
-        if (!auth.currentUser) return notify("Identity required for Neural Link", "error");
-        
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/*';
-        input.onchange = (e) => {
-            selectedFile = e.target.files[0];
-            if (!selectedFile) return;
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                previewImg.src = ev.target.result;
-                previewModal.classList.add('active');
-            };
-            reader.readAsDataURL(selectedFile);
-        };
-        input.click();
-    };
-
-    // 2. CANCEL SCAN LOGIC (Added)
-    if (cancelScan) {
-        cancelScan.onclick = () => {
-            previewModal.classList.remove('active');
-            selectedFile = null;
-            // Reset UI states
-            confirmScan.classList.remove('loading');
-            statusContainer.style.display = 'none';
-        };
-    }
-
-    // 3. SCAN EXECUTION LOGIC (Talks to Vercel/Groq)
-    confirmScan.onclick = async () => {
-        if (!selectedFile || !auth.currentUser) return;
-        
-        confirmScan.classList.add('loading');
-        statusContainer.style.display = 'block';
-        
-        // Animated Status UI
-        const updates = ["Initializing...", "Scanning Image...", "Extracting Ratings...", "Finalizing..."];
-        let i = 0;
-        const interval = setInterval(() => {
-            if (i < updates.length - 1) statusText.innerText = "> " + updates[i++];
-        }, 800);
-
-        const reader = new FileReader();
-        reader.readAsDataURL(selectedFile);
-        reader.onload = async () => {
-            const base64 = reader.result.split(',')[1];
-            try {
-                // Call Vercel Backend
-                const response = await fetch('/api/scan', { 
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image: base64, uid: auth.currentUser.uid })
-                });
-
-                const result = await response.json();
-                if (!response.ok) throw new Error(result.error || "SCAN_FAILED");
-
-                // Deduct 2 Tokens for successful analysis
-                const userRef = ref(db, `users/${auth.currentUser.uid}`);
-                await update(userRef, { tokens: increment(-2) });
-
-                clearInterval(interval);
-                
-                // Hide scanner and trigger Full-Screen Results Page
-                previewModal.classList.remove('active');
-                window.openVisionChat(result.report); 
-                
-            } catch (err) {
-                console.error("Scan error:", err);
-                statusText.innerText = "> NEURAL LINK FAILED";
-                statusText.style.color = "#ff4444";
-                notify("Link Error: Check console or tokens", "error");
-            } finally {
-                clearInterval(interval);
-                confirmScan.classList.remove('loading');
-                statusContainer.style.display = 'none';
-            }
-        };
-    };
-}
 
