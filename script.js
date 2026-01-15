@@ -751,14 +751,37 @@ if (scanRetry) {
         scanConfirm.click(); 
     };
 }
+// --- 5. CORE SCAN LOGIC (STABILIZED & MULTI-ENGINE) ---
 
-// --- 5. CORE SCAN LOGIC (STABILIZED) ---
+// UI Handler for the new Engine Selector (Optional: Updates the UI description)
+const engineSelect = document.getElementById('engineSelect');
+const tierTag = document.getElementById('modelTierTag');
+const engineDesc = document.getElementById('engineDescription');
+
+const engineMetadata = {
+    scan: { tier: "HIGHEST", desc: "* Nkiwani v2: 17B-16E MoE Architecture. Maximum DLS card detection.", color: "#00ffff" },
+    gemma1: { tier: "ULTRA", desc: "* Gemma 3 27B: Flagship precision. Best for complex squad math.", color: "#ff00ff" },
+    gemma2: { tier: "PRO", desc: "* Gemma 3 12B: Balanced engine. Faster response with high accuracy.", color: "#ffff00" },
+    gemma3: { tier: "SPEED", desc: "* Gemma 3 4B: Instant scan. Best for quick rating checks.", color: "#00ff00" }
+};
+
+if (engineSelect) {
+    engineSelect.onchange = (e) => {
+        const meta = engineMetadata[e.target.value];
+        if (tierTag) { tierTag.innerText = meta.tier; tierTag.style.background = meta.color; }
+        if (engineDesc) engineDesc.innerText = meta.desc;
+    };
+}
 
 if (scanConfirm) {
     scanConfirm.onclick = async () => {
         if (!currentScanFile) return;
 
-        // Identity & Token Check
+        // 1. DYNAMIC ENGINE SELECTION
+        // Grabs 'scan', 'gemma1', 'gemma2', or 'gemma3' from your dropdown
+        const selectedRoute = engineSelect ? engineSelect.value : 'scan';
+
+        // 2. Identity & Token Check
         if (typeof auth !== 'undefined' && auth.currentUser) {
             const userRef = ref(db, `users/${auth.currentUser.uid}`);
             const snap = await get(userRef);
@@ -773,7 +796,7 @@ if (scanConfirm) {
         if(scanStatusContainer) scanStatusContainer.style.display = 'block';
 
         const updates = [
-            "Initializing Engine...",
+            `Connecting to ${selectedRoute.toUpperCase()}...`,
             "Scanning Squad Cards...",
             "Analyzing Performance...",
             "Generating Report..."
@@ -788,10 +811,11 @@ if (scanConfirm) {
         }, 900);
 
         const reader = new FileReader();
-        // Crucial: define onload BEFORE readAsDataURL
         reader.onload = async (event) => {
             try {
-                const response = await fetch('/api/scan', {
+                // 3. ROUTE FETCHING
+                // This dynamically hits /api/scan, /api/gemma1, etc.
+                const response = await fetch(`/api/${selectedRoute}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
