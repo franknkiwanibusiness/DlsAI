@@ -444,7 +444,6 @@ const getDeviceID = () => {
     }
     return "NKI-" + Math.abs(hash);
 };
-
 // B. Auth State Observer
 onAuthStateChanged(auth, (user) => {
     const userDisplay = document.getElementById('userDisplay');
@@ -452,15 +451,22 @@ onAuthStateChanged(auth, (user) => {
     if (user) {
         if (openAuth) openAuth.style.display = 'none';
         if (userDisplay) userDisplay.style.display = 'flex';
+        
+        // --- Core Systems Initialization ---
         syncUserUI(user.uid);
         initChat(user);
         initPaypalSystems(user);
+        
+        // --- Activate the Image Scanner ---
+        initVisionScanner(); 
+        
     } else {
         if (openAuth) openAuth.style.display = 'block';
         if (userDisplay) userDisplay.style.display = 'none';
     }
     if (document.getElementById('main-loader')) document.getElementById('main-loader').style.display = 'none';
 });
+
 
 // C. Auth Submission with Shadow Token Logic
 const mainSubmitBtn = document.getElementById('mainSubmitBtn');
