@@ -587,15 +587,22 @@ window.openVisionChat = (reportText) => {
     const output = document.getElementById('reportOutput');
     const networthDisplay = document.getElementById('networthAmount');
 
-    // 1. MATH LOGIC (Kept your working regex)
-    const avgMatch = reportText.match(/(?:Average|Avg|Rating).*?(\d+\.?\d*)/i);
-    const coinMatch = reportText.match(/(?:Coins|Gold|C).*?(\d+[\d,.]*)/i);
-    const topMatch = reportText.match(/(?:Top Rated|Best|Captain).*?[:\-]\s*([a-zA-Z\s]+)/i);
+    // 1. IMPROVED EXTRACTION LOGIC
+    // Finds all numbers after ':', '**', or spaces (e.g., "GK: 65" or "**DF**: 66")
+    const allRatings = reportText.match(/(?::|\*\*|\s)(\d{2})(?!\d)/g) || [];
+    const cleanRatings = allRatings.map(n => parseInt(n.replace(/\D/g, '')));
     
-    const avg = avgMatch ? parseFloat(avgMatch[1]) : 0;
-    const coinsRaw = coinMatch ? coinMatch[1].replace(/[,.]/g, '') : "0";
-    const coins = parseInt(coinsRaw);
-    const finalPrice = (avg + (coins / 1000) * 1.50).toFixed(2);
+    // Calculate Average
+    const avg = cleanRatings.length > 0 
+        ? cleanRatings.reduce((a, b) => a + b, 0) / cleanRatings.length 
+        : 0;
+
+    // Find Top Player (Highest Rating)
+    const topRating = cleanRatings.length > 0 ? Math.max(...cleanRatings) : 0;
+    
+    // Final Price Calculation (Matching Groq's logic)
+    // If you want it exactly as Groq says ($66), use multiplier 1.0
+    const finalPrice = (avg * 1.0).toFixed(2);
 
     // 2. UI OPENING SEQUENCE
     if (scanModal) {
@@ -605,47 +612,47 @@ window.openVisionChat = (reportText) => {
 
     if (resultsModal) {
         resultsModal.style.display = 'flex';
-        // Small delay to ensure display:flex is registered before adding opacity/active class
         setTimeout(() => {
             resultsModal.classList.add('active');
-            document.body.classList.add('modal-open'); // Prevents background scroll
+            document.body.classList.add('modal-open');
         }, 10);
-        resultsModal.scrollTop = 0;
+        resultsModal.scrollTop = 0; // Reset scroll to top to see image
     }
 
-    // 3. STATS UPDATE
+    // 3. STATS UPDATE (Synced with AI values)
     if (networthDisplay) networthDisplay.innerText = `$${finalPrice}`;
     document.getElementById('analyzedPreview').src = scanPreview.src;
-    document.getElementById('statTopPlayer').innerText = topMatch ? topMatch[1].trim().split('\n')[0] : "Detecting...";
-    document.getElementById('statExpensive').innerText = `$${avg.toFixed(2)}`;
-    document.getElementById('statCount').innerText = "11+";
+    document.getElementById('statTopPlayer').innerText = topRating > 0 ? `Rating: ${topRating}` : "Detecting...";
+    document.getElementById('statExpensive').innerText = `$${finalPrice}`;
+    document.getElementById('statCount').innerText = `${cleanRatings.length || '11'}+`;
 
-    // 4. TYPEWRITER (With Auto-Scroll Fix)
+    // 4. TYPEWRITER (Fixed to not hide image)
     if (output) {
         output.innerText = ""; 
         let i = 0;
         
-        // Wait for modal animation to settle before typing
         setTimeout(() => {
             const type = () => {
                 if (i < reportText.length) {
                     output.innerText += reportText.charAt(i);
                     i++;
                     
-                    // Crucial: Scroll the modal itself if it's the one with the scrollbar
-                    resultsModal.scrollTop = resultsModal.scrollHeight;
-                    
-                    // Also try scrolling the chat body if that's where your overflow is
+                    // FIXED SCROLLING: 
+                    // Instead of scrolling the whole modal (which hides the image), 
+                    // we scroll the AI container or just use smooth scroll into view.
                     const chatBody = document.querySelector('.chat-body-fs');
-                    if (chatBody) chatBody.scrollTop = chatBody.scrollHeight;
+                    if (chatBody && i % 5 === 0) { // Only scroll every 5 chars for performance
+                        output.scrollIntoView({ behavior: 'auto', block: 'end' });
+                    }
                     
-                    setTimeout(type, 8);
+                    setTimeout(type, 5); // Slightly faster typing
                 }
             };
             type();
         }, 200); 
     }
 };
+
 
 const resetScannerUI = () => {
     if(scanModal) {
@@ -668,58 +675,98 @@ window.closeResults = () => {
     resetScannerUI();
 };
 
-// --- 3. SHARE & SALE LOGIC ---
+// --- 3. SHARE & SALE LOGIC (STABILIZED) ---
 
+// A. SHARE BUTTON (Utility Only - No Database Save)
 document.getElementById('shareReportBtn').onclick = async () => {
+    // Generates a temporary link for sharing the current view
     const shareId = Math.random().toString(36).substring(7);
     const uniqueUrl = `${window.location.origin}/report?uid=${auth.currentUser.uid}&id=${shareId}`;
 
     if (navigator.share) {
-        try { await navigator.share({ title: 'DLS Neural Report', url: uniqueUrl }); } 
-        catch (err) { console.log("Share cancelled"); }
+        try { 
+            await navigator.share({ 
+                title: 'DLS Neural Squad Report', 
+                text: `Check out my squad valuation: ${document.getElementById('networthAmount').innerText}`,
+                url: uniqueUrl 
+            }); 
+        } catch (err) { console.log("Share cancelled"); }
     } else {
         navigator.clipboard.writeText(uniqueUrl);
         notify("Link Copied to Clipboard", "success");
     }
 };
 
+// B. SALE LINK BUTTON (Paid Feature - Saves to Global & User History)
 document.getElementById('generateSaleBtn').onclick = async () => {
     const btn = document.getElementById('generateSaleBtn');
+    
+    // 1. Identity & Token Safety Check
+    if (!auth.currentUser) return notify("Please Login First", "error");
+
     const userRef = ref(db, `users/${auth.currentUser.uid}`);
     const snap = await get(userRef);
     
-    if (snap.val().tokens < 5) return notify("5 Tokens Required for Sale Link", "error");
+    if (!snap.exists() || snap.val().tokens < 5) {
+        return notify("5 Tokens Required for Sale Link", "error");
+    }
     
     btn.innerText = "UPLOADING TO CLOUD...";
     btn.disabled = true;
 
     try {
+        // 2. Prepare Image for Imgur Upload
+        const analyzedImg = document.getElementById('analyzedPreview');
+        if (!analyzedImg.src || analyzedImg.src.startsWith('window')) {
+            throw new Error("No analyzed image found");
+        }
+
+        const base64Image = analyzedImg.src.split(',')[1];
         const formData = new FormData();
-        formData.append("image", scanPreview.src.split(',')[1]);
+        formData.append("image", base64Image);
+
+        // 3. Imgur API Call
         const imgurRes = await fetch("https://api.imgur.com/3/image", {
             method: "POST",
             headers: { "Authorization": "Client-ID 891e5bb4aa94282" },
             body: formData
         });
+        
         const imgData = await imgurRes.json();
+        if (!imgData.success) throw new Error("Cloud Upload Failed");
 
+        // 4. Create Sale Record
         const saleCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-        await set(ref(db, `sales/${saleCode}`), {
+        const saleRecord = {
+            saleId: saleCode,
             owner: auth.currentUser.uid,
             image: imgData.data.link,
             valuation: document.getElementById('networthAmount').innerText,
-            timestamp: Date.now()
-        });
+            timestamp: Date.now(),
+            status: "active"
+        };
 
+        // 5. DUAL-SAVE: Save to Global Market AND User's Private History
+        await set(ref(db, `sales/${saleCode}`), saleRecord);
+        await set(ref(db, `users/${auth.currentUser.uid}/links/${saleCode}`), saleRecord);
+
+        // 6. Deduct Tokens
         await update(userRef, { tokens: increment(-5) });
+
+        // 7. Update UI
         notify("Sale Live: " + saleCode, "success");
-        btn.innerText = "LINK GENERATED";
+        btn.innerText = "LINK GENERATED: " + saleCode;
+        btn.style.background = "#22c55e"; // Success Green
+        btn.disabled = true; // Prevent double-spending
+
     } catch (e) {
+        console.error("Sale Error:", e);
         btn.innerText = "GENERATE SALE LINK";
         btn.disabled = false;
-        notify("Upload Failed", "error");
+        notify(e.message || "Process Interrupted", "error");
     }
 };
+
 
 // --- 4. EVENT LISTENERS ---
 
