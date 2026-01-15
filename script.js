@@ -548,65 +548,53 @@ if(switchBtn) {
         switchBtn.innerText = isLoginMode ? 'Need an account? Register' : 'Have an account? Login';
     };
 }
-
+// --- 1. MODAL & AUTH BUTTON HANDLERS ---
 document.getElementById('openAuth').onclick = () => document.getElementById('modalOverlay').classList.add('active');
 document.getElementById('userDisplay').onclick = () => document.getElementById('profileModal').classList.add('active');
 document.getElementById('closeProfile').onclick = () => document.getElementById('profileModal').classList.remove('active');
 document.getElementById('closeModalX').onclick = () => document.getElementById('modalOverlay').classList.remove('active');
+
 // Global Hero Button Handler
 document.addEventListener('click', (e) => {
     if (e.target.closest('#askAiBtn')) {
-        if (auth.currentUser) {
-            // User is logged in, initChat logic handles the modal
-            // (The click will be caught by the listener inside initChat)
-        } else {
-            // User is guest, show login modal
+        if (!auth.currentUser) {
             notify("Identity required for Neural Link", "error");
             document.getElementById('modalOverlay').classList.add('active');
         }
     }
-// --- SQUAD SCANNER SYSTEM V2 (2026) ---
-const uploadBtn = document.getElementById('uploadSquadBtn');
-const previewModal = document.getElementById('scanPreviewModal');
-const previewImg = document.getElementById('previewImg');
-const cancelScan = document.getElementById('cancelScan');
-const confirmScan = document.getElementById('confirmScan');
-const retryContainer = document.getElementById('retryContainer'); 
-const scanActions = document.getElementById('scanActions');       
+}); 
 
-let selectedFile = null;
-let statusInterval = null; 
+// --- 2. SQUAD SCANNER SYSTEM V2 (2026) ---
+// Global Scanner Variables
+var currentScanFile = null;
+var scannerTimer = null;
 
-// --- 1. NEAT POPUP SYSTEM (Results Window) ---
+const scanBtn = document.getElementById('uploadSquadBtn');
+const scanModal = document.getElementById('scanPreviewModal');
+const scanPreview = document.getElementById('previewImg');
+const scanCancel = document.getElementById('cancelScan');
+const scanConfirm = document.getElementById('confirmScan');
+const scanRetry = document.getElementById('retryContainer'); 
+const scanBox = document.getElementById('scanActions');       
+
+// Result Popup Function
 window.openVisionChat = (reportText) => {
     const modal = document.createElement('div');
     modal.className = 'scan-result-modal active';
-    modal.style.cssText = `
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0, 0, 0, 0.95); backdrop-filter: blur(10px);
-        display: flex; align-items: center; justify-content: center;
-        z-index: 10001; padding: 20px;
-    `;
+    modal.style.cssText = `position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;z-index:10001;padding:20px;`;
     
     modal.innerHTML = `
-        <div style="background: #0a0c10; border: 1px solid #00ffff; border-radius: 15px; width: 100%; max-width: 500px; padding: 25px; box-shadow: 0 0 30px rgba(0,255,255,0.2);">
-            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
-                <span style="color: #00ffff; font-weight: 900; letter-spacing: 2px; font-size: 0.8rem;">NEURAL DEBRIEF</span>
-                <div style="flex: 1; height: 1px; background: linear-gradient(90deg, #00ffff, transparent);"></div>
+        <div style="background:#0a0c10; border:1px solid #00ffff; border-radius:15px; width:100%; max-width:500px; padding:25px; box-shadow:0 0 30px rgba(0,255,255,0.2);">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:15px;">
+                <span style="color:#00ffff; font-weight:900; letter-spacing:2px; font-size:0.8rem;">NEURAL DEBRIEF</span>
+                <div style="flex:1; height:1px; background:linear-gradient(90deg, #00ffff, transparent);"></div>
             </div>
-            
-            <div id="typewriterText" style="color: #fff; font-family: monospace; font-size: 0.9rem; line-height: 1.6; height: 300px; overflow-y: auto; white-space: pre-wrap;"></div>
-
-            <button id="closeResultBtn" style="width: 100%; margin-top: 20px; padding: 12px; background: #fff; border: none; color: #000; border-radius: 8px; cursor: pointer; font-weight: 800; transition: 0.3s; width: 100%;">
-                DISMISS
-            </button>
-        </div>
-    `;
+            <div id="typewriterText" style="color:#fff; font-family:monospace; font-size:0.9rem; line-height:1.6; height:300px; overflow-y:auto; white-space:pre-wrap;"></div>
+            <button id="closeResultBtn" style="width:100%; margin-top:20px; padding:12px; background:#fff; border:none; color:#000; border-radius:8px; cursor:pointer; font-weight:800; transition:0.3s; width:100%;">DISMISS</button>
+        </div>`;
+        
     document.body.appendChild(modal);
-
     const container = document.getElementById('typewriterText');
-    const closeBtn = document.getElementById('closeResultBtn');
-    
     let i = 0;
     const type = () => {
         if (i < reportText.length) {
@@ -617,20 +605,21 @@ window.openVisionChat = (reportText) => {
         }
     };
     type();
-
-    closeBtn.onclick = () => modal.remove();
+    document.getElementById('closeResultBtn').onclick = () => modal.remove();
 };
 
-// --- 2. RESET & CLEANUP ---
+// Reset Scanner UI Function
 const resetScannerUI = () => {
-    previewModal.classList.remove('active');
-    if (statusInterval) clearInterval(statusInterval);
+    if(scanModal) scanModal.classList.remove('active');
+    if (scannerTimer) clearInterval(scannerTimer);
     
-    confirmScan.classList.remove('loading');
-    confirmScan.disabled = false;
+    if(scanConfirm) {
+        scanConfirm.classList.remove('loading');
+        scanConfirm.disabled = false;
+    }
     
-    if(scanActions) scanActions.style.display = 'flex';
-    if(retryContainer) retryContainer.style.display = 'none';
+    if(scanBox) scanBox.style.display = 'flex';
+    if(scanRetry) scanRetry.style.display = 'none';
     
     const statusContainer = document.getElementById('scanStatusContainer');
     const statusText = document.getElementById('liveStatusText');
@@ -640,101 +629,115 @@ const resetScannerUI = () => {
         statusText.style.color = "#00ffff"; 
     }
     
-    previewImg.src = "";
-    selectedFile = null;
+    if(scanPreview) scanPreview.src = "";
+    currentScanFile = null;
 };
 
-// --- 3. INPUT & EVENT LISTENERS ---
-uploadBtn.onclick = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.onchange = (e) => {
-        selectedFile = e.target.files[0];
-        if (!selectedFile) return;
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            previewImg.src = event.target.result;
-            previewModal.classList.add('active'); 
+// --- 3. EVENT LISTENERS ---
+if (scanBtn) {
+    scanBtn.onclick = () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = (e) => {
+            currentScanFile = e.target.files[0];
+            if (!currentScanFile) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                scanPreview.src = event.target.result;
+                scanModal.classList.add('active'); 
+            };
+            reader.readAsDataURL(currentScanFile);
         };
-        reader.readAsDataURL(selectedFile);
-    };
-    input.click();
-};
-
-cancelScan.onclick = resetScannerUI;
-previewModal.onclick = (e) => { if (e.target === previewModal) resetScannerUI(); };
-
-// --- 4. RETRY LOGIC ---
-if(retryContainer) {
-    retryContainer.onclick = () => {
-        scanActions.style.display = 'flex';
-        retryContainer.style.display = 'none';
-        confirmScan.click(); 
+        input.click();
     };
 }
 
-// --- 5. SCAN LOGIC (API LINK) ---
-confirmScan.onclick = async () => {
-    if (!selectedFile) return;
+if (scanCancel) scanCancel.onclick = resetScannerUI;
 
-    // CREDITS CHECK (PRE-SCAN)
-    if (typeof auth !== 'undefined' && auth.currentUser) {
-        const userRef = ref(db, `users/${auth.currentUser.uid}`);
-        const snap = await get(userRef);
-        const tokens = snap.exists() ? snap.val().tokens : 0;
-        if (tokens < 0.50) return notify("Insufficient Tokens (0.50 Required)", "error");
-    }
-    
-    confirmScan.classList.add('loading');
-    confirmScan.disabled = true;
-    const statusContainer = document.getElementById('scanStatusContainer');
-    const statusText = document.getElementById('liveStatusText');
-    statusContainer.style.display = 'block';
+if (scanModal) {
+    scanModal.onclick = (e) => { if (e.target === scanModal) resetScannerUI(); };
+}
 
-    const updates = ["Initialising...", "Scanning Squad...", "Reading Cards...", "Finalising..."];
-    let i = 0;
-    statusInterval = setInterval(() => {
-        if (i < updates.length) {
-            statusText.innerText = "> " + updates[i];
-            i++;
-        }
-    }, 800);
-
-    const reader = new FileReader();
-    reader.readAsDataURL(selectedFile);
-    reader.onload = async () => {
-        try {
-            const response = await fetch('/api/scan', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    image: reader.result, 
-                    uid: typeof auth !== 'undefined' && auth.currentUser ? auth.currentUser.uid : 'guest' 
-                })
-            });
-
-            if (!response.ok) throw new Error("SYSTEM_OVERLOAD");
-
-            const result = await response.json();
-            const report = result.analysis || result.report;
-            
-            if (report) {
-                // SUCCESS: DEDUCT TOKENS
-                if (typeof auth !== 'undefined' && auth.currentUser) {
-                    await update(ref(db, `users/${auth.currentUser.uid}`), { tokens: increment(-0.50) });
-                }
-                resetScannerUI();
-                window.openVisionChat(report); 
-            }
-        } catch (err) {
-            clearInterval(statusInterval);
-            statusText.style.color = "#ff4444"; 
-            statusText.innerText = "!! ERROR: " + err.message.toUpperCase();
-            scanActions.style.display = 'none';
-            retryContainer.style.display = 'block';
-            confirmScan.classList.remove('loading');
-            confirmScan.disabled = false;
-        }
+if (scanRetry) {
+    scanRetry.onclick = () => {
+        if(scanBox) scanBox.style.display = 'flex';
+        scanRetry.style.display = 'none';
+        scanConfirm.click(); 
     };
-};
+}
+
+// --- 4. CORE SCAN LOGIC (WITH TOKEN DEDUCTION) ---
+if (scanConfirm) {
+    scanConfirm.onclick = async () => {
+        if (!currentScanFile) return;
+
+        // Identity & Token Check
+        if (typeof auth !== 'undefined' && auth.currentUser) {
+            const userRef = ref(db, `users/${auth.currentUser.uid}`);
+            const snap = await get(userRef);
+            const tokens = snap.exists() ? snap.val().tokens : 0;
+            if (tokens < 0.50) return notify("Insufficient Tokens (0.50 Required)", "error");
+        } else {
+            return notify("Identity Link Required", "error");
+        }
+        
+        scanConfirm.classList.add('loading');
+        scanConfirm.disabled = true;
+        
+        const statusContainer = document.getElementById('scanStatusContainer');
+        const statusText = document.getElementById('liveStatusText');
+        if(statusContainer) statusContainer.style.display = 'block';
+
+        const updates = ["Initialising Engine...", "Scanning Squad...", "Reading Cards...", "Finalising Report..."];
+        let step = 0;
+        scannerTimer = setInterval(() => {
+            if (step < updates.length && statusText) {
+                statusText.innerText = "> " + updates[step];
+                step++;
+            }
+        }, 800);
+
+        const reader = new FileReader();
+        reader.readAsDataURL(currentScanFile);
+        reader.onload = async () => {
+            try {
+                const response = await fetch('/api/scan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        image: reader.result, 
+                        uid: auth.currentUser.uid 
+                    })
+                });
+
+                if (!response.ok) throw new Error("SYSTEM_OVERLOAD");
+
+                const result = await response.json();
+                const report = result.analysis || result.report;
+                
+                if (report) {
+                    // Deduct 0.50 tokens on success
+                    await update(ref(db, `users/${auth.currentUser.uid}`), { 
+                        tokens: increment(-0.50) 
+                    });
+                    resetScannerUI();
+                    window.openVisionChat(report); 
+                } else {
+                    throw new Error("EMPTY_RESPONSE");
+                }
+            } catch (err) {
+                if (scannerTimer) clearInterval(scannerTimer);
+                if (statusText) {
+                    statusText.style.color = "#ff4444"; 
+                    statusText.innerText = "!! ERROR: " + err.message.toUpperCase();
+                }
+                if(scanBox) scanBox.style.display = 'none';
+                if(scanRetry) scanRetry.style.display = 'block';
+                scanConfirm.classList.remove('loading');
+                scanConfirm.disabled = false;
+            }
+        };
+    };
+}
+
