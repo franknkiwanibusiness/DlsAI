@@ -564,11 +564,14 @@ document.addEventListener('click', (e) => {
     }
 }); 
 
-// --- 2. SQUAD SCANNER SYSTEM V2 (2026) ---
-// Global Scanner Variables
+// --- SQUAD SCANNER SYSTEM V2 (2026 - STABLE) ---
+
+// 1. GLOBAL SCANNER STATE
 var currentScanFile = null;
 var scannerTimer = null;
 
+// Use 'const' only if not defined elsewhere; otherwise, the browser will error.
+// These variables now match your HTML IDs perfectly.
 const scanBtn = document.getElementById('uploadSquadBtn');
 const scanModal = document.getElementById('scanPreviewModal');
 const scanPreview = document.getElementById('previewImg');
@@ -576,8 +579,12 @@ const scanCancel = document.getElementById('cancelScan');
 const scanConfirm = document.getElementById('confirmScan');
 const scanRetry = document.getElementById('retryContainer'); 
 const scanBox = document.getElementById('scanActions');       
+const scanStatusContainer = document.getElementById('scanStatusContainer');
+const statusText = document.getElementById('liveStatusText');
 
-// Result Popup Function
+// --- 2. UI UTILITIES ---
+
+// Result Popup with Typewriter Effect
 window.openVisionChat = (reportText) => {
     const modal = document.createElement('div');
     modal.className = 'scan-result-modal active';
@@ -608,7 +615,7 @@ window.openVisionChat = (reportText) => {
     document.getElementById('closeResultBtn').onclick = () => modal.remove();
 };
 
-// Reset Scanner UI Function
+// Reset Scanner to Default State
 const resetScannerUI = () => {
     if(scanModal) scanModal.classList.remove('active');
     if (scannerTimer) clearInterval(scannerTimer);
@@ -620,10 +627,8 @@ const resetScannerUI = () => {
     
     if(scanBox) scanBox.style.display = 'flex';
     if(scanRetry) scanRetry.style.display = 'none';
+    if(scanStatusContainer) scanStatusContainer.style.display = 'none';
     
-    const statusContainer = document.getElementById('scanStatusContainer');
-    const statusText = document.getElementById('liveStatusText');
-    if(statusContainer) statusContainer.style.display = 'none';
     if(statusText) {
         statusText.innerText = "";
         statusText.style.color = "#00ffff"; 
@@ -634,6 +639,8 @@ const resetScannerUI = () => {
 };
 
 // --- 3. EVENT LISTENERS ---
+
+// File selection and preview
 if (scanBtn) {
     scanBtn.onclick = () => {
         const input = document.createElement('input');
@@ -667,12 +674,13 @@ if (scanRetry) {
     };
 }
 
-// --- 4. CORE SCAN LOGIC (WITH TOKEN DEDUCTION) ---
+// --- 4. CORE SCAN LOGIC ---
+
 if (scanConfirm) {
     scanConfirm.onclick = async () => {
         if (!currentScanFile) return;
 
-        // Identity & Token Check
+        // Identity & Token Check (Firebase logic)
         if (typeof auth !== 'undefined' && auth.currentUser) {
             const userRef = ref(db, `users/${auth.currentUser.uid}`);
             const snap = await get(userRef);
@@ -684,24 +692,28 @@ if (scanConfirm) {
         
         scanConfirm.classList.add('loading');
         scanConfirm.disabled = true;
-        
-        const statusContainer = document.getElementById('scanStatusContainer');
-        const statusText = document.getElementById('liveStatusText');
-        if(statusContainer) statusContainer.style.display = 'block';
+        if(scanStatusContainer) scanStatusContainer.style.display = 'block';
 
-        const updates = ["Initialising Engine...", "Scanning Squad...", "Reading Cards...", "Finalising Report..."];
+        const updates = [
+            "Initializing Llama-4 Scout...",
+            "Scanning Squad Screenshot...",
+            "Extracting Player Data...",
+            "Compiling Strategic Advice..."
+        ];
+        
         let step = 0;
         scannerTimer = setInterval(() => {
             if (step < updates.length && statusText) {
                 statusText.innerText = "> " + updates[step];
                 step++;
             }
-        }, 800);
+        }, 900);
 
         const reader = new FileReader();
         reader.readAsDataURL(currentScanFile);
         reader.onload = async () => {
             try {
+                // Pointing to your updated Vercel API
                 const response = await fetch('/api/scan', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -711,13 +723,16 @@ if (scanConfirm) {
                     })
                 });
 
-                if (!response.ok) throw new Error("SYSTEM_OVERLOAD");
+                if (!response.ok) {
+                    const errorMsg = await response.json();
+                    throw new Error(errorMsg.details || "SYSTEM_OVERLOAD");
+                }
 
                 const result = await response.json();
                 const report = result.analysis || result.report;
                 
                 if (report) {
-                    // Deduct 0.50 tokens on success
+                    // Success: Deduct credits and show report
                     await update(ref(db, `users/${auth.currentUser.uid}`), { 
                         tokens: increment(-0.50) 
                     });
@@ -730,7 +745,7 @@ if (scanConfirm) {
                 if (scannerTimer) clearInterval(scannerTimer);
                 if (statusText) {
                     statusText.style.color = "#ff4444"; 
-                    statusText.innerText = "!! ERROR: " + err.message.toUpperCase();
+                    statusText.innerText = "!! ENGINE ERROR: " + err.message.toUpperCase();
                 }
                 if(scanBox) scanBox.style.display = 'none';
                 if(scanRetry) scanRetry.style.display = 'block';
