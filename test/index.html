@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GROQ VISION DEBUGGER</title>
+    <style>
+        body { background: #000; color: #0f0; font-family: monospace; padding: 20px; }
+        #preview { max-width: 300px; display: none; border: 1px solid #0f0; margin: 10px 0; }
+        .box { border: 1px solid #0f0; padding: 20px; margin-bottom: 20px; }
+        button { background: #0f0; color: #000; border: none; padding: 10px; cursor: pointer; font-weight: bold; }
+        #log { white-space: pre-wrap; background: #111; padding: 10px; border: 1px solid #333; color: #00ffff; }
+    </style>
+</head>
+<body>
+
+    <div class="box">
+        <h2>1. UPLOAD TEST</h2>
+        <input type="file" id="fileInput" accept="image/*">
+        <img id="preview">
+    </div>
+
+    <div class="box">
+        <h2>2. API CONFIG</h2>
+        <input type="password" id="apiKey" placeholder="Paste Groq API Key Here" style="width: 100%; padding: 5px;">
+        <p style="font-size: 0.8rem;">Note: This runs directly in your browser for testing only.</p>
+    </div>
+
+    <button id="runTest">RUN NEURAL LINK TEST</button>
+
+    <div class="box" style="margin-top: 20px;">
+        <h2>3. LIVE LOGS / RESULTS</h2>
+        <div id="log">Waiting for command...</div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const preview = document.getElementById('preview');
+        const log = document.getElementById('log');
+        let base64Image = "";
+
+        // Handle File Selection
+        fileInput.onchange = (e) => {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                preview.src = event.target.result;
+                preview.style.display = 'block';
+                base64Image = event.target.result.split(',')[1];
+                log.innerText = "Image Loaded. Ready to Scan.";
+            };
+            reader.readAsDataURL(file);
+        };
+
+        // Run Test
+        document.getElementById('runTest').onclick = async () => {
+            const key = document.getElementById('apiKey').value;
+            if (!key || !base64Image) return alert("Missing Key or Image");
+
+            log.innerText = "> Initializing Request...\n";
+
+            try {
+                const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${key}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        model: "llama-3.2-11b-vision-preview",
+                        messages: [
+                            {
+                                role: "user",
+                                content: [
+                                    { type: "text", text: "Scan this DLS screenshot. List Player Names, Coins, and Diamonds." },
+                                    { type: "image_url", image_url: { url: `data:image/jpeg;base64,${base64Image}` } }
+                                ]
+                            }
+                        ]
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.error) {
+                    log.style.color = "#ff4444";
+                    log.innerText = "❌ API ERROR:\n" + JSON.stringify(data.error, null, 2);
+                } else {
+                    log.style.color = "#00ffff";
+                    log.innerText = "✅ SUCCESS:\n" + data.choices[0].message.content;
+                }
+
+            } catch (err) {
+                log.style.color = "#ff4444";
+                log.innerText = "❌ NETWORK ERROR:\n" + err.message;
+            }
+        };
+    </script>
+</body>
+</html>
