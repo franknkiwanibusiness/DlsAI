@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQUAD SALE | DLS 2026</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&family=Inter:wght@300;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --neon: #00ffff; --bg: #050505; --card: #111; }
+        body { background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .sale-card { width: 100%; max-width: 500px; background: var(--card); border: 1px solid #333; border-radius: 20px; overflow: hidden; position: relative; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        .premium-banner { background: var(--neon); color: #000; font-family: 'Orbitron'; font-size: 0.6rem; font-weight: 900; padding: 8px; text-align: center; letter-spacing: 2px; }
+        .image-container { width: 100%; aspect-ratio: 16/9; position: relative; background: #000; overflow: hidden; border-bottom: 1px solid #222; }
+        #saleImage { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s; }
+        #saleImage:hover { transform: scale(1.05); }
+        .content { padding: 25px; }
+        .valuation-box { text-align: center; margin-bottom: 25px; border-bottom: 1px solid #222; padding-bottom: 20px; }
+        .valuation-box h1 { font-family: 'Orbitron'; font-size: 2.8rem; color: var(--neon); margin: 0; text-shadow: 0 0 20px rgba(0,255,255,0.4); }
+        .valuation-box p { font-size: 0.65rem; color: #666; letter-spacing: 3px; margin-top: 5px; font-weight: 800; }
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; }
+        .stat-item { background: #1a1a1a; padding: 12px; border-radius: 12px; border: 1px solid #222; }
+        .stat-item label { display: block; font-size: 0.55rem; color: var(--neon); margin-bottom: 4px; font-weight: 800; letter-spacing: 1px; }
+        .stat-item span { font-size: 0.95rem; font-weight: 700; color: #fff; font-family: 'Orbitron', sans-serif; }
+        .ai-description { background: rgba(0,255,255,0.02); padding: 18px; border-radius: 12px; font-size: 0.85rem; line-height: 1.6; color: #ccc; border: 1px solid rgba(0,255,255,0.1); }
+        .buy-action { margin-top: 25px; width: 100%; background: #fff; color: #000; border: none; padding: 16px; border-radius: 12px; font-weight: 900; font-family: 'Orbitron'; cursor: pointer; transition: 0.3s; font-size: 0.9rem; }
+        .buy-action:hover { background: var(--neon); box-shadow: 0 0 20px rgba(0,255,255,0.4); }
+        #loadingOverlay { position: absolute; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; transition: opacity 0.5s; }
+        .spinner { width: 40px; height: 40px; border: 3px solid #222; border-top-color: var(--neon); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div class="sale-card">
+        <div id="loadingOverlay">
+            <div class="spinner"></div>
+            <p style="font-size: 0.6rem; color: #666; margin-top: 15px; font-family: 'Orbitron'; letter-spacing: 2px;">AUTHENTICATING_SALE_NODE...</p>
+        </div>
+
+        <div class="premium-banner">VERIFIED NEURAL VALUATION</div>
+        
+        <div class="image-container">
+            <img id="saleImage" src="" alt="Squad Preview">
+        </div>
+
+        <div class="content">
+            <div class="valuation-box">
+                <h1 id="salePrice">---</h1>
+                <p>ESTIMATED MARKET VALUE</p>
+            </div>
+
+            <div class="stat-grid">
+                <div class="stat-item">
+                    <label>TOP_CAPTAIN</label>
+                    <span id="saleTopPlayer">...</span>
+                </div>
+                <div class="stat-item">
+                    <label>SALE_ID</label>
+                    <span id="displayCode">#------</span>
+                </div>
+            </div>
+
+            <div class="ai-description">
+                <label style="color: var(--neon); font-size: 0.6rem; font-weight: 900; display: block; margin-bottom: 10px; border-bottom: 1px solid rgba(0,255,255,0.1); padding-bottom: 5px;">AI_AUDIT_VERDICT:</label>
+                <div id="saleDescription">Retrieving analysis from DLS Neural Engine...</div>
+            </div>
+
+            <button class="buy-action" id="buyBtn">OFFER TO PURCHASE</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        // YOUR SPECIFIC FIREBASE CONFIG
+        const firebaseConfig = {
+            apiKey: "AIzaSyCkOQf5wYsXEGQOYu6WtBNaDlgzLkaVh-E",
+            authDomain: "dlsvalue.firebaseapp.com",
+            projectId: "dlsvalue",
+            databaseURL: "https://dlsvalue-default-rtdb.firebaseio.com",
+            storageBucket: "dlsvalue.firebasestorage.app",
+            messagingSenderId: "648591095829",
+            appId: "1:648591095829:web:791e020d1268386a66761c"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+
+        if (!code) {
+            document.getElementById('loadingOverlay').innerHTML = "<p style='color:#ff4444; font-family:Orbitron;'>ERROR: INVALID_CODE</p>";
+        } else {
+            const saleRef = ref(db, `sales/${code}`);
+            onValue(saleRef, (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    document.getElementById('saleImage').src = data.image;
+                    document.getElementById('salePrice').innerText = data.valuation;
+                    document.getElementById('saleTopPlayer').innerText = data.topPlayer || "Unknown";
+                    document.getElementById('saleDescription').innerText = data.description || data.reportText;
+                    document.getElementById('displayCode').innerText = `#${code}`;
+                    
+                    document.getElementById('buyBtn').onclick = () => {
+                        alert(`Please contact the seller. Provide Sale Code: ${code}`);
+                    };
+
+                    // Smooth fade out of loading screen
+                    const loader = document.getElementById('loadingOverlay');
+                    loader.style.opacity = '0';
+                    setTimeout(() => loader.style.display = 'none', 500);
+                } else {
+                    document.getElementById('loadingOverlay').innerHTML = "<p style='color:#ff4444; font-family:Orbitron;'>SALE_NOT_FOUND_OR_EXPIRED</p>";
+                }
+            });
+        }
+    </script>
+</body>
+</html>
