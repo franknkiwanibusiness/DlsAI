@@ -1,85 +1,48 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>GROQ STABLE SCANNER TEST</title>
-    <style>
-        body { background: #050505; color: #00ffff; font-family: monospace; padding: 30px; }
-        .test-card { max-width: 500px; margin: auto; border: 1px solid #00ffff44; padding: 20px; border-radius: 10px; background: #0a0a0a; box-shadow: 0 0 20px rgba(0,255,255,0.1); }
-        input, button { width: 100%; padding: 12px; margin-top: 10px; border-radius: 5px; border: 1px solid #333; box-sizing: border-box; }
-        input { background: #000; color: #fff; }
-        button { background: #00ffff; color: #000; font-weight: bold; border: none; cursor: pointer; }
-        #log { margin-top: 20px; padding: 15px; background: #000; border: 1px solid #222; min-height: 100px; color: #00ff00; white-space: pre-wrap; font-size: 0.85rem; }
-        #preview { width: 100%; margin-top: 15px; display: none; border-radius: 5px; }
-    </style>
+    <title>My OCR Tool</title>
+    <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
 </head>
-<body>
+<body style="font-family: sans-serif; padding: 20px;">
 
-    <div class="test-card">
-        <h2 style="text-align: center;">STABLE NEURAL LINK TEST</h2>
-        
-        <input type="password" id="apiKey" placeholder="GSK KEY HERE">
-        <input type="file" id="imageInput" accept="image/*">
-        <img id="preview">
-        
-        <button id="runBtn">SCAN SQUAD</button>
+    <h2>Upload Image to Read Text</h2>
+    
+    <input type="file" id="imageInput" accept="image/*">
+    <button onclick="recognizeText()">Extract Text</button>
 
-        <div id="log">> STANDBY...</div>
-    </div>
+    <div id="status" style="margin-top: 10px; color: blue;"></div>
+    
+    <h3>Result:</h3>
+    <textarea id="resultText" style="width: 100%; height: 200px;"></textarea>
 
     <script>
-        let base64 = "";
-        const preview = document.getElementById('preview');
-        const log = document.getElementById('log');
-
-        document.getElementById('imageInput').onchange = (e) => {
-            const reader = new FileReader();
-            reader.onload = () => {
-                preview.src = reader.result;
-                preview.style.display = 'block';
-                base64 = reader.result.split(',')[1];
-                log.innerText = "> IMAGE LOADED. READY.";
-            };
-            reader.readAsDataURL(e.target.files[0]);
-        };
-
-        document.getElementById('runBtn').onclick = async () => {
-            const key = document.getElementById('apiKey').value;
-            if(!key || !base64) return alert("Missing Key or Image");
-
-            log.innerText = "> INITIALIZING STABLE ENGINE: llama-4-scout...";
-            log.style.color = "#00ffff";
-
-            try {
-                const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-                    method: "POST",
-                    headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        // UPDATED TO 2026 STABLE VISION MODEL
-                        model: "meta-llama/llama-4-scout-17b-16e-instruct",
-                        messages: [{
-                            role: "user",
-                            content: [
-                                { type: "text", text: "Analyze this DLS squad. List the players and their ratings clearly." },
-                                { type: "image_url", image_url: { url: `data:image/jpeg;base64,${base64}` } }
-                            ]
-                        }]
-                    })
-                });
-
-                const data = await res.json();
-                
-                if(data.error) {
-                    log.style.color = "#ff4444";
-                    log.innerText = "❌ ERROR: " + data.error.message;
-                } else {
-                    log.style.color = "#00ff00";
-                    log.innerText = "✅ SCAN COMPLETE:\n\n" + data.choices[0].message.content;
-                }
-            } catch (e) {
-                log.innerText = "❌ CRASH: " + e.message;
+        async function recognizeText() {
+            const file = document.getElementById('imageInput').files[0];
+            if (!file) {
+                alert("Please select an image first!");
+                return;
             }
-        };
+
+            const status = document.getElementById('status');
+            const resultArea = document.getElementById('resultText');
+
+            status.innerText = "Processing... please wait.";
+            resultArea.value = "";
+
+            // 2. The OCR Logic
+            try {
+                const { data: { text } } = await Tesseract.recognize(file, 'eng', {
+                    logger: m => console.log(m) // Tracks progress in the console
+                });
+                
+                resultArea.value = text;
+                status.innerText = "Done!";
+            } catch (err) {
+                status.innerText = "Error reading image.";
+                console.error(err);
+            }
+        }
     </script>
 </body>
 </html>
