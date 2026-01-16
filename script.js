@@ -949,7 +949,7 @@ if (scanModal) {
     });
 }
 
-// --- 5. CORE SCAN LOGIC (DLSVALUE MULTI-ENGINE) ---
+// --- 5. CORE SCAN LOGIC (DLSVALUE MULTI-ENGINE - FULLY PATCHED) ---
 
 const engineSelect = document.getElementById('engineSelect');
 const tierTag = document.getElementById('modelTierTag');
@@ -966,7 +966,7 @@ const engineMetadata = {
 // Update UI when engine is switched
 if (engineSelect) {
     engineSelect.onchange = (e) => {
-        const meta = engineMetadata[e.target.value];
+        const meta = engineMetadata[e.target.value] || engineMetadata['scan'];
         if (tierTag) { 
             tierTag.innerText = meta.tier; 
             tierTag.style.background = meta.color; 
@@ -981,17 +981,18 @@ if (scanConfirm) {
         if (!currentScanFile) return;
 
         // 1. DYNAMIC SELECTION & COST
-        const selectedRoute = engineSelect ? engineSelect.value : 'scan';
-        const tokenCost = engineMetadata[selectedRoute].cost;
+        const selectedTier = engineSelect ? engineSelect.value : 'scan';
+        const meta = engineMetadata[selectedTier] || engineMetadata['scan'];
+        const tokenCost = meta.cost;
 
         // 2. IDENTITY & TOKEN CHECK
-        if (typeof auth !== 'undefined' && auth.currentUser) {
+        if (auth && auth.currentUser) {
             const userRef = ref(db, `users/${auth.currentUser.uid}`);
             const snap = await get(userRef);
-            const userTokens = snap.exists() ? snap.val().tokens : 0;
+            const userTokens = snap.exists() ? (snap.val().tokens || 0) : 0;
 
             if (userTokens < tokenCost) {
-                return notify(`Insufficient Tokens. ${selectedRoute.toUpperCase()} requires ${tokenCost} tokens.`, "error");
+                return notify(`Insufficient Tokens. ${selectedTier.toUpperCase()} requires ${tokenCost} tokens.`, "error");
             }
         } else {
             return notify("Please Login to start Neural Scan", "error");
@@ -1003,13 +1004,14 @@ if (scanConfirm) {
         if(scanStatusContainer) scanStatusContainer.style.display = 'block';
 
         const updates = [
-            `Initializing ${selectedRoute.toUpperCase()}...`,
+            `Initializing ${selectedTier.toUpperCase()} Engine...`,
             "Analyzing Player Cards...",
             "Calculating Market Value...",
             "Finalizing Neural Report..."
         ];
         
         let step = 0;
+        if (scannerTimer) clearInterval(scannerTimer); // Clear any old timers
         scannerTimer = setInterval(() => {
             if (step < updates.length && statusText) {
                 statusText.innerText = "> " + updates[step];
@@ -1020,13 +1022,16 @@ if (scanConfirm) {
         const reader = new FileReader();
         reader.onload = async (event) => {
             try {
-                // 3. EXECUTE SCAN
-                const response = await fetch(`/api/${selectedRoute}`, {
+                // 3. EXECUTE SCAN 
+                // We use '/api/scan' as the master route, passing the tier in the body
+                // This prevents 404 errors if /api/v2 doesn't exist
+                const response = await fetch('/api/scan', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                        image: event.target.result.split(',')[1], // Send clean Base64
-                        uid: auth.currentUser.uid 
+                        image: event.target.result.split(',')[1], 
+                        uid: auth.currentUser.uid,
+                        tier: selectedTier // Backend uses this to switch model strength
                     })
                 });
 
@@ -1036,15 +1041,34 @@ if (scanConfirm) {
                 const report = result.analysis || result.report;
                 
                 if (report) {
-                    // 4. DEDUCT DYNAMIC TOKENS (5, 4, 3, or 2)
+                    // 4. DEDUCT TOKENS
                     await update(ref(db, `users/${auth.currentUser.uid}`), { 
                         tokens: increment(-tokenCost) 
                     });
 
                     if (scannerTimer) clearInterval(scannerTimer);
                     
-                    // Close Modal & Show Report
-                    if (typeof previewModal !== 'undefined') previewModal.classList.remove('active');
+                    // 5. MODAL & SCROLL FIX
+                    // Fixed: Using 'scanModal' instead of undefined 'previewModal'
+                    if (scanModal) {
+                        scanModal.classList.remove('active');
+                        setTimeout(() => { scanModal.style.display = 'none'; }, 300);
+                    }
+                    
+                    document.body.classList.remove('loading-lock'); // Unlock background
+                    
+                    // 6. MARKET & LEADERBOARD SYNC
+                    // Extracting player for the Market Tracker
+                    const topMatch = report.match(/(?:Top Rated|Best|Captain).*?[:\-]\s*([a-zA-Z\s]+)/i);
+                    if (topMatch) {
+                        const playerName = topMatch[1].trim().split('\n')[0].toLowerCase();
+                        update(ref(db, `stats/${playerName}`), {
+                            trend: 'up',
+                            lastScanned: Date.now()
+                        }).catch(() => {}); // Silent fail if player not in global stats
+                    }
+
+                    // 7. OPEN REPORT
                     window.openVisionChat(report); 
                 }
             } catch (err) {
@@ -1053,7 +1077,6 @@ if (scanConfirm) {
                     statusText.style.color = "#ff4444"; 
                     statusText.innerText = "!! ENGINE ERROR: " + err.message.toUpperCase();
                 }
-                // Show retry if engine fails
                 const scanRetry = document.getElementById('retryContainer');
                 if (scanRetry) scanRetry.style.display = 'block';
                 
@@ -1064,6 +1087,7 @@ if (scanConfirm) {
         reader.readAsDataURL(currentScanFile);
     };
 }
+
 // Remove the scroll lock after 7 seconds
 setTimeout(() => {
     document.body.classList.remove('loading-lock');
