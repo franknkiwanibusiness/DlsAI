@@ -6,7 +6,22 @@ import {
     onAuthStateChanged, 
     signOut 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { ref, set, get, update, increment, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+// Added query, orderByChild, and limitToLast for the Leaderboard
+import { 
+    ref, 
+    set, 
+    get, 
+    update, 
+    increment, 
+    onValue, 
+    query, 
+    orderByChild, 
+    limitToLast 
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+// Import the heavy logic from your new separate file
+import { initMarketTracker, initLeaderboard } from './stats.js';
 
 // Global State
 let isLoginMode = true;
@@ -965,3 +980,32 @@ if (scanConfirm) {
 setTimeout(() => {
     document.body.classList.remove('loading-lock');
 }, 7000);
+// --- 5. INITIALIZATION ENGINE (START ALL SERVICES) ---
+
+document.addEventListener('DOMContentLoaded', () => {
+    const mainLoader = document.getElementById('mainLoader');
+    
+    // Lock scroll while the neural engine initializes (7 seconds)
+    document.body.classList.add('loading-lock');
+
+    setTimeout(() => {
+        if (mainLoader) {
+            mainLoader.style.opacity = '0';
+            setTimeout(() => {
+                mainLoader.style.display = 'none';
+                document.body.classList.remove('loading-lock');
+                
+                // START FIREBASE STATS SERVICES
+                // We pass 'db' because these functions need it to fetch data
+                try {
+                    initMarketTracker(db);
+                    initLeaderboard(db);
+                    console.log("Neural Feeds: ACTIVE");
+                } catch (e) {
+                    console.error("Neural Feed Error:", e);
+                }
+            }, 500);
+        }
+    }, 7000); // Matches your site's 7-second loading sequence
+});
+
