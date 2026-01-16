@@ -948,22 +948,21 @@ if (scanModal) {
         }
     });
 }
-
-// --- 5. CORE SCAN LOGIC (DLSVALUE MULTI-ENGINE - FULLY PATCHED) ---
+// --- 5. CORE SCAN LOGIC (DLSVALUE LUXE ENGINES - 2026 PATCHED) ---
 
 const engineSelect = document.getElementById('engineSelect');
 const tierTag = document.getElementById('modelTierTag');
 const engineDesc = document.getElementById('engineDescription');
 
-// Simplified Metadata with Dynamic Costs
+// Metadata mapped EXACTLY to your HTML <option> values
 const engineMetadata = {
-    scan: { tier: "V1 HIGHEST", cost: 5, color: "#00ffff", desc: "* DLSVALUE V1: Maximum card detection & detailed networth analysis." },
-    v2:   { tier: "V2 HIGH",    cost: 4, color: "#ff00ff", desc: "* DLSVALUE V2: High precision scanning with balanced speed." },
-    v3:   { tier: "V3 PRO",     cost: 3, color: "#ffff00", desc: "* DLSVALUE V3: Standard recognition for quick squad checks." },
-    v4:   { tier: "V4 LOWEST",  cost: 2, color: "#00ff00", desc: "* DLSVALUE V4: Light neural scan for basic player lists." }
+    scan:   { tier: "V1 HIGHEST", cost: 5, color: "#00ffff", desc: "* Nkiwani v2: 17B-16E MoE Architecture. Maximum card detection." },
+    gemma1: { tier: "FLAGSHIP",   cost: 5, color: "#ff00ff", desc: "* Gemma 3 27B: Ultra-high precision scouting for max accuracy." },
+    gemma2: { tier: "PRO BALANCED", cost: 3, color: "#ffff00", desc: "* Gemma 3 12B: Professional speed and balanced recognition." },
+    gemma3: { tier: "ULTRA FAST", cost: 1, color: "#00ff00", desc: "* Gemma 3 4B: Rapid lightweight scan for quick squad checks." }
 };
 
-// Update UI when engine is switched
+// Sync UI labels with dropdown selection
 if (engineSelect) {
     engineSelect.onchange = (e) => {
         const meta = engineMetadata[e.target.value] || engineMetadata['scan'];
@@ -972,7 +971,7 @@ if (engineSelect) {
             tierTag.style.background = meta.color; 
             tierTag.style.color = "#000";
         }
-        if (engineDesc) engineDesc.innerText = `${meta.desc} (${meta.cost} Tokens)`;
+        if (engineDesc) engineDesc.innerText = meta.desc + ` (${meta.cost} Tokens)`;
     };
 }
 
@@ -980,41 +979,40 @@ if (scanConfirm) {
     scanConfirm.onclick = async () => {
         if (!currentScanFile) return;
 
-        // 1. DYNAMIC SELECTION & COST
-        const selectedTier = engineSelect ? engineSelect.value : 'scan';
-        const meta = engineMetadata[selectedTier] || engineMetadata['scan'];
+        const selectedValue = engineSelect ? engineSelect.value : 'scan';
+        const meta = engineMetadata[selectedValue] || engineMetadata['scan'];
         const tokenCost = meta.cost;
 
-        // 2. IDENTITY & TOKEN CHECK
+        // 1. AUTH & TOKEN VALIDATION
         if (auth && auth.currentUser) {
             const userRef = ref(db, `users/${auth.currentUser.uid}`);
             const snap = await get(userRef);
             const userTokens = snap.exists() ? (snap.val().tokens || 0) : 0;
 
             if (userTokens < tokenCost) {
-                return notify(`Insufficient Tokens. ${selectedTier.toUpperCase()} requires ${tokenCost} tokens.`, "error");
+                return notify(`Insufficient Tokens. ${meta.tier} requires ${tokenCost} tokens.`, "error");
             }
         } else {
-            return notify("Please Login to start Neural Scan", "error");
+            return notify("Login Required for Neural Scan", "error");
         }
         
-        // UI FEEDBACK
+        // 2. UI INITIALIZATION
         scanConfirm.classList.add('loading');
         scanConfirm.disabled = true;
         if(scanStatusContainer) scanStatusContainer.style.display = 'block';
 
-        const updates = [
-            `Initializing ${selectedTier.toUpperCase()} Engine...`,
-            "Analyzing Player Cards...",
-            "Calculating Market Value...",
-            "Finalizing Neural Report..."
+        const statusUpdates = [
+            `CONNECTING TO ${selectedValue.toUpperCase()}...`,
+            "CALIBRATING NEURAL SCALES...",
+            "EXTRACTING SQUAD DATA...",
+            "GENERATING SCOUT REPORT..."
         ];
         
         let step = 0;
-        if (scannerTimer) clearInterval(scannerTimer); // Clear any old timers
+        if (scannerTimer) clearInterval(scannerTimer);
         scannerTimer = setInterval(() => {
-            if (step < updates.length && statusText) {
-                statusText.innerText = "> " + updates[step];
+            if (step < statusUpdates.length && statusText) {
+                statusText.innerText = "> " + statusUpdates[step];
                 step++;
             }
         }, 850);
@@ -1022,16 +1020,14 @@ if (scanConfirm) {
         const reader = new FileReader();
         reader.onload = async (event) => {
             try {
-                // 3. EXECUTE SCAN 
-                // We use '/api/scan' as the master route, passing the tier in the body
-                // This prevents 404 errors if /api/v2 doesn't exist
+                // 3. NEURAL API CALL
                 const response = await fetch('/api/scan', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         image: event.target.result.split(',')[1], 
                         uid: auth.currentUser.uid,
-                        tier: selectedTier // Backend uses this to switch model strength
+                        model: selectedValue 
                     })
                 });
 
@@ -1041,34 +1037,35 @@ if (scanConfirm) {
                 const report = result.analysis || result.report;
                 
                 if (report) {
-                    // 4. DEDUCT TOKENS
+                    // 4. LEADERBOARD & TOKEN UPDATE
+                    // Calculate a rough valuation for the leaderboard based on the report
+                    const avgMatch = report.match(/(?:Average|Avg|Rating).*?(\d+\.?\d*)/i);
+                    const newValuation = avgMatch ? parseFloat(avgMatch[1]) : 0;
+
                     await update(ref(db, `users/${auth.currentUser.uid}`), { 
-                        tokens: increment(-tokenCost) 
+                        tokens: increment(-tokenCost),
+                        lastScanValuation: newValuation,
+                        // Update 'tokens' as account value for the leaderboard
+                        tokens: increment(newValuation > 80 ? 10 : 2) 
                     });
 
                     if (scannerTimer) clearInterval(scannerTimer);
                     
-                    // 5. MODAL & SCROLL FIX
-                    // Fixed: Using 'scanModal' instead of undefined 'previewModal'
+                    // 5. MODAL CLEANUP
                     if (scanModal) {
                         scanModal.classList.remove('active');
                         setTimeout(() => { scanModal.style.display = 'none'; }, 300);
                     }
                     
-                    document.body.classList.remove('loading-lock'); // Unlock background
+                    document.body.style.overflow = ''; // Unlock background
                     
-                    // 6. MARKET & LEADERBOARD SYNC
-                    // Extracting player for the Market Tracker
+                    // 6. MARKET TREND SYNC
                     const topMatch = report.match(/(?:Top Rated|Best|Captain).*?[:\-]\s*([a-zA-Z\s]+)/i);
                     if (topMatch) {
                         const playerName = topMatch[1].trim().split('\n')[0].toLowerCase();
-                        update(ref(db, `stats/${playerName}`), {
-                            trend: 'up',
-                            lastScanned: Date.now()
-                        }).catch(() => {}); // Silent fail if player not in global stats
+                        update(ref(db, `stats/${playerName}`), { trend: 'up', lastScanned: Date.now() }).catch(()=>{});
                     }
 
-                    // 7. OPEN REPORT
                     window.openVisionChat(report); 
                 }
             } catch (err) {
@@ -1077,9 +1074,7 @@ if (scanConfirm) {
                     statusText.style.color = "#ff4444"; 
                     statusText.innerText = "!! ENGINE ERROR: " + err.message.toUpperCase();
                 }
-                const scanRetry = document.getElementById('retryContainer');
                 if (scanRetry) scanRetry.style.display = 'block';
-                
                 scanConfirm.classList.remove('loading');
                 scanConfirm.disabled = false;
             }
@@ -1087,6 +1082,7 @@ if (scanConfirm) {
         reader.readAsDataURL(currentScanFile);
     };
 }
+
 
 // Remove the scroll lock after 7 seconds
 setTimeout(() => {
