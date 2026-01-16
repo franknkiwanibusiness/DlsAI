@@ -81,18 +81,24 @@ async function initChat(user) {
         savedHistory.forEach(msg => appendMessage(msg.role === 'user' ? 'user' : 'ai', msg.content, true));
     };
 
-    const toggleModal = (show) => {
+        const toggleModal = (show) => {
         if (!modal) return;
         if (show) {
             modal.style.display = 'flex';
+            // BLOCK SCROLL: Add class to body
+            document.body.style.overflow = 'hidden'; 
+            
             setTimeout(() => modal.classList.add('active'), 10);
-            // This ensures history loads regardless of which button was clicked
             if (container.children.length === 0) loadHistory();
         } else {
             modal.classList.remove('active');
+            // ALLOW SCROLL: Restore body scroll
+            document.body.style.overflow = ''; 
+            
             setTimeout(() => modal.style.display = 'none', 300);
         }
     };
+
 
     // --- TRIGGER ASSIGNMENTS ---
     if (openBtn) openBtn.onclick = () => toggleModal(true);
@@ -696,16 +702,33 @@ window.openVisionChat = (reportText) => {
 
 const resetScannerUI = () => {
     if(scanModal) {
+        // 1. Start the closing animation
         scanModal.classList.remove('active');
-        scanModal.style.display = 'none';
+        
+        // 2. Wait for animation (300ms) before hiding completely
+        setTimeout(() => {
+            scanModal.style.display = 'none';
+        }, 300);
     }
+
+    // 3. UNBLOCK BODY SCROLL
+    document.body.style.overflow = ''; 
+
+    // Reset all internal logic
     if (scannerTimer) clearInterval(scannerTimer);
-    if(scanConfirm) { scanConfirm.classList.remove('loading'); scanConfirm.disabled = false; }
+    if(scanConfirm) { 
+        scanConfirm.classList.remove('loading'); 
+        scanConfirm.disabled = false; 
+    }
     if(scanBox) scanBox.style.display = 'flex';
     if(scanRetry) scanRetry.style.display = 'none';
     if(scanStatusContainer) scanStatusContainer.style.display = 'none';
-    if(statusText) { statusText.innerText = ""; statusText.style.color = "#00ffff"; }
+    if(statusText) { 
+        statusText.innerText = ""; 
+        statusText.style.color = "#00ffff"; 
+    }
     if(scanPreview) scanPreview.src = "";
+    
     currentScanFile = null;
 };
 
@@ -845,16 +868,35 @@ document.getElementById('generateSaleBtn').onclick = async () => {
 
 if (scanBtn) {
     scanBtn.onclick = () => {
+        // 1. SECURITY CHECK: Is the user logged in?
+        if (!auth || !auth.currentUser) {
+            notify("Identity required for Neural Scan", "error");
+            
+            // Open your existing login modal
+            const authModal = document.getElementById('modalOverlay');
+            if (authModal) {
+                authModal.classList.add('active');
+                document.body.style.overflow = 'hidden'; // Block scroll for login
+            }
+            return; // Stop the code here so the gallery doesn't open
+        }
+
+        // 2. IF LOGGED IN: Proceed with file selection
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'image/*';
         input.onchange = (e) => {
             currentScanFile = e.target.files[0];
             if (!currentScanFile) return;
+            
             const reader = new FileReader();
             reader.onload = (event) => {
                 scanPreview.src = event.target.result;
                 scanModal.style.display = 'flex';
+                
+                // Block body scroll when the preview opens
+                document.body.style.overflow = 'hidden'; 
+                
                 setTimeout(() => scanModal.classList.add('active'), 10);
             };
             reader.readAsDataURL(currentScanFile);
@@ -862,6 +904,7 @@ if (scanBtn) {
         input.click();
     };
 }
+
 
 if (scanCancel) scanCancel.onclick = resetScannerUI;
 if (scanRetry) {
