@@ -580,14 +580,17 @@ const scanBox = document.getElementById('scanActions');
 const scanStatusContainer = document.getElementById('scanStatusContainer');
 const statusText = document.getElementById('liveStatusText');
 
-// --- 2. UI UTILITIES (LUXE REDESIGN + MATH PATCH) ---
+// --- 2. UI UTILITIES (LUXE REDESIGN + FLEXBOX FIX) ---
 
 window.openVisionChat = (reportText) => {
     const resultsModal = document.getElementById('visionResultsModal');
+    const chatBody = document.querySelector('.chat-body-fs');
     const output = document.getElementById('reportOutput');
     const networthDisplay = document.getElementById('networthAmount');
+    const previewImg = document.getElementById('previewImg'); // Scanner preview
+    const targetImg = document.getElementById('analyzedPreview'); // Modal display
 
-    // 1. MATH LOGIC (Kept your working regex)
+    // 1. MATH LOGIC (Weighted valuation formula)
     const avgMatch = reportText.match(/(?:Average|Avg|Rating).*?(\d+\.?\d*)/i);
     const coinMatch = reportText.match(/(?:Coins|Gold|C).*?(\d+[\d,.]*)/i);
     const topMatch = reportText.match(/(?:Top Rated|Best|Captain).*?[:\-]\s*([a-zA-Z\s]+)/i);
@@ -598,52 +601,52 @@ window.openVisionChat = (reportText) => {
     const finalPrice = (avg + (coins / 1000) * 1.50).toFixed(2);
 
     // 2. UI OPENING SEQUENCE
+    // Close the scanner modal first
+    const scanModal = document.getElementById('scanPreviewModal');
     if (scanModal) {
         scanModal.classList.remove('active');
-        scanModal.style.display = 'none';
+        setTimeout(() => { scanModal.style.display = 'none'; }, 300);
     }
 
     if (resultsModal) {
-        resultsModal.style.display = 'flex';
-        // Small delay to ensure display:flex is registered before adding opacity/active class
+        resultsModal.style.display = 'block'; // Use block for better scroll handling
         setTimeout(() => {
             resultsModal.classList.add('active');
-            document.body.classList.add('modal-open'); // Prevents background scroll
-        }, 10);
-        resultsModal.scrollTop = 0;
+            document.body.classList.add('modal-open'); 
+        }, 50);
+        if (chatBody) chatBody.scrollTop = 0;
     }
 
-    // 3. STATS UPDATE
+    // 3. DATA & IMAGE SYNC
     if (networthDisplay) networthDisplay.innerText = `$${finalPrice}`;
-    document.getElementById('analyzedPreview').src = scanPreview.src;
-    document.getElementById('statTopPlayer').innerText = topMatch ? topMatch[1].trim().split('\n')[0] : "Detecting...";
+    if (previewImg && targetImg) targetImg.src = previewImg.src;
+
+    document.getElementById('statTopPlayer').innerText = topMatch ? topMatch[1].trim().split('\n')[0] : "Legendary";
     document.getElementById('statExpensive').innerText = `$${avg.toFixed(2)}`;
     document.getElementById('statCount').innerText = "11+";
 
-    // 4. TYPEWRITER (With Auto-Scroll Fix)
+    // 4. TYPEWRITER (With Flex-Shrink & Auto-Scroll Protection)
     if (output) {
         output.innerText = ""; 
         let i = 0;
         
-        // Wait for modal animation to settle before typing
+        // Wait for modal transition to finish
         setTimeout(() => {
             const type = () => {
                 if (i < reportText.length) {
                     output.innerText += reportText.charAt(i);
                     i++;
                     
-                    // Crucial: Scroll the modal itself if it's the one with the scrollbar
-                    resultsModal.scrollTop = resultsModal.scrollHeight;
+                    // Auto-scroll the container as text builds
+                    if (chatBody) {
+                        chatBody.scrollTop = chatBody.scrollHeight;
+                    }
                     
-                    // Also try scrolling the chat body if that's where your overflow is
-                    const chatBody = document.querySelector('.chat-body-fs');
-                    if (chatBody) chatBody.scrollTop = chatBody.scrollHeight;
-                    
-                    setTimeout(type, 8);
+                    setTimeout(type, 8); // Fast typing speed
                 }
             };
             type();
-        }, 200); 
+        }, 600); 
     }
 };
 
@@ -668,60 +671,84 @@ window.closeResults = () => {
     resetScannerUI();
 };
 
-// --- 3. SHARE & SALE LOGIC (2026 FULL DATA SYNC PATCH) ---
-
-// Helper: Common Imgur Upload
-const uploadToImgur = async (base64Data) => {
-    const formData = new FormData();
-    formData.append("image", base64Data.split(',')[1]);
-    const res = await fetch("https://api.imgur.com/3/image", {
-        method: "POST",
-        headers: { "Authorization": "Client-ID 891e5bb4aa94282" },
-        body: formData
-    });
-    const data = await res.json();
-    if (!data.success) throw new Error("IMGUR_FAIL");
-    return data.data.link;
-};
-
-// A. SHARE REPORT LOGIC
+// A. SHARE REPORT LOGIC (2026 Social Sync Patch)
 document.getElementById('shareReportBtn').onclick = async () => {
     const btn = document.getElementById('shareReportBtn');
-    const originalText = btn.innerText;
-    btn.innerText = "UPLOADING...";
+    const originalContent = btn.innerHTML;
+    btn.innerHTML = "<span>UPLOADING...</span>";
     btn.disabled = true;
 
     try {
-        const imgUrl = await uploadToImgur(scanPreview.src);
+        // 1. Upload the image to Imgur
+        const imgUrl = await uploadToImgur(document.getElementById('analyzedPreview').src);
         const shareId = Math.random().toString(36).substring(7);
         
+        // 2. Prepare the data
+        const squadVal = document.getElementById('networthAmount').innerText;
         const reportData = {
             image: imgUrl,
-            valuation: document.getElementById('networthAmount').innerText,
+            valuation: squadVal,
             reportText: document.getElementById('reportOutput').innerText,
             topPlayer: document.getElementById('statTopPlayer').innerText,
             avgRating: document.getElementById('statExpensive').innerText,
             timestamp: Date.now()
         };
 
-        // Save so the report.html page can read it
+        // 3. Save to Firebase
         await set(ref(db, `reports/${auth.currentUser.uid}/${shareId}`), reportData);
 
         const uniqueUrl = `${window.location.origin}/report.html?uid=${auth.currentUser.uid}&id=${shareId}`;
+        const shareMsg = `🔥 Check out my DLS Squad Valuation! My team is worth ${squadVal}. Scan yours at:`;
 
+        // 4. Trigger Social Selection
         if (navigator.share) {
-            await navigator.share({ title: 'DLS Neural Report', url: uniqueUrl });
+            // Mobile Native Share
+            await navigator.share({
+                title: 'DLS Neural Report',
+                text: shareMsg,
+                url: uniqueUrl
+            });
         } else {
-            await navigator.clipboard.writeText(uniqueUrl);
-            notify("Link Copied to Clipboard", "success");
+            // Desktop/Fallback: Show Custom Social Menu
+            showSocialMenu(uniqueUrl, shareMsg);
         }
+
     } catch (err) {
+        console.error(err);
         notify("Share Failed: Check Connection", "error");
     } finally {
-        btn.innerText = originalText;
+        btn.innerHTML = originalContent;
         btn.disabled = false;
     }
 };
+
+// Helper: Custom Social Menu Generator
+function showSocialMenu(url, msg) {
+    const encodedUrl = encodeURIComponent(url);
+    const encodedMsg = encodeURIComponent(msg);
+
+    const menuHtml = `
+        <div id="socialShareOverlay" class="modal-overlay active" style="z-index: 10001;">
+            <div class="modal-card" style="max-width: 320px; text-align: center; padding: 30px;">
+                <h3 style="color:#00ffff; font-size: 0.9rem; margin-bottom: 20px; letter-spacing: 1px;">SHARE TO RECRUITERS</h3>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <a href="https://wa.me/?text=${encodedMsg}%20${encodedUrl}" target="_blank" class="social-btn" style="background:#25D366; color:white; text-decoration:none; padding:12px; border-radius:10px; font-weight:800; font-size:0.7rem;">WHATSAPP</a>
+                    
+                    <a href="https://twitter.com/intent/tweet?text=${encodedMsg}&url=${encodedUrl}" target="_blank" class="social-btn" style="background:#000; color:white; text-decoration:none; padding:12px; border-radius:10px; font-weight:800; font-size:0.7rem; border:1px solid #333;">TWITTER (X)</a>
+                    
+                    <a href="https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}" target="_blank" class="social-btn" style="background:#1877F2; color:white; text-decoration:none; padding:12px; border-radius:10px; font-weight:800; font-size:0.7rem;">FACEBOOK</a>
+                    
+                    <div onclick="navigator.clipboard.writeText('${url}'); notify('Copied!', 'success');" class="social-btn" style="background:#222; color:#00ffff; padding:12px; border-radius:10px; font-weight:800; font-size:0.7rem; cursor:pointer; border:1px solid #00ffff44;">COPY LINK</div>
+                </div>
+
+                <button onclick="document.getElementById('socialShareOverlay').remove()" style="margin-top: 25px; background:none; border:none; color:#555; font-weight:800; cursor:pointer; font-size:0.7rem;">DISMISS</button>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', menuHtml);
+}
+
 
 // B. GENERATE SALE LINK LOGIC
 document.getElementById('generateSaleBtn').onclick = async () => {
@@ -800,25 +827,30 @@ if (scanRetry) {
         scanConfirm.click(); 
     };
 }
-// --- 5. CORE SCAN LOGIC (STABILIZED & MULTI-ENGINE) ---
+// --- 5. CORE SCAN LOGIC (DLSVALUE MULTI-ENGINE) ---
 
-// UI Handler for the new Engine Selector (Optional: Updates the UI description)
 const engineSelect = document.getElementById('engineSelect');
 const tierTag = document.getElementById('modelTierTag');
 const engineDesc = document.getElementById('engineDescription');
 
+// Simplified Metadata with Dynamic Costs
 const engineMetadata = {
-    scan: { tier: "HIGHEST", desc: "* Nkiwani v2: 17B-16E MoE Architecture. Maximum DLS card detection.", color: "#00ffff" },
-    gemma1: { tier: "ULTRA", desc: "* Gemma 3 27B: Flagship precision. Best for complex squad math.", color: "#ff00ff" },
-    gemma2: { tier: "PRO", desc: "* Gemma 3 12B: Balanced engine. Faster response with high accuracy.", color: "#ffff00" },
-    gemma3: { tier: "SPEED", desc: "* Gemma 3 4B: Instant scan. Best for quick rating checks.", color: "#00ff00" }
+    scan: { tier: "V1 HIGHEST", cost: 5, color: "#00ffff", desc: "* DLSVALUE V1: Maximum card detection & detailed networth analysis." },
+    v2:   { tier: "V2 HIGH",    cost: 4, color: "#ff00ff", desc: "* DLSVALUE V2: High precision scanning with balanced speed." },
+    v3:   { tier: "V3 PRO",     cost: 3, color: "#ffff00", desc: "* DLSVALUE V3: Standard recognition for quick squad checks." },
+    v4:   { tier: "V4 LOWEST",  cost: 2, color: "#00ff00", desc: "* DLSVALUE V4: Light neural scan for basic player lists." }
 };
 
+// Update UI when engine is switched
 if (engineSelect) {
     engineSelect.onchange = (e) => {
         const meta = engineMetadata[e.target.value];
-        if (tierTag) { tierTag.innerText = meta.tier; tierTag.style.background = meta.color; }
-        if (engineDesc) engineDesc.innerText = meta.desc;
+        if (tierTag) { 
+            tierTag.innerText = meta.tier; 
+            tierTag.style.background = meta.color; 
+            tierTag.style.color = "#000";
+        }
+        if (engineDesc) engineDesc.innerText = `${meta.desc} (${meta.cost} Tokens)`;
     };
 }
 
@@ -826,29 +858,33 @@ if (scanConfirm) {
     scanConfirm.onclick = async () => {
         if (!currentScanFile) return;
 
-        // 1. DYNAMIC ENGINE SELECTION
-        // Grabs 'scan', 'gemma1', 'gemma2', or 'gemma3' from your dropdown
+        // 1. DYNAMIC SELECTION & COST
         const selectedRoute = engineSelect ? engineSelect.value : 'scan';
+        const tokenCost = engineMetadata[selectedRoute].cost;
 
-        // 2. Identity & Token Check
+        // 2. IDENTITY & TOKEN CHECK
         if (typeof auth !== 'undefined' && auth.currentUser) {
             const userRef = ref(db, `users/${auth.currentUser.uid}`);
             const snap = await get(userRef);
-            const tokens = snap.exists() ? snap.val().tokens : 0;
-            if (tokens < 5.0) return notify("Insufficient Tokens (5.0 Required)", "error");
+            const userTokens = snap.exists() ? snap.val().tokens : 0;
+
+            if (userTokens < tokenCost) {
+                return notify(`Insufficient Tokens. ${selectedRoute.toUpperCase()} requires ${tokenCost} tokens.`, "error");
+            }
         } else {
-            return notify("Please Login First", "error");
+            return notify("Please Login to start Neural Scan", "error");
         }
         
+        // UI FEEDBACK
         scanConfirm.classList.add('loading');
         scanConfirm.disabled = true;
         if(scanStatusContainer) scanStatusContainer.style.display = 'block';
 
         const updates = [
-            `Connecting to ${selectedRoute.toUpperCase()}...`,
-            "Scanning Squad Cards...",
-            "Analyzing Performance...",
-            "Generating Report..."
+            `Initializing ${selectedRoute.toUpperCase()}...`,
+            "Analyzing Player Cards...",
+            "Calculating Market Value...",
+            "Finalizing Neural Report..."
         ];
         
         let step = 0;
@@ -857,33 +893,36 @@ if (scanConfirm) {
                 statusText.innerText = "> " + updates[step];
                 step++;
             }
-        }, 900);
+        }, 850);
 
         const reader = new FileReader();
         reader.onload = async (event) => {
             try {
-                // 3. ROUTE FETCHING
-                // This dynamically hits /api/scan, /api/gemma1, etc.
+                // 3. EXECUTE SCAN
                 const response = await fetch(`/api/${selectedRoute}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                        image: event.target.result, 
+                        image: event.target.result.split(',')[1], // Send clean Base64
                         uid: auth.currentUser.uid 
                     })
                 });
 
-                if (!response.ok) {
-                    const errData = await response.json();
-                    throw new Error(errData.details || "API_FAULT");
-                }
+                if (!response.ok) throw new Error("NEURAL_LINK_FAULT");
 
                 const result = await response.json();
                 const report = result.analysis || result.report;
                 
                 if (report) {
-                    await update(ref(db, `users/${auth.currentUser.uid}`), { tokens: increment(-5.0) });
+                    // 4. DEDUCT DYNAMIC TOKENS (5, 4, 3, or 2)
+                    await update(ref(db, `users/${auth.currentUser.uid}`), { 
+                        tokens: increment(-tokenCost) 
+                    });
+
                     if (scannerTimer) clearInterval(scannerTimer);
+                    
+                    // Close Modal & Show Report
+                    if (typeof previewModal !== 'undefined') previewModal.classList.remove('active');
                     window.openVisionChat(report); 
                 }
             } catch (err) {
@@ -892,8 +931,10 @@ if (scanConfirm) {
                     statusText.style.color = "#ff4444"; 
                     statusText.innerText = "!! ENGINE ERROR: " + err.message.toUpperCase();
                 }
-                if(scanBox) scanBox.style.display = 'none';
-                if(scanRetry) scanRetry.style.display = 'block';
+                // Show retry if engine fails
+                const scanRetry = document.getElementById('retryContainer');
+                if (scanRetry) scanRetry.style.display = 'block';
+                
                 scanConfirm.classList.remove('loading');
                 scanConfirm.disabled = false;
             }
@@ -901,4 +942,3 @@ if (scanConfirm) {
         reader.readAsDataURL(currentScanFile);
     };
 }
- 
