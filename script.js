@@ -595,16 +595,22 @@ document.getElementById('closeModalX').onclick = () => {
     document.body.classList.remove('loading-lock'); // Allow Scroll
 };
 
-// Global Hero Button Handler (AI Button)
+// Global Hero Button Handler (AI Button & Floating Bubble)
 document.addEventListener('click', (e) => {
-    if (e.target.closest('#askAiBtn')) {
+    // This now watches BOTH the main button and the bubble
+    if (e.target.closest('#askAiBtn') || e.target.closest('#floatingChatBubble')) {
+        
         if (!auth.currentUser) {
+            // If logged out, stop them here and show login
             notify("Identity required for Neural Link", "error");
             document.getElementById('modalOverlay').classList.add('active');
             document.body.classList.add('loading-lock'); // Block Scroll
-        }
+        } 
+        // Note: If they ARE logged in, the logic inside initChat() 
+        // will automatically take over and open the chat.
     }
 });
+
 
 // Switch Login/Register (Doesn't need scroll lock change since modal is already open)
 const switchBtn = document.getElementById('switchAuth');
