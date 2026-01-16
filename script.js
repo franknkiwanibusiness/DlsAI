@@ -589,10 +589,15 @@ document.getElementById('closeProfile').onclick = () => {
     document.body.classList.remove('loading-lock'); // Allow Scroll
 };
 
-// Close Login Modal (X button)
+// Close Login Modal (X button) - Fixed to handle both lock types
 document.getElementById('closeModalX').onclick = () => {
     document.getElementById('modalOverlay').classList.remove('active');
-    document.body.classList.remove('loading-lock'); // Allow Scroll
+    
+    // 1. Removes the class used by Chat/Auth buttons
+    document.body.classList.remove('loading-lock'); 
+    
+    // 2. Removes the direct style used by the Upload button
+    document.body.style.overflow = ''; 
 };
 
 // Global Hero Button Handler (AI Button & Floating Bubble)
