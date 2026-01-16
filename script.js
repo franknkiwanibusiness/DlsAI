@@ -816,7 +816,37 @@ document.getElementById('generateSaleBtn').onclick = async () => {
     }
 };
 
-// --- 4. EVENT LISTENERS ---
+// --- 4. EVENT LISTENERS & SCANNER HELPERS ---
+
+const setScrollLock = (shouldLock) => {
+    if (shouldLock) {
+        document.body.classList.add('loading-lock');
+    } else {
+        document.body.classList.remove('loading-lock');
+    }
+};
+
+function resetScannerUI() {
+    // Hide Modal
+    if (scanModal) {
+        scanModal.classList.remove('active');
+        setTimeout(() => { scanModal.style.display = 'none'; }, 300);
+    }
+    
+    // Unlock Scroll
+    setScrollLock(false);
+    
+    // Reset Buttons & Feedback
+    if (scanConfirm) {
+        scanConfirm.classList.remove('loading');
+        scanConfirm.disabled = false;
+    }
+    if (scannerTimer) clearInterval(scannerTimer);
+    if (scanStatusContainer) scanStatusContainer.style.display = 'none';
+    if (document.getElementById('retryContainer')) {
+        document.getElementById('retryContainer').style.display = 'none';
+    }
+}
 
 if (scanBtn) {
     scanBtn.onclick = () => {
@@ -828,9 +858,16 @@ if (scanBtn) {
             if (!currentScanFile) return;
             const reader = new FileReader();
             reader.onload = (event) => {
-                scanPreview.src = event.target.result;
-                scanModal.style.display = 'flex';
-                setTimeout(() => scanModal.classList.add('active'), 10);
+                if (scanPreview) scanPreview.src = event.target.result;
+                
+                // Show modal and lock scroll
+                if (scanModal) {
+                    scanModal.style.display = 'flex';
+                    setTimeout(() => {
+                        scanModal.classList.add('active');
+                        setScrollLock(true);
+                    }, 10);
+                }
             };
             reader.readAsDataURL(currentScanFile);
         };
@@ -839,20 +876,21 @@ if (scanBtn) {
 }
 
 if (scanCancel) scanCancel.onclick = resetScannerUI;
+
 if (scanRetry) {
     scanRetry.onclick = () => {
-        if(scanBox) scanBox.style.display = 'flex';
-        if(scanRetry) scanRetry.style.display = 'none';
-        scanConfirm.click(); 
+        const retryCont = document.getElementById('retryContainer');
+        if (retryCont) retryCont.style.display = 'none';
+        if (scanConfirm) scanConfirm.click(); 
     };
 }
+
 // --- 5. CORE SCAN LOGIC (DLSVALUE MULTI-ENGINE) ---
 
 const engineSelect = document.getElementById('engineSelect');
 const tierTag = document.getElementById('modelTierTag');
 const engineDesc = document.getElementById('engineDescription');
 
-// Simplified Metadata with Dynamic Costs
 const engineMetadata = {
     scan: { tier: "V1 HIGHEST", cost: 5, color: "#00ffff", desc: "* DLSVALUE V1: Maximum card detection & detailed networth analysis." },
     v2:   { tier: "V2 HIGH",    cost: 4, color: "#ff00ff", desc: "* DLSVALUE V2: High precision scanning with balanced speed." },
@@ -860,7 +898,7 @@ const engineMetadata = {
     v4:   { tier: "V4 LOWEST",  cost: 2, color: "#00ff00", desc: "* DLSVALUE V4: Light neural scan for basic player lists." }
 };
 
-// Update UI when engine is switched
+// Initial UI Setup for Engine
 if (engineSelect) {
     engineSelect.onchange = (e) => {
         const meta = engineMetadata[e.target.value];
@@ -891,6 +929,12 @@ if (scanConfirm) {
                 return notify(`Insufficient Tokens. ${selectedRoute.toUpperCase()} requires ${tokenCost} tokens.`, "error");
             }
         } else {
+            // If not logged in, close scanner and open login
+            resetScannerUI();
+            if (document.getElementById('modalOverlay')) {
+                document.getElementById('modalOverlay').classList.add('active');
+                setScrollLock(true);
+            }
             return notify("Please Login to start Neural Scan", "error");
         }
         
@@ -907,6 +951,8 @@ if (scanConfirm) {
         ];
         
         let step = 0;
+        if (statusText) statusText.style.color = "#00ffff"; // Reset color if retry failed previously
+        
         scannerTimer = setInterval(() => {
             if (step < updates.length && statusText) {
                 statusText.innerText = "> " + updates[step];
@@ -922,7 +968,7 @@ if (scanConfirm) {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                        image: event.target.result.split(',')[1], // Send clean Base64
+                        image: event.target.result.split(',')[1],
                         uid: auth.currentUser.uid 
                     })
                 });
@@ -933,16 +979,16 @@ if (scanConfirm) {
                 const report = result.analysis || result.report;
                 
                 if (report) {
-                    // 4. DEDUCT DYNAMIC TOKENS (5, 4, 3, or 2)
+                    // 4. DEDUCT DYNAMIC TOKENS
                     await update(ref(db, `users/${auth.currentUser.uid}`), { 
                         tokens: increment(-tokenCost) 
                     });
 
                     if (scannerTimer) clearInterval(scannerTimer);
                     
-                    // Close Modal & Show Report
-                    if (typeof previewModal !== 'undefined') previewModal.classList.remove('active');
-                    window.openVisionChat(report); 
+                    // Close Scanner & Show Results
+                    resetScannerUI();
+                    if (window.openVisionChat) window.openVisionChat(report); 
                 }
             } catch (err) {
                 if (scannerTimer) clearInterval(scannerTimer);
@@ -950,9 +996,8 @@ if (scanConfirm) {
                     statusText.style.color = "#ff4444"; 
                     statusText.innerText = "!! ENGINE ERROR: " + err.message.toUpperCase();
                 }
-                // Show retry if engine fails
-                const scanRetry = document.getElementById('retryContainer');
-                if (scanRetry) scanRetry.style.display = 'block';
+                const retryCont = document.getElementById('retryContainer');
+                if (retryCont) retryCont.style.display = 'block';
                 
                 scanConfirm.classList.remove('loading');
                 scanConfirm.disabled = false;
@@ -961,6 +1006,7 @@ if (scanConfirm) {
         reader.readAsDataURL(currentScanFile);
     };
 }
+
 // Remove the scroll lock after 7 seconds
 setTimeout(() => {
     document.body.classList.remove('loading-lock');
