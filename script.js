@@ -580,17 +580,14 @@ const scanBox = document.getElementById('scanActions');
 const scanStatusContainer = document.getElementById('scanStatusContainer');
 const statusText = document.getElementById('liveStatusText');
 
-// --- 2. UI UTILITIES (LUXE REDESIGN + FLEXBOX FIX) ---
+// --- 2. UI UTILITIES (LUXE REDESIGN + MATH PATCH) ---
 
 window.openVisionChat = (reportText) => {
     const resultsModal = document.getElementById('visionResultsModal');
-    const chatBody = document.querySelector('.chat-body-fs');
     const output = document.getElementById('reportOutput');
     const networthDisplay = document.getElementById('networthAmount');
-    const previewImg = document.getElementById('previewImg'); // Scanner preview
-    const targetImg = document.getElementById('analyzedPreview'); // Modal display
 
-    // 1. MATH LOGIC (Weighted valuation formula)
+    // 1. MATH LOGIC (Kept your working regex)
     const avgMatch = reportText.match(/(?:Average|Avg|Rating).*?(\d+\.?\d*)/i);
     const coinMatch = reportText.match(/(?:Coins|Gold|C).*?(\d+[\d,.]*)/i);
     const topMatch = reportText.match(/(?:Top Rated|Best|Captain).*?[:\-]\s*([a-zA-Z\s]+)/i);
@@ -601,52 +598,52 @@ window.openVisionChat = (reportText) => {
     const finalPrice = (avg + (coins / 1000) * 1.50).toFixed(2);
 
     // 2. UI OPENING SEQUENCE
-    // Close the scanner modal first
-    const scanModal = document.getElementById('scanPreviewModal');
     if (scanModal) {
         scanModal.classList.remove('active');
-        setTimeout(() => { scanModal.style.display = 'none'; }, 300);
+        scanModal.style.display = 'none';
     }
 
     if (resultsModal) {
-        resultsModal.style.display = 'block'; // Use block for better scroll handling
+        resultsModal.style.display = 'flex';
+        // Small delay to ensure display:flex is registered before adding opacity/active class
         setTimeout(() => {
             resultsModal.classList.add('active');
-            document.body.classList.add('modal-open'); 
-        }, 50);
-        if (chatBody) chatBody.scrollTop = 0;
+            document.body.classList.add('modal-open'); // Prevents background scroll
+        }, 10);
+        resultsModal.scrollTop = 0;
     }
 
-    // 3. DATA & IMAGE SYNC
+    // 3. STATS UPDATE
     if (networthDisplay) networthDisplay.innerText = `$${finalPrice}`;
-    if (previewImg && targetImg) targetImg.src = previewImg.src;
-
-    document.getElementById('statTopPlayer').innerText = topMatch ? topMatch[1].trim().split('\n')[0] : "Legendary";
+    document.getElementById('analyzedPreview').src = scanPreview.src;
+    document.getElementById('statTopPlayer').innerText = topMatch ? topMatch[1].trim().split('\n')[0] : "Detecting...";
     document.getElementById('statExpensive').innerText = `$${avg.toFixed(2)}`;
     document.getElementById('statCount').innerText = "11+";
 
-    // 4. TYPEWRITER (With Flex-Shrink & Auto-Scroll Protection)
+    // 4. TYPEWRITER (With Auto-Scroll Fix)
     if (output) {
         output.innerText = ""; 
         let i = 0;
         
-        // Wait for modal transition to finish
+        // Wait for modal animation to settle before typing
         setTimeout(() => {
             const type = () => {
                 if (i < reportText.length) {
                     output.innerText += reportText.charAt(i);
                     i++;
                     
-                    // Auto-scroll the container as text builds
-                    if (chatBody) {
-                        chatBody.scrollTop = chatBody.scrollHeight;
-                    }
+                    // Crucial: Scroll the modal itself if it's the one with the scrollbar
+                    resultsModal.scrollTop = resultsModal.scrollHeight;
                     
-                    setTimeout(type, 8); // Fast typing speed
+                    // Also try scrolling the chat body if that's where your overflow is
+                    const chatBody = document.querySelector('.chat-body-fs');
+                    if (chatBody) chatBody.scrollTop = chatBody.scrollHeight;
+                    
+                    setTimeout(type, 8);
                 }
             };
             type();
-        }, 600); 
+        }, 200); 
     }
 };
 
