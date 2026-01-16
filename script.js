@@ -939,3 +939,7 @@ if (scanConfirm) {
         reader.readAsDataURL(currentScanFile);
     };
 }
+// Remove the scroll lock after 7 seconds
+setTimeout(() => {
+    document.body.classList.remove('loading-lock');
+}, 7000);
