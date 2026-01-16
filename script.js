@@ -816,43 +816,8 @@ document.getElementById('generateSaleBtn').onclick = async () => {
     }
 };
 
-// --- 4. EVENT LISTENERS & SCANNER HELPERS ---
+// --- 4. EVENT LISTENERS ---
 
-const scanModal = document.getElementById('scanPreviewModal');
-const scanPreview = document.getElementById('previewImg');
-const statusText = document.getElementById('liveStatusText');
-const scanBtn = document.getElementById('scanBtn'); // Ensure your open button has this ID
-const scanCancel = document.getElementById('cancelScan');
-const scanConfirm = document.getElementById('confirmScan');
-const scanRetry = document.getElementById('retryContainer');
-const scanStatusContainer = document.getElementById('scanStatusContainer');
-
-// Utility to block/unblock background scrolling
-const setScrollLock = (shouldLock) => {
-    if (shouldLock) {
-        document.body.classList.add('loading-lock');
-    } else {
-        document.body.classList.remove('loading-lock');
-    }
-};
-
-// Resets UI and unlocks scroll
-function resetScannerUI() {
-    if (scanModal) {
-        scanModal.classList.remove('active');
-        setTimeout(() => { scanModal.style.display = 'none'; }, 300);
-    }
-    setScrollLock(false);
-    if (scanConfirm) {
-        scanConfirm.classList.remove('loading');
-        scanConfirm.disabled = false;
-    }
-    if (typeof scannerTimer !== 'undefined') clearInterval(scannerTimer);
-    if (scanStatusContainer) scanStatusContainer.style.display = 'none';
-    if (scanRetry) scanRetry.style.display = 'none';
-}
-
-// Open File Picker and Launch Modal
 if (scanBtn) {
     scanBtn.onclick = () => {
         const input = document.createElement('input');
@@ -863,14 +828,9 @@ if (scanBtn) {
             if (!currentScanFile) return;
             const reader = new FileReader();
             reader.onload = (event) => {
-                if (scanPreview) scanPreview.src = event.target.result;
-                if (scanModal) {
-                    scanModal.style.display = 'flex';
-                    setTimeout(() => {
-                        scanModal.classList.add('active');
-                        setScrollLock(true); // Lock background scroll
-                    }, 10);
-                }
+                scanPreview.src = event.target.result;
+                scanModal.style.display = 'flex';
+                setTimeout(() => scanModal.classList.add('active'), 10);
             };
             reader.readAsDataURL(currentScanFile);
         };
@@ -879,53 +839,49 @@ if (scanBtn) {
 }
 
 if (scanCancel) scanCancel.onclick = resetScannerUI;
-
 if (scanRetry) {
     scanRetry.onclick = () => {
-        scanRetry.style.display = 'none';
-        if (scanConfirm) scanConfirm.click(); 
+        if(scanBox) scanBox.style.display = 'flex';
+        if(scanRetry) scanRetry.style.display = 'none';
+        scanConfirm.click(); 
     };
 }
-
 // --- 5. CORE SCAN LOGIC (DLSVALUE MULTI-ENGINE) ---
 
 const engineSelect = document.getElementById('engineSelect');
 const tierTag = document.getElementById('modelTierTag');
 const engineDesc = document.getElementById('engineDescription');
 
-// Metadata matching your HTML option values
+// Simplified Metadata with Dynamic Costs
 const engineMetadata = {
-    scan:   { tier: "V1 HIGHEST", cost: 5, color: "#00ffff", desc: "* Nkiwani v2: 17B-16E MoE Architecture. Maximum DLS card detection." },
-    gemma1: { tier: "V2 HIGH",    cost: 4, color: "#ff00ff", desc: "* GEMMA 3 27B: Flagship Neural Precision for complex squads." },
-    gemma2: { tier: "V3 PRO",     cost: 3, color: "#ffff00", desc: "* GEMMA 3 12B: Pro Balanced engine for rapid analysis." },
-    gemma3: { tier: "V4 FAST",    cost: 2, color: "#00ff00", desc: "* GEMMA 3 4B: Ultra Light scan for basic player lists." }
+    scan: { tier: "V1 HIGHEST", cost: 5, color: "#00ffff", desc: "* DLSVALUE V1: Maximum card detection & detailed networth analysis." },
+    v2:   { tier: "V2 HIGH",    cost: 4, color: "#ff00ff", desc: "* DLSVALUE V2: High precision scanning with balanced speed." },
+    v3:   { tier: "V3 PRO",     cost: 3, color: "#ffff00", desc: "* DLSVALUE V3: Standard recognition for quick squad checks." },
+    v4:   { tier: "V4 LOWEST",  cost: 2, color: "#00ff00", desc: "* DLSVALUE V4: Light neural scan for basic player lists." }
 };
 
-// Handle Engine Selection UI Changes
+// Update UI when engine is switched
 if (engineSelect) {
     engineSelect.onchange = (e) => {
         const meta = engineMetadata[e.target.value];
         if (tierTag) { 
-            // Update tag text (taking only the second word, e.g., "HIGHEST")
-            tierTag.innerText = meta.tier.split(' ')[1]; 
+            tierTag.innerText = meta.tier; 
             tierTag.style.background = meta.color; 
+            tierTag.style.color = "#000";
         }
-        if (engineDesc) {
-            engineDesc.innerText = `${meta.desc} (${meta.cost} Tokens)`;
-        }
+        if (engineDesc) engineDesc.innerText = `${meta.desc} (${meta.cost} Tokens)`;
     };
 }
 
-// Execute Neural Scan
 if (scanConfirm) {
     scanConfirm.onclick = async () => {
         if (!currentScanFile) return;
 
-        // 1. Determine Engine and Cost
+        // 1. DYNAMIC SELECTION & COST
         const selectedRoute = engineSelect ? engineSelect.value : 'scan';
         const tokenCost = engineMetadata[selectedRoute].cost;
 
-        // 2. Auth & Token Check
+        // 2. IDENTITY & TOKEN CHECK
         if (typeof auth !== 'undefined' && auth.currentUser) {
             const userRef = ref(db, `users/${auth.currentUser.uid}`);
             const snap = await get(userRef);
@@ -935,29 +891,23 @@ if (scanConfirm) {
                 return notify(`Insufficient Tokens. ${selectedRoute.toUpperCase()} requires ${tokenCost} tokens.`, "error");
             }
         } else {
-            // Force login if unauthorized
-            resetScannerUI();
-            const authModal = document.getElementById('modalOverlay');
-            if (authModal) {
-                authModal.classList.add('active');
-                setScrollLock(true);
-            }
             return notify("Please Login to start Neural Scan", "error");
         }
         
-        // 3. UI Loading Feedback
+        // UI FEEDBACK
         scanConfirm.classList.add('loading');
         scanConfirm.disabled = true;
         if(scanStatusContainer) scanStatusContainer.style.display = 'block';
 
-        const updates = ["INITIALIZING...", "ANALYZING SQUAD...", "CALCULATING VALUE...", "LINKING REPORT..."];
-        let step = 0;
-        if (statusText) {
-            statusText.style.color = "#00ffff";
-            statusText.innerText = "> READY";
-        }
+        const updates = [
+            `Initializing ${selectedRoute.toUpperCase()}...`,
+            "Analyzing Player Cards...",
+            "Calculating Market Value...",
+            "Finalizing Neural Report..."
+        ];
         
-        const scannerTimer = setInterval(() => {
+        let step = 0;
+        scannerTimer = setInterval(() => {
             if (step < updates.length && statusText) {
                 statusText.innerText = "> " + updates[step];
                 step++;
@@ -967,12 +917,12 @@ if (scanConfirm) {
         const reader = new FileReader();
         reader.onload = async (event) => {
             try {
-                // 4. API Request
+                // 3. EXECUTE SCAN
                 const response = await fetch(`/api/${selectedRoute}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                        image: event.target.result.split(',')[1], // Clean base64
+                        image: event.target.result.split(',')[1], // Send clean Base64
                         uid: auth.currentUser.uid 
                     })
                 });
@@ -983,22 +933,27 @@ if (scanConfirm) {
                 const report = result.analysis || result.report;
                 
                 if (report) {
-                    // 5. Deduct Tokens & Finish
+                    // 4. DEDUCT DYNAMIC TOKENS (5, 4, 3, or 2)
                     await update(ref(db, `users/${auth.currentUser.uid}`), { 
                         tokens: increment(-tokenCost) 
                     });
 
-                    clearInterval(scannerTimer);
-                    resetScannerUI(); // Closes modal and unlocks scroll
-                    if (window.openVisionChat) window.openVisionChat(report); 
+                    if (scannerTimer) clearInterval(scannerTimer);
+                    
+                    // Close Modal & Show Report
+                    if (typeof previewModal !== 'undefined') previewModal.classList.remove('active');
+                    window.openVisionChat(report); 
                 }
             } catch (err) {
-                clearInterval(scannerTimer);
+                if (scannerTimer) clearInterval(scannerTimer);
                 if (statusText) {
                     statusText.style.color = "#ff4444"; 
-                    statusText.innerText = "!! ENGINE_ERROR: " + err.message.toUpperCase();
+                    statusText.innerText = "!! ENGINE ERROR: " + err.message.toUpperCase();
                 }
+                // Show retry if engine fails
+                const scanRetry = document.getElementById('retryContainer');
                 if (scanRetry) scanRetry.style.display = 'block';
+                
                 scanConfirm.classList.remove('loading');
                 scanConfirm.disabled = false;
             }
@@ -1006,7 +961,6 @@ if (scanConfirm) {
         reader.readAsDataURL(currentScanFile);
     };
 }
-
 // Remove the scroll lock after 7 seconds
 setTimeout(() => {
     document.body.classList.remove('loading-lock');
