@@ -538,7 +538,44 @@ if (closeSecurity) {
 }
 
 
-// --- 5. MODAL TOGGLES ---
+// --- 1. MODAL & AUTH BUTTON HANDLERS ---
+
+// Open Login Modal
+document.getElementById('openAuth').onclick = () => {
+    document.getElementById('modalOverlay').classList.add('active');
+    document.body.classList.add('loading-lock'); // Block Scroll
+};
+
+// Open Profile Modal
+document.getElementById('userDisplay').onclick = () => {
+    document.getElementById('profileModal').classList.add('active');
+    document.body.classList.add('loading-lock'); // Block Scroll
+};
+
+// Close Profile Modal
+document.getElementById('closeProfile').onclick = () => {
+    document.getElementById('profileModal').classList.remove('active');
+    document.body.classList.remove('loading-lock'); // Allow Scroll
+};
+
+// Close Login Modal (X button)
+document.getElementById('closeModalX').onclick = () => {
+    document.getElementById('modalOverlay').classList.remove('active');
+    document.body.classList.remove('loading-lock'); // Allow Scroll
+};
+
+// Global Hero Button Handler (AI Button)
+document.addEventListener('click', (e) => {
+    if (e.target.closest('#askAiBtn')) {
+        if (!auth.currentUser) {
+            notify("Identity required for Neural Link", "error");
+            document.getElementById('modalOverlay').classList.add('active');
+            document.body.classList.add('loading-lock'); // Block Scroll
+        }
+    }
+});
+
+// Switch Login/Register (Doesn't need scroll lock change since modal is already open)
 const switchBtn = document.getElementById('switchAuth');
 if(switchBtn) {
     switchBtn.onclick = () => {
@@ -548,21 +585,6 @@ if(switchBtn) {
         switchBtn.innerText = isLoginMode ? 'Need an account? Register' : 'Have an account? Login';
     };
 }
-// --- 1. MODAL & AUTH BUTTON HANDLERS ---
-document.getElementById('openAuth').onclick = () => document.getElementById('modalOverlay').classList.add('active');
-document.getElementById('userDisplay').onclick = () => document.getElementById('profileModal').classList.add('active');
-document.getElementById('closeProfile').onclick = () => document.getElementById('profileModal').classList.remove('active');
-document.getElementById('closeModalX').onclick = () => document.getElementById('modalOverlay').classList.remove('active');
-
-// Global Hero Button Handler
-document.addEventListener('click', (e) => {
-    if (e.target.closest('#askAiBtn')) {
-        if (!auth.currentUser) {
-            notify("Identity required for Neural Link", "error");
-            document.getElementById('modalOverlay').classList.add('active');
-        }
-    }
-}); 
 // --- SQUAD SCANNER SYSTEM V2 (2026 - STABLE & LUXE - FULLY PATCHED) ---
 
 // 1. GLOBAL SCANNER STATE
