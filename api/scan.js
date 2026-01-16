@@ -3,6 +3,12 @@ import Groq from "groq-sdk";
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 export default async function handler(req, res) {
+    // 1. ADD CORS HEADERS (Crucial for Vercel functions to talk to your frontend)
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).json({ error: "METHOD_NOT_ALLOWED" });
 
     const { image, uid } = req.body;
@@ -31,12 +37,15 @@ export default async function handler(req, res) {
                         },
                         { 
                             type: "image_url", 
-                            image_url: { url: image } 
+                            image_url: { 
+                                // THE CRITICAL FIX: Groq needs this prefix to see the image
+                                url: `data:image/jpeg;base64,${image}` 
+                            } 
                         }
                     ]
                 }
             ],
-            temperature: 0.1, // Lower temperature for more accurate math
+            temperature: 0.1,
             max_tokens: 1024
         });
 
@@ -44,7 +53,14 @@ export default async function handler(req, res) {
         res.status(200).json({ analysis: report, report: report });
 
     } catch (error) {
-        console.error("STABLE_LINK_ERROR:", error.message);
-        res.status(500).json({ error: "ENGINE_FAULT", details: error.message });
+        // This will now show up in your Vercel Logs
+        console.error("GROQ_API_ERROR:", error.message);
+        
+        // This sends the SPECIFIC error back to your frontend so you can debug
+        res.status(500).json({ 
+            error: "ENGINE_FAULT", 
+            message: error.message,
+            type: error.type 
+        });
     }
 }
