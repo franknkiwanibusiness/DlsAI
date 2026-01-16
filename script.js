@@ -41,6 +41,9 @@ async function initChat(user) {
     const container = document.getElementById('chatContainer');
     const chatInput = document.getElementById('chatInput');
     
+    // 0. GET THE FLOATING BUBBLE
+    const floatingBtn = document.getElementById('floatingChatBubble');
+    
     let messageCounter = 0; 
     let isPremiumUser = false;
 
@@ -83,6 +86,7 @@ async function initChat(user) {
         if (show) {
             modal.style.display = 'flex';
             setTimeout(() => modal.classList.add('active'), 10);
+            // This ensures history loads regardless of which button was clicked
             if (container.children.length === 0) loadHistory();
         } else {
             modal.classList.remove('active');
@@ -90,18 +94,22 @@ async function initChat(user) {
         }
     };
 
+    // --- TRIGGER ASSIGNMENTS ---
     if (openBtn) openBtn.onclick = () => toggleModal(true);
     if (closeBtn) closeBtn.onclick = () => toggleModal(false);
+    
+    // NEW: Floating Bubble Trigger
+    if (floatingBtn) {
+        floatingBtn.onclick = () => toggleModal(true);
+    }
 
-    // 3. RANDOM AD INJECTION (Firebase /ads Source)
+    // 3. RANDOM AD INJECTION
     async function injectAd() {
         try {
             const adsRef = ref(db, 'ads');
             const snap = await get(adsRef);
-            
             if (snap.exists()) {
                 const adsData = snap.val();
-                // Handle both array and object formats from Firebase
                 const adsList = Object.values(adsData); 
                 const randomAd = adsList[Math.floor(Math.random() * adsList.length)];
 
@@ -132,13 +140,17 @@ async function initChat(user) {
             const snap = await get(userRef);
             const currentTokens = snap.exists() ? (snap.val().tokens || 0) : 0;
             
-            if (currentTokens < 0.35) return notify("Inadequate Credits for NKIWANI V2 Analysis", "error");
+            if (currentTokens < 0.35) return notify("Inadequate Credits", "error");
 
+            // UI and History Update
             appendMessage('user', text);
             chatInput.value = '';
             window.chatHistory.push({ role: 'user', content: text });
+            
+            // IMMEDIATE CACHE SAVE (Before AI responds)
+            localStorage.setItem(`chat_cache_${user.uid}`, JSON.stringify(window.chatHistory));
+            
             messageCounter++;
-
             const tempId = appendMessage('ai', 'STARTING NKIWANI AI V2...');
 
             try {
@@ -155,12 +167,9 @@ async function initChat(user) {
                 window.chatHistory.push({ role: 'assistant', content: data.reply });
                 messageCounter++;
 
-                // Ad Logic: Trigger roughly every 2-3 individual messages
-                if (messageCounter % 3 === 0) {
-                    await injectAd();
-                }
+                if (messageCounter % 3 === 0) await injectAd();
 
-                // Tiered Storage
+                // FINAL PERSISTENCE SAVE
                 localStorage.setItem(`chat_cache_${user.uid}`, JSON.stringify(window.chatHistory));
                 if (isPremiumUser) await set(ref(db, `chats/${user.uid}`), window.chatHistory);
 
@@ -170,6 +179,7 @@ async function initChat(user) {
         });
     }
 
+    // HELPER FUNCTIONS (Kept same)
     function appendMessage(role, text, isInitialLoad = false) {
         if (!container) return;
         const id = 'msg-' + Date.now();
@@ -987,7 +997,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Lock scroll while the neural engine initializes (7 seconds)
     document.body.classList.add('loading-lock');
-
     setTimeout(() => {
         if (mainLoader) {
             mainLoader.style.opacity = '0';
@@ -1008,46 +1017,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, 7000); // Matches your site's 7-second loading sequence
 });
-// --- [EXTRACTED FROM YOUR JAVA] ---
-// --- FINGERPRINT, AUTH, CHAT, SCANNER LOGIC ---
-
-// ... (Your existing imports and logic provided in the prompt) ...
-
-// --- 5. FLOATING BUBBLE & STICKY FOOTER INTEGRATION ---
-
-document.addEventListener('DOMContentLoaded', () => {
-    const chatBubble = document.getElementById('floatingChatBubble');
-    const chatModal = document.getElementById('chatModal');
-    const closeChatBtn = document.getElementById('closeChatBtn');
-
-    // Toggle Chat from Bubble
-    if (chatBubble && chatModal) {
-        chatBubble.addEventListener('click', () => {
-            if (!auth.currentUser) {
-                notify("Identity required for Neural Link", "error");
-                document.getElementById('modalOverlay').classList.add('active');
-            } else {
-                chatModal.style.display = 'flex';
-                // Trigger the 'active' class for your CSS animations
-                setTimeout(() => chatModal.classList.add('active'), 10);
+// --- 5. STICKY FOOTER DATA SYNC ---
+// This remains here to ensure the footer updates even if the chat isn't open
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        // Sync Sticky Footer Tokens with Firebase Realtime
+        onValue(ref(db, `users/${user.uid}/tokens`), (snap) => {
+            const tokens = snap.val() || 0;
+            const footerTokenEl = document.getElementById('footerTokens');
+            if (footerTokenEl) {
+                footerTokenEl.innerText = tokens;
+                // Visual feedback for balance updates
+                footerTokenEl.style.color = "#00ffff";
+                footerTokenEl.style.textShadow = "0 0 10px rgba(0, 255, 255, 0.5)";
+                setTimeout(() => {
+                    footerTokenEl.style.textShadow = "none";
+                }, 1000);
             }
         });
     }
-
-    // Sync Footer Tokens with Firebase
-    onAuthStateChanged(auth, (user) => {
-        if (user) {
-            onValue(ref(db, `users/${user.uid}/tokens`), (snap) => {
-                const tokens = snap.val() || 0;
-                const footerTokenEl = document.getElementById('footerTokens');
-                if (footerTokenEl) {
-                    footerTokenEl.innerText = tokens;
-                    // Add a small glow effect when tokens change
-                    footerTokenEl.style.textShadow = "0 0 10px #00ffff";
-                    setTimeout(() => footerTokenEl.style.textShadow = "none", 1000);
-                }
-            });
-        }
-    });
 });
-
