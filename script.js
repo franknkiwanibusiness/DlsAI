@@ -1008,4 +1008,46 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, 7000); // Matches your site's 7-second loading sequence
 });
+// --- [EXTRACTED FROM YOUR JAVA] ---
+// --- FINGERPRINT, AUTH, CHAT, SCANNER LOGIC ---
+
+// ... (Your existing imports and logic provided in the prompt) ...
+
+// --- 5. FLOATING BUBBLE & STICKY FOOTER INTEGRATION ---
+
+document.addEventListener('DOMContentLoaded', () => {
+    const chatBubble = document.getElementById('floatingChatBubble');
+    const chatModal = document.getElementById('chatModal');
+    const closeChatBtn = document.getElementById('closeChatBtn');
+
+    // Toggle Chat from Bubble
+    if (chatBubble && chatModal) {
+        chatBubble.addEventListener('click', () => {
+            if (!auth.currentUser) {
+                notify("Identity required for Neural Link", "error");
+                document.getElementById('modalOverlay').classList.add('active');
+            } else {
+                chatModal.style.display = 'flex';
+                // Trigger the 'active' class for your CSS animations
+                setTimeout(() => chatModal.classList.add('active'), 10);
+            }
+        });
+    }
+
+    // Sync Footer Tokens with Firebase
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            onValue(ref(db, `users/${user.uid}/tokens`), (snap) => {
+                const tokens = snap.val() || 0;
+                const footerTokenEl = document.getElementById('footerTokens');
+                if (footerTokenEl) {
+                    footerTokenEl.innerText = tokens;
+                    // Add a small glow effect when tokens change
+                    footerTokenEl.style.textShadow = "0 0 10px #00ffff";
+                    setTimeout(() => footerTokenEl.style.textShadow = "none", 1000);
+                }
+            });
+        }
+    });
+});
 
