@@ -906,14 +906,38 @@ if (scanBtn) {
 }
 
 
-if (scanCancel) scanCancel.onclick = resetScannerUI;
-if (scanRetry) {
-    scanRetry.onclick = () => {
-        if(scanBox) scanBox.style.display = 'flex';
-        if(scanRetry) scanRetry.style.display = 'none';
-        scanConfirm.click(); 
+// 1. CANCEL BUTTON: Closes everything and unlocks scroll
+if (scanCancel) {
+    scanCancel.onclick = () => {
+        resetScannerUI(); // This now contains document.body.style.overflow = '';
     };
 }
+
+// 2. RETRY BUTTON: Keeps modal open but resets the internal view
+if (scanRetry) {
+    scanRetry.onclick = () => {
+        // We do NOT call resetScannerUI here because we want the modal to stay open
+        if(scanBox) scanBox.style.display = 'flex';
+        if(scanRetry) scanRetry.style.display = 'none';
+        
+        // Ensure body remains locked while retrying
+        document.body.style.overflow = 'hidden'; 
+        
+        // Trigger the confirm logic again
+        if (scanConfirm) scanConfirm.click(); 
+    };
+}
+
+// 3. OPTIONAL: CLOSE ON OVERLAY CLICK
+// If they click the dark area behind the modal, it should also unlock the body
+if (scanModal) {
+    scanModal.addEventListener('click', (e) => {
+        if (e.target === scanModal) {
+            resetScannerUI();
+        }
+    });
+}
+
 // --- 5. CORE SCAN LOGIC (DLSVALUE MULTI-ENGINE) ---
 
 const engineSelect = document.getElementById('engineSelect');
