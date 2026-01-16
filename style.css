@@ -1602,86 +1602,108 @@ body.modal-open {
     word-wrap: break-word;
     padding-bottom: 50px; /* Space at bottom for scrolling */
 }
-/* 1. CONFIGURATION & VARIABLES */
+/* --- SKELETON LOADING SYSTEM --- */
+
 :root {
-  --skeleton-bg: #000000;      /* Full screen background */
-  --card-bg: #111111;          /* Card background */
-  --skeleton-base: #1a1a1a;    /* Static box color */
-  --skeleton-highlight: #262626; /* Shimmer color */
-  --load-time: 7s;             /* Total duration */
+  --load-time: 7s;
 }
 
-/* 2. THE FULL-SCREEN OVERLAY */
+/* 1. LOCK BODY SCROLLING */
+/* Apply this class to your <body> tag in HTML: <body class="loading-lock"> */
+body.loading-lock {
+  overflow: hidden !important;
+  touch-action: none; /* Prevents swiping on mobile */
+}
+
+/* 2. LOADER CONTAINER */
 .container {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
-  height: 100vh;
-  background-color: var(--skeleton-bg);
-  z-index: 10000; /* Stays above your header and sections */
+  height: 100dvh;
+  background: #000;
+  z-index: 10000;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 20px;
-  padding: 20px;
-  overflow: hidden;
+  justify-content: flex-start;
   
-  /* Disappear the entire screen after 7 seconds */
+  /* Safe Area: Only adds enough space for the phone notch */
+  padding-top: max(20px, env(safe-area-inset-top));
+  padding-left: 20px;
+  padding-right: 20px;
+  padding-bottom: 40px;
+  
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  
+  /* Fade out entire container */
   animation: fullScreenFadeOut 0.5s ease-in var(--load-time) forwards;
 }
 
-/* 3. THE SKELETON CARDS */
+/* 3. SKELETON CARDS */
 .skeleton-card {
-  width: 95%;
-  max-width: 400px; /* Phone friendly */
-  background: var(--card-bg);
-  border: 1px solid #222;
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 380px; 
+  background: #0a0a0a;
+  border: 1px solid #1a1a1a;
   border-radius: 20px;
   padding: 15px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  margin-top: 15px;
+  opacity: 0;
+  animation: fadeIn 0.5s ease-out forwards;
 }
 
-/* 4. SKELETON BOXES & SHIMMER */
+/* 4. SHIMMERING CONTENT */
 .skeleton-box {
-  background: var(--skeleton-base);
+  background: #111;
   background-image: linear-gradient(
     90deg, 
-    var(--skeleton-base) 0px, 
-    var(--skeleton-highlight) 50%, 
-    var(--skeleton-base) 100%
+    #111 0px, 
+    #1a1a1a 50%, 
+    #111 100%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite linear;
   border-radius: 8px;
-  margin-bottom: 12px;
 }
 
-/* The 16:9 Image/Video Block */
 .skeleton-img {
   width: 100%;
   aspect-ratio: 16 / 9;
+  margin-bottom: 12px;
 }
 
-.skeleton-title { height: 20px; width: 65%; }
-.skeleton-line { height: 12px; width: 100%; }
+.skeleton-title {
+  height: 18px;
+  width: 65%;
+  margin-bottom: 10px;
+}
 
-/* 5. ANIMATION KEYFRAMES */
+.skeleton-line {
+  height: 10px;
+  width: 90%;
+  opacity: 0.5;
+}
 
-/* The light-sweep movement */
+/* 5. ANIMATIONS */
 @keyframes shimmer {
   to { background-position: 200% 0; }
 }
 
-/* Final Fade Out (Removes it from the user's view and path) */
+@keyframes fadeIn {
+  to { opacity: 1; }
+}
+
 @keyframes fullScreenFadeOut {
   0% { opacity: 1; visibility: visible; }
   99% { opacity: 0; visibility: visible; }
   100% { 
     opacity: 0; 
     visibility: hidden; 
-    pointer-events: none; /* Allows user to click on the app behind it */
+    pointer-events: none; 
     display: none; 
   }
 }
