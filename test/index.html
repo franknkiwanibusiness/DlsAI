@@ -3,103 +3,123 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DLS 2026 | Multi-Scout Ultra</title>
+    <title>DLS 2026 | Neural Scout Pro</title>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <style>
         :root { --cyan: #00ffff; --gold: #ffd700; --bg: #050505; --panel: #111; --red: #ff4444; }
-        body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; margin: 0; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
 
-        .launch-btn { background: none; border: 2px solid var(--cyan); color: var(--cyan); padding: 15px 30px; border-radius: 50px; cursor: pointer; font-weight: bold; transition: 0.3s; }
-        
-        #manualModel { position: fixed; inset: 0; background: rgba(0,0,0,0.95); backdrop-filter: blur(10px); display: none; z-index: 9999; justify-content: center; align-items: center; }
-        
-        .model-content { width: 90%; max-width: 450px; background: var(--panel); border: 1px solid #333; border-radius: 20px; padding: 20px; position: relative; max-height: 90vh; overflow-y: auto; }
+        /* MAIN PANEL */
+        .model-content { 
+            width: 90%; max-width: 450px; background: var(--panel); border: 1px solid #333; 
+            border-radius: 20px; padding: 25px; position: relative; max-height: 90vh; overflow-y: auto;
+        }
 
-        /* INITIALS AVATAR */
-        .p-initials { width: 60px; height: 60px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.5rem; background: linear-gradient(135deg, #222, #444); border: 1px solid var(--cyan); color: var(--cyan); }
-        .tier-legendary { border-color: var(--gold) !important; color: var(--gold) !important; }
-
+        /* SEARCH & INPUTS */
         .search-row { display: flex; gap: 8px; margin-bottom: 15px; }
-        .search-row input { flex: 1; background: #000; border: 1px solid #222; color: white; padding: 12px; border-radius: 10px; outline: none; }
-        
-        .add-btn { background: var(--cyan); color: black; border: none; padding: 0 15px; border-radius: 10px; cursor: pointer; font-weight: bold; }
+        .search-row input { flex: 1; background: #000; border: 1px solid #222; color: white; padding: 12px; border-radius: 12px; outline: none; }
+        .add-btn { background: var(--cyan); color: black; border: none; padding: 0 15px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; transition: 0.3s; }
+        .add-btn:hover { box-shadow: 0 0 15px var(--cyan); }
 
-        /* SELECTED LIST */
-        .selected-list { background: #000; border-radius: 12px; margin-bottom: 15px; padding: 10px; border: 1px solid #222; }
-        .player-item { display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; padding: 8px; border-bottom: 1px solid #111; }
-        .tier-tag { font-size: 0.6rem; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; font-weight: bold; }
+        /* PLAYER LIST */
+        .selected-list { background: #000; border-radius: 15px; margin-bottom: 20px; padding: 12px; border: 1px solid #222; min-height: 50px; }
+        .player-item { 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 10px; border-bottom: 1px solid #111; font-size: 0.85rem;
+        }
+        .p-avatar { 
+            width: 32px; height: 32px; border-radius: 8px; background: #222; 
+            display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: bold; margin-right: 10px;
+        }
 
-        .valuation-hero { text-align: center; background: #000; padding: 15px; border-radius: 15px; border: 1px solid var(--cyan); margin: 15px 0; }
+        /* VALUATION BOX */
+        .valuation-hero { text-align: center; background: #000; padding: 18px; border-radius: 18px; border: 1px solid var(--cyan); margin: 20px 0; }
         .valuation-hero b { font-size: 2.2rem; color: var(--cyan); font-family: monospace; display: block; }
+        .valuation-hero span { font-size: 0.65rem; color: #555; text-transform: uppercase; letter-spacing: 1px; }
 
-        .submit-btn { width: 100%; padding: 15px; background: var(--cyan); color: black; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; }
-        .close-icon { position: absolute; top: 15px; right: 15px; color: #666; cursor: pointer; }
+        /* GLASSY REPORT MODAL */
+        #reportModal {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+            display: none; z-index: 10000; justify-content: center; align-items: center; padding: 20px;
+            backdrop-filter: blur(5px);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 30px; padding: 30px;
+            width: 100%; max-width: 420px; box-shadow: 0 8px 32px rgba(0, 255, 255, 0.2); color: white;
+            animation: slideUp 0.4s ease-out;
+        }
+        .ai-comment { font-style: italic; color: var(--cyan); margin: 20px 0; line-height: 1.6; font-size: 0.95rem; }
+        .tip-box { background: rgba(0, 255, 255, 0.1); border-left: 4px solid var(--cyan); padding: 15px; border-radius: 4px; font-size: 0.85rem; }
 
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-        .rotating { animation: spin 1s infinite linear; }
+        .submit-btn { width: 100%; padding: 18px; background: var(--cyan); color: black; border: none; border-radius: 15px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
+        
+        @keyframes rotating { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .spin { animation: rotating 1s infinite linear; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-    <button class="launch-btn" onclick="toggleModel(true)">OPEN NEURAL MULTI-SCOUT</button>
+    <div class="model-content">
+        <h3 style="text-align:center; color: var(--cyan); margin-top:0;">DLS 2026 SQUAD SCOUT</h3>
 
-    <div id="manualModel">
-        <div class="model-content">
-            <span class="material-icons close-icon" onclick="toggleModel(false)">close</span>
-            <h3 style="text-align:center; color: var(--cyan); margin-top:0;">SQUAD BUILDER 2026</h3>
+        <div class="search-row">
+            <input type="text" id="pSearch" placeholder="Add Player (e.g. Lamine Yamal)">
+            <button class="add-btn" id="doAdd"><span class="material-icons">person_add</span></button>
+        </div>
 
-            <div class="search-row">
-                <input type="text" id="pSearch" placeholder="Type player name...">
-                <button class="add-btn" id="doAdd"><span class="material-icons">person_add</span></button>
+        <div class="selected-list" id="selectedPlayers">
+            <div style="font-size: 0.6rem; color: #444; margin-bottom: 5px; text-transform: uppercase;">Current Squad Assets (Max 11)</div>
             </div>
 
-            <div id="scoutPreview" style="display:none; margin-bottom:15px; padding:10px; border: 1px solid #333; border-radius:10px; background: #090909;">
-                <div style="display:flex; gap:12px; align-items:center;">
-                    <div id="pInitials" class="p-initials">??</div>
-                    <div>
-                        <div id="pTierTag" class="tier-tag" style="background: #333;">Tier</div>
-                        <h4 id="pName" style="margin:5px 0; font-size: 0.9rem;">Player Name</h4>
-                        <div id="pRating" style="font-size: 0.7rem; color: #666;">Rating: --</div>
-                    </div>
-                </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div>
+                <label style="font-size: 0.6rem; color: #444; display:block; margin-bottom:4px;">AUTO AVG RATING</label>
+                <input type="text" id="mAvg" value="0" readonly style="width:100%; background:#111; border:1px solid #222; color:var(--cyan); padding:10px; border-radius:8px; box-sizing:border-box;">
+            </div>
+            <div>
+                <label style="font-size: 0.6rem; color: #444; display:block; margin-bottom:4px;">COINS</label>
+                <input type="number" id="mCoins" value="0" oninput="calculate()" style="width:100%; background:#000; border:1px solid #222; color:white; padding:10px; border-radius:8px; box-sizing:border-box;">
+            </div>
+        </div>
+
+        <div class="valuation-hero">
+            <span>Market Price Valuation</span>
+            <b id="liveVal">$0.00</b>
+        </div>
+
+        <button class="submit-btn" id="generateReport">GENERATE AUDIT</button>
+    </div>
+
+    <div id="reportModal">
+        <div class="glass-card">
+            <h2 style="color: var(--cyan); margin: 0; letter-spacing: 1px;">SQUAD REPORT</h2>
+            <div id="finalValue" style="font-size: 1.8rem; font-family: monospace; color: var(--gold); margin: 10px 0;">$0.00</div>
+            
+            <p class="ai-comment" id="reportComment">Reviewing team chemistry...</p>
+            
+            <div class="tip-box">
+                <b style="color: var(--cyan); display:block; margin-bottom:5px;">💡 MANAGER TIP:</b>
+                <span id="reportTip">Analyzing squad for improvements...</span>
             </div>
 
-            <div class="selected-list" id="selectedPlayers">
-                <div style="font-size: 0.65rem; color: #444; margin-bottom: 5px;">SELECTED ASSETS</div>
-                </div>
-
-            <div class="stat-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom:15px;">
-                <div class="stat-group">
-                    <label style="font-size: 0.6rem; color: #444; display:block;">AVG SQUAD RATING</label>
-                    <input type="number" id="mAvg" value="80" style="width:100%; background:#000; border:1px solid #222; color:white; padding:8px; border-radius:8px;" oninput="calculate()">
-                </div>
-                <div class="stat-group">
-                    <label style="font-size: 0.6rem; color: #444; display:block;">COINS</label>
-                    <input type="number" id="mCoins" value="1000" style="width:100%; background:#000; border:1px solid #222; color:white; padding:8px; border-radius:8px;" oninput="calculate()">
-                </div>
-            </div>
-
-            <div class="valuation-hero">
-                <span>TOTAL MARKET VALUE</span>
-                <b id="liveVal">$0.00</b>
-            </div>
-
-            <button class="submit-btn" id="generateReport">FINALIZE SQUAD AUDIT</button>
+            <button onclick="document.getElementById('reportModal').style.display='none'" 
+                    style="width: 100%; margin-top: 25px; background: white; color: black; padding: 15px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer;">
+                CLOSE REPORT
+            </button>
         </div>
     </div>
 
     <script>
-        let selectedList = [];
-        let totalStarPremium = 0;
-
-        function toggleModel(show) { document.getElementById('manualModel').style.display = show ? 'flex' : 'none'; }
+        let squad = [];
 
         document.getElementById('doAdd').onclick = async () => {
             const query = document.getElementById('pSearch').value;
-            if (!query) return;
+            if (!query || squad.length >= 11) return;
 
             const icon = document.querySelector('#doAdd .material-icons');
-            icon.innerText = 'sync'; icon.classList.add('rotating');
+            icon.innerText = 'sync'; icon.classList.add('spin');
 
             try {
                 const res = await fetch('/api/manual', {
@@ -109,55 +129,70 @@
                 });
                 const data = await res.json();
 
-                // 1. Determine Tier and Color
-                let tier = "Elite";
-                let tierColor = "var(--cyan)";
-                const r = data.rating;
+                // Logic: Legend ($6), Elite ($4), Common ($2)
+                let price = 2.0; let color = "#aaa";
+                if (data.rating >= 86) { price = 6.0; color = "var(--gold)"; }
+                else if (data.rating >= 80) { price = 4.0; color = "var(--cyan)"; }
 
-                if (data.isJoke) { tier = "JOKE CARD"; tierColor = "#ff00ff"; }
-                else if (r >= 86) { tier = "LEGENDARY"; tierColor = "var(--gold)"; }
-                else if (r >= 80) { tier = "ELITE"; tierColor = "var(--cyan)"; }
-                else if (r >= 70) { tier = "COMMON"; tierColor = "#888"; }
-                else { tier = "WEAK"; tierColor = "var(--red)"; }
+                squad.push({
+                    name: data.name,
+                    rating: data.rating,
+                    value: price,
+                    color: color,
+                    initials: data.name.split(' ').map(n=>n[0]).join('').toUpperCase()
+                });
 
-                // 2. Add to internal list
-                const initials = data.name.split(' ').map(n => n[0]).join('').toUpperCase();
-                
-                selectedList.push({ name: data.name, premium: data.premiumValue, tier, color: tierColor, initials });
-                totalStarPremium += data.premiumValue;
-
-                // 3. Update UI
                 renderList();
                 calculate();
                 document.getElementById('pSearch').value = "";
-            } catch (e) { alert("Scout failed."); }
-            finally { icon.innerText = 'person_add'; icon.classList.remove('rotating'); }
+            } catch (e) { alert("Neural Scout Offline."); }
+            finally { icon.innerText = 'person_add'; icon.classList.remove('spin'); }
         };
 
         function renderList() {
             const container = document.getElementById('selectedPlayers');
-            container.innerHTML = '<div style="font-size: 0.65rem; color: #444; margin-bottom: 5px;">SELECTED ASSETS</div>';
-            selectedList.forEach((p, index) => {
+            container.innerHTML = '<div style="font-size: 0.6rem; color: #444; margin-bottom: 5px; text-transform: uppercase;">Current Squad Assets ('+squad.length+'/11)</div>';
+            squad.forEach(p => {
                 container.innerHTML += `
                     <div class="player-item">
-                        <span><b style="color:${p.color}">${p.initials}</b> ${p.name}</span>
-                        <span class="tier-tag" style="border:1px solid ${p.color}; color:${p.color}">${p.tier}</span>
-                    </div>
-                `;
+                        <div style="display:flex; align-items:center;">
+                            <div class="p-avatar" style="border: 1px solid ${p.color}; color:${p.color}">${p.initials}</div>
+                            <span>${p.name}</span>
+                        </div>
+                        <b style="color:${p.color}">$${p.value.toFixed(2)}</b>
+                    </div>`;
             });
         }
 
         function calculate() {
-            const avg = parseFloat(document.getElementById('mAvg').value) || 0;
+            const avg = squad.length > 0 ? (squad.reduce((a,b)=>a+b.rating,0)/squad.length).toFixed(1) : 0;
             const coins = parseFloat(document.getElementById('mCoins').value) || 0;
-            const base = (avg * 1.1) + (coins / 1000 * 1.2);
-            document.getElementById('liveVal').innerText = `$${(base + totalStarPremium).toFixed(2)}`;
+            const cardTotal = squad.reduce((a,b)=>a+b.value, 0);
+            const coinTotal = (coins/1000) * 1.5;
+
+            document.getElementById('mAvg').value = avg;
+            document.getElementById('liveVal').innerText = `$${(cardTotal + coinTotal).toFixed(2)}`;
         }
 
         document.getElementById('generateReport').onclick = async function() {
-            this.innerText = "GENERATING REPORT...";
-            // Logic to send selectedList to /api/manual for a big summary
-            setTimeout(() => { toggleModel(false); alert("Report Generated!"); }, 1000);
+            this.innerText = "AI ANALYZING...";
+            try {
+                const res = await fetch('/api/manual', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        isManual: true,
+                        manualData: { squadNames: squad.map(p=>p.name).join(', '), valuation: document.getElementById('liveVal').innerText }
+                    })
+                });
+                const data = await res.json();
+                
+                document.getElementById('reportComment').innerText = data.comment;
+                document.getElementById('reportTip').innerText = data.tip;
+                document.getElementById('finalValue').innerText = document.getElementById('liveVal').innerText;
+                document.getElementById('reportModal').style.display = 'flex';
+            } catch (e) { alert("Analysis Error."); }
+            finally { this.innerText = "GENERATE AUDIT"; }
         };
     </script>
 </body>
