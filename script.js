@@ -651,7 +651,7 @@ window.openVisionChat = (reportText) => {
     const output = document.getElementById('reportOutput');
     const networthDisplay = document.getElementById('networthAmount');
 
-    // 1. MATH LOGIC (Kept your working regex)
+    // 1. MATH LOGIC
     const avgMatch = reportText.match(/(?:Average|Avg|Rating).*?(\d+\.?\d*)/i);
     const coinMatch = reportText.match(/(?:Coins|Gold|C).*?(\d+[\d,.]*)/i);
     const topMatch = reportText.match(/(?:Top Rated|Best|Captain).*?[:\-]\s*([a-zA-Z\s]+)/i);
@@ -661,18 +661,20 @@ window.openVisionChat = (reportText) => {
     const coins = parseInt(coinsRaw);
     const finalPrice = (avg + (coins / 1000) * 1.50).toFixed(2);
 
-    // 2. UI OPENING SEQUENCE
+    // 2. UI OPENING & SCROLL LOCK
     if (scanModal) {
         scanModal.classList.remove('active');
-        scanModal.style.display = 'none';
+        setTimeout(() => { scanModal.style.display = 'none'; }, 300);
     }
 
     if (resultsModal) {
         resultsModal.style.display = 'flex';
-        // Small delay to ensure display:flex is registered before adding opacity/active class
+        // Apply BOTH locks to be safe
+        document.body.classList.add('modal-open');
+        document.body.style.overflow = 'hidden'; 
+        
         setTimeout(() => {
             resultsModal.classList.add('active');
-            document.body.classList.add('modal-open'); // Prevents background scroll
         }, 10);
         resultsModal.scrollTop = 0;
     }
@@ -713,19 +715,18 @@ window.openVisionChat = (reportText) => {
 
 const resetScannerUI = () => {
     if(scanModal) {
-        // 1. Start the closing animation
         scanModal.classList.remove('active');
-        
-        // 2. Wait for animation (300ms) before hiding completely
         setTimeout(() => {
             scanModal.style.display = 'none';
         }, 300);
     }
 
-    // 3. UNBLOCK BODY SCROLL
-    document.body.style.overflow = ''; 
+    // --- FIX: FULL SCROLL RESTORATION ---
+    document.body.style.overflow = '';             // Clears direct style
+    document.body.classList.remove('loading-lock'); // Clears the CSS lock class
+    document.body.classList.remove('modal-open');   // Clears the vision-modal lock
 
-    // Reset all internal logic
+    // Reset internal logic
     if (scannerTimer) clearInterval(scannerTimer);
     if(scanConfirm) { 
         scanConfirm.classList.remove('loading'); 
@@ -738,140 +739,116 @@ const resetScannerUI = () => {
         statusText.innerText = ""; 
         statusText.style.color = "#00ffff"; 
     }
-    if(scanPreview) scanPreview.src = "";
     
     currentScanFile = null;
 };
 
 window.closeResults = () => {
     const resModal = document.getElementById('visionResultsModal');
-    if (resModal) resModal.style.display = 'none';
-    resetScannerUI();
+    if (resModal) {
+        resModal.classList.remove('active');
+        setTimeout(() => {
+            resModal.style.display = 'none';
+            resetScannerUI(); // Run the full cleanup
+        }, 300);
+    } else {
+        resetScannerUI();
+    }
 };
 
-// A. SHARE REPORT LOGIC (2026 Social Sync Patch)
+// A. SHARE REPORT LOGIC (Universal Fallback)
 document.getElementById('shareReportBtn').onclick = async () => {
     const btn = document.getElementById('shareReportBtn');
     const originalContent = btn.innerHTML;
-    btn.innerHTML = "<span>UPLOADING...</span>";
+    const currentUrl = window.location.href;
+    const shareMsg = `🔥 Check out my DLS Squad Valuation! Scan yours at DLSVALUE.`;
+
+    btn.innerHTML = "<span>SYNCING...</span>";
     btn.disabled = true;
 
     try {
-        // 1. Upload the image to Imgur
-        const imgUrl = await uploadToImgur(document.getElementById('analyzedPreview').src);
-        const shareId = Math.random().toString(36).substring(7);
-        
-        // 2. Prepare the data
-        const squadVal = document.getElementById('networthAmount').innerText;
-        const reportData = {
-            image: imgUrl,
-            valuation: squadVal,
-            reportText: document.getElementById('reportOutput').innerText,
-            topPlayer: document.getElementById('statTopPlayer').innerText,
-            avgRating: document.getElementById('statExpensive').innerText,
-            timestamp: Date.now()
-        };
-
-        // 3. Save to Firebase
-        await set(ref(db, `reports/${auth.currentUser.uid}/${shareId}`), reportData);
-
-        const uniqueUrl = `${window.location.origin}/report.html?uid=${auth.currentUser.uid}&id=${shareId}`;
-        const shareMsg = `🔥 Check out my DLS Squad Valuation! My team is worth ${squadVal}. Scan yours at:`;
-
-        // 4. Trigger Social Selection
-        if (navigator.share) {
-            // Mobile Native Share
-            await navigator.share({
-                title: 'DLS Neural Report',
-                text: shareMsg,
-                url: uniqueUrl
-            });
-        } else {
-            // Desktop/Fallback: Show Custom Social Menu
-            showSocialMenu(uniqueUrl, shareMsg);
+        const preview = document.getElementById('analyzedPreview');
+        if (!preview || !preview.src || preview.src.includes('base64')) {
+            // If image isn't ready or too large, share the main site instead of crashing
+            throw new Error("Local Only");
         }
 
+        const imgUrl = await uploadToImgur(preview.src);
+        const shareId = Math.random().toString(36).substring(7);
+        const uniqueUrl = `${window.location.origin}/report.html?uid=${auth.currentUser.uid}&id=${shareId}`;
+
+        // Save to Firebase
+        await set(ref(db, `reports/${auth.currentUser.uid}/${shareId}`), {
+            image: imgUrl,
+            valuation: document.getElementById('networthAmount').innerText,
+            reportText: document.getElementById('reportOutput').innerText,
+            timestamp: Date.now()
+        });
+
+        if (navigator.share) {
+            await navigator.share({ title: 'DLS Report', text: shareMsg, url: uniqueUrl });
+        } else {
+            showSocialMenu(uniqueUrl, shareMsg);
+        }
     } catch (err) {
-        console.error(err);
-        notify("Share Failed: Check Connection", "error");
+        // FALLBACK: Share the current browser URL if upload fails
+        if (navigator.share) {
+            await navigator.share({ title: 'DLSVALUE', text: shareMsg, url: currentUrl });
+        } else {
+            showSocialMenu(currentUrl, shareMsg);
+        }
     } finally {
         btn.innerHTML = originalContent;
         btn.disabled = false;
     }
 };
-
-// Helper: Custom Social Menu Generator
-function showSocialMenu(url, msg) {
-    const encodedUrl = encodeURIComponent(url);
-    const encodedMsg = encodeURIComponent(msg);
-
-    const menuHtml = `
-        <div id="socialShareOverlay" class="modal-overlay active" style="z-index: 10001;">
-            <div class="modal-card" style="max-width: 320px; text-align: center; padding: 30px;">
-                <h3 style="color:#00ffff; font-size: 0.9rem; margin-bottom: 20px; letter-spacing: 1px;">SHARE TO RECRUITERS</h3>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                    <a href="https://wa.me/?text=${encodedMsg}%20${encodedUrl}" target="_blank" class="social-btn" style="background:#25D366; color:white; text-decoration:none; padding:12px; border-radius:10px; font-weight:800; font-size:0.7rem;">WHATSAPP</a>
-                    
-                    <a href="https://twitter.com/intent/tweet?text=${encodedMsg}&url=${encodedUrl}" target="_blank" class="social-btn" style="background:#000; color:white; text-decoration:none; padding:12px; border-radius:10px; font-weight:800; font-size:0.7rem; border:1px solid #333;">TWITTER (X)</a>
-                    
-                    <a href="https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}" target="_blank" class="social-btn" style="background:#1877F2; color:white; text-decoration:none; padding:12px; border-radius:10px; font-weight:800; font-size:0.7rem;">FACEBOOK</a>
-                    
-                    <div onclick="navigator.clipboard.writeText('${url}'); notify('Copied!', 'success');" class="social-btn" style="background:#222; color:#00ffff; padding:12px; border-radius:10px; font-weight:800; font-size:0.7rem; cursor:pointer; border:1px solid #00ffff44;">COPY LINK</div>
-                </div>
-
-                <button onclick="document.getElementById('socialShareOverlay').remove()" style="margin-top: 25px; background:none; border:none; color:#555; font-weight:800; cursor:pointer; font-size:0.7rem;">DISMISS</button>
-            </div>
-        </div>
-    `;
-    document.body.insertAdjacentHTML('beforeend', menuHtml);
-}
-
-
-// B. GENERATE SALE LINK LOGIC
+// B. GENERATE SALE LINK LOGIC (Deduct & Save)
 document.getElementById('generateSaleBtn').onclick = async () => {
     const btn = document.getElementById('generateSaleBtn');
+    if (!auth.currentUser) return notify("Login Required", "error");
+
     const userRef = ref(db, `users/${auth.currentUser.uid}`);
     const snap = await get(userRef);
+    const currentTokens = snap.exists() ? snap.val().tokens : 0;
     
-    if (snap.val().tokens < 5) return notify("5 Tokens Required", "error");
+    if (currentTokens < 5) return notify("5 Tokens Required", "error");
     
-    btn.innerText = "SECURING LINK...";
+    btn.innerText = "GENERATING...";
     btn.disabled = true;
 
     try {
-        const imgUrl = await uploadToImgur(scanPreview.src);
+        const preview = document.getElementById('analyzedPreview');
+        const imgUrl = await uploadToImgur(preview.src);
         const saleCode = Math.random().toString(36).substring(2, 8).toUpperCase();
         const valuation = document.getElementById('networthAmount').innerText;
-        const expiresAt = Date.now() + (24 * 60 * 60 * 1000); 
 
-        const salePayload = {
-            owner: auth.currentUser.uid,
-            image: imgUrl,
-            valuation: valuation,
-            topPlayer: document.getElementById('statTopPlayer').innerText,
-            description: document.getElementById('reportOutput').innerText,
-            timestamp: Date.now(),
-            expiresAt: expiresAt
-        };
+        // 1. Deduct Tokens Immediately
+        await update(userRef, { tokens: increment(-5) });
 
-        // 1. Save to global sales
-        await set(ref(db, `sales/${saleCode}`), salePayload);
-
-        // 2. Save to user links so it appears in your "Data Watcher" dashboard
+        // 2. Save to User's Profile Links
         await set(ref(db, `links/${auth.currentUser.uid}/${saleCode}`), {
             title: `SALE: ${valuation} Squad`,
             url: `${window.location.origin}/sale.html?code=${saleCode}`,
-            expiresAt: expiresAt
+            timestamp: Date.now()
         });
 
-        await update(userRef, { tokens: increment(-5) });
-        notify("Sale Live: " + saleCode, "success");
-        btn.innerText = "SALE LINK ACTIVE";
+        // 3. Save Global Sale Data
+        await set(ref(db, `sales/${saleCode}`), {
+            owner: auth.currentUser.uid,
+            image: imgUrl,
+            valuation: valuation,
+            description: document.getElementById('reportOutput').innerText,
+            timestamp: Date.now()
+        });
+
+        notify("Success! Check your Profile for the link", "success");
+        btn.innerText = "LINK SAVED TO PROFILE";
+        
     } catch (e) {
+        console.error(e);
         btn.innerText = "GENERATE SALE LINK";
         btn.disabled = false;
-        notify("Upload Failed", "error");
+        notify("Process Failed", "error");
     }
 };
 
