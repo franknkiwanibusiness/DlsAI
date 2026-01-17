@@ -853,23 +853,30 @@ document.getElementById('generateSaleBtn').onclick = async () => {
 };
 
 // --- 4. EVENT LISTENERS ---
+// --- SCANNER SYSTEM: AUTH, PREVIEW, & CORE ENGINE ---
 
+let countdownInterval; // Global to handle the button timer
+
+const engineMetadata = {
+    scan:   { tier: "LEVEL 1", cost: 5, color: "#00ffff", wait: 25, desc: "Level 1: Most Intelligent but slow (Max Power)" },
+    gemma1: { tier: "LEVEL 2", cost: 4, color: "#ff00ff", wait: 20, desc: "Level 2: High Intelligence (Flagship)" },
+    gemma2: { tier: "LEVEL 3", cost: 3, color: "#ffff00", wait: 15, desc: "Level 3: Balanced (Standard)" },
+    gemma3: { tier: "LEVEL 4", cost: 2, color: "#00ff00", wait: 10, desc: "Level 4: Basic (Fastest Speed)" }
+};
+
+// 1. INITIAL TRIGGER (GALLERY PICKER)
 if (scanBtn) {
     scanBtn.onclick = () => {
-        // 1. SECURITY CHECK: Is the user logged in?
         if (!auth || !auth.currentUser) {
             notify("Identity required for Neural Scan", "error");
-            
-            // Open your existing login modal
             const authModal = document.getElementById('modalOverlay');
             if (authModal) {
                 authModal.classList.add('active');
-                document.body.style.overflow = 'hidden'; // Block scroll for login
+                document.body.style.overflow = 'hidden';
             }
-            return; // Stop the code here so the gallery doesn't open
+            return;
         }
 
-        // 2. IF LOGGED IN: Proceed with file selection
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'image/*';
@@ -881,10 +888,7 @@ if (scanBtn) {
             reader.onload = (event) => {
                 scanPreview.src = event.target.result;
                 scanModal.style.display = 'flex';
-                
-                // Block body scroll when the preview opens
                 document.body.style.overflow = 'hidden'; 
-                
                 setTimeout(() => scanModal.classList.add('active'), 10);
             };
             reader.readAsDataURL(currentScanFile);
@@ -893,92 +897,45 @@ if (scanBtn) {
     };
 }
 
-
-// 1. CANCEL BUTTON: Closes everything and unlocks scroll
-if (scanCancel) {
-    scanCancel.onclick = () => {
-        resetScannerUI(); // This now contains document.body.style.overflow = '';
-    };
-}
-
-// 2. RETRY BUTTON: Keeps modal open but resets the internal view
-if (scanRetry) {
-    scanRetry.onclick = () => {
-        // We do NOT call resetScannerUI here because we want the modal to stay open
-        if(scanBox) scanBox.style.display = 'flex';
-        if(scanRetry) scanRetry.style.display = 'none';
-        
-        // Ensure body remains locked while retrying
-        document.body.style.overflow = 'hidden'; 
-        
-        // Trigger the confirm logic again
-        if (scanConfirm) scanConfirm.click(); 
-    };
-}
-
-// 3. OPTIONAL: CLOSE ON OVERLAY CLICK
-// If they click the dark area behind the modal, it should also unlock the body
-if (scanModal) {
-    scanModal.addEventListener('click', (e) => {
-        if (e.target === scanModal) {
-            resetScannerUI();
-        }
-    });
-}
-// --- 5. CORE SCAN LOGIC (DLSVALUE LUXE ENGINES - 2026 PATCHED) ---
-
-const engineSelect = document.getElementById('engineSelect');
-const tierTag = document.getElementById('modelTierTag');
-const engineDesc = document.getElementById('engineDescription');
-
-// Metadata mapped EXACTLY to your HTML Level 1-4 options
-const engineMetadata = {
-    scan: { 
-        tier: "LEVEL 1 (5 tokens)", 
-        cost: 5, 
-        color: "#00ffff", 
-        desc: "Level 1: Most Intelligent but slow (Max Power)" 
-    },
-    gemma1: { 
-        tier: "LEVEL 2", 
-        cost: 4,  
-        color: "#ff00ff", 
-        desc: "Level 2 (4 tokens): High Intelligence (Flagship)" 
-    },
-    gemma2: { 
-        tier: "LEVEL 3", 
-        cost: 3,  
-        color: "#ffff00", 
-        desc: "Level 3 (3 tokens): Balanced (Standard)" 
-    },
-    gemma3: { 
-        tier: "LEVEL 4", 
-        cost: 2,  
-        color: "#00ff00", 
-        desc: "Level 4 (2 tokens): Basic (Fastest Speed)" 
-    }
-};
-
-// Sync UI labels with dropdown selection
+// 2. MODEL CHANGE LOGIC (UI RESET)
 if (engineSelect) {
     engineSelect.onchange = (e) => {
         const meta = engineMetadata[e.target.value] || engineMetadata['scan'];
         
-        // Update the Floating Tier Tag
+        // Update UI Tags
         if (tierTag) { 
-            tierTag.innerText = meta.tier; 
+            tierTag.innerText = `${meta.tier} (${meta.cost} TOKENS)`; 
             tierTag.style.background = meta.color; 
             tierTag.style.color = "#000";
         }
-        
-        // Update the Engine Description text below the dropdown
         if (engineDesc) {
             engineDesc.innerText = `* ${meta.desc} — Cost: ${meta.cost} Tokens`;
             engineDesc.style.color = meta.color; 
         }
+
+        // Reset Scan Line Animation & Status
+        const scanLine = document.querySelector('.scan-line');
+        if (scanLine) {
+            scanLine.style.animation = 'none';
+            void scanLine.offsetWidth; // Trigger reflow
+            scanLine.style.animation = 'scanMove 2.5s ease-in-out infinite';
+            scanLine.style.background = meta.color; // Line glow matches tier
+        }
+
+        if (statusText) {
+            statusText.style.color = "var(--cyan)";
+            statusText.innerText = `> READY TO INITIATE ${meta.tier}...`;
+        }
+
+        // Reset Button state
+        clearInterval(countdownInterval);
+        scanConfirm.disabled = false;
+        scanConfirm.innerText = "START NEURAL SCAN";
+        scanConfirm.classList.remove('loading');
     };
 }
 
+// 3. CORE SCAN CONFIRM (WITH COUNTDOWN & API CALL)
 if (scanConfirm) {
     scanConfirm.onclick = async () => {
         if (!currentScanFile) return;
@@ -987,44 +944,40 @@ if (scanConfirm) {
         const meta = engineMetadata[selectedValue] || engineMetadata['scan'];
         const tokenCost = meta.cost;
 
-        // 1. AUTH & TOKEN VALIDATION
+        // Balance Check
         if (auth && auth.currentUser) {
             const userRef = ref(db, `users/${auth.currentUser.uid}`);
             const snap = await get(userRef);
             const userTokens = snap.exists() ? (snap.val().tokens || 0) : 0;
-
-            if (userTokens < tokenCost) {
-                return notify(`Insufficient Tokens. ${meta.tier} requires ${tokenCost} tokens.`, "error");
-            }
-        } else {
-            return notify("Login Required for Neural Scan", "error");
+            if (userTokens < tokenCost) return notify(`Insufficient Tokens. Need ${tokenCost}.`, "error");
         }
-        
-        // 2. UI INITIALIZATION (Loading State)
-        scanConfirm.classList.add('loading');
-        scanConfirm.disabled = true;
-        if(scanStatusContainer) scanStatusContainer.style.display = 'block';
 
-        const statusUpdates = [
-            `UPLOADING TO ${meta.tier} CORE...`,
-            "RUNNING NEURAL VISION ANALYSIS...",
-            "DECODING PLAYER STATISTICS...",
-            "CALCULATING MARKET VALUATION..."
-        ];
+        // Initialize Countdown UI
+        let timeLeft = meta.wait;
+        scanConfirm.disabled = true;
+        scanConfirm.classList.add('loading');
+        if(scanStatusContainer) scanStatusContainer.style.display = 'block';
         
-        let step = 0;
-        if (scannerTimer) clearInterval(scannerTimer);
-        scannerTimer = setInterval(() => {
-            if (step < statusUpdates.length && statusText) {
-                statusText.innerText = "> " + statusUpdates[step];
-                step++;
+        clearInterval(countdownInterval);
+        countdownInterval = setInterval(() => {
+            timeLeft--;
+            scanConfirm.innerText = `ANALYZING... (${timeLeft}s)`;
+            
+            if (timeLeft <= 0) {
+                clearInterval(countdownInterval);
+                scanConfirm.innerText = "RETRY (TIMEOUT)";
+                scanConfirm.disabled = false;
+                scanConfirm.classList.remove('loading');
+                if(statusText) {
+                    statusText.style.color = "#ff4444";
+                    statusText.innerText = "!! CONNECTION TIMEOUT: ENGINE UNREACHABLE";
+                }
             }
-        }, 850);
+        }, 1000);
 
         const reader = new FileReader();
         reader.onload = async (event) => {
             try {
-                // 3. NEURAL API CALL
                 const response = await fetch('/api/scan', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1041,37 +994,50 @@ if (scanConfirm) {
                 const report = result.analysis || result.report;
                 
                 if (report) {
-                    // 4. TOKEN DEDUCTION ONLY (Subtracting the cost)
+                    clearInterval(countdownInterval);
                     await update(ref(db, `users/${auth.currentUser.uid}`), { 
-                        tokens: increment(-tokenCost), 
-                        lastScanDate: Date.now()
+                        tokens: increment(-tokenCost)
                     });
-
-                    if (scannerTimer) clearInterval(scannerTimer);
                     
-                    // 5. MODAL CLEANUP
-                    if (scanModal) {
-                        scanModal.classList.remove('active');
-                        setTimeout(() => { scanModal.style.display = 'none'; }, 300);
-                    }
-                    
-                    document.body.style.overflow = ''; 
+                    resetScannerUI();
                     window.openVisionChat(report); 
                 }
             } catch (err) {
-                if (scannerTimer) clearInterval(scannerTimer);
-                if (statusText) {
-                    statusText.style.color = "#ff4444"; 
-                    statusText.innerText = "!! ENGINE ERROR: " + err.message.toUpperCase();
-                }
-                if (scanRetry) scanRetry.style.display = 'block';
-                scanConfirm.classList.remove('loading');
+                clearInterval(countdownInterval);
+                scanConfirm.innerText = "RETRY SCAN";
                 scanConfirm.disabled = false;
+                if(statusText) statusText.innerText = "!! ERROR: " + err.message;
             }
         };
         reader.readAsDataURL(currentScanFile);
     };
 }
+
+// 4. RETRY & RELOAD LOGIC
+if (scanRetry) {
+    scanRetry.onclick = () => {
+        // Auto-refresh: Close modal, unlock UI, and trigger fresh click
+        scanModal.classList.remove('active');
+        setTimeout(() => {
+            scanModal.style.display = 'none';
+            document.body.style.overflow = '';
+            // Re-trigger gallery picker automatically
+            if (scanBtn) scanBtn.click();
+        }, 300);
+    };
+}
+
+// 5. CANCEL & OVERLAY CLOSING
+if (scanCancel) {
+    scanCancel.onclick = () => resetScannerUI();
+}
+
+if (scanModal) {
+    scanModal.addEventListener('click', (e) => {
+        if (e.target === scanModal) resetScannerUI();
+    });
+}
+
 
 // Remove the scroll lock after 7 seconds
 setTimeout(() => {
