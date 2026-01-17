@@ -3,7 +3,6 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 export default async function handler(req, res) {
-    // 1. ADD CORS HEADERS (Required for Vercel to respond to your frontend)
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -15,17 +14,20 @@ export default async function handler(req, res) {
     if (!image) return res.status(400).json({ error: "NO_IMAGE_PROVIDED" });
 
     try {
-        // 2. USE CORRECT GEMMA 3 MODEL ID
         const model = genAI.getGenerativeModel({ model: "gemma-3-4b-it" });
 
-        const prompt = `Quick Scan: Extract the average squad rating and total coins from this DLS screenshot. 
-        Provide a 1-sentence summary of the squad value.`;
+        // THE FIX: Added calculation logic and strict output formatting
+        const prompt = `
+            Quick Audit: Analyze this DLS squad image.
+            1. Extract Average Rating and Total Coins.
+            2. Calculate: (Avg Rating * $1) + (Coins/1000 * $1.50).
+            
+            CRITICAL: You must end the response with this exact line:
+            ### Final Price Tag: **$[Total]**
+        `;
 
-        // 3. CLEAN BASE64 DATA
-        // If the frontend sends the data URI (data:image/jpeg;base64,...), this strips it
         const base64Data = image.includes(",") ? image.split(",")[1] : image;
 
-        // 4. GENERATE MULTIMODAL CONTENT
         const result = await model.generateContent([
             {
                 inlineData: {
@@ -33,12 +35,13 @@ export default async function handler(req, res) {
                     mimeType: "image/jpeg",
                 },
             },
-            { text: prompt }, // Placing text after image often improves vision accuracy
+            { text: prompt }, 
         ]);
 
         const response = await result.response;
         const text = response.text();
 
+        // Sending both 'analysis' and 'report' ensures your frontend catches the data
         res.status(200).json({ analysis: text, report: text });
 
     } catch (error) {
