@@ -1069,16 +1069,14 @@ if (scanConfirm) {
         reader.readAsDataURL(currentScanFile);
 
 
-
 // 4. RETRY & RELOAD LOGIC (MODAL CLOSE + RE-TRIGGER)
 if (scanRetry) {
     scanRetry.onclick = () => {
-        // 1. Immediately close the modal and unlock UI
+        // Close modal and unlock UI first
         resetScannerUI(true); 
         
-        // 2. Short delay to allow modal transition to finish
+        // Short delay to allow modal transition to finish before opening gallery
         setTimeout(() => {
-            // 3. Re-trigger the main upload button automatically
             if (scanBtn) scanBtn.click();
         }, 350); 
     };
@@ -1092,45 +1090,45 @@ if (scanCancel) {
 // 6. CLICK OUTSIDE TO CLOSE
 if (scanModal) {
     scanModal.addEventListener('mousedown', (e) => {
-        // Only close if the user clicked the dark backdrop, not the modal box itself
+        // Use mousedown to prevent accidental closes when finishing a drag/swipe
         if (e.target === scanModal) {
             resetScannerUI(true);
         }
     });
 }
 
-
-// Remove the scroll lock after 7 seconds
-setTimeout(() => {
-    document.body.classList.remove('loading-lock');
-}, 7000);
 // --- 5. INITIALIZATION ENGINE (START ALL SERVICES) ---
 
 document.addEventListener('DOMContentLoaded', () => {
     const mainLoader = document.getElementById('mainLoader');
     
-    // Lock scroll while the neural engine initializes (7 seconds)
+    // 1. Initial State: Lock scroll and start the 7s timer
     document.body.classList.add('loading-lock');
+
     setTimeout(() => {
         if (mainLoader) {
+            // Smooth Fade Out
             mainLoader.style.opacity = '0';
+            
             setTimeout(() => {
                 mainLoader.style.display = 'none';
+                // 2. Unlock scroll for the entire site
                 document.body.classList.remove('loading-lock');
+                document.body.style.overflow = ''; 
                 
-                // START FIREBASE STATS SERVICES
-                // We pass 'db' because these functions need it to fetch data
+                // 3. START FIREBASE STATS SERVICES
                 try {
-                    initMarketTracker(db);
-                    initLeaderboard(db);
+                    if (typeof initMarketTracker === 'function') initMarketTracker(db);
+                    if (typeof initLeaderboard === 'function') initLeaderboard(db);
                     console.log("Neural Feeds: ACTIVE");
                 } catch (e) {
-                    console.error("Neural Feed Error:", e);
+                    console.warn("Neural Feed Error (Background services skipped):", e);
                 }
             }, 500);
         }
-    }, 7000); // Matches your site's 7-second loading sequence
+    }, 7000); // Sequence duration (7 Seconds)
 });
+
 // --- 5. STICKY FOOTER DATA SYNC ---
 // This remains here to ensure the footer updates even if the chat isn't open
 onAuthStateChanged(auth, (user) => {
