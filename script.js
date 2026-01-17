@@ -1016,11 +1016,10 @@ if (scanConfirm) {
             }
         }, 1000);
 
-        // 4. EXECUTE SCAN
+                // 4. EXECUTE SCAN (FIXED TO SHOW DETAILED ERRORS)
         const reader = new FileReader();
         reader.onload = async (event) => {
             try {
-                // IMPORTANT: Fetching from apiPath instead of just /api/scan
                 const response = await fetch(apiPath, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1030,16 +1029,20 @@ if (scanConfirm) {
                     })
                 });
 
-                if (!response.ok) throw new Error("NEURAL_LINK_FAULT");
+                // --- THE CRITICAL FIX START ---
+                if (!response.ok) {
+                    // This reads the specific JSON error we sent from Vercel
+                    const errorData = await response.json().catch(() => ({}));
+                    const specificError = errorData.message || "NEURAL_ENGINE_OFFLINE";
+                    throw new Error(specificError); 
+                }
+                // --- THE CRITICAL FIX END ---
 
                 const result = await response.json();
                 const report = result.analysis || result.report;
                 
                 if (report) {
-                    // Stop countdown immediately on success
                     clearInterval(countdownInterval);
-                    
-                    // Deduct tokens only after successful scan
                     await update(ref(db, `users/${auth.currentUser.uid}`), { 
                         tokens: increment(-tokenCost)
                     });
@@ -1047,47 +1050,52 @@ if (scanConfirm) {
                     resetScannerUI();
                     window.openVisionChat(report); 
                 } else {
-                    throw new Error("EMPTY_RESPONSE");
+                    throw new Error("EMPTY_REPORT_RETURNED");
                 }
             } catch (err) {
                 clearInterval(countdownInterval);
                 scanConfirm.innerText = "RETRY SCAN";
                 scanConfirm.disabled = false;
                 scanConfirm.classList.remove('loading');
+                
                 if(statusText) {
                     statusText.style.color = "#ff4444";
+                    // Now this will show: "!! ERROR: The model is overloaded"
                     statusText.innerText = "!! ERROR: " + err.message;
                 }
-                notify("Neural Engine Error", "error");
+                notify(err.message, "error");
             }
         };
         reader.readAsDataURL(currentScanFile);
-    };
-}
 
 
-// 4. RETRY & RELOAD LOGIC
+
+// 4. RETRY & RELOAD LOGIC (MODAL CLOSE + RE-TRIGGER)
 if (scanRetry) {
     scanRetry.onclick = () => {
-        // Auto-refresh: Close modal, unlock UI, and trigger fresh click
-        scanModal.classList.remove('active');
+        // 1. Immediately close the modal and unlock UI
+        resetScannerUI(true); 
+        
+        // 2. Short delay to allow modal transition to finish
         setTimeout(() => {
-            scanModal.style.display = 'none';
-            document.body.style.overflow = '';
-            // Re-trigger gallery picker automatically
+            // 3. Re-trigger the main upload button automatically
             if (scanBtn) scanBtn.click();
-        }, 300);
+        }, 350); 
     };
 }
 
 // 5. CANCEL & OVERLAY CLOSING
 if (scanCancel) {
-    scanCancel.onclick = () => resetScannerUI();
+    scanCancel.onclick = () => resetScannerUI(true);
 }
 
+// 6. CLICK OUTSIDE TO CLOSE
 if (scanModal) {
-    scanModal.addEventListener('click', (e) => {
-        if (e.target === scanModal) resetScannerUI();
+    scanModal.addEventListener('mousedown', (e) => {
+        // Only close if the user clicked the dark backdrop, not the modal box itself
+        if (e.target === scanModal) {
+            resetScannerUI(true);
+        }
     });
 }
 
