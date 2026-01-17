@@ -971,7 +971,7 @@ if (engineSelect) {
     };
 }
 
-// 3. CORE SCAN CONFIRM (WITH DYNAMIC ENGINE ROUTING - FIXED)
+// 3. CORE SCAN CONFIRM (WITH DYNAMIC ENGINE ROUTING - FULLY CLOSED)
 if (scanConfirm) {
     scanConfirm.onclick = async () => {
         if (!currentScanFile) return;
@@ -981,7 +981,6 @@ if (scanConfirm) {
         const tokenCost = meta.cost;
 
         // 1. DYNAMIC ROUTE SELECTION
-        // This ensures gemma1 goes to /api/gemma1, etc.
         const apiPath = selectedValue === 'scan' ? '/api/scan' : `/api/${selectedValue}`;
 
         // 2. BALANCE CHECK
@@ -998,7 +997,6 @@ if (scanConfirm) {
         scanConfirm.classList.add('loading');
         if(scanStatusContainer) scanStatusContainer.style.display = 'block';
         
-        // Reset and Start Countdown
         clearInterval(countdownInterval);
         countdownInterval = setInterval(() => {
             timeLeft--;
@@ -1016,7 +1014,7 @@ if (scanConfirm) {
             }
         }, 1000);
 
-                // 4. EXECUTE SCAN (FIXED TO SHOW DETAILED ERRORS)
+        // 4. EXECUTE SCAN
         const reader = new FileReader();
         reader.onload = async (event) => {
             try {
@@ -1029,14 +1027,11 @@ if (scanConfirm) {
                     })
                 });
 
-                // --- THE CRITICAL FIX START ---
                 if (!response.ok) {
-                    // This reads the specific JSON error we sent from Vercel
                     const errorData = await response.json().catch(() => ({}));
                     const specificError = errorData.message || "NEURAL_ENGINE_OFFLINE";
                     throw new Error(specificError); 
                 }
-                // --- THE CRITICAL FIX END ---
 
                 const result = await response.json();
                 const report = result.analysis || result.report;
@@ -1060,14 +1055,14 @@ if (scanConfirm) {
                 
                 if(statusText) {
                     statusText.style.color = "#ff4444";
-                    // Now this will show: "!! ERROR: The model is overloaded"
                     statusText.innerText = "!! ERROR: " + err.message;
                 }
                 notify(err.message, "error");
             }
         };
         reader.readAsDataURL(currentScanFile);
-
+    }; // <--- THIS WAS MISSING (Closes onclick)
+} // <--- THIS WAS MISSING (Closes if scanConfirm)
 
 // 4. RETRY & RELOAD LOGIC (MODAL CLOSE + RE-TRIGGER)
 if (scanRetry) {
