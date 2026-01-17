@@ -931,12 +931,32 @@ const engineSelect = document.getElementById('engineSelect');
 const tierTag = document.getElementById('modelTierTag');
 const engineDesc = document.getElementById('engineDescription');
 
-// Metadata mapped EXACTLY to your HTML <option> values
+// Metadata mapped EXACTLY to your HTML Level 1-4 options
 const engineMetadata = {
-    scan:   { tier: "V1 HIGHEST", cost: 5, color: "#00ffff", desc: "* Nkiwani v2: 17B-16E MoE Architecture. Maximum card detection." },
-    gemma1: { tier: "FLAGSHIP",   cost: 5, color: "#ff00ff", desc: "* Gemma 3 27B: Ultra-high precision scouting for max accuracy." },
-    gemma2: { tier: "PRO BALANCED", cost: 3, color: "#ffff00", desc: "* Gemma 3 12B: Professional speed and balanced recognition." },
-    gemma3: { tier: "ULTRA FAST", cost: 1, color: "#00ff00", desc: "* Gemma 3 4B: Rapid lightweight scan for quick squad checks." }
+    scan: { 
+        tier: "LEVEL 1", 
+        cost: 10, 
+        color: "#00ffff", 
+        desc: "Level 1: Most Intelligent but slow (Max Power)" 
+    },
+    gemma1: { 
+        tier: "LEVEL 2", 
+        cost: 5,  
+        color: "#ff00ff", 
+        desc: "Level 2: High Intelligence (Flagship)" 
+    },
+    gemma2: { 
+        tier: "LEVEL 3", 
+        cost: 3,  
+        color: "#ffff00", 
+        desc: "Level 3: Balanced (Standard)" 
+    },
+    gemma3: { 
+        tier: "LEVEL 4", 
+        cost: 1,  
+        color: "#00ff00", 
+        desc: "Level 4: Basic (Fastest Speed)" 
+    }
 };
 
 // Sync UI labels with dropdown selection
@@ -948,7 +968,24 @@ if (engineSelect) {
             tierTag.style.background = meta.color; 
             tierTag.style.color = "#000";
         }
-        if (engineDesc) engineDesc.innerText = meta.desc + ` (${meta.cost} Tokens)`;
+        // This updates the <p id="engineDescription"> to match the HTML option text + cost
+        if (engineDesc) {
+            engineDesc.innerText = `* ${meta.desc} — Cost: ${meta.cost} Tokens`;
+            engineDesc.style.color = meta.color; // Subtle touch: changes text color to match tier
+        }
+    };
+}
+
+// Sync UI labels with dropdown selection
+if (engineSelect) {
+    engineSelect.onchange = (e) => {
+        const meta = engineMetadata[e.target.value] || engineMetadata['scan'];
+        if (tierTag) { 
+            tierTag.innerText = meta.tier; 
+            tierTag.style.background = meta.color; 
+            tierTag.style.color = "#000";
+        }
+        if (engineDesc) engineDesc.innerText = meta.desc + ` (Cost: ${meta.cost} Tokens)`;
     };
 }
 
@@ -973,16 +1010,16 @@ if (scanConfirm) {
             return notify("Login Required for Neural Scan", "error");
         }
         
-        // 2. UI INITIALIZATION
+        // 2. UI INITIALIZATION (Loading State)
         scanConfirm.classList.add('loading');
         scanConfirm.disabled = true;
         if(scanStatusContainer) scanStatusContainer.style.display = 'block';
 
         const statusUpdates = [
-            `CONNECTING TO ${selectedValue.toUpperCase()}...`,
-            "CALIBRATING NEURAL SCALES...",
-            "EXTRACTING SQUAD DATA...",
-            "GENERATING SCOUT REPORT..."
+            `UPLOADING TO ${meta.tier} CORE...`,
+            "RUNNING NEURAL VISION ANALYSIS...",
+            "DECODING PLAYER STATISTICS...",
+            "CALCULATING MARKET VALUATION..."
         ];
         
         let step = 0;
@@ -1014,16 +1051,11 @@ if (scanConfirm) {
                 const report = result.analysis || result.report;
                 
                 if (report) {
-                    // 4. LEADERBOARD & TOKEN UPDATE
-                    // Calculate a rough valuation for the leaderboard based on the report
-                    const avgMatch = report.match(/(?:Average|Avg|Rating).*?(\d+\.?\d*)/i);
-                    const newValuation = avgMatch ? parseFloat(avgMatch[1]) : 0;
-
+                    // 4. TOKEN DEDUCTION & DATABASE UPDATE
+                    // Deduction happens here using a negative number in increment()
                     await update(ref(db, `users/${auth.currentUser.uid}`), { 
-                        tokens: increment(-tokenCost),
-                        lastScanValuation: newValuation,
-                        // Update 'tokens' as account value for the leaderboard
-                        tokens: increment(newValuation > 80 ? 10 : 2) 
+                        tokens: increment(-tokenCost), // CORRECTED: Subtracts tokens
+                        lastScanDate: Date.now()
                     });
 
                     if (scannerTimer) clearInterval(scannerTimer);
@@ -1034,15 +1066,7 @@ if (scanConfirm) {
                         setTimeout(() => { scanModal.style.display = 'none'; }, 300);
                     }
                     
-                    document.body.style.overflow = ''; // Unlock background
-                    
-                    // 6. MARKET TREND SYNC
-                    const topMatch = report.match(/(?:Top Rated|Best|Captain).*?[:\-]\s*([a-zA-Z\s]+)/i);
-                    if (topMatch) {
-                        const playerName = topMatch[1].trim().split('\n')[0].toLowerCase();
-                        update(ref(db, `stats/${playerName}`), { trend: 'up', lastScanned: Date.now() }).catch(()=>{});
-                    }
-
+                    document.body.style.overflow = ''; 
                     window.openVisionChat(report); 
                 }
             } catch (err) {
@@ -1059,6 +1083,8 @@ if (scanConfirm) {
         reader.readAsDataURL(currentScanFile);
     };
 }
+
+
 
 
 // Remove the scroll lock after 7 seconds
