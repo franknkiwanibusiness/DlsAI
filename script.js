@@ -971,7 +971,7 @@ if (engineSelect) {
     };
 }
 
-// 3. CORE SCAN CONFIRM (WITH COUNTDOWN & API CALL)
+// 3. CORE SCAN CONFIRM (WITH DYNAMIC ENGINE ROUTING - FIXED)
 if (scanConfirm) {
     scanConfirm.onclick = async () => {
         if (!currentScanFile) return;
@@ -980,7 +980,11 @@ if (scanConfirm) {
         const meta = engineMetadata[selectedValue] || engineMetadata['scan'];
         const tokenCost = meta.cost;
 
-        // Balance Check
+        // 1. DYNAMIC ROUTE SELECTION
+        // This ensures gemma1 goes to /api/gemma1, etc.
+        const apiPath = selectedValue === 'scan' ? '/api/scan' : `/api/${selectedValue}`;
+
+        // 2. BALANCE CHECK
         if (auth && auth.currentUser) {
             const userRef = ref(db, `users/${auth.currentUser.uid}`);
             const snap = await get(userRef);
@@ -988,12 +992,13 @@ if (scanConfirm) {
             if (userTokens < tokenCost) return notify(`Insufficient Tokens. Need ${tokenCost}.`, "error");
         }
 
-        // Initialize Countdown UI
+        // 3. UI INITIALIZATION
         let timeLeft = meta.wait;
         scanConfirm.disabled = true;
         scanConfirm.classList.add('loading');
         if(scanStatusContainer) scanStatusContainer.style.display = 'block';
         
+        // Reset and Start Countdown
         clearInterval(countdownInterval);
         countdownInterval = setInterval(() => {
             timeLeft--;
@@ -1011,16 +1016,17 @@ if (scanConfirm) {
             }
         }, 1000);
 
+        // 4. EXECUTE SCAN
         const reader = new FileReader();
         reader.onload = async (event) => {
             try {
-                const response = await fetch('/api/scan', {
+                // IMPORTANT: Fetching from apiPath instead of just /api/scan
+                const response = await fetch(apiPath, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         image: event.target.result.split(',')[1], 
-                        uid: auth.currentUser.uid,
-                        model: selectedValue 
+                        uid: auth.currentUser.uid
                     })
                 });
 
@@ -1030,24 +1036,35 @@ if (scanConfirm) {
                 const report = result.analysis || result.report;
                 
                 if (report) {
+                    // Stop countdown immediately on success
                     clearInterval(countdownInterval);
+                    
+                    // Deduct tokens only after successful scan
                     await update(ref(db, `users/${auth.currentUser.uid}`), { 
                         tokens: increment(-tokenCost)
                     });
                     
                     resetScannerUI();
                     window.openVisionChat(report); 
+                } else {
+                    throw new Error("EMPTY_RESPONSE");
                 }
             } catch (err) {
                 clearInterval(countdownInterval);
                 scanConfirm.innerText = "RETRY SCAN";
                 scanConfirm.disabled = false;
-                if(statusText) statusText.innerText = "!! ERROR: " + err.message;
+                scanConfirm.classList.remove('loading');
+                if(statusText) {
+                    statusText.style.color = "#ff4444";
+                    statusText.innerText = "!! ERROR: " + err.message;
+                }
+                notify("Neural Engine Error", "error");
             }
         };
         reader.readAsDataURL(currentScanFile);
     };
 }
+
 
 // 4. RETRY & RELOAD LOGIC
 if (scanRetry) {
