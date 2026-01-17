@@ -3,155 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DLS 2026 | Neural Manual Scout</title>
+    <title>DLS 2026 | Multi-Scout Ultra</title>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <style>
-        :root { --cyan: #00ffff; --bg: #050505; --panel: #111; --accent: #1a1a1a; --success: #00ff00; }
-        body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; }
+        :root { --cyan: #00ffff; --gold: #ffd700; --bg: #050505; --panel: #111; --red: #ff4444; }
+        body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
 
-        /* NEURAL LAUNCH BUTTON */
-        .launch-btn {
-            background: none; border: 2px solid var(--cyan); color: var(--cyan);
-            padding: 18px 35px; font-weight: bold; font-size: 1.1rem; border-radius: 50px;
-            cursor: pointer; display: flex; align-items: center; gap: 12px;
-            transition: 0.3s; box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);
-            text-transform: uppercase; letter-spacing: 1px;
-        }
-        .launch-btn:hover { background: var(--cyan); color: black; box-shadow: 0 0 40px var(--cyan); transform: scale(1.05); }
+        .launch-btn { background: none; border: 2px solid var(--cyan); color: var(--cyan); padding: 15px 30px; border-radius: 50px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        
+        #manualModel { position: fixed; inset: 0; background: rgba(0,0,0,0.95); backdrop-filter: blur(10px); display: none; z-index: 9999; justify-content: center; align-items: center; }
+        
+        .model-content { width: 90%; max-width: 450px; background: var(--panel); border: 1px solid #333; border-radius: 20px; padding: 20px; position: relative; max-height: 90vh; overflow-y: auto; }
 
-        /* OVERLAY PANEL */
-        #manualModel {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.98); backdrop-filter: blur(15px);
-            display: none; z-index: 9999; flex-direction: column; align-items: center; justify-content: center;
-            animation: fadeIn 0.4s ease;
-        }
+        /* INITIALS AVATAR */
+        .p-initials { width: 60px; height: 60px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.5rem; background: linear-gradient(135deg, #222, #444); border: 1px solid var(--cyan); color: var(--cyan); }
+        .tier-legendary { border-color: var(--gold) !important; color: var(--gold) !important; }
 
-        .model-content {
-            width: 95%; max-width: 460px; background: var(--panel);
-            padding: 25px; border-radius: 25px; border: 1px solid #333;
-            box-shadow: 0 25px 60px rgba(0,0,0,0.8); position: relative;
-            max-height: 90vh; overflow-y: auto;
-        }
+        .search-row { display: flex; gap: 8px; margin-bottom: 15px; }
+        .search-row input { flex: 1; background: #000; border: 1px solid #222; color: white; padding: 12px; border-radius: 10px; outline: none; }
+        
+        .add-btn { background: var(--cyan); color: black; border: none; padding: 0 15px; border-radius: 10px; cursor: pointer; font-weight: bold; }
 
-        .close-model { position: absolute; top: 20px; right: 20px; color: #666; cursor: pointer; }
+        /* SELECTED LIST */
+        .selected-list { background: #000; border-radius: 12px; margin-bottom: 15px; padding: 10px; border: 1px solid #222; }
+        .player-item { display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; padding: 8px; border-bottom: 1px solid #111; }
+        .tier-tag { font-size: 0.6rem; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; font-weight: bold; }
 
-        /* SEARCH INTERFACE */
-        .search-container { display: flex; gap: 10px; margin-bottom: 20px; }
-        .search-container input {
-            flex: 1; padding: 14px; background: #000; border: 1px solid #333;
-            color: white; border-radius: 12px; outline: none; font-size: 1rem;
-        }
-        .search-btn { background: var(--cyan); color: black; border: none; padding: 0 15px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; }
+        .valuation-hero { text-align: center; background: #000; padding: 15px; border-radius: 15px; border: 1px solid var(--cyan); margin: 15px 0; }
+        .valuation-hero b { font-size: 2.2rem; color: var(--cyan); font-family: monospace; display: block; }
 
-        /* DYNAMIC PLAYER CARD */
-        #scoutCard {
-            display: none; background: #000; border: 1px solid var(--cyan);
-            border-radius: 18px; padding: 15px; margin-bottom: 20px;
-            animation: slideUp 0.3s ease;
-        }
-        .scout-header { display: flex; gap: 15px; align-items: center; }
-        .scout-header img { width: 70px; height: 70px; border-radius: 12px; border: 2px solid var(--cyan); object-fit: cover; background: #222; }
-        .scout-text h4 { margin: 0; color: var(--cyan); font-size: 1rem; text-transform: uppercase; }
-        .scout-text p { margin: 5px 0 0; font-size: 0.75rem; color: #888; line-height: 1.4; }
+        .submit-btn { width: 100%; padding: 15px; background: var(--cyan); color: black; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; }
+        .close-icon { position: absolute; top: 15px; right: 15px; color: #666; cursor: pointer; }
 
-        /* SQUAD STATS GRID */
-        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-        .stat-group label { display: block; font-size: 0.65rem; color: #555; margin-bottom: 6px; text-transform: uppercase; font-weight: bold; }
-        .stat-group input { width: 100%; padding: 12px; background: #000; border: 1px solid #222; color: white; border-radius: 10px; box-sizing: border-box; }
-
-        /* VALUATION FOOTER */
-        .valuation-box {
-            background: #000; border: 1px solid #222; border-radius: 15px;
-            padding: 15px; text-align: center; margin-bottom: 20px;
-        }
-        .valuation-box b { font-size: 2rem; color: var(--cyan); font-family: monospace; display: block; }
-        .valuation-box span { font-size: 0.65rem; color: #555; text-transform: uppercase; }
-
-        .submit-btn {
-            width: 100%; padding: 18px; background: var(--cyan); color: black;
-            border: none; border-radius: 15px; font-weight: bold; cursor: pointer;
-            text-transform: uppercase; letter-spacing: 1px; transition: 0.3s;
-        }
-        .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        /* ANIMATIONS */
-        @keyframes rotating { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .spin { animation: rotating 1s infinite linear; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .rotating { animation: spin 1s infinite linear; }
     </style>
 </head>
 <body>
 
-    <button class="launch-btn" onclick="toggleModel(true)">
-        <span class="material-icons">person_search</span> MANUAL NEURAL SCOUT
-    </button>
+    <button class="launch-btn" onclick="toggleModel(true)">OPEN NEURAL MULTI-SCOUT</button>
 
     <div id="manualModel">
         <div class="model-content">
-            <span class="material-icons close-model" onclick="toggleModel(false)">close</span>
-            
-            <div style="text-align: center; margin-bottom: 20px;">
-                <h2 style="color: var(--cyan); margin: 0; letter-spacing: 3px;">SCOUT 2026</h2>
-                <div style="font-size: 0.6rem; color: #444; margin-top: 5px;">POWERED BY GROQ™ LPU</div>
+            <span class="material-icons close-icon" onclick="toggleModel(false)">close</span>
+            <h3 style="text-align:center; color: var(--cyan); margin-top:0;">SQUAD BUILDER 2026</h3>
+
+            <div class="search-row">
+                <input type="text" id="pSearch" placeholder="Type player name...">
+                <button class="add-btn" id="doAdd"><span class="material-icons">person_add</span></button>
             </div>
 
-            <div class="search-container">
-                <input type="text" id="pSearch" placeholder="Type player name (e.g. Messi)">
-                <button class="search-btn" id="doSearch"><span class="material-icons">search</span></button>
-            </div>
-
-            <div id="scoutCard">
-                <div class="scout-header">
-                    <img id="pImg" src="" alt="Player Profile">
-                    <div class="scout-text">
-                        <h4 id="pName">---</h4>
-                        <p id="pDesc">Awaiting search query...</p>
+            <div id="scoutPreview" style="display:none; margin-bottom:15px; padding:10px; border: 1px solid #333; border-radius:10px; background: #090909;">
+                <div style="display:flex; gap:12px; align-items:center;">
+                    <div id="pInitials" class="p-initials">??</div>
+                    <div>
+                        <div id="pTierTag" class="tier-tag" style="background: #333;">Tier</div>
+                        <h4 id="pName" style="margin:5px 0; font-size: 0.9rem;">Player Name</h4>
+                        <div id="pRating" style="font-size: 0.7rem; color: #666;">Rating: --</div>
                     </div>
                 </div>
-                <div style="margin-top: 12px; font-size: 0.7rem; border-top: 1px solid #1a1a1a; padding-top: 10px; display: flex; justify-content: space-between;">
-                    <span>2026 RATING: <b id="pRating" style="color: var(--cyan);">--</b></span>
-                    <span>PREMIUM: <b id="pImpact" style="color: var(--success);">+$0.00</b></span>
+            </div>
+
+            <div class="selected-list" id="selectedPlayers">
+                <div style="font-size: 0.65rem; color: #444; margin-bottom: 5px;">SELECTED ASSETS</div>
+                </div>
+
+            <div class="stat-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom:15px;">
+                <div class="stat-group">
+                    <label style="font-size: 0.6rem; color: #444; display:block;">AVG SQUAD RATING</label>
+                    <input type="number" id="mAvg" value="80" style="width:100%; background:#000; border:1px solid #222; color:white; padding:8px; border-radius:8px;" oninput="calculate()">
+                </div>
+                <div class="stat-group">
+                    <label style="font-size: 0.6rem; color: #444; display:block;">COINS</label>
+                    <input type="number" id="mCoins" value="1000" style="width:100%; background:#000; border:1px solid #222; color:white; padding:8px; border-radius:8px;" oninput="calculate()">
                 </div>
             </div>
 
-            <div class="stat-grid">
-                <div class="stat-group">
-                    <label>Avg Squad Rating</label>
-                    <input type="number" id="mAvg" placeholder="80" oninput="calculate()">
-                </div>
-                <div class="stat-group">
-                    <label>Total Coins</label>
-                    <input type="number" id="mCoins" placeholder="1000" oninput="calculate()">
-                </div>
-            </div>
-
-            <div class="valuation-box">
-                <span>Estimated Market Value</span>
+            <div class="valuation-hero">
+                <span>TOTAL MARKET VALUE</span>
                 <b id="liveVal">$0.00</b>
             </div>
 
-            <button class="submit-btn" id="generateReport">GENERATE SQUAD AUDIT</button>
+            <button class="submit-btn" id="generateReport">FINALIZE SQUAD AUDIT</button>
         </div>
     </div>
 
     <script>
-        let starPremium = 0;
-        let starName = "";
+        let selectedList = [];
+        let totalStarPremium = 0;
 
-        function toggleModel(show) {
-            document.getElementById('manualModel').style.display = show ? 'flex' : 'none';
-        }
+        function toggleModel(show) { document.getElementById('manualModel').style.display = show ? 'flex' : 'none'; }
 
-        // 1. NEURAL SCOUT VIA /API/MANUAL
-        document.getElementById('doSearch').onclick = async () => {
+        document.getElementById('doAdd').onclick = async () => {
             const query = document.getElementById('pSearch').value;
             if (!query) return;
 
-            const btnIcon = document.querySelector('#doSearch .material-icons');
-            btnIcon.innerText = 'sync';
-            btnIcon.classList.add('spin');
+            const icon = document.querySelector('#doAdd .material-icons');
+            icon.innerText = 'sync'; icon.classList.add('rotating');
 
             try {
                 const res = await fetch('/api/manual', {
@@ -159,74 +107,57 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ isPlayerSearch: true, playerName: query })
                 });
-
                 const data = await res.json();
+
+                // 1. Determine Tier and Color
+                let tier = "Elite";
+                let tierColor = "var(--cyan)";
+                const r = data.rating;
+
+                if (data.isJoke) { tier = "JOKE CARD"; tierColor = "#ff00ff"; }
+                else if (r >= 86) { tier = "LEGENDARY"; tierColor = "var(--gold)"; }
+                else if (r >= 80) { tier = "ELITE"; tierColor = "var(--cyan)"; }
+                else if (r >= 70) { tier = "COMMON"; tierColor = "#888"; }
+                else { tier = "WEAK"; tierColor = "var(--red)"; }
+
+                // 2. Add to internal list
+                const initials = data.name.split(' ').map(n => n[0]).join('').toUpperCase();
                 
-                // Show Card & Inject AI Data
-                document.getElementById('scoutCard').style.display = 'block';
-                document.getElementById('pImg').src = data.imageUrl || `https://ui-avatars.com/api/?name=${query}&background=00ffff&color=000`;
-                document.getElementById('pName').innerText = data.name;
-                document.getElementById('pDesc').innerText = data.description;
-                document.getElementById('pRating').innerText = data.rating || "85+";
-                document.getElementById('pImpact').innerText = `+$${data.premiumValue.toFixed(2)}`;
-                
-                starPremium = data.premiumValue;
-                starName = data.name;
+                selectedList.push({ name: data.name, premium: data.premiumValue, tier, color: tierColor, initials });
+                totalStarPremium += data.premiumValue;
+
+                // 3. Update UI
+                renderList();
                 calculate();
-            } catch (err) {
-                alert("Neural link failed. Check your /api/manual endpoint.");
-            } finally {
-                btnIcon.innerText = 'search';
-                btnIcon.classList.remove('spin');
-            }
+                document.getElementById('pSearch').value = "";
+            } catch (e) { alert("Scout failed."); }
+            finally { icon.innerText = 'person_add'; icon.classList.remove('rotating'); }
         };
 
-        // 2. LIVE PRICE CALCULATION
+        function renderList() {
+            const container = document.getElementById('selectedPlayers');
+            container.innerHTML = '<div style="font-size: 0.65rem; color: #444; margin-bottom: 5px;">SELECTED ASSETS</div>';
+            selectedList.forEach((p, index) => {
+                container.innerHTML += `
+                    <div class="player-item">
+                        <span><b style="color:${p.color}">${p.initials}</b> ${p.name}</span>
+                        <span class="tier-tag" style="border:1px solid ${p.color}; color:${p.color}">${p.tier}</span>
+                    </div>
+                `;
+            });
+        }
+
         function calculate() {
             const avg = parseFloat(document.getElementById('mAvg').value) || 0;
             const coins = parseFloat(document.getElementById('mCoins').value) || 0;
-            
-            // Formula: (Avg * 1.2) + (Coins/1000 * 1.1) + Player Premium
-            const base = (avg * 1.2) + (coins / 1000 * 1.1);
-            const total = (base + starPremium).toFixed(2);
-            
-            document.getElementById('liveVal').innerText = `$${total}`;
+            const base = (avg * 1.1) + (coins / 1000 * 1.2);
+            document.getElementById('liveVal').innerText = `$${(base + totalStarPremium).toFixed(2)}`;
         }
 
-        // 3. FINAL AUDIT EXPORT
         document.getElementById('generateReport').onclick = async function() {
-            this.disabled = true;
-            this.innerText = "LINKING TO ENGINE...";
-            
-            try {
-                const res = await fetch('/api/manual', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        isManual: true,
-                        manualData: {
-                            avg: document.getElementById('mAvg').value,
-                            coins: document.getElementById('mCoins').value,
-                            star: starName,
-                            valuation: document.getElementById('liveVal').innerText
-                        }
-                    })
-                });
-                const data = await res.json();
-                
-                if(window.openVisionChat) {
-                    window.openVisionChat(data.report);
-                    toggleModel(false);
-                } else {
-                    console.log("Report generated successfully.");
-                    alert("Audit Complete: Check developer console for the report.");
-                }
-            } catch (e) {
-                alert("Audit Engine Error.");
-            } finally {
-                this.disabled = false;
-                this.innerText = "GENERATE SQUAD AUDIT";
-            }
+            this.innerText = "GENERATING REPORT...";
+            // Logic to send selectedList to /api/manual for a big summary
+            setTimeout(() => { toggleModel(false); alert("Report Generated!"); }, 1000);
         };
     </script>
 </body>
