@@ -963,29 +963,19 @@ const engineMetadata = {
 if (engineSelect) {
     engineSelect.onchange = (e) => {
         const meta = engineMetadata[e.target.value] || engineMetadata['scan'];
+        
+        // Update the Floating Tier Tag
         if (tierTag) { 
             tierTag.innerText = meta.tier; 
             tierTag.style.background = meta.color; 
             tierTag.style.color = "#000";
         }
-        // This updates the <p id="engineDescription"> to match the HTML option text + cost
+        
+        // Update the Engine Description text below the dropdown
         if (engineDesc) {
             engineDesc.innerText = `* ${meta.desc} — Cost: ${meta.cost} Tokens`;
-            engineDesc.style.color = meta.color; // Subtle touch: changes text color to match tier
+            engineDesc.style.color = meta.color; 
         }
-    };
-}
-
-// Sync UI labels with dropdown selection
-if (engineSelect) {
-    engineSelect.onchange = (e) => {
-        const meta = engineMetadata[e.target.value] || engineMetadata['scan'];
-        if (tierTag) { 
-            tierTag.innerText = meta.tier; 
-            tierTag.style.background = meta.color; 
-            tierTag.style.color = "#000";
-        }
-        if (engineDesc) engineDesc.innerText = meta.desc + ` (Cost: ${meta.cost} Tokens)`;
     };
 }
 
@@ -1051,10 +1041,9 @@ if (scanConfirm) {
                 const report = result.analysis || result.report;
                 
                 if (report) {
-                    // 4. TOKEN DEDUCTION & DATABASE UPDATE
-                    // Deduction happens here using a negative number in increment()
+                    // 4. TOKEN DEDUCTION ONLY (Subtracting the cost)
                     await update(ref(db, `users/${auth.currentUser.uid}`), { 
-                        tokens: increment(-tokenCost), // CORRECTED: Subtracts tokens
+                        tokens: increment(-tokenCost), 
                         lastScanDate: Date.now()
                     });
 
@@ -1083,9 +1072,6 @@ if (scanConfirm) {
         reader.readAsDataURL(currentScanFile);
     };
 }
-
-
-
 
 // Remove the scroll lock after 7 seconds
 setTimeout(() => {
