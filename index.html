@@ -647,6 +647,278 @@
         </table>
     </div>
 </section>
+<style>
+    :root {
+        --cyan-main: #00ffff;
+        --dark-bg: #000;
+        --card-bg: #111;
+        --border-color: #333;
+        --glass-bg: rgba(20, 20, 20, 0.7); 
+        --glass-border: rgba(0, 255, 255, 0.2);
+    }
+
+    .main-container {
+        max-width: 800px;
+        margin: 20px auto;
+        padding: 20px;
+        background-color: var(--dark-bg);
+        font-family: 'Inter', sans-serif;
+        color: #fff;
+    }
+
+    .glass-header {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 15px;
+        padding: 20px;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .glass-header h1 {
+        margin: 0;
+        font-size: 1.2rem;
+        color: #fff;
+        text-transform: uppercase;
+        letter-spacing: 4px;
+        font-weight: 900;
+        font-style: italic;
+    }
+
+    .glass-header p {
+        margin: 8px 0 0 0;
+        font-size: 0.7rem;
+        color: var(--cyan-main);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .image-wrapper {
+        position: relative;
+        width: 100%;
+        padding-top: 56.25%; 
+        overflow: hidden;
+        border-radius: 15px; 
+        margin-bottom: 20px;
+        border: 1px solid var(--border-color);
+    }
+
+    .image-wrapper img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .sub-title {
+        font-size: 0.8rem;
+        color: #666;
+        margin-bottom: 15px;
+        text-transform: uppercase;
+        font-weight: 800;
+        letter-spacing: 1px;
+    }
+
+    .engine-select {
+        width: 100%;
+        background: #000;
+        color: #fff;
+        border: 1px solid var(--cyan-main);
+        padding: 14px;
+        border-radius: 10px;
+        font-family: monospace;
+        font-size: 0.8rem;
+        cursor: pointer;
+        outline: none;
+        margin-bottom: 25px;
+    }
+
+    .faq-item {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        margin-bottom: 10px;
+        overflow: hidden;
+        transition: 0.3s;
+    }
+
+    .faq-question {
+        width: 100%;
+        padding: 18px;
+        background: none;
+        border: none;
+        color: #fff;
+        text-align: left;
+        font-family: monospace;
+        font-size: 0.85rem;
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .faq-answer {
+        padding: 0 18px;
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease-out, padding 0.3s ease;
+        color: #999;
+        font-size: 0.8rem;
+        line-height: 1.6;
+    }
+
+    .faq-item.active { border-color: var(--cyan-main); }
+    .faq-item.active .faq-answer {
+        max-height: 200px;
+        padding: 18px;
+        border-top: 1px solid #222;
+    }
+
+    /* Navigation Buttons */
+    .nav-controls {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 30px;
+        gap: 10px;
+    }
+
+    .nav-btn {
+        flex: 1;
+        background: #111;
+        border: 1px solid #333;
+        color: #fff;
+        padding: 15px;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+
+    .nav-btn:hover { background: #1a1a1a; border-color: var(--cyan-main); }
+    .nav-btn.active-nav { background: var(--cyan-main); color: #000; border: none; }
+</style>
+
+<section class="main-container">
+    <div class="glass-header">
+        <h1 id="hubTitle">MODELS FAQ</h1>
+        <p id="hubSubtitle">Expert Intelligence & Performance</p>
+    </div>
+
+    <div class="image-wrapper">
+        <img src="https://i.imgur.com/2CNxzby.jpeg" alt="DLS AI Header">
+    </div>
+
+    <div id="modelsSection">
+        <h2 class="sub-title">Intelligence Settings</h2>
+        <select id="engineSelect" class="engine-select" onchange="updateModelsFAQ()">
+            <option value="scan">Level 1: Ultra (Smartest / Slowest)</option>
+            <option value="gemma1">Level 2: Pro (High IQ / Moderate Speed)</option>
+            <option value="gemma2">Level 3: Standard (Balanced / Fast)</option>
+            <option value="gemma3">Level 4: Flash (Basic / Instant)</option>
+        </select>
+    </div>
+
+    <div id="faq-container"></div>
+
+    <div class="nav-controls">
+        <button class="nav-btn active-nav" id="btnModels" onclick="switchTab('models')">Models FAQ</button>
+        <button class="nav-btn" id="btnHow" onclick="switchTab('how')">How It Works</button>
+    </div>
+</section>
+
+<script>
+    const modelsFaq = {
+        scan: [
+            { q: "Why is Ultra slow?", a: "Ultra uses maximum neural depth to verify DLS card stats, prioritizing accuracy over speed." },
+            { q: "When should I use this?", a: "Best for complex squad valuations where player levels are maxed out." }
+        ],
+        gemma1: [
+            { q: "How efficient is Pro?", a: "It provides near-Ultra reasoning at significantly higher speeds for quick scans." }
+        ],
+        gemma2: [
+            { q: "What is Standard mode?", a: "The daily-driver model. Fast enough for instant squad chat." }
+        ],
+        gemma3: [
+            { q: "Why use Flash?", a: "Flash is built for instant fact-checks. Fastest response time possible." }
+        ]
+    };
+
+    const howItWorksFaq = [
+        { q: "How do I upload my squad?", a: "Go to your DLS Team Management screen, take a screenshot of your players, and click 'Upload Squad' on our homepage." },
+        { q: "How does the AI scan work?", a: "The Nkiwani Vision engine identifies player names, card types (Rare/Legendary), and levels to find their current market value." },
+        { q: "How to manually calculate value?", a: "Sum up the base coin price of all your players, then add a 500-coin bonus for every 'Maxed' player in your starting XI." },
+        { q: "Is my account safe?", a: "Yes. DLSVALUE only reads image data. We never ask for your login credentials or game files." }
+    ];
+
+    let currentTab = 'models';
+
+    function switchTab(tab) {
+        currentTab = tab;
+        const modelsDiv = document.getElementById('modelsSection');
+        const hubTitle = document.getElementById('hubTitle');
+        const hubSubtitle = document.getElementById('hubSubtitle');
+        const btnModels = document.getElementById('btnModels');
+        const btnHow = document.getElementById('btnHow');
+
+        if (tab === 'models') {
+            modelsDiv.style.display = 'block';
+            hubTitle.innerText = "MODELS FAQ";
+            hubSubtitle.innerText = "Expert Intelligence & Performance Guide";
+            btnModels.classList.add('active-nav');
+            btnHow.classList.remove('active-nav');
+            updateModelsFAQ();
+        } else {
+            modelsDiv.style.display = 'none';
+            hubTitle.innerText = "HOW IT WORKS";
+            hubSubtitle.innerText = "Squad Scanning & Valuation Tutorial";
+            btnHow.classList.add('active-nav');
+            btnModels.classList.remove('active-nav');
+            renderHowItWorks();
+        }
+    }
+
+    function updateModelsFAQ() {
+        const selected = document.getElementById('engineSelect').value;
+        renderFaq(modelsFaq[selected]);
+    }
+
+    function renderHowItWorks() {
+        renderFaq(howItWorksFaq);
+    }
+
+    function renderFaq(data) {
+        const container = document.getElementById('faq-container');
+        container.innerHTML = data.map((item) => `
+            <div class="faq-item">
+                <button class="faq-question" onclick="toggleFaq(this)">
+                    ${item.q} <span>+</span>
+                </button>
+                <div class="faq-answer">${item.a}</div>
+            </div>
+        `).join('');
+    }
+
+    function toggleFaq(btn) {
+        const item = btn.parentElement;
+        document.querySelectorAll('.faq-item').forEach(el => {
+            if (el !== item) el.classList.remove('active');
+        });
+        item.classList.toggle('active');
+        const span = btn.querySelector('span');
+        span.textContent = item.classList.contains('active') ? '−' : '+';
+    }
+
+    // Initialize
+    updateModelsFAQ();
+</script>
+
 <div id="floatingChatBubble" class="floating-chat-trigger">
     <div class="chat-pulse"></div>
     <span class="material-icons">terminal</span>
