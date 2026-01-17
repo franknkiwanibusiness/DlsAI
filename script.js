@@ -644,38 +644,30 @@ const scanBox = document.getElementById('scanActions');
 const scanStatusContainer = document.getElementById('scanStatusContainer');
 const statusText = document.getElementById('liveStatusText');
 
-// --- 2. UI UTILITIES (LUXE REDESIGN + MATH PATCH) ---
+// --- 2. UI UTILITIES (LUXE REDESIGN + FIREBASE PERSISTENCE) ---
 
-window.openVisionChat = (reportText) => {
+window.openVisionChat = async (reportText) => {
     const resultsModal = document.getElementById('visionResultsModal');
     const output = document.getElementById('reportOutput');
     const networthDisplay = document.getElementById('networthAmount');
 
-    // 1. MATH LOGIC
+    // 1. SMART EXTRACTION (Priority: AI's Final Total)
+    // Looks for "Total: $60" or "Valuation: $60" or "$60" near the word Total
+    const totalMatch = reportText.match(/(?:TOTAL|VALUATION|WORTH).*?\$?\s*(\d+[\d,.]*)/i);
     const avgMatch = reportText.match(/(?:Average|Avg|Rating).*?(\d+\.?\d*)/i);
-    const coinMatch = reportText.match(/(?:Coins|Gold|C).*?(\d+[\d,.]*)/i);
     const topMatch = reportText.match(/(?:Top Rated|Best|Captain).*?[:\-]\s*([a-zA-Z\s]+)/i);
     
-    const avg = avgMatch ? parseFloat(avgMatch[1]) : 0;
-    const coinsRaw = coinMatch ? coinMatch[1].replace(/[,.]/g, '') : "0";
-    const coins = parseInt(coinsRaw);
-    const finalPrice = (avg + (coins / 1000) * 1.50).toFixed(2);
+    // If AI says $60 in "Total", we show $60. Fallback to math only if AI fails to give a total.
+    const finalPrice = totalMatch ? parseFloat(totalMatch[1].replace(/,/g, '')).toFixed(2) : "0.00";
+    const avgValue = avgMatch ? parseFloat(avgMatch[1]).toFixed(2) : "0.00";
 
-    // 2. UI OPENING & SCROLL LOCK
-    if (scanModal) {
-        scanModal.classList.remove('active');
-        setTimeout(() => { scanModal.style.display = 'none'; }, 300);
-    }
+    // 2. UI TRANSITION & RESET SCANNER
+    resetScannerUI(false); 
 
     if (resultsModal) {
         resultsModal.style.display = 'flex';
-        // Apply BOTH locks to be safe
-        document.body.classList.add('modal-open');
         document.body.style.overflow = 'hidden'; 
-        
-        setTimeout(() => {
-            resultsModal.classList.add('active');
-        }, 10);
+        setTimeout(() => resultsModal.classList.add('active'), 10);
         resultsModal.scrollTop = 0;
     }
 
@@ -683,29 +675,34 @@ window.openVisionChat = (reportText) => {
     if (networthDisplay) networthDisplay.innerText = `$${finalPrice}`;
     document.getElementById('analyzedPreview').src = scanPreview.src;
     document.getElementById('statTopPlayer').innerText = topMatch ? topMatch[1].trim().split('\n')[0] : "Detecting...";
-    document.getElementById('statExpensive').innerText = `$${avg.toFixed(2)}`;
+    document.getElementById('statExpensive').innerText = `$${avgValue}`;
     document.getElementById('statCount').innerText = "11+";
 
-    // 4. TYPEWRITER (With Auto-Scroll Fix)
+    // 4. AUTO-SAVE TO FIREBASE (Saves every generation)
+    if (auth.currentUser) {
+        const scanId = "scan_" + Date.now();
+        const scanData = {
+            id: scanId,
+            valuation: `$${finalPrice}`,
+            report: reportText,
+            timestamp: Date.now(),
+            imageUrl: scanPreview.src // Store local preview or update with Imgur later
+        };
+        // Save to user history
+        await set(ref(db, `users/${auth.currentUser.uid}/history/${scanId}`), scanData);
+    }
+
+    // 5. TYPEWRITER EFFECT
     if (output) {
         output.innerText = ""; 
         let i = 0;
-        
-        // Wait for modal animation to settle before typing
         setTimeout(() => {
             const type = () => {
                 if (i < reportText.length) {
                     output.innerText += reportText.charAt(i);
                     i++;
-                    
-                    // Crucial: Scroll the modal itself if it's the one with the scrollbar
                     resultsModal.scrollTop = resultsModal.scrollHeight;
-                    
-                    // Also try scrolling the chat body if that's where your overflow is
-                    const chatBody = document.querySelector('.chat-body-fs');
-                    if (chatBody) chatBody.scrollTop = chatBody.scrollHeight;
-                    
-                    setTimeout(type, 8);
+                    setTimeout(type, 5); // Fast typing
                 }
             };
             type();
@@ -713,142 +710,101 @@ window.openVisionChat = (reportText) => {
     }
 };
 
-const resetScannerUI = () => {
-    if(scanModal) {
-        scanModal.classList.remove('active');
-        setTimeout(() => {
-            scanModal.style.display = 'none';
-        }, 300);
+const resetScannerUI = (closeModal = true) => {
+    if (scannerTimer) clearInterval(scannerTimer);
+    if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
     }
 
-    // --- FIX: FULL SCROLL RESTORATION ---
-    document.body.style.overflow = '';             // Clears direct style
-    document.body.classList.remove('loading-lock'); // Clears the CSS lock class
-    document.body.classList.remove('modal-open');   // Clears the vision-modal lock
-
-    // Reset internal logic
-    if (scannerTimer) clearInterval(scannerTimer);
     if(scanConfirm) { 
         scanConfirm.classList.remove('loading'); 
         scanConfirm.disabled = false; 
+        scanConfirm.innerHTML = `<span class="material-icons">memory</span> START SCAN`;
     }
-    if(scanBox) scanBox.style.display = 'flex';
+
+    if(closeModal && scanModal) {
+        scanModal.classList.remove('active');
+        setTimeout(() => { scanModal.style.display = 'none'; }, 300);
+        document.body.style.overflow = '';             
+        document.body.classList.remove('modal-open');   
+    }
+
     if(scanRetry) scanRetry.style.display = 'none';
     if(scanStatusContainer) scanStatusContainer.style.display = 'none';
-    if(statusText) { 
-        statusText.innerText = ""; 
-        statusText.style.color = "#00ffff"; 
-    }
-    
-    currentScanFile = null;
+    if(statusText) statusText.innerText = ""; 
 };
 
-window.closeResults = () => {
-    const resModal = document.getElementById('visionResultsModal');
-    if (resModal) {
-        resModal.classList.remove('active');
-        setTimeout(() => {
-            resModal.style.display = 'none';
-            resetScannerUI(); // Run the full cleanup
-        }, 300);
-    } else {
-        resetScannerUI();
-    }
-};
+// --- SHARE & SALE ACTIONS ---
 
-// A. SHARE REPORT LOGIC (Universal Fallback)
 document.getElementById('shareReportBtn').onclick = async () => {
     const btn = document.getElementById('shareReportBtn');
-    const originalContent = btn.innerHTML;
-    const currentUrl = window.location.href;
-    const shareMsg = `🔥 Check out my DLS Squad Valuation! Scan yours at DLSVALUE.`;
+    if (!auth.currentUser) return notify("Login to Share", "error");
 
     btn.innerHTML = "<span>SYNCING...</span>";
     btn.disabled = true;
 
     try {
-        const preview = document.getElementById('analyzedPreview');
-        if (!preview || !preview.src || preview.src.includes('base64')) {
-            // If image isn't ready or too large, share the main site instead of crashing
-            throw new Error("Local Only");
-        }
-
-        const imgUrl = await uploadToImgur(preview.src);
+        const valuation = document.getElementById('networthAmount').innerText;
         const shareId = Math.random().toString(36).substring(7);
-        const uniqueUrl = `${window.location.origin}/report.html?uid=${auth.currentUser.uid}&id=${shareId}`;
+        const shareUrl = `${window.location.origin}/report.html?uid=${auth.currentUser.uid}&id=${shareId}`;
 
-        // Save to Firebase
-        await set(ref(db, `reports/${auth.currentUser.uid}/${shareId}`), {
+        // Prepare cloud link
+        const imgUrl = await uploadToImgur(document.getElementById('analyzedPreview').src);
+        
+        await set(ref(db, `public_reports/${shareId}`), {
+            owner: auth.currentUser.uid,
             image: imgUrl,
-            valuation: document.getElementById('networthAmount').innerText,
-            reportText: document.getElementById('reportOutput').innerText,
+            valuation: valuation,
             timestamp: Date.now()
         });
 
         if (navigator.share) {
-            await navigator.share({ title: 'DLS Report', text: shareMsg, url: uniqueUrl });
+            await navigator.share({ title: 'DLS Squad Report', text: `My squad is worth ${valuation}!`, url: shareUrl });
         } else {
-            showSocialMenu(uniqueUrl, shareMsg);
+            // Fallback: Copy to clipboard
+            navigator.clipboard.writeText(shareUrl);
+            notify("Link Copied!", "success");
         }
     } catch (err) {
-        // FALLBACK: Share the current browser URL if upload fails
-        if (navigator.share) {
-            await navigator.share({ title: 'DLSVALUE', text: shareMsg, url: currentUrl });
-        } else {
-            showSocialMenu(currentUrl, shareMsg);
-        }
+        notify("Sync Failed", "error");
     } finally {
-        btn.innerHTML = originalContent;
+        btn.innerHTML = `<span class="material-icons">share</span> SHARE`;
         btn.disabled = false;
     }
 };
-// B. GENERATE SALE LINK LOGIC (Deduct & Save)
+
 document.getElementById('generateSaleBtn').onclick = async () => {
     const btn = document.getElementById('generateSaleBtn');
-    if (!auth.currentUser) return notify("Login Required", "error");
-
     const userRef = ref(db, `users/${auth.currentUser.uid}`);
+    
     const snap = await get(userRef);
-    const currentTokens = snap.exists() ? snap.val().tokens : 0;
-    
-    if (currentTokens < 5) return notify("5 Tokens Required", "error");
-    
+    if ((snap.val().tokens || 0) < 5) return notify("5 Tokens Required", "error");
+
     btn.innerText = "GENERATING...";
     btn.disabled = true;
 
     try {
-        const preview = document.getElementById('analyzedPreview');
-        const imgUrl = await uploadToImgur(preview.src);
         const saleCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-        const valuation = document.getElementById('networthAmount').innerText;
+        const imgUrl = await uploadToImgur(document.getElementById('analyzedPreview').src);
 
-        // 1. Deduct Tokens Immediately
+        // Deduct 5 Tokens
         await update(userRef, { tokens: increment(-5) });
 
-        // 2. Save to User's Profile Links
-        await set(ref(db, `links/${auth.currentUser.uid}/${saleCode}`), {
-            title: `SALE: ${valuation} Squad`,
-            url: `${window.location.origin}/sale.html?code=${saleCode}`,
-            timestamp: Date.now()
-        });
-
-        // 3. Save Global Sale Data
+        // Save Sale
         await set(ref(db, `sales/${saleCode}`), {
             owner: auth.currentUser.uid,
             image: imgUrl,
-            valuation: valuation,
-            description: document.getElementById('reportOutput').innerText,
+            valuation: document.getElementById('networthAmount').innerText,
+            report: document.getElementById('reportOutput').innerText,
             timestamp: Date.now()
         });
 
-        notify("Success! Check your Profile for the link", "success");
-        btn.innerText = "LINK SAVED TO PROFILE";
-        
+        notify(`Sale Link Created: ${saleCode}`, "success");
+        btn.innerText = "SALE LINK ACTIVE";
     } catch (e) {
-        console.error(e);
-        btn.innerText = "GENERATE SALE LINK";
+        notify("Generation Error", "error");
         btn.disabled = false;
-        notify("Process Failed", "error");
     }
 };
 
