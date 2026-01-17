@@ -934,28 +934,28 @@ const engineDesc = document.getElementById('engineDescription');
 // Metadata mapped EXACTLY to your HTML Level 1-4 options
 const engineMetadata = {
     scan: { 
-        tier: "LEVEL 1", 
-        cost: 10, 
+        tier: "LEVEL 1 (5 tokens)", 
+        cost: 5, 
         color: "#00ffff", 
         desc: "Level 1: Most Intelligent but slow (Max Power)" 
     },
     gemma1: { 
         tier: "LEVEL 2", 
-        cost: 5,  
+        cost: 4,  
         color: "#ff00ff", 
-        desc: "Level 2: High Intelligence (Flagship)" 
+        desc: "Level 2 (4 tokens): High Intelligence (Flagship)" 
     },
     gemma2: { 
         tier: "LEVEL 3", 
         cost: 3,  
         color: "#ffff00", 
-        desc: "Level 3: Balanced (Standard)" 
+        desc: "Level 3 (3 tokens): Balanced (Standard)" 
     },
     gemma3: { 
         tier: "LEVEL 4", 
-        cost: 1,  
+        cost: 2,  
         color: "#00ff00", 
-        desc: "Level 4: Basic (Fastest Speed)" 
+        desc: "Level 4 (2 tokens): Basic (Fastest Speed)" 
     }
 };
 
