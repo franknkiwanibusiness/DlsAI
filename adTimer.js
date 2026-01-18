@@ -1,42 +1,56 @@
 import { db } from "./firebase.js";
 import { ref, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-let timerStarted = false;
+let started = false;
 
-export async function startTimedAds() {
-    if (timerStarted) return;
-    timerStarted = true;
+function boot() {
+  if (started) return;
+  started = true;
 
-    const snap = await get(ref(db, "codes"));
-    if (!snap.exists()) return;
+  startTimedAds();
+}
 
-    const { loaderEnabled, interval, items } = snap.val();
-    if (!loaderEnabled || !items) return;
+// ensure DOM is ready
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", boot);
+} else {
+  boot();
+}
 
-    const delay = Math.max(interval || 30000, 10000); // minimum 10s
+async function startTimedAds() {
+  console.log("🔥 Ad timer started");
 
-    setInterval(() => {
-        Object.values(items).forEach(item => {
-            if (!item.enabled) return;
-            inject(item.content);
-        });
-    }, delay);
+  const snap = await get(ref(db, "codes"));
+  if (!snap.exists()) return;
+
+  const { loaderEnabled, interval, items } = snap.val();
+  if (!loaderEnabled || !items) return;
+
+  const delay = interval || 30000;
+
+  setInterval(() => {
+    Object.values(items).forEach(item => {
+      if (!item.enabled) return;
+      inject(item.content);
+    });
+  }, delay);
 }
 
 function inject(code) {
-    // prevent duplicate execution (important for ads)
-    if (sessionStorage.getItem("ad-fired")) return;
+  // TEMP: allow firing for testing
+  // remove this block later for safety
+  // if (sessionStorage.getItem("ad-fired")) return;
 
-    const temp = document.createElement("div");
-    temp.innerHTML = code;
+  const temp = document.createElement("div");
+  temp.innerHTML = code;
 
-    temp.querySelectorAll("script").forEach(old => {
-        const s = document.createElement("script");
-        s.async = true;
-        if (old.src) s.src = old.src;
-        else s.textContent = old.textContent;
-        document.body.appendChild(s);
-    });
+  temp.querySelectorAll("script").forEach(old => {
+    const s = document.createElement("script");
+    if (old.src) s.src = old.src;
+    else s.textContent = old.textContent;
+    s.async = true;
+    document.body.appendChild(s);
+  });
 
-    sessionStorage.setItem("ad-fired", "1");
+  // sessionStorage.setItem("ad-fired", "1");
 }
