@@ -986,25 +986,34 @@ document.addEventListener('change', (e) => {
     }
 });
 
-
-// 3. CORE SCAN CONFIRM (WITH DYNAMIC ENGINE ROUTING - FULLY CLOSED)
+// 3. CORE SCAN CONFIRM (WITH DYNAMIC ENGINE ROUTING - FULLY PATCHED)
 if (scanConfirm) {
     scanConfirm.onclick = async () => {
         if (!currentScanFile) return;
 
-        const selectedValue = engineSelect ? engineSelect.value : 'scan';
+        // FIX 1: Explicitly get the value from the DOM so it's never 'undefined'
+        const selectElement = document.getElementById('engineSelect');
+        const selectedValue = selectElement ? selectElement.value : 'scan';
         const meta = engineMetadata[selectedValue] || engineMetadata['scan'];
         const tokenCost = meta.cost;
 
-        // 1. DYNAMIC ROUTE SELECTION
-        const apiPath = selectedValue === 'scan' ? '/api/scan' : `/api/${selectedValue}`;
+        // FIX 2: Vercel Pathing. Using .js extension to match your file structure image
+        const apiPath = `/api/${selectedValue}.js`;
 
         // 2. BALANCE CHECK
         if (auth && auth.currentUser) {
-            const userRef = ref(db, `users/${auth.currentUser.uid}`);
-            const snap = await get(userRef);
-            const userTokens = snap.exists() ? (snap.val().tokens || 0) : 0;
-            if (userTokens < tokenCost) return notify(`Insufficient Tokens. Need ${tokenCost}.`, "error");
+            try {
+                const userRef = ref(db, `users/${auth.currentUser.uid}`);
+                const snap = await get(userRef);
+                const userTokens = snap.exists() ? (snap.val().tokens || 0) : 0;
+                
+                if (userTokens < tokenCost) {
+                    return notify(`Need ${tokenCost} tokens. You have ${userTokens.toFixed(2)}`, "error");
+                }
+            } catch (e) {
+                console.error("Balance Check Error:", e);
+                return notify("Neural Link Sync Failed", "error");
+            }
         }
 
         // 3. UI INITIALIZATION
@@ -1012,6 +1021,10 @@ if (scanConfirm) {
         scanConfirm.disabled = true;
         scanConfirm.classList.add('loading');
         if(scanStatusContainer) scanStatusContainer.style.display = 'block';
+        if(statusText) {
+            statusText.style.color = meta.color;
+            statusText.innerText = `> INITIALIZING ${meta.tier} NEURAL LINK...`;
+        }
         
         clearInterval(countdownInterval);
         countdownInterval = setInterval(() => {
@@ -1034,6 +1047,7 @@ if (scanConfirm) {
         const reader = new FileReader();
         reader.onload = async (event) => {
             try {
+                // FIX 3: Added credentials/mode for cleaner cross-origin Vercel calls
                 const response = await fetch(apiPath, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1045,8 +1059,7 @@ if (scanConfirm) {
 
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({}));
-                    const specificError = errorData.message || "NEURAL_ENGINE_OFFLINE";
-                    throw new Error(specificError); 
+                    throw new Error(errorData.error || "ENGINE_OFFLINE"); 
                 }
 
                 const result = await response.json();
@@ -1054,14 +1067,17 @@ if (scanConfirm) {
                 
                 if (report) {
                     clearInterval(countdownInterval);
+                    
+                    // Deduct Tokens
                     await update(ref(db, `users/${auth.currentUser.uid}`), { 
                         tokens: increment(-tokenCost)
                     });
                     
+                    // Final UI cleanup and result opening
                     resetScannerUI();
                     window.openVisionChat(report); 
                 } else {
-                    throw new Error("EMPTY_REPORT_RETURNED");
+                    throw new Error("EMPTY_REPORT");
                 }
             } catch (err) {
                 clearInterval(countdownInterval);
@@ -1071,14 +1087,15 @@ if (scanConfirm) {
                 
                 if(statusText) {
                     statusText.style.color = "#ff4444";
-                    statusText.innerText = "!! ERROR: " + err.message;
+                    statusText.innerText = `!! ERROR: ${err.message}`;
                 }
                 notify(err.message, "error");
             }
         };
         reader.readAsDataURL(currentScanFile);
-    }; // <--- THIS WAS MISSING (Closes onclick)
-} // <--- THIS WAS MISSING (Closes if scanConfirm)
+    };
+}
+
 
 // 4. RETRY & RELOAD LOGIC (MODAL CLOSE + RE-TRIGGER)
 if (scanRetry) {
