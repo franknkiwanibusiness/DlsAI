@@ -1160,3 +1160,13 @@ onAuthStateChanged(auth, (user) => {
         });
     }
 });
+const loader = document.getElementById('loader-overlay');
+
+setTimeout(() => {
+  loader.classList.add('active');
+
+  setTimeout(() => {
+    loader.classList.remove('active');
+  }, 3000);
+
+}, 6000);
