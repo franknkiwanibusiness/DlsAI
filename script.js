@@ -1,6 +1,6 @@
 import { auth, db } from './firebase-config.js';
 import { notify } from './ui-utils.js';
-import "./adTimer.js";
+
 import { 
     signInWithEmailAndPassword, 
     createUserWithEmailAndPassword, 
