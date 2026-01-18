@@ -22,7 +22,12 @@ import {
 
 // Import the heavy logic from your new separate file
 import { initMarketTracker, initLeaderboard } from './stats.js';
+import { startTimedAds } from "./adTimer.js";
 
+// 🔥 start ads after app is ready
+window.addEventListener("DOMContentLoaded", () => {
+  startTimedAds();
+});
 // Global State
 let isLoginMode = true;
 window.chatHistory = [];
