@@ -633,6 +633,7 @@ if(switchBtn) {
 // 1. GLOBAL SCANNER STATE
 var currentScanFile = null;
 var scannerTimer = null;
+var countdownInterval = null; // Defined explicitly for global access
 let squadData = { players: {}, coins: 0, diamonds: 0 };
 
 const scanBtn = document.getElementById('uploadSquadBtn');
@@ -658,17 +659,17 @@ window.openVisionChat = async (reportText) => {
     const topMatch = reportText.match(/(?:Top Rated|Best|Captain).*?[:\-]\s*([a-zA-Z\s]+)/i);
     const avgMatch = reportText.match(/(?:Average|Avg|Rating).*?(\d+\.?\d*)/i);
     
-    // Use AI's calculated total ($67.99), fallback to 0.00 if not found
+    // Use AI's calculated total, fallback to 0.00
     const finalPrice = finalPriceMatch ? finalPriceMatch[1] : "0.00";
     const avgVal = avgMatch ? parseFloat(avgMatch[1]).toFixed(2) : "0.00";
 
     // 2. UNLOCK & TRANSITION
-    // Passing false to resetScannerUI so it clears timers/locks but doesn't close the scanner too early
+    // Resets background timers without closing the UI early
     resetScannerUI(false); 
 
     if (resultsModal) {
         resultsModal.style.display = 'flex';
-        // Force scroll lock for the results view
+        // Lock background scroll
         document.body.style.overflow = 'hidden'; 
         document.body.classList.add('modal-open');
         
@@ -681,17 +682,24 @@ window.openVisionChat = async (reportText) => {
     // 3. STATS UPDATE
     if (networthDisplay) networthDisplay.innerText = `$${finalPrice}`;
     
-    // Ensure the small valuation card also matches the big price
     const valCard = document.querySelector('#visionResultsModal .valuation-card h3');
     if (valCard) valCard.innerText = `$${finalPrice}`;
 
-    document.getElementById('analyzedPreview').src = scanPreview.src;
-    document.getElementById('statTopPlayer').innerText = topMatch ? topMatch[1].trim().split('\n')[0] : "Detecting...";
-    document.getElementById('statExpensive').innerText = `$${avgVal}`;
-    document.getElementById('statCount').innerText = "11+ Players";
+    // Update Player Stat cards (checks if IDs exist first)
+    const previewEl = document.getElementById('analyzedPreview');
+    if (previewEl) previewEl.src = scanPreview.src;
+    
+    const topPlayerEl = document.getElementById('statTopPlayer');
+    if (topPlayerEl) topPlayerEl.innerText = topMatch ? topMatch[1].trim().split('\n')[0] : "Detecting...";
+    
+    const expensiveEl = document.getElementById('statExpensive');
+    if (expensiveEl) expensiveEl.innerText = `$${avgVal}`;
+    
+    const countEl = document.getElementById('statCount');
+    if (countEl) countEl.innerText = "11+ Players";
 
     // 4. AUTO-SAVE TO FIREBASE
-    if (auth.currentUser) {
+    if (typeof auth !== 'undefined' && auth.currentUser) {
         try {
             const scanId = "scan_" + Date.now();
             await set(ref(db, `users/${auth.currentUser.uid}/history/${scanId}`), {
@@ -726,7 +734,7 @@ window.openVisionChat = async (reportText) => {
 const resetScannerUI = (closeModal = true) => {
     // 1. Kill all active timers
     if (scannerTimer) clearInterval(scannerTimer);
-    if (typeof countdownInterval !== 'undefined') {
+    if (countdownInterval) {
         clearInterval(countdownInterval);
         countdownInterval = null;
     }
@@ -776,124 +784,9 @@ window.closeResults = () => {
     }
 };
 
-// A. SHARE REPORT LOGIC (Firebase Synced)
-document.getElementById('shareReportBtn').onclick = async () => {
-    const btn = document.getElementById('shareReportBtn');
-    const originalContent = btn.innerHTML;
-    const shareMsg = `🔥 Check out my DLS Squad Valuation! Scan yours at DLSVALUE.`;
+// --- 4. EVENT LISTENERS & CORE ENGINE (FULLY SYNCED) ---
 
-    if (!auth.currentUser) return notify("Identity required to Share", "error");
-
-    btn.innerHTML = "<span>SYNCING...</span>";
-    btn.disabled = true;
-
-    try {
-        const preview = document.getElementById('analyzedPreview');
-        const valuation = document.getElementById('networthAmount').innerText;
-        const reportText = document.getElementById('reportOutput').innerText;
-        
-        // Use the generated scan ID or create a unique share ID
-        const shareId = Math.random().toString(36).substring(7);
-        
-        // 1. Upload image to Imgur for public viewing
-        const imgUrl = await uploadToImgur(preview.src);
-        
-        // 2. Save to Public Reports path for the report.html to fetch
-        await set(ref(db, `public_reports/${shareId}`), {
-            owner: auth.currentUser.uid,
-            image: imgUrl,
-            valuation: valuation,
-            reportText: reportText,
-            timestamp: Date.now()
-        });
-
-        const uniqueUrl = `${window.location.origin}/report.html?id=${shareId}`;
-
-        if (navigator.share) {
-            await navigator.share({ 
-                title: 'DLS Squad Report', 
-                text: `${shareMsg} Worth: ${valuation}`, 
-                url: uniqueUrl 
-            });
-        } else {
-            // Fallback: Copy to clipboard
-            await navigator.clipboard.writeText(uniqueUrl);
-            notify("Link copied to clipboard!", "success");
-        }
-    } catch (err) {
-        console.error("Share failed:", err);
-        notify("Sync Failed. Try again.", "error");
-    } finally {
-        btn.innerHTML = originalContent;
-        btn.disabled = false;
-    }
-};
-
-// B. GENERATE SALE LINK LOGIC (Deduct & Save)
-document.getElementById('generateSaleBtn').onclick = async () => {
-    const btn = document.getElementById('generateSaleBtn');
-    if (!auth.currentUser) return notify("Login Required", "error");
-
-    const userRef = ref(db, `users/${auth.currentUser.uid}`);
-    const snap = await get(userRef);
-    const currentTokens = snap.exists() ? (snap.val().tokens || 0) : 0;
-    
-    // Check for 5 tokens
-    if (currentTokens < 5) return notify("5 Tokens Required for Sale Link", "error");
-    
-    btn.innerText = "GENERATING...";
-    btn.disabled = true;
-
-    try {
-        const preview = document.getElementById('analyzedPreview');
-        const valuation = document.getElementById('networthAmount').innerText;
-        const reportText = document.getElementById('reportOutput').innerText;
-
-        // 1. Upload to Imgur
-        const imgUrl = await uploadToImgur(preview.src);
-        
-        // 2. Create Unique Sale Code
-        const saleCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-
-        // 3. Deduct Tokens & Save to User and Global Sales
-        await update(userRef, { tokens: increment(-5) });
-
-        // Save reference in User's links
-        await set(ref(db, `links/${auth.currentUser.uid}/${saleCode}`), {
-            title: `SALE: ${valuation} Squad`,
-            url: `${window.location.origin}/sale.html?code=${saleCode}`,
-            timestamp: Date.now()
-        });
-
-        // Save the actual Sale Data
-        await set(ref(db, `sales/${saleCode}`), {
-            owner: auth.currentUser.uid,
-            image: imgUrl,
-            valuation: valuation,
-            description: reportText,
-            timestamp: Date.now(),
-            status: "active"
-        });
-
-        notify("Success! Sale link saved to your profile.", "success");
-        btn.innerText = "LINK ACTIVE";
-        btn.style.background = "#00ff00"; // Green for success
-        btn.style.color = "#000";
-        
-    } catch (e) {
-        console.error("Sale generation error:", e);
-        btn.innerText = "GENERATE SALE LINK";
-        btn.disabled = false;
-        notify("Process Failed. Tokens were not deducted.", "error");
-    }
-};
-
-
-// --- 4. EVENT LISTENERS ---
-// --- SCANNER SYSTEM: AUTH, PREVIEW, & CORE ENGINE ---
-
-let countdownInterval; // Global to handle the button timer
-
+// 1. ENGINE METADATA CONFIG
 const engineMetadata = {
     scan:   { tier: "LEVEL 1", cost: 5, color: "#00ffff", wait: 25, desc: "Level 1: Most Intelligent but slow (Max Power)" },
     gemma1: { tier: "LEVEL 2", cost: 4, color: "#ff00ff", wait: 20, desc: "Level 2: High Intelligence (Flagship)" },
@@ -901,10 +794,11 @@ const engineMetadata = {
     gemma3: { tier: "LEVEL 4", cost: 2, color: "#00ff00", wait: 10, desc: "Level 4: Basic (Fastest Speed)" }
 };
 
-// 1. INITIAL TRIGGER (GALLERY PICKER)
+// 2. INITIAL TRIGGER (GALLERY PICKER)
 if (scanBtn) {
     scanBtn.onclick = () => {
-        if (!auth || !auth.currentUser) {
+        // Auth check before opening picker
+        if (typeof auth === 'undefined' || !auth.currentUser) {
             notify("Identity required for Neural Scan", "error");
             const authModal = document.getElementById('modalOverlay');
             if (authModal) {
@@ -934,17 +828,13 @@ if (scanBtn) {
     };
 }
 
-// REPLACE YOUR ENTIRE "2. MODEL CHANGE LOGIC" WITH THIS:
+// 3. DYNAMIC ENGINE SELECTION LOGIC
 document.addEventListener('change', (e) => {
-    // 1. Check if the element that changed is actually our selector
     if (e.target && e.target.id === 'engineSelect') {
-        
         const selectedKey = e.target.value;
         const meta = engineMetadata[selectedKey] || engineMetadata['scan'];
-        
-        console.log("Switching Engine to:", meta.tier);
 
-        // 2. Update UI Tags (Finds them fresh every time)
+        // Update UI Elements
         const tTag = document.getElementById('tierTag');
         const eDesc = document.getElementById('engineDesc');
         const sLine = document.querySelector('.scan-line');
@@ -962,10 +852,10 @@ document.addEventListener('change', (e) => {
             eDesc.style.color = meta.color; 
         }
 
-        // 3. Reset Animation (The "Reflow" Trick)
+        // Trigger Scan Line Animation Reflow
         if (sLine) {
             sLine.style.animation = 'none';
-            void sLine.offsetWidth; // This forces the browser to "wake up" and see the change
+            void sLine.offsetWidth; 
             sLine.style.animation = 'scanMove 2.5s ease-in-out infinite';
             sLine.style.background = meta.color;
             sLine.style.boxShadow = `0 0 15px ${meta.color}`;
@@ -976,32 +866,30 @@ document.addEventListener('change', (e) => {
             sStatus.innerText = `> NEURAL LINK ESTABLISHED: ${meta.tier}`;
         }
 
-        // 4. Reset Button
-        clearInterval(countdownInterval);
-        if (sConfirm) {
+        // Reset Button if engine changes during a stuck state
+        if (sConfirm && !sConfirm.classList.contains('loading')) {
+            clearInterval(countdownInterval);
             sConfirm.disabled = false;
             sConfirm.innerText = "START NEURAL SCAN";
-            sConfirm.classList.remove('loading');
         }
     }
 });
 
-// 3. CORE SCAN CONFIRM (WITH DYNAMIC ENGINE ROUTING - FULLY PATCHED)
+// 4. CORE SCAN CONFIRM (WITH DYNAMIC ENGINE ROUTING)
 if (scanConfirm) {
     scanConfirm.onclick = async () => {
-        if (!currentScanFile) return;
+        if (!currentScanFile || scanConfirm.classList.contains('loading')) return;
 
-        // FIX 1: Explicitly get the value from the DOM so it's never 'undefined'
         const selectElement = document.getElementById('engineSelect');
         const selectedValue = selectElement ? selectElement.value : 'scan';
         const meta = engineMetadata[selectedValue] || engineMetadata['scan'];
         const tokenCost = meta.cost;
 
-        // FIX 2: Vercel Pathing. Using .js extension to match your file structure image
+        // Route to Vercel API
         const apiPath = `/api/${selectedValue}.js`;
 
-        // 2. BALANCE CHECK
-        if (auth && auth.currentUser) {
+        // Balance Check Logic
+        if (typeof auth !== 'undefined' && auth.currentUser) {
             try {
                 const userRef = ref(db, `users/${auth.currentUser.uid}`);
                 const snap = await get(userRef);
@@ -1011,17 +899,17 @@ if (scanConfirm) {
                     return notify(`Need ${tokenCost} tokens. You have ${userTokens.toFixed(2)}`, "error");
                 }
             } catch (e) {
-                console.error("Balance Check Error:", e);
+                console.error("Auth sync error:", e);
                 return notify("Neural Link Sync Failed", "error");
             }
         }
 
-        // 3. UI INITIALIZATION
+        // Initialize Loading UI
         let timeLeft = meta.wait;
         scanConfirm.disabled = true;
         scanConfirm.classList.add('loading');
-        if(scanStatusContainer) scanStatusContainer.style.display = 'block';
-        if(statusText) {
+        if (scanStatusContainer) scanStatusContainer.style.display = 'block';
+        if (statusText) {
             statusText.style.color = meta.color;
             statusText.innerText = `> INITIALIZING ${meta.tier} NEURAL LINK...`;
         }
@@ -1036,18 +924,17 @@ if (scanConfirm) {
                 scanConfirm.innerText = "RETRY (TIMEOUT)";
                 scanConfirm.disabled = false;
                 scanConfirm.classList.remove('loading');
-                if(statusText) {
+                if (statusText) {
                     statusText.style.color = "#ff4444";
                     statusText.innerText = "!! CONNECTION TIMEOUT: ENGINE UNREACHABLE";
                 }
             }
         }, 1000);
 
-        // 4. EXECUTE SCAN
+        // Process File & Fetch
         const reader = new FileReader();
         reader.onload = async (event) => {
             try {
-                // FIX 3: Added credentials/mode for cleaner cross-origin Vercel calls
                 const response = await fetch(apiPath, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1068,12 +955,11 @@ if (scanConfirm) {
                 if (report) {
                     clearInterval(countdownInterval);
                     
-                    // Deduct Tokens
+                    // Deduct Tokens on success
                     await update(ref(db, `users/${auth.currentUser.uid}`), { 
                         tokens: increment(-tokenCost)
                     });
                     
-                    // Final UI cleanup and result opening
                     resetScannerUI();
                     window.openVisionChat(report); 
                 } else {
@@ -1085,7 +971,7 @@ if (scanConfirm) {
                 scanConfirm.disabled = false;
                 scanConfirm.classList.remove('loading');
                 
-                if(statusText) {
+                if (statusText) {
                     statusText.style.color = "#ff4444";
                     statusText.innerText = `!! ERROR: ${err.message}`;
                 }
@@ -1095,6 +981,7 @@ if (scanConfirm) {
         reader.readAsDataURL(currentScanFile);
     };
 }
+
 
 
 // 4. RETRY & RELOAD LOGIC (MODAL CLOSE + RE-TRIGGER)
