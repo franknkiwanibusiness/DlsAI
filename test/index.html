@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-    <title>DLS Audit Tiers</title>
+    <title>DLS Audit | Glassy Dark</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
@@ -11,181 +11,201 @@
     <script src="firebase-config.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&family=JetBrains+Mono&display=swap');
-        
-        body { font-family: 'Space Grotesk', sans-serif; height: 100dvh; overflow: hidden; transition: background 0.5s ease; }
-        .glass { background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.1); }
+        :root { --glass: rgba(15, 23, 42, 0.6); --border: rgba(255, 255, 255, 0.08); }
+        body { font-family: 'Space Grotesk', sans-serif; background: #020617; color: #f1f5f9; height: 100dvh; overflow: hidden; transition: 0.5s; }
+        .glass { background: var(--glass); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--border); }
         .mono { font-family: 'JetBrains Mono', monospace; }
-
-        /* THEMES */
-        body.theme-noob { background: #2d1b0d; --primary: #92400e; } /* Brown */
-        body.theme-pro { background: #082f49; --primary: #0ea5e9; }  /* Diamond Blue */
-        body.theme-hacker { background: #000000; --primary: #22c55e; } /* Glitch Green */
-
-        /* Glitch Effect for Hacker Mode */
-        .glitch-text { text-shadow: 2px 0 #ff00c1, -2px 0 #00fff9; animation: glitch 2s infinite; }
-        @keyframes glitch {
-            0% { transform: translate(0); }
-            20% { transform: translate(-2px, 2px); }
-            40% { transform: translate(-2px, -2px); }
-            60% { transform: translate(2px, 2px); }
-            80% { transform: translate(2px, -2px); }
-            100% { transform: translate(0); }
-        }
-
-        .typing::after { content: '_'; animation: blink 1s infinite; }
-        @keyframes blink { 50% { opacity: 0; } }
+        .chat-bubble { word-wrap: break-word; max-width: 85%; }
+        .value-glow { text-shadow: 0 0 15px rgba(34, 197, 94, 0.4); }
+        
+        /* Themes */
+        body.noob { background: #1a0f05; }
+        body.pro { background: #020617; }
+        body.hacker { background: #000; }
+        .hacker .glitch { text-shadow: 1px 0 #ff00c1, -1px 0 #00fff9; animation: glitch 2s infinite; }
+        @keyframes glitch { 0%,100% {transform:none} 20% {transform:translate(-1px,1px)} 40% {transform:translate(-1px,-1px)} 60% {transform:translate(1px,1px)} }
+        
+        .scan-line { width: 100%; height: 2px; background: #4ade80; position: absolute; animation: scan 2s linear infinite; box-shadow: 0 0 10px #4ade80; z-index: 10; }
+        @keyframes scan { 0% { top: 0% } 100% { top: 100% } }
+        .typing::after { content: '▋'; animation: blink 1s infinite; color: #4ade80; }
+        @keyframes blink { 50% { opacity: 0 } }
     </style>
 </head>
-<body class="theme-noob text-slate-100 flex flex-col">
+<body class="flex flex-col pro">
 
-    <header class="glass m-3 p-4 rounded-3xl flex justify-between items-center z-50">
+    <header class="glass sticky top-0 z-50 p-4 mx-2 mt-2 rounded-2xl flex justify-between items-center shadow-2xl">
         <div>
-            <p id="tier-label" class="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Noob Valuation</p>
-            <h2 id="total-valuation" class="text-3xl font-bold">$0.00</h2>
+            <p class="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold">Estimated Account Value</p>
+            <h2 id="total-valuation" class="text-3xl font-bold text-green-400 value-glow">$0.00</h2>
         </div>
-        <div class="flex flex-col items-end gap-1">
-            <select id="engine-select" onchange="updateTheme()" class="bg-black/40 text-xs p-2 rounded-xl border border-white/10 outline-none">
-                <option value="dlsvaluenoob">NOOB (2 Tokens)</option>
-                <option value="dlsvaluepro">PRO (4 Tokens)</option>
-                <option value="dlsvaluehacker">HACKER (5 Tokens)</option>
+        <div class="text-right flex flex-col items-end gap-1">
+            <select id="engine-select" onchange="changeEngine()" class="bg-slate-800 text-[10px] p-2 rounded-lg border border-white/5 outline-none uppercase">
+                <option value="dlsvaluenoob">Noob (2 Tokens)</option>
+                <option value="dlsvaluepro" selected>Pro (4 Tokens)</option>
+                <option value="dlsvaluehacker">Hacker (5 Tokens)</option>
             </select>
-            <span id="token-cost" class="text-[9px] font-mono text-white/50">COST: 2 TOKENS</span>
+            <span id="badge" class="text-[9px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/20 uppercase font-bold glitch">Pro Engine</span>
         </div>
     </header>
 
-    <main id="chat-window" class="flex-1 overflow-y-auto p-4 space-y-4 pb-44">
-        <div class="glass p-4 rounded-2xl text-sm border-l-4 border-amber-800" id="welcome-bubble">
-            Select an engine and upload your squad.
+    <main id="chat-window" class="flex-1 overflow-y-auto p-4 space-y-4 pb-32">
+        <div class="flex justify-start">
+            <div class="glass p-4 rounded-2xl text-sm border-l-4 border-l-green-500">
+                System Initialized. Select tier and upload screenshot.
+            </div>
         </div>
     </main>
 
-    <div id="sale-overlay" class="hidden fixed bottom-32 left-4 right-4 z-40">
-        <button onclick="createSaleLink()" class="w-full bg-white text-black font-bold py-4 rounded-2xl shadow-2xl flex items-center justify-center gap-2 uppercase tracking-tighter">
-            <i class="fa-solid fa-bolt"></i> Generate Sale ID
-        </button>
-    </div>
-
-    <div class="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
-        <div id="preview-box" class="hidden relative w-24 h-24 mb-4 rounded-2xl overflow-hidden border-2 border-white/20">
-            <div id="scanner" class="absolute w-full h-1 bg-white/50 top-0 shadow-[0_0_15px_white] hidden"></div>
-            <img id="image-preview" class="w-full h-full object-cover" />
+    <div class="fixed bottom-0 left-0 right-0 p-4 pb-6 bg-gradient-to-t from-[#020617] via-[#020617]/90 to-transparent z-40">
+        
+        <div id="preview-container" class="hidden mb-3">
+            <div class="relative inline-block">
+                <div id="scanner-line" class="scan-line hidden"></div>
+                <img id="image-preview" class="w-20 h-20 rounded-xl border-2 border-green-500 object-cover shadow-2xl" />
+                <button onclick="clearImage()" class="absolute -top-2 -right-2 bg-red-500 text-white w-5 h-5 rounded-full text-[10px]">
+                    <i class="fa-solid fa-x"></i>
+                </button>
+            </div>
         </div>
 
-        <div class="glass rounded-3xl p-2 flex items-center gap-2">
-            <label class="p-4 cursor-pointer hover:bg-white/5 rounded-2xl">
-                <i class="fa-solid fa-camera text-xl"></i>
+        <div class="glass rounded-2xl p-2 flex items-center gap-2 shadow-2xl">
+            <label class="p-3 hover:bg-white/5 rounded-xl cursor-pointer transition-colors">
+                <i class="fa-solid fa-camera text-slate-400"></i>
                 <input type="file" id="file-input" class="hidden" accept="image/*" />
             </label>
-            <div id="status" class="flex-1 text-sm font-mono opacity-50 truncate">AWAITING_IMAGE...</div>
-            <button id="send-btn" disabled class="bg-white text-black font-black h-12 px-8 rounded-2xl disabled:opacity-20 transition-all uppercase italic">
-                Scan
+            
+            <div id="status-text" class="flex-1 text-sm text-slate-500 truncate px-1 italic">Ready for scan...</div>
+            
+            <button id="send-btn" disabled class="bg-white text-black font-bold h-11 px-6 rounded-xl disabled:bg-slate-800 transition-all flex items-center justify-center">
+                <span id="btn-label">AUDIT</span>
+                <div id="loader" class="hidden animate-spin h-4 w-4 border-2 border-black border-t-transparent rounded-full"></div>
             </button>
         </div>
     </div>
 
     <script>
+        const db = firebase.firestore();
+        const fileInput = document.getElementById('file-input');
+        const previewContainer = document.getElementById('preview-container');
+        const imagePreview = document.getElementById('image-preview');
+        const statusText = document.getElementById('status-text');
+        const sendBtn = document.getElementById('send-btn');
         const chatWindow = document.getElementById('chat-window');
+        const totalValuation = document.getElementById('total-valuation');
+        const loader = document.getElementById('loader');
+        const btnLabel = document.getElementById('btn-label');
         const engineSelect = document.getElementById('engine-select');
-        const tokenLabel = document.getElementById('token-cost');
-        const tierLabel = document.getElementById('tier-label');
-        const body = document.body;
-
-        function updateTheme() {
-            const engine = engineSelect.value;
-            body.className = ''; // Reset
-            
-            if(engine === 'dlsvaluenoob') {
-                body.classList.add('theme-noob');
-                tokenLabel.innerText = "COST: 2 TOKENS";
-                tierLabel.innerText = "Noob Valuation";
-                tierLabel.classList.remove('glitch-text');
-            } else if(engine === 'dlsvaluepro') {
-                body.classList.add('theme-pro');
-                tokenLabel.innerText = "COST: 4 TOKENS";
-                tierLabel.innerText = "Diamond Pro Audit";
-                tierLabel.classList.remove('glitch-text');
-            } else if(engine === 'dlsvaluehacker') {
-                body.classList.add('theme-hacker');
-                tokenLabel.innerText = "COST: 5 TOKENS";
-                tierLabel.innerText = "Hacker Ghost Scan";
-                tierLabel.classList.add('glitch-text');
-            }
-        }
+        const badge = document.getElementById('badge');
 
         let currentBase64 = null;
-        const fileInput = document.getElementById('file-input');
-        
-        fileInput.onchange = (e) => {
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                currentBase64 = ev.target.result;
-                document.getElementById('image-preview').src = currentBase64;
-                document.getElementById('preview-box').classList.remove('hidden');
-                document.getElementById('send-btn').disabled = false;
-                document.getElementById('status').innerText = "DATA_READY";
-            };
-            reader.readAsDataURL(e.target.files[0]);
-        };
 
-        // Simulated Streaming (Typewriter)
-        function typeEffect(element, text) {
-            let i = 0;
-            element.classList.add('typing');
-            const timer = setInterval(() => {
-                if (i < text.length) {
-                    element.append(text.charAt(i));
-                    i++;
-                    chatWindow.scrollTop = chatWindow.scrollHeight;
-                } else {
-                    clearInterval(timer);
-                    element.classList.remove('typing');
-                }
-            }, 15);
+        function changeEngine() {
+            const val = engineSelect.value;
+            document.body.className = "flex flex-col " + val.replace('dlsvalue','');
+            badge.innerText = val.replace('dlsvalue','') + " Engine";
+            if(val === 'dlsvaluenoob') badge.className = "text-[9px] bg-amber-900/20 text-amber-500 px-2 py-0.5 rounded-full border border-amber-500/20 uppercase font-bold";
+            if(val === 'dlsvaluepro') badge.className = "text-[9px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/20 uppercase font-bold";
+            if(val === 'dlsvaluehacker') badge.className = "text-[9px] bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20 uppercase font-bold glitch";
         }
 
-        document.getElementById('send-btn').onclick = async () => {
-            const btn = document.getElementById('send-btn');
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    currentBase64 = event.target.result;
+                    imagePreview.src = currentBase64;
+                    previewContainer.classList.remove('hidden');
+                    statusText.innerText = "Data Encrypted";
+                    sendBtn.disabled = false;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function clearImage() {
+            currentBase64 = null;
+            previewContainer.classList.add('hidden');
+            sendBtn.disabled = true;
+            fileInput.value = "";
+        }
+
+        function typeWriter(text, element) {
+            let i = 0;
+            element.classList.add('typing');
+            function type() {
+                if (i < text.length) {
+                    element.innerHTML += text.charAt(i);
+                    i++;
+                    chatWindow.scrollTop = chatWindow.scrollHeight;
+                    setTimeout(type, 10);
+                } else {
+                    element.classList.remove('typing');
+                }
+            }
+            type();
+        }
+
+        sendBtn.addEventListener('click', async () => {
+            if (!currentBase64) return;
             const engine = engineSelect.value;
-            const scanner = document.getElementById('scanner');
+            const base64ToSend = currentBase64;
+
+            // UI Feedback
+            const userMsgWrap = document.createElement('div');
+            userMsgWrap.className = 'flex w-full mb-4 justify-end';
+            userMsgWrap.innerHTML = `<div class="chat-bubble glass p-4 rounded-2xl bg-white/10 rounded-tr-none"><img src="${base64ToSend}" class="rounded-lg mb-2 max-h-48 object-cover"/><p class="text-xs opacity-50">Initiating Scan...</p></div>`;
+            chatWindow.appendChild(userMsgWrap);
             
-            btn.disabled = true;
-            scanner.classList.remove('hidden');
-            scanner.style.animation = "scan 1.5s infinite linear";
+            document.getElementById('scanner-line').classList.remove('hidden');
+            sendBtn.disabled = true;
+            btnLabel.classList.add('hidden');
+            loader.classList.remove('hidden');
 
             try {
-                const res = await fetch(`/api/${engine}`, {
+                const response = await fetch(`/api/${engine}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image: currentBase64 })
+                    body: JSON.stringify({ image: base64ToSend })
                 });
-                const data = await res.json();
+
+                const data = await response.json();
                 const report = data.analysis || data.report;
 
-                // Update UI Price
+                // Price Update
                 const priceMatch = report.match(/\$([0-9]+\.[0-9]{2})/);
-                if (priceMatch) {
-                    document.getElementById('total-valuation').innerText = `$${priceMatch[1]}`;
-                    document.getElementById('sale-overlay').classList.remove('hidden');
-                }
+                if (priceMatch) totalValuation.innerText = `$${priceMatch[1]}`;
 
-                // Create Bubble and Type
-                const bubble = document.createElement('div');
-                bubble.className = 'glass p-5 rounded-3xl mono text-[12px] border-white/5 shadow-2xl';
-                chatWindow.appendChild(bubble);
-                typeEffect(bubble, report);
+                // AI Response with Streaming effect
+                const aiMsgWrap = document.createElement('div');
+                aiMsgWrap.className = 'flex w-full mb-4 justify-start';
+                const aiBubble = document.createElement('div');
+                aiBubble.className = 'chat-bubble glass p-4 rounded-2xl border-white/5 rounded-tl-none mono text-[11px] leading-relaxed';
+                aiMsgWrap.appendChild(aiBubble);
+                chatWindow.appendChild(aiMsgWrap);
+                
+                typeWriter(report, aiBubble);
+
+                // BACKGROUND: Save to Firebase for Sale Links
+                const saleId = Math.random().toString(36).substring(7);
+                await db.collection("audits").doc(saleId).set({
+                    price: priceMatch ? priceMatch[1] : "0.00",
+                    engine: engine,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
 
             } catch (err) {
-                console.error(err);
-                alert("CRITICAL_ENGINE_FAILURE");
+                const errDiv = document.createElement('div');
+                errDiv.innerText = "CONNECTION_LOST: Engine Offline";
+                chatWindow.appendChild(errDiv);
             } finally {
-                btn.disabled = false;
-                scanner.classList.add('hidden');
-                document.getElementById('preview-box').classList.add('hidden');
+                sendBtn.disabled = false;
+                btnLabel.classList.remove('hidden');
+                loader.classList.add('hidden');
+                document.getElementById('scanner-line').classList.add('hidden');
+                clearImage();
             }
-        };
+        });
     </script>
-    <style>
-        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
-    </style>
 </body>
 </html>
