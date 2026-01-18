@@ -934,43 +934,58 @@ if (scanBtn) {
     };
 }
 
-// 2. MODEL CHANGE LOGIC (UI RESET)
-if (engineSelect) {
-    engineSelect.onchange = (e) => {
-        const meta = engineMetadata[e.target.value] || engineMetadata['scan'];
+// REPLACE YOUR ENTIRE "2. MODEL CHANGE LOGIC" WITH THIS:
+document.addEventListener('change', (e) => {
+    // 1. Check if the element that changed is actually our selector
+    if (e.target && e.target.id === 'engineSelect') {
         
-        // Update UI Tags
-        if (tierTag) { 
-            tierTag.innerText = `${meta.tier} (${meta.cost} TOKENS)`; 
-            tierTag.style.background = meta.color; 
-            tierTag.style.color = "#000";
-        }
-        if (engineDesc) {
-            engineDesc.innerText = `* ${meta.desc} — Cost: ${meta.cost} Tokens`;
-            engineDesc.style.color = meta.color; 
+        const selectedKey = e.target.value;
+        const meta = engineMetadata[selectedKey] || engineMetadata['scan'];
+        
+        console.log("Switching Engine to:", meta.tier);
+
+        // 2. Update UI Tags (Finds them fresh every time)
+        const tTag = document.getElementById('tierTag');
+        const eDesc = document.getElementById('engineDesc');
+        const sLine = document.querySelector('.scan-line');
+        const sConfirm = document.getElementById('confirmScan');
+        const sStatus = document.getElementById('liveStatusText');
+
+        if (tTag) { 
+            tTag.innerText = `${meta.tier} (${meta.cost} TOKENS)`; 
+            tTag.style.background = meta.color; 
+            tTag.style.color = "#000";
         }
 
-        // Reset Scan Line Animation & Status
-        const scanLine = document.querySelector('.scan-line');
-        if (scanLine) {
-            scanLine.style.animation = 'none';
-            void scanLine.offsetWidth; // Trigger reflow
-            scanLine.style.animation = 'scanMove 2.5s ease-in-out infinite';
-            scanLine.style.background = meta.color; // Line glow matches tier
+        if (eDesc) {
+            eDesc.innerText = `* ${meta.desc} — Cost: ${meta.cost} Tokens`;
+            eDesc.style.color = meta.color; 
         }
 
-        if (statusText) {
-            statusText.style.color = "var(--cyan)";
-            statusText.innerText = `> READY TO INITIATE ${meta.tier}...`;
+        // 3. Reset Animation (The "Reflow" Trick)
+        if (sLine) {
+            sLine.style.animation = 'none';
+            void sLine.offsetWidth; // This forces the browser to "wake up" and see the change
+            sLine.style.animation = 'scanMove 2.5s ease-in-out infinite';
+            sLine.style.background = meta.color;
+            sLine.style.boxShadow = `0 0 15px ${meta.color}`;
         }
 
-        // Reset Button state
+        if (sStatus) {
+            sStatus.style.color = meta.color;
+            sStatus.innerText = `> NEURAL LINK ESTABLISHED: ${meta.tier}`;
+        }
+
+        // 4. Reset Button
         clearInterval(countdownInterval);
-        scanConfirm.disabled = false;
-        scanConfirm.innerText = "START NEURAL SCAN";
-        scanConfirm.classList.remove('loading');
-    };
-}
+        if (sConfirm) {
+            sConfirm.disabled = false;
+            sConfirm.innerText = "START NEURAL SCAN";
+            sConfirm.classList.remove('loading');
+        }
+    }
+});
+
 
 // 3. CORE SCAN CONFIRM (WITH DYNAMIC ENGINE ROUTING - FULLY CLOSED)
 if (scanConfirm) {
