@@ -22,7 +22,7 @@ import {
 
 // Import the heavy logic from your new separate file
 import { initMarketTracker, initLeaderboard } from './stats.js';
-import "./adTimer.js";
+
 // Global State
 let isLoginMode = true;
 window.chatHistory = [];
