@@ -3,188 +3,132 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Analytics</title>
+    <title>Analytics Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root {
-            --ios-bg: #f2f2f7;
-            --ios-card: #ffffff;
-            --ios-blue: #007aff;
-            --ios-text: #000000;
-            --ios-secondary: #8e8e93;
-        }
-        body { 
-            background-color: var(--ios-bg); 
-            color: var(--ios-text); 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            -webkit-font-smoothing: antialiased;
-            user-select: none; /* Prevents text selection for app-feel */
-            -webkit-user-select: none;
-        }
-        .ios-card {
-            background: var(--ios-card);
-            border-radius: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-        .ios-pill {
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            background: var(--ios-bg);
-            border: 0.5px solid rgba(0,0,0,0.1);
-        }
-        .ios-pill.selected {
-            background: var(--ios-blue);
-            color: white;
-            border-color: var(--ios-blue);
-        }
-        .ios-btn {
-            background: var(--ios-blue);
-            color: white;
-            font-weight: 600;
-            border-radius: 12px;
-        }
-        .ios-drawer {
-            transform: translateY(105%);
-            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-            box-shadow: 0 -5px 20px rgba(0,0,0,0.08);
-        }
-        .ios-drawer.open { transform: translateY(0); }
-        input[type="number"] { -webkit-appearance: none; margin: 0; outline: none; }
+        :root { --ios-bg: #000000; --ios-card: #1c1c1e; --ios-blue: #0a84ff; --ios-secondary: #2c2c2e; }
+        body { background-color: var(--ios-bg); color: #fff; font-family: -apple-system, system-ui; user-select: none; -webkit-user-select: none; }
+        .ios-card { background: var(--ios-card); border-radius: 16px; transition: transform 0.1s; }
+        .ios-pill { background: var(--ios-secondary); border-radius: 12px; transition: all 0.2s; }
+        .ios-pill.selected { background: var(--ios-blue); }
+        .drawer { transform: translateY(105%); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        .drawer.open { transform: translateY(0); }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     </style>
 </head>
-<body class="p-4 pt-12 pb-40">
+<body class="p-4 pt-14 pb-44">
 
-    <header class="mb-8 px-2">
-        <p class="text-[13px] font-semibold text-zinc-500 uppercase tracking-tight">Saturday, Feb 21</p>
-        <h1 class="text-3xl font-bold tracking-tight">Today's Fixtures</h1>
+    <header class="mb-8 px-1">
+        <p class="text-[11px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Live Intelligence</p>
+        <h1 class="text-3xl font-extrabold tracking-tight">Strategy</h1>
     </header>
 
     <div id="fixtures-container" class="space-y-4">
-        <div class="text-center py-20 text-zinc-400 font-medium">Loading analysis...</div>
+        <div class="text-center py-20 text-zinc-600 text-sm">Synchronizing data...</div>
     </div>
 
-    <div id="bet-slip" class="ios-drawer fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl p-6 pb-10 z-50 border-t border-zinc-200">
-        <div class="w-10 h-1.5 bg-zinc-300 mx-auto rounded-full mb-6"></div>
-        
-        <div class="flex justify-between items-center mb-6">
+    <div id="bet-slip" class="drawer fixed bottom-0 left-0 right-0 bg-[#1c1c1e]/90 backdrop-blur-2xl p-6 pb-12 z-50 border-t border-white/5 rounded-t-[32px]">
+        <div class="w-10 h-1 bg-zinc-700 mx-auto rounded-full mb-6"></div>
+        <div class="flex justify-between items-end mb-8">
             <div>
-                <span class="text-[12px] font-bold text-zinc-400 uppercase">Multiplier</span>
-                <p id="total-odds" class="text-3xl font-bold text-black">1.00</p>
+                <p class="text-[10px] font-bold text-zinc-500 uppercase mb-1">Multiplier</p>
+                <p id="total-odds" class="text-3xl font-bold">1.00</p>
             </div>
             <div class="text-right">
-                <span class="text-[12px] font-bold text-zinc-400 uppercase">Stake ZAR</span>
-                <div class="flex items-center">
-                    <span class="text-lg font-semibold mr-1">R</span>
-                    <input type="number" id="stake-input" value="10" class="text-2xl font-bold text-black w-24 text-right bg-transparent">
+                <p class="text-[10px] font-bold text-zinc-500 uppercase mb-1">Stake (ZAR)</p>
+                <div class="flex items-center justify-end">
+                    <span class="text-lg text-zinc-400 mr-1">R</span>
+                    <input type="number" id="stake-input" value="10" class="text-2xl font-bold bg-transparent outline-none w-20 text-right">
                 </div>
             </div>
         </div>
-
-        <div class="flex justify-between items-center py-4 border-t border-zinc-100 mb-6">
-            <span class="text-zinc-500 font-medium">Potential Win</span>
-            <div class="text-right">
-                <p id="potential-win" class="text-xl font-bold text-black">R0.00</p>
-                <p id="limit-msg" class="text-[10px] text-red-500 hidden font-bold">EasyBet Cap: R2,000,000</p>
-            </div>
+        <div class="flex justify-between items-center py-4 border-t border-white/5 mb-6">
+            <span class="text-zinc-400 text-sm">Payout</span>
+            <span id="potential-win" class="text-xl font-bold text-[#0a84ff]">R0.00</span>
         </div>
-        
-        <button class="ios-btn w-full py-4 text-lg active:opacity-70 transition-opacity">
-            Place Bet
-        </button>
+        <button class="w-full bg-[#0a84ff] text-white font-bold py-4 rounded-2xl active:opacity-80 transition-opacity">Confirm Strategy</button>
     </div>
 
     <script>
         const API_KEY = '826ccd6998728ab23f00ac7ad0546c2b';
         const LEAGUES = ['soccer_epl', 'soccer_spain_la_liga', 'soccer_germany_bundesliga', 'soccer_italy_serie_a', 'soccer_france_ligue_1'];
         let selections = [];
-        const MAX_WIN = 2000000;
 
         async function fetchMatches() {
             const container = document.getElementById('fixtures-container');
             container.innerHTML = '';
-            let count = 0;
-
             for (const league of LEAGUES) {
-                try {
-                    const res = await fetch(`https://api.the-odds-api.com/v4/sports/${league}/odds/?apiKey=${API_KEY}&regions=uk&markets=h2h`);
-                    const data = await res.json();
-                    const today = new Date().toISOString().split('T')[0];
-                    const daily = data.filter(m => m.commence_time.startsWith(today));
-
-                    daily.forEach(match => {
-                        count++;
-                        render(match);
-                    });
-                } catch (e) { console.error("Error fetching league"); }
+                const res = await fetch(`https://api.the-odds-api.com/v4/sports/${league}/odds/?apiKey=${API_KEY}&regions=uk&markets=h2h`);
+                const data = await res.json();
+                const today = new Date().toISOString().split('T')[0];
+                data.filter(m => m.commence_time.startsWith(today)).forEach(render);
             }
-            if(count === 0) container.innerHTML = '<p class="text-center text-zinc-400">No fixtures scheduled for today.</p>';
+        }
+
+        async function getAI(home, away, odds, element) {
+            try {
+                // This calls your Vercel API /api/predict
+                const response = await fetch('/api/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ home, away, odds })
+                });
+                const data = await response.json();
+                element.innerText = data.prediction;
+            } catch (e) { element.innerText = "AI unavailable."; }
         }
 
         function render(match) {
             const container = document.getElementById('fixtures-container');
-            const bookie = match.bookmakers[0];
-            const odds = bookie ? bookie.markets[0].outcomes : [];
+            const outcomes = match.bookmakers[0]?.markets[0].outcomes || [];
+            const oddsText = outcomes.map(o => `${o.name}: ${o.price}`).join(', ');
             
-            const div = document.createElement('div');
-            div.className = 'ios-card p-5';
-            div.innerHTML = `
-                <div class="flex justify-between mb-4">
-                    <span class="text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full uppercase">AI Analyzed</span>
-                    <span class="text-[11px] font-medium text-zinc-400">${new Date(match.commence_time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+            const card = document.createElement('div');
+            card.className = 'ios-card p-5';
+            card.innerHTML = `
+                <div class="flex justify-between items-center mb-5">
+                    <span class="text-[10px] font-black bg-white/5 px-2 py-1 rounded text-zinc-400">ANALYSIS</span>
+                    <span class="text-[10px] text-zinc-500 font-bold">${new Date(match.commence_time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
                 </div>
                 <div class="flex justify-between items-center mb-6 px-1">
-                    <span class="text-sm font-semibold w-2/5">${match.home_team}</span>
-                    <span class="text-[10px] font-bold text-zinc-300">VS</span>
-                    <span class="text-sm font-semibold w-2/5 text-right">${match.away_team}</span>
+                    <p class="text-sm font-bold w-2/5">${match.home_team}</p>
+                    <p class="text-[9px] font-black text-zinc-700">VS</p>
+                    <p class="text-sm font-bold w-2/5 text-right">${match.away_team}</p>
                 </div>
-                <div class="grid grid-cols-3 gap-3">
-                    ${odds.map(o => `
+                <div class="grid grid-cols-3 gap-2.5 mb-5">
+                    ${outcomes.map(o => `
                         <div onclick="selectOdd(this, '${match.home_team}-${o.name}', ${o.price})" 
-                             class="ios-pill p-3 rounded-xl text-center">
-                            <div class="text-[9px] text-zinc-500 font-bold uppercase mb-0.5">${o.name}</div>
+                             class="ios-pill p-3 text-center">
+                            <div class="text-[8px] text-zinc-500 font-bold uppercase mb-0.5">${o.name}</div>
                             <div class="text-sm font-bold">${o.price}</div>
-                        </div>
-                    `).join('')}
+                        </div>`).join('')}
                 </div>
-                <div class="mt-4 pt-4 border-t border-zinc-50 flex items-start gap-2">
-                    <span class="text-[12px] font-bold text-zinc-400">AI:</span>
-                    <p class="text-[12px] text-zinc-600 leading-snug">Connecting to Groq for outcome prediction...</p>
+                <div class="bg-black/20 p-4 rounded-xl border border-white/5">
+                    <p class="text-[9px] font-bold text-zinc-500 uppercase mb-2">Outcome Engine</p>
+                    <p class="text-[11px] text-zinc-300 leading-relaxed ai-box">Consulting Groq...</p>
                 </div>
             `;
-            container.appendChild(div);
+            container.appendChild(card);
+            getAI(match.home_team, match.away_team, oddsText, card.querySelector('.ai-box'));
         }
 
         function selectOdd(el, id, price) {
             el.classList.toggle('selected');
-            if(el.classList.contains('selected')) {
-                selections.push({ id, price });
-            } else {
-                selections = selections.filter(s => s.id !== id);
-            }
+            if(el.classList.contains('selected')) selections.push({ id, price });
+            else selections = selections.filter(s => s.id !== id);
             updateSlip();
         }
 
         function updateSlip() {
             const slip = document.getElementById('bet-slip');
             const stake = parseFloat(document.getElementById('stake-input').value) || 0;
-            
             if(selections.length > 0) {
                 slip.classList.add('open');
                 const multi = selections.reduce((acc, curr) => acc * curr.price, 1).toFixed(2);
-                let win = multi * stake;
-
                 document.getElementById('total-odds').innerText = multi;
-                
-                if(win > MAX_WIN) {
-                    win = MAX_WIN;
-                    document.getElementById('limit-msg').classList.remove('hidden');
-                } else {
-                    document.getElementById('limit-msg').classList.add('hidden');
-                }
-                
+                const win = Math.min(multi * stake, 2000000);
                 document.getElementById('potential-win').innerText = `R${win.toLocaleString('en-ZA', {minimumFractionDigits: 2})}`;
-            } else {
-                slip.classList.remove('open');
-            }
+            } else slip.classList.remove('open');
         }
 
         document.getElementById('stake-input').addEventListener('input', updateSlip);
