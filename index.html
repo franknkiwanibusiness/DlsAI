@@ -3,188 +3,164 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Multiplier Scout | Easybet 2026</title>
+    <title>AI Scout | Easybet R2M</title>
     <style>
         :root { --bg: #0f172a; --card: #1e293b; --accent: #38bdf8; --text: #f1f5f9; }
-        body.light { --bg: #f8fafc; --card: #ffffff; --accent: #0284c7; --text: #0f172a; }
-        body.blue { --bg: #1e3a8a; --card: #1e40af; --accent: #60a5fa; --text: #eff6ff; }
         body.disco { animation: discoBg 1s infinite; }
-        @keyframes discoBg { 
-            0% { background: #ff0000; } 25% { background: #00ff00; } 
-            50% { background: #0000ff; } 75% { background: #ffff00; } 100% { background: #ff0000; } 
-        }
-
-        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 20px; transition: 0.3s; padding-bottom: 120px; }
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 15px; }
+        @keyframes discoBg { 0% { background: #ff0000; } 33% { background: #00ff00; } 66% { background: #0000ff; } 100% { background: #ff0000; } }
+        body { background: var(--bg); color: var(--text); font-family: sans-serif; padding: 20px; margin: 0; padding-bottom: 120px; transition: 0.3s; }
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 15px; margin-top: 20px; }
-        
-        .card { background: var(--card); border: 2px solid #334155; padding: 18px; border-radius: 12px; cursor: pointer; transition: transform 0.2s; position: relative; }
-        .card:hover { transform: translateY(-3px); }
-        .card.selected { border-color: var(--accent); box-shadow: 0 0 20px var(--accent); background: rgba(56, 189, 248, 0.1); }
-        
-        .market-badge { background: #334155; padding: 4px 8px; border-radius: 6px; font-size: 0.75em; margin-right: 5px; }
-        .ai-scout { background: #00000044; padding: 12px; border-radius: 8px; margin-top: 12px; font-size: 0.85em; display: none; border-left: 4px solid #fbbf24; line-height: 1.4; }
-        
+        .card { background: var(--card); border: 2px solid #334155; padding: 15px; border-radius: 12px; cursor: pointer; position: relative; }
+        .card.selected { border-color: var(--accent); box-shadow: 0 0 15px var(--accent); background: rgba(56, 189, 248, 0.1); }
+        .ai-scout { background: #000; padding: 10px; border-radius: 5px; margin-top: 10px; border-left: 3px solid #fbbf24; font-size: 0.85em; display:none; }
         .slip { position: fixed; bottom: 0; left: 0; right: 0; background: #111827; padding: 20px; border-top: 4px solid var(--accent); z-index: 100; }
-        .payout-text { font-size: 1.4em; font-weight: 800; color: #10b981; }
-        .cap-warning { color: #ef4444; font-size: 0.8em; font-weight: bold; margin-top: 4px; }
-
-        #settingsModal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1e293b; border: 2px solid var(--accent); padding: 30px; border-radius: 20px; z-index: 1001; width: 320px; box-shadow: 0 0 50px rgba(0,0,0,0.8); }
-        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; }
-        input, select { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; }
-        .btn { padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; text-transform: uppercase; }
-        .btn-accent { background: var(--accent); color: #000; }
+        .btn { background: var(--accent); border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        #settingsModal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1e293b; border: 2px solid var(--accent); padding: 30px; border-radius: 20px; z-index: 1001; width: 300px; }
+        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; }
     </style>
 </head>
-<body class="dark">
+<body>
 
-    <div class="header">
-        <div>
-            <h1 style="margin:0;">🏆 AI SCOUT</h1>
-            <span id="status" style="font-size: 0.7em; opacity: 0.6;">Initializing...</span>
-        </div>
-        <button class="btn btn-accent" onclick="toggleSettings()">⚙️ Settings</button>
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h1>🏆 AI SCOUT</h1>
+        <button class="btn" onclick="toggleSettings()">⚙️ Settings</button>
     </div>
 
+    <div id="status" style="color:var(--accent); font-size:0.9em;">Checking storage...</div>
     <div id="matches" class="grid"></div>
 
     <div class="slip">
         <div style="display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto;">
             <div>
-                <span style="opacity: 0.7;">Stake:</span> <strong>R<span id="displayStake">10</span></strong> | 
-                <span style="opacity: 0.7;">Total Odds:</span> <strong><span id="totalOdds">1.00</span></strong>
+                Stake: <strong>R<span id="displayStake">10</span></strong> | 
+                Odds: <strong><span id="totalOdds">1.00</span></strong>
             </div>
             <div style="text-align: right;">
-                <div class="payout-text" id="payout">R0.00</div>
-                <div id="capWarning" class="cap-warning"></div>
+                <div style="font-size: 1.4em; color: #10b981; font-weight: bold;" id="payout">R0.00</div>
+                <div id="capWarning" style="color: #ef4444; font-size: 0.7em;"></div>
             </div>
         </div>
     </div>
 
     <div id="overlay" class="overlay" onclick="toggleSettings()"></div>
     <div id="settingsModal">
-        <h2 style="margin-top:0;">Settings</h2>
-        <label>Visual Theme</label>
-        <select id="themeSelect" onchange="applyTheme()">
-            <option value="dark">Midnight Dark</option>
-            <option value="light">Crisp Light</option>
-            <option value="blue">Electric Blue</option>
-            <option value="disco">🕺 Disco Mode</option>
+        <h3>App Settings</h3>
+        <label>Theme:</label>
+        <select id="themeSelect" onchange="applyTheme()" style="width:100%; padding:10px; margin:10px 0;">
+            <option value="dark">Dark</option>
+            <option value="disco">🕺 Disco</option>
         </select>
-        <label>Bet Amount (R)</label>
-        <input type="number" id="stakeInput" placeholder="Enter stake..." onchange="updateStake()">
-        <p style="font-size: 0.7em; opacity: 0.5;">Settings auto-save to device.</p>
-        <button class="btn btn-accent" style="width:100%" onclick="toggleSettings()">Apply & Close</button>
+        <label>Bet Amount (R):</label>
+        <input type="number" id="stakeInput" onchange="updateStake()" style="width:90%; padding:10px; margin:10px 0;">
+        <button class="btn" style="width:100%" onclick="toggleSettings()">Save</button>
     </div>
 
     <script>
-        // CONFIG - ADD YOUR KEYS HERE
-        const ODDS_KEY = 'YOUR_ODDS_API_KEY';
-        const GEMINI_KEY = 'YOUR_GEMINI_API_KEY';
+        const ODDS_KEY = '826ccd6998728ab23f00ac7ad0546c2b';
         const EASYBET_LIMIT = 2000000;
-
+        
         let selections = new Map();
         let currentStake = 10;
 
         async function init() {
             // Load Settings
-            currentStake = localStorage.getItem('scout_stake') || 10;
+            currentStake = localStorage.getItem('user_stake') || 10;
             document.getElementById('stakeInput').value = currentStake;
             document.getElementById('displayStake').innerText = currentStake;
-            applyTheme(localStorage.getItem('scout_theme') || 'dark');
+            applyTheme(localStorage.getItem('user_theme'));
 
-            // Check Cache
-            const cache = JSON.parse(localStorage.getItem('scout_cache_v4'));
-            if (cache && (Date.now() - cache.ts < 24 * 60 * 60 * 1000)) {
-                document.getElementById('status').innerText = "Using Safe 24h Cache";
-                render(cache.data);
-            } else {
-                fetchData();
-            }
-        }
-
-        async function fetchData() {
-            document.getElementById('status').innerText = "📡 Refreshing Fixtures (1 Credit)...";
-            const leagues = ['soccer_epl', 'soccer_spain_la_liga', 'soccer_italy_serie_a', 'soccer_germany_bundesliga', 'soccer_uefa_champs_league'];
-            let combined = [];
-
-            for (const league of leagues) {
-                try {
-                    const res = await fetch(`https://api.the-odds-api.com/v4/sports/${league}/odds/?apiKey=${ODDS_KEY}&regions=uk&markets=h2h,totals,btts&oddsFormat=decimal`);
-                    const data = await res.json();
-                    if (data.length) combined = combined.concat(data);
-                } catch (e) { console.warn("League skipped:", league); }
-            }
-
-            localStorage.setItem('scout_cache_v4', JSON.stringify({ ts: Date.now(), data: combined }));
-            render(combined);
-            document.getElementById('status').innerText = "Sync Complete";
-        }
-
-        async function scoutMatch(home, away, id) {
-            const el = document.querySelector(`#card-${id} .ai-scout`);
-            el.style.display = 'block';
-            el.innerText = "🪄 Gemini 3 Flash is searching 2026 injury reports...";
-
+            // Local Storage Logic
             try {
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: `Search live Feb 2026 news for ${home} vs ${away}. List key injuries and give a 1-sentence betting verdict.` }] }],
-                        tools: [{ google_search: {} }]
-                    })
-                });
-                const json = await res.json();
-                el.innerHTML = `<strong>AI REPORT:</strong><br>${json.candidates[0].content.parts[0].text}`;
-            } catch (e) { el.innerText = "Live news unavailable. Odds suggest market stability."; }
+                const cache = localStorage.getItem('match_cache_v6');
+                if (cache) {
+                    const parsed = JSON.parse(cache);
+                    if (Date.now() - parsed.ts < 24 * 60 * 60 * 1000) {
+                        document.getElementById('status').innerText = "✅ 24h Local Storage Active";
+                        render(parsed.data);
+                        return;
+                    }
+                }
+                fetchNew();
+            } catch (e) {
+                localStorage.clear();
+                fetchNew();
+            }
+        }
+
+        async function fetchNew() {
+            document.getElementById('status').innerText = "📡 Fetching Fresh Markets...";
+            try {
+                const res = await fetch(`https://api.the-odds-api.com/v4/sports/upcoming/odds/?apiKey=${ODDS_KEY}&regions=uk&markets=h2h&oddsFormat=decimal`);
+                const data = await res.json();
+                localStorage.setItem('match_cache_v6', JSON.stringify({ ts: Date.now(), data: data }));
+                render(data);
+                document.getElementById('status').innerText = "✅ Fresh Sync Complete";
+            } catch (e) {
+                document.getElementById('status').innerText = "❌ API Error. Check credits.";
+            }
+        }
+
+        function render(data) {
+            document.getElementById('matches').innerHTML = data.map((m, i) => {
+                const price = m.bookmakers[0]?.markets[0]?.outcomes[0]?.price || 1.80;
+                return `
+                <div class="card" id="card-${i}" onclick="toggle(${i}, ${price}, '${m.home_team}', '${m.away_team}')">
+                    <strong>${m.home_team} v ${m.away_team}</strong><br>
+                    <div style="color:var(--accent); margin-top:8px;">Home Win @${price}</div>
+                    <div class="ai-scout" id="scout-${i}"></div>
+                </div>`;
+            }).join('');
         }
 
         function toggle(id, odd, home, away) {
             const card = document.getElementById(`card-${id}`);
+            const scout = document.getElementById(`scout-${id}`);
             if (selections.has(id)) {
                 selections.delete(id);
                 card.classList.remove('selected');
-                card.querySelector('.ai-scout').style.display = 'none';
+                scout.style.display = 'none';
             } else {
                 selections.set(id, odd);
                 card.classList.add('selected');
-                scoutMatch(home, away, id);
+                scout.style.display = 'block';
+                scout.innerText = "🔍 Gemini Scout is live...";
+                // Note: Ensure your Gemini Key is added here if Vercel Var is not working
+                fetchAiNews(home, away, id);
             }
             calc();
+        }
+
+        async function fetchAiNews(h, a, id) {
+            const el = document.getElementById(`scout-${id}`);
+            try {
+                // If Vercel env variable doesn't work in pure HTML, paste your Gemini Key below:
+                const G_KEY = 'PASTE_YOUR_GEMINI_KEY_HERE'; 
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${G_KEY}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: `Search Feb 2026 news for ${h} vs ${a}. Summary of injuries and 1-sentence betting verdict.` }] }],
+                        tools: [{ google_search: {} }]
+                    })
+                });
+                const json = await res.json();
+                el.innerText = json.candidates[0].content.parts[0].text;
+            } catch (e) { el.innerText = "Injury data stable."; }
         }
 
         function calc() {
             let total = 1;
             selections.forEach(v => total *= v);
             if (selections.size === 0) total = 0;
-
             document.getElementById('totalOdds').innerText = total.toFixed(2);
-            const rawPayout = total * currentStake;
-            
-            if (rawPayout > EASYBET_LIMIT) {
+            let p = total * currentStake;
+            if (p > EASYBET_LIMIT) {
                 document.getElementById('payout').innerText = `R${EASYBET_LIMIT.toLocaleString()}`;
-                document.getElementById('capWarning').innerText = "⚠️ MAXIMUM PAYOUT REACHED (R2,000,000 CAP)";
+                document.getElementById('capWarning').innerText = "⚠️ EASYBET R2M CAP REACHED";
             } else {
-                document.getElementById('payout').innerText = `R${rawPayout.toFixed(2)}`;
+                document.getElementById('payout').innerText = `R${p.toFixed(2)}`;
                 document.getElementById('capWarning').innerText = "";
             }
-        }
-
-        function render(data) {
-            document.getElementById('matches').innerHTML = data.map((m, i) => {
-                const odds = m.bookmakers[0]?.markets[0]?.outcomes[0]?.price || 1.85;
-                return `
-                <div class="card" id="card-${i}" onclick="toggle(${i}, ${odds}, '${m.home_team}', '${m.away_team}')">
-                    <div style="font-size: 0.7em; margin-bottom: 5px; opacity: 0.6;">${m.sport_title}</div>
-                    <strong>${m.home_team} v ${m.away_team}</strong>
-                    <div style="margin-top: 10px;">
-                        <span class="market-badge">Win @${odds}</span>
-                        <span class="market-badge">BTTS</span>
-                    </div>
-                    <div class="ai-scout"></div>
-                </div>`;
-            }).join('');
         }
 
         function toggleSettings() {
@@ -195,17 +171,16 @@
             o.style.display = show ? 'block' : 'none';
         }
 
-        function applyTheme(val) {
-            const theme = val || document.getElementById('themeSelect').value;
+        function applyTheme(t) {
+            const theme = t || document.getElementById('themeSelect').value;
             document.body.className = theme;
-            document.getElementById('themeSelect').value = theme;
-            localStorage.setItem('scout_theme', theme);
+            localStorage.setItem('user_theme', theme);
         }
 
         function updateStake() {
             currentStake = document.getElementById('stakeInput').value;
             document.getElementById('displayStake').innerText = currentStake;
-            localStorage.setItem('scout_stake', currentStake);
+            localStorage.setItem('user_stake', currentStake);
             calc();
         }
 
