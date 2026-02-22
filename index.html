@@ -27,10 +27,9 @@
             border: 0.5px solid var(--border);
         }
         .message-bubble {
-            max-width: 90%;
+            max-width: 95%;
             padding: 14px 18px;
             font-size: 16px;
-            line-height: 1.45;
             border-radius: 22px;
             margin-bottom: 12px;
         }
@@ -38,124 +37,110 @@
             background: linear-gradient(180deg, #0a84ff 0%, #007aff 100%);
             align-self: flex-end;
             border-bottom-right-radius: 4px;
+            max-width: 80%;
         }
         .ai-bubble {
             background: transparent;
             align-self: flex-start;
             padding: 0 !important;
             border: none !important;
+            width: 100%;
         }
         
         /* --- DYNAMIC CARD STYLING --- */
         .bet-card {
             background: #1c1c1e;
-            border-radius: 28px;
-            padding: 20px;
+            border-radius: 24px;
+            padding: 16px;
             border: 0.5px solid var(--border);
-            margin-bottom: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            width: 100%;
+            margin-bottom: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
         }
         .smart-tag {
             background: linear-gradient(90deg, #00f2fe 0%, #4facfe 100%);
             color: black;
-            font-size: 10px;
+            font-size: 9px;
             font-weight: 900;
-            padding: 2px 8px;
-            border-radius: 6px;
+            padding: 2px 6px;
+            border-radius: 4px;
             text-transform: uppercase;
         }
         .odds-box {
-            background: rgba(255,255,255,0.05);
-            border: 0.5px solid rgba(255,255,255,0.1);
-            border-radius: 18px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
             padding: 12px;
             text-align: center;
-            transition: transform 0.2s;
         }
-        .odds-box:active { transform: scale(0.95); }
+        .multi-card {
+            background: linear-gradient(135deg, #0a84ff 0%, #0055ff 100%);
+            border-radius: 24px;
+            padding: 20px;
+            text-align: center;
+            margin-top: 10px;
+            box-shadow: 0 0 25px rgba(10, 132, 255, 0.4);
+        }
 
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        
-        #settings-modal {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            opacity: 0;
-            pointer-events: none;
-            transform: scale(0.9);
-        }
-        #settings-modal.active {
-            opacity: 1;
-            pointer-events: auto;
-            transform: scale(1);
-        }
+        #settings-modal { transition: all 0.3s ease; opacity: 0; pointer-events: none; transform: scale(1.05); }
+        #settings-modal.active { opacity: 1; pointer-events: auto; transform: scale(1); }
     </style>
 </head>
 <body class="flex flex-col h-screen">
 
-    <div id="settings-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md">
-        <div class="liquid-glass w-full max-w-sm rounded-[32px] p-8 shadow-2xl">
+    <div id="settings-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/70 backdrop-blur-lg">
+        <div class="liquid-glass w-full max-w-sm rounded-[32px] p-8">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-bold">Preferences</h2>
-                <button onclick="toggleSettings()" class="text-zinc-400 p-2"><i data-lucide="x"></i></button>
+                <button onclick="toggleSettings()" class="text-zinc-400"><i data-lucide="x"></i></button>
             </div>
             <div class="space-y-6">
                 <div>
-                    <label class="text-[10px] font-bold text-zinc-500 uppercase mb-2 block tracking-widest">App Display Name</label>
-                    <input type="text" id="app-name-input" oninput="updateAppName(this.value)" 
-                        class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[#0a84ff] text-white">
+                    <label class="text-[10px] font-bold text-zinc-500 uppercase block mb-2">Display Name</label>
+                    <input type="text" id="app-name-input" oninput="updateAppName(this.value)" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none text-white focus:border-[#0a84ff]">
                 </div>
                 <div>
-                    <label class="text-[10px] font-bold text-zinc-500 uppercase mb-2 block tracking-widest">AI Engine</label>
+                    <label class="text-[10px] font-bold text-zinc-500 uppercase block mb-2">AI Engine</label>
                     <div class="grid grid-cols-2 gap-2 bg-white/5 p-1 rounded-2xl">
-                        <button onclick="setModel('groq')" id="btn-groq" class="py-2 rounded-xl text-sm font-semibold transition-all">Groq</button>
-                        <button onclick="setModel('gemini')" id="btn-gemini" class="py-2 rounded-xl text-sm font-semibold transition-all">Gemma 3</button>
+                        <button onclick="setModel('groq')" id="btn-groq" class="py-2 rounded-xl text-xs font-bold transition-all">Groq</button>
+                        <button onclick="setModel('gemini')" id="btn-gemini" class="py-2 rounded-xl text-xs font-bold transition-all">Gemma 3</button>
                     </div>
                 </div>
-                <button onclick="clearChat()" class="w-full py-3 rounded-xl bg-red-500/10 text-red-500 text-sm font-bold border border-red-500/20 active:bg-red-500/20">
-                    Clear History
-                </button>
+                <button onclick="clearChat()" class="w-full py-3 rounded-xl bg-red-500/10 text-red-500 text-xs font-bold border border-red-500/20">Clear Chat History</button>
             </div>
         </div>
     </div>
 
     <nav class="liquid-glass fixed top-0 w-full z-50 px-6 py-4 flex justify-between items-center">
         <div class="flex items-center gap-4">
-            <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-orange-400 to-red-600 flex items-center justify-center shadow-xl rotate-3">
-                <i data-lucide="trending-up" class="text-white w-6 h-6"></i>
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-400 to-red-600 flex items-center justify-center shadow-lg rotate-3">
+                <i data-lucide="trending-up" class="text-white w-5 h-5"></i>
             </div>
             <div>
-                <h1 id="display-name" class="text-lg font-bold tracking-tight">Smart <span class="text-[#0a84ff]">Betting</span></h1>
-                <p id="model-indicator" class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">GROQ LPU™</p>
+                <h1 id="display-name" class="text-md font-bold">Smart <span class="text-[#0a84ff]">Betting</span></h1>
+                <p id="model-indicator" class="text-[9px] text-zinc-500 font-black tracking-tighter uppercase">GROQ LPU™</p>
             </div>
         </div>
-        <button onclick="toggleSettings()" class="bg-white/5 p-2 rounded-full border border-white/10 active:scale-90 transition-transform">
-            <i data-lucide="settings" class="w-5 h-5 text-zinc-400"></i>
-        </button>
+        <button onclick="toggleSettings()" class="bg-white/5 p-2 rounded-full border border-white/10"><i data-lucide="settings" class="w-5 h-5 text-zinc-400"></i></button>
     </nav>
 
-    <main id="chat-container" class="flex-1 overflow-y-auto px-5 pt-28 pb-40 flex flex-col no-scrollbar"></main>
+    <main id="chat-container" class="flex-1 overflow-y-auto px-5 pt-24 pb-44 flex flex-col no-scrollbar"></main>
 
-    <footer class="fixed bottom-0 w-full p-4 pb-10 bg-gradient-to-t from-black via-black/90 to-transparent">
+    <footer class="fixed bottom-0 w-full p-4 pb-8 bg-gradient-to-t from-black via-black/80 to-transparent">
         <div class="max-w-3xl mx-auto flex flex-col gap-3">
             <div id="preview-card" class="bg-[#1c1c1e] p-2 rounded-2xl border border-white/10 inline-flex items-center gap-3 w-max hidden shadow-2xl">
                 <div class="relative">
-                    <img id="img-display" class="h-14 w-14 object-cover rounded-xl border border-white/10">
-                    <button onclick="clearImage()" class="absolute -top-2 -right-2 bg-white text-black rounded-full p-0.5 shadow-lg">
-                        <i data-lucide="x" class="w-3.5 h-3.5"></i>
-                    </button>
+                    <img id="img-display" class="h-12 w-12 object-cover rounded-lg border border-white/10">
+                    <button onclick="clearImage()" class="absolute -top-2 -right-2 bg-white text-black rounded-full p-0.5 shadow-lg"><i data-lucide="x" class="w-3 h-3"></i></button>
                 </div>
-                <p class="text-[10px] text-zinc-500 pr-3 italic">Slip attached</p>
+                <p class="text-[10px] text-zinc-500 pr-2 font-bold uppercase">Slip Ready</p>
             </div>
 
-            <div class="liquid-glass rounded-[32px] p-2 flex items-center gap-2 shadow-2xl">
-                <button onclick="document.getElementById('file-input').click()" class="w-11 h-11 flex items-center justify-center text-zinc-400 hover:text-[#0a84ff] transition-all">
-                    <i data-lucide="plus-circle" class="w-7 h-7"></i>
-                </button>
+            <div class="liquid-glass rounded-[28px] p-1.5 flex items-center gap-2 shadow-2xl border border-white/10">
+                <button onclick="document.getElementById('file-input').click()" class="w-11 h-11 flex items-center justify-center text-zinc-500 hover:text-[#0a84ff]"><i data-lucide="plus" class="w-6 h-6"></i></button>
                 <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleImage(event)">
-                <textarea id="user-input" rows="1" placeholder="Type or upload slip..." class="flex-1 bg-transparent border-none outline-none text-white py-3 text-[16px] resize-none no-scrollbar"></textarea>
-                <button onclick="submit()" class="w-11 h-11 bg-[#0a84ff] rounded-full flex items-center justify-center active:scale-75 transition-all shadow-lg">
-                    <i data-lucide="arrow-up" class="text-white w-6 h-6 stroke-[2.5px]"></i>
-                </button>
+                <textarea id="user-input" rows="1" placeholder="Type fixture or date..." class="flex-1 bg-transparent border-none outline-none text-white py-3 text-[15px] resize-none no-scrollbar placeholder-zinc-600"></textarea>
+                <button onclick="submit()" class="w-11 h-11 bg-[#0a84ff] rounded-full flex items-center justify-center active:scale-90 transition-all shadow-lg shadow-blue-500/20"><i data-lucide="arrow-up" class="text-white w-5 h-5 stroke-[3px]"></i></button>
             </div>
         </div>
     </footer>
@@ -165,11 +150,7 @@
         const container = document.getElementById('chat-container');
         const input = document.getElementById('user-input');
         
-        let state = JSON.parse(localStorage.getItem('bettingState')) || {
-            appName: 'Smart Betting',
-            model: 'groq',
-            history: []
-        };
+        let state = JSON.parse(localStorage.getItem('bettingState')) || { appName: 'Smart Betting', model: 'groq', history: [] };
 
         function saveState() { localStorage.setItem('bettingState', JSON.stringify(state)); }
 
@@ -178,7 +159,7 @@
             document.getElementById('app-name-input').value = state.appName;
             setModel(state.model);
             state.history.forEach(msg => appendMsg(msg.content, msg.type, msg.isImg, false));
-            if (state.history.length === 0) appendMsg("Ready for that BMW? 🏎️ Drop your slip below.", 'ai');
+            if (state.history.length === 0) appendMsg("Which fixtures are we auditing for the BMW? 🏎️", 'ai');
         }
 
         function toggleSettings() { document.getElementById('settings-modal').classList.toggle('active'); }
@@ -193,52 +174,45 @@
             state.model = type;
             document.getElementById('model-indicator').innerText = type === 'groq' ? 'GROQ LPU™' : 'GEMMA 3 ENGINE';
             const isGroq = type === 'groq';
-            document.getElementById('btn-groq').className = isGroq ? 'py-2 rounded-xl text-sm font-bold bg-[#0a84ff] text-white shadow-lg' : 'py-2 rounded-xl text-sm font-semibold text-zinc-500';
-            document.getElementById('btn-gemini').className = !isGroq ? 'py-2 rounded-xl text-sm font-bold bg-[#0a84ff] text-white shadow-lg' : 'py-2 rounded-xl text-sm font-semibold text-zinc-500';
+            document.getElementById('btn-groq').className = isGroq ? 'py-2 rounded-xl text-[10px] font-black bg-[#0a84ff] text-white' : 'py-2 rounded-xl text-[10px] font-bold text-zinc-500';
+            document.getElementById('btn-gemini').className = !isGroq ? 'py-2 rounded-xl text-[10px] font-black bg-[#0a84ff] text-white' : 'py-2 rounded-xl text-[10px] font-bold text-zinc-500';
             saveState();
         }
 
-        function clearChat() {
-            state.history = []; container.innerHTML = ''; saveState(); toggleSettings();
-            appendMsg("Chat cleared. Ready for a new slip!", 'ai');
-        }
+        function clearChat() { state.history = []; container.innerHTML = ''; saveState(); toggleSettings(); appendMsg("Ready for fresh odds.", 'ai'); }
 
-        // --- THE "SMART TIP" CARD PARSER ---
+        // --- THE "ULTIMATE" CARD PARSER ---
         function formatDashboard(text) {
-            if (!text.includes('###')) return `
-                <div class="ai-bubble message-bubble bg-[#1c1c1e] border border-white/10 rounded-2xl p-4">${text}</div>
-            `;
+            if (!text.includes('###')) return `<div class="bg-[#1c1c1e] p-4 rounded-2xl border border-white/5 text-sm">${text}</div>`;
 
-            let formatted = text.replace(/### (.*?)\s*vs\s*(.*?)(?:\n|$)/gi, 
+            // 1. Parse individual Match Cards
+            let formatted = text.replace(/### (.*?) vs (.*?) \| MARKET: (.*?) \| ODDS: (.*?)(?:\n|$)/gi, 
                 `<div class="bet-card">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="smart-tag">Elite Pick</span>
+                        <span class="text-[9px] text-zinc-600 font-black uppercase">UCL FEB 2026</span>
+                    </div>
                     <div class="flex justify-between items-center mb-4">
-                        <span class="smart-tag">Smart Tip</span>
-                        <span class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Verified Odds</span>
+                        <span class="text-sm font-bold text-white">$1</span>
+                        <span class="text-[10px] text-zinc-700 font-black mx-2">VS</span>
+                        <span class="text-sm font-bold text-white text-right">$2</span>
                     </div>
-                    <div class="flex justify-between items-center mb-6 px-2">
-                        <span class="text-base font-black w-1/3 text-left">$1</span>
-                        <span class="text-[10px] text-zinc-600 font-bold">VS</span>
-                        <span class="text-base font-black w-1/3 text-right">$2</span>
+                    <div class="odds-box">
+                        <p class="text-[8px] text-zinc-500 uppercase font-black mb-1">$3</p>
+                        <p class="text-2xl font-black text-white">$4</p>
                     </div>
-                    <div class="grid grid-cols-1 gap-3">`
-            );
-
-            // Wrap market and odds into a box
-            formatted = formatted.replace(/> \*\*MARKET:\*\* (.*?)\| (.*)/gi, 
-                `<div class="odds-box">
-                    <p class="text-[9px] text-zinc-500 uppercase font-black mb-1">Recommended Market</p>
-                    <p class="text-xs font-bold text-cyan-400 mb-1">$1</p>
-                    <p class="text-2xl font-black text-white">$2</p>
                 </div>`
             );
 
-            // Wrap scenario at the bottom
-            formatted = formatted.replace(/- \*\*SCENARIO:\*\* (.*?)(?:\n|$)/gi, 
-                `</div>
-                <div class="mt-4 pt-4 border-t border-white/5">
-                    <p class="text-xs text-zinc-400 leading-relaxed"><span class="text-[#0a84ff] font-bold">ANALYSIS:</span> "$1"</p>
-                </div>
-            </div>`
+            // 2. Parse the Total Multiplier Card
+            formatted = formatted.replace(/TOTAL MULTI: (.*?)(?:\n|$)/gi, 
+                `<div class="multi-card">
+                    <p class="text-[10px] font-black text-white/70 uppercase tracking-widest mb-1">Potential Slip Odds</p>
+                    <p class="text-4xl font-black text-white">$1</p>
+                    <div class="mt-3 py-1 px-4 bg-white/10 rounded-full inline-block">
+                        <p class="text-[10px] font-bold text-white">R500 → BMW 3 SERIES 🏎️</p>
+                    </div>
+                </div>`
             );
 
             return formatted;
@@ -247,7 +221,6 @@
         let base64Image = null;
         function handleImage(e) {
             const file = e.target.files[0];
-            if (!file) return;
             const reader = new FileReader();
             reader.onload = (event) => {
                 base64Image = event.target.result;
@@ -261,14 +234,12 @@
 
         function appendMsg(content, type, isImg = false, shouldSave = true) {
             const div = document.createElement('div');
-            div.className = `${type}-bubble message-bubble flex flex-col`;
-            
+            div.className = `${type}-bubble message-bubble`;
             if (isImg) {
-                div.innerHTML = `<img src="${content}" class="rounded-3xl max-h-64 shadow-2xl mb-2 border border-white/10"> <p class="text-[10px] text-center opacity-60 uppercase font-bold tracking-widest">Scanning Slip...</p>`;
+                div.innerHTML = `<img src="${content}" class="rounded-2xl max-h-60 mb-2 border border-white/10 shadow-2xl">`;
             } else {
                 div.innerHTML = type === 'ai' ? formatDashboard(content) : content;
             }
-            
             container.appendChild(div);
             container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
             if (shouldSave) { state.history.push({ content, type, isImg }); saveState(); }
@@ -294,12 +265,12 @@
                 });
                 const data = await res.json();
                 loader.classList.remove('animate-pulse');
-                const responseText = data.choices ? data.choices[0].message.content : (data.audit || "Server Error");
+                const responseText = data.choices ? data.choices[0].message.content : (data.audit || "Engine Fault");
                 loader.innerHTML = formatDashboard(responseText);
                 state.history.push({ content: responseText, type: 'ai', isImg: false });
                 saveState();
             } catch (err) {
-                loader.innerHTML = `<div class="bg-red-500/10 text-red-500 p-4 rounded-2xl border border-red-500/20 text-xs font-bold">ENGINE ERROR: Check Vercel Logs.</div>`;
+                loader.innerText = "Check Connection/API Keys.";
             }
         }
         init();
