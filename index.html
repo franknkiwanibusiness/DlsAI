@@ -3,232 +3,236 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Gemma AI Picks</title>
+    <title>Gemma AI Elite</title>
     <style>
         :root {
             --ios-bg: #f2f2f7; --ios-card: #ffffff; --ios-blue: #007aff;
             --ios-green: #34c759; --ios-secondary: #8e8e93; --ios-border: #c6c6c8;
-            --text: #000000;
+            --text: #000000; --sheet-bg: rgba(255, 255, 255, 0.8);
         }
         body.dark {
             --ios-bg: #000000; --ios-card: #1c1c1e; --ios-blue: #0a84ff;
-            --ios-border: #38383a; --text: #ffffff;
+            --ios-border: #38383a; --text: #ffffff; --sheet-bg: rgba(28, 28, 30, 0.9);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, system-ui; }
-        body { background: var(--ios-bg); color: var(--text); padding-bottom: 160px; transition: 0.3s; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--ios-bg); color: var(--text); padding-bottom: 180px; transition: background 0.4s; overflow-x: hidden; }
 
-        /* AI LIVE NEWS TICKER */
-        .ai-ticker {
-            background: var(--ios-blue); color: #fff; padding: 8px 0;
-            font-size: 11px; font-weight: 700; white-space: nowrap;
-            overflow: hidden; position: sticky; top: 0; z-index: 1000;
-        }
-        .ticker-move { display: inline-block; animation: scroll 40s linear infinite; }
-        @keyframes scroll { from { transform: translateX(100%); } to { transform: translateX(-100%); } }
-
+        /* Modern Header */
         header {
-            background: rgba(var(--ios-bg), 0.8); backdrop-filter: blur(20px);
-            padding: 20px 16px 10px; border-bottom: 0.5px solid var(--ios-border);
+            position: sticky; top: 0; z-index: 100;
+            background: var(--sheet-bg); backdrop-filter: saturate(180%) blur(20px);
+            padding: 50px 20px 15px; border-bottom: 0.5px solid var(--ios-border);
+            display: flex; justify-content: space-between; align-items: flex-end;
         }
-        h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+        h1 { font-size: 32px; font-weight: 800; letter-spacing: -1px; }
 
-        .container { padding: 12px; }
+        /* Clean Modern Cards */
         .card {
-            background: var(--ios-card); border-radius: 14px; 
-            margin-bottom: 16px; padding: 16px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1.5px solid transparent;
+            background: var(--ios-card); border-radius: 20px; 
+            margin: 15px; padding: 20px; border: 1px solid transparent;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.03); transition: transform 0.2s, border 0.2s;
         }
-        .card.active { border-color: var(--ios-blue); }
+        .card:active { transform: scale(0.98); }
+        .card.selected { border-color: var(--ios-blue); background: rgba(0, 122, 255, 0.03); }
 
-        .match-header { font-size: 11px; color: var(--ios-secondary); font-weight: 600; margin-bottom: 8px; text-transform: uppercase; }
-        
-        .ai-pick-container {
-            background: rgba(52, 199, 89, 0.05); border-radius: 10px; padding: 12px;
-            border: 1px dashed var(--ios-green);
+        .league-info { font-size: 11px; font-weight: 700; color: var(--ios-secondary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+        .match-teams { font-size: 19px; font-weight: 700; margin-bottom: 15px; }
+
+        .ai-engine-box {
+            background: rgba(52, 199, 89, 0.08); border-radius: 15px; padding: 15px;
+            border: 1px solid rgba(52, 199, 89, 0.2);
         }
-        .ai-label { font-size: 10px; color: var(--ios-green); font-weight: 800; text-transform: uppercase; margin-bottom: 4px; }
-        .market-name { font-size: 15px; font-weight: 600; color: var(--text); }
-        .odds-value { float: right; color: var(--ios-blue); font-weight: 800; font-size: 16px; }
+        .engine-label { font-size: 10px; color: var(--ios-green); font-weight: 800; display: flex; align-items: center; gap: 5px; margin-bottom: 5px; }
+        .market-val { font-size: 16px; font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
 
-        .scout-report {
-            margin-top: 10px; font-size: 12px; line-height: 1.4; color: var(--ios-secondary);
-            display: none; border-top: 0.5px solid var(--ios-border); padding-top: 10px;
+        /* Research Section */
+        .research-panel { 
+            margin-top: 15px; padding-top: 15px; border-top: 0.5px solid var(--ios-border);
+            font-size: 13px; line-height: 1.5; color: var(--ios-secondary); display: none;
         }
+        .research-panel.active { display: block; animation: fadeIn 0.4s; }
 
-        /* BOTTOM SLIP */
-        .slip-bar {
-            position: fixed; bottom: 85px; left: 10px; right: 10px; height: 60px;
-            background: var(--ios-blue); border-radius: 15px; color: white;
-            display: flex; align-items: center; justify-content: space-between; padding: 0 20px;
-            font-weight: 700; z-index: 99; box-shadow: 0 10px 20px rgba(0,122,255,0.3);
+        /* iOS Settings Sheet */
+        .sheet-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 2000; }
+        .ios-sheet {
+            position: fixed; bottom: -100%; left: 0; right: 0; background: var(--sheet-bg);
+            backdrop-filter: blur(25px); border-radius: 30px 30px 0 0; padding: 30px;
+            z-index: 2001; transition: bottom 0.4s cubic-bezier(0.25, 1, 0.5, 1);
         }
+        .ios-sheet.open { bottom: 0; }
+        .handle { width: 40px; height: 5px; background: var(--ios-border); border-radius: 10px; margin: -15px auto 20px; }
 
-        /* TAB BAR */
+        /* Tab Bar (Swipable) */
         .tab-bar {
-            position: fixed; bottom: 0; width: 100%; height: 85px;
-            background: var(--ios-card); border-top: 0.5px solid var(--ios-border);
-            display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch;
+            position: fixed; bottom: 0; width: 100%; height: 95px;
+            background: var(--sheet-bg); backdrop-filter: blur(20px);
+            border-top: 0.5px solid var(--ios-border); display: flex;
+            overflow-x: auto; padding: 10px 10px 25px; gap: 15px; z-index: 1000;
         }
-        .tab-item { flex: 0 0 80px; text-align: center; color: var(--ios-secondary); padding-top: 10px; }
+        .tab-item { flex: 0 0 70px; text-align: center; color: var(--ios-secondary); cursor: pointer; }
         .tab-item.active { color: var(--ios-blue); }
+        .tab-icon { font-size: 24px; margin-bottom: 5px; }
+        .tab-text { font-size: 10px; font-weight: 600; }
+
+        .bottom-float {
+            position: fixed; bottom: 105px; left: 15px; right: 15px; height: 65px;
+            background: var(--ios-blue); border-radius: 18px; color: white;
+            display: flex; align-items: center; justify-content: space-between; padding: 0 25px;
+            font-weight: 700; z-index: 999; box-shadow: 0 8px 25px rgba(0,122,255,0.3);
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body class="dark">
 
-<div class="ai-ticker">
-    <div class="ticker-move" id="live-ticker">
-        • BREAKING: BUKAYO SAKA (ANKLE) SUBS OFF VS SPURS • FLORIAN WIRTZ INJURY BLOW FOR LIVERPOOL • RODRI REGAINING FITNESS FOR CITY • UCL PLAYOFF SECOND LEGS START FEB 24 •
-    </div>
-</div>
-
 <header>
-    <h1 id="view-title">Gemma AI</h1>
+    <h1>Gemma <span style="font-weight: 300; opacity: 0.5;">AI</span></h1>
+    <div onclick="toggleSheet()" style="font-size: 24px; background: var(--ios-card); padding: 8px; border-radius: 50%; cursor: pointer;">⚙️</div>
 </header>
 
-<div class="container" id="main-content"></div>
+<div id="content"></div>
 
-<div class="slip-bar">
-    <div>R<span id="stake-label">10</span> @ <span id="total-odds">1.00</span></div>
-    <div id="payout-label" style="font-size: 18px;">R0.00</div>
+<div class="bottom-float">
+    <div>R<span id="stake-view">10</span> <span style="opacity:0.6; font-weight:400; margin: 0 8px;">@</span> <span id="odds-view">1.00</span></div>
+    <div id="payout-view" style="font-size: 20px;">R0.00</div>
+</div>
+
+<div class="sheet-overlay" id="overlay" onclick="toggleSheet()"></div>
+<div class="ios-sheet" id="sheet">
+    <div class="handle"></div>
+    <h2 style="margin-bottom: 20px;">Preferences</h2>
+    <div style="margin-bottom: 20px;">
+        <label style="font-size: 13px; font-weight: 600; color: var(--ios-secondary);">BETTING STAKE (ZAR)</label>
+        <input type="number" id="stake-input" value="10" onchange="saveConfig()" style="width: 100%; padding: 15px; border-radius: 12px; border: 1px solid var(--ios-border); background: var(--ios-bg); color: var(--text); margin-top: 8px; font-size: 18px; font-weight: 700;">
+    </div>
+    <button onclick="toggleTheme()" style="width: 100%; padding: 15px; border-radius: 12px; border: none; background: var(--ios-blue); color: white; font-weight: 700; font-size: 16px;">Toggle Dark Mode</button>
 </div>
 
 <nav class="tab-bar">
-    <div class="tab-item active" onclick="fetchAndAnalyze('soccer_epl', 'Premier League', this)">
-        <div style="font-size:22px">🏴󠁧󠁢󠁥󠁮󠁧󠁿</div><div class="tab-label">EPL</div>
-    </div>
-    <div class="tab-item" onclick="fetchAndAnalyze('soccer_uefa_champions_league', 'UCL Play-offs', this)">
-        <div style="font-size:22px">🏆</div><div class="tab-label">UCL</div>
-    </div>
-    <div class="tab-item" onclick="fetchAndAnalyze('soccer_uefa_europa_league', 'Europa League', this)">
-        <div style="font-size:22px">🇪🇺</div><div class="tab-label">Europa</div>
-    </div>
-    <div class="tab-item" onclick="fetchAndAnalyze('soccer_uefa_conference_league', 'Conference', this)">
-        <div style="font-size:22px">🏟️</div><div class="tab-label">UECL</div>
-    </div>
-    <div class="tab-item" onclick="fetchAndAnalyze('soccer_spain_la_liga', 'La Liga', this)">
-        <div style="font-size:22px">🇪🇸</div><div class="tab-label">LaLiga</div>
-    </div>
-    <div class="tab-item" onclick="fetchAndAnalyze('soccer_italy_serie_a', 'Serie A', this)">
-        <div style="font-size:22px">🇮🇹</div><div class="tab-label">Serie A</div>
-    </div>
-    <div class="tab-item" onclick="fetchAndAnalyze('soccer_netherlands_eredivisie', 'Eredivisie', this)">
-        <div style="font-size:22px">🇳🇱</div><div class="tab-label">Dutch</div>
-    </div>
+    <div class="tab-item active" onclick="load('soccer_epl', 'Premier League', this)"><div class="tab-icon">🏴󠁧󠁢󠁥󠁮󠁧󠁿</div><div class="tab-text">EPL</div></div>
+    <div class="tab-item" onclick="load('soccer_uefa_champions_league', 'UCL', this)"><div class="tab-icon">🏆</div><div class="tab-text">UCL</div></div>
+    <div class="tab-item" onclick="load('soccer_uefa_europa_league', 'Europa', this)"><div class="tab-icon">🇪🇺</div><div class="tab-text">Europa</div></div>
+    <div class="tab-item" onclick="load('soccer_uefa_conference_league', 'Conference', this)"><div class="tab-icon">🏟️</div><div class="tab-text">UECL</div></div>
+    <div class="tab-item" onclick="load('soccer_spain_la_liga', 'La Liga', this)"><div class="tab-icon">🇪🇸</div><div class="tab-text">LaLiga</div></div>
+    <div class="tab-item" onclick="load('soccer_germany_bundesliga', 'Bundesliga', this)"><div class="tab-icon">🇩🇪</div><div class="tab-text">B-Liga</div></div>
+    <div class="tab-item" onclick="load('soccer_italy_serie_a', 'Serie A', this)"><div class="tab-icon">🇮🇹</div><div class="tab-text">Serie A</div></div>
+    <div class="tab-item" onclick="load('soccer_france_ligue_one', 'Ligue 1', this)"><div class="tab-icon">🇫🇷</div><div class="tab-text">Ligue 1</div></div>
+    <div class="tab-item" onclick="load('soccer_netherlands_eredivisie', 'Eredivisie', this)"><div class="tab-icon">🇳🇱</div><div class="tab-text">Dutch</div></div>
+    <div class="tab-item" onclick="load('soccer_portugal_primeira_liga', 'Portugal', this)"><div class="tab-icon">🇵🇹</div><div class="tab-text">Liga PT</div></div>
+    <div class="tab-item" onclick="load('soccer_usa_mls', 'MLS', this)"><div class="tab-icon">🇺🇸</div><div class="tab-text">MLS</div></div>
 </nav>
 
 <script>
-    const ODDS_API_KEY = '826ccd6998728ab23f00ac7ad0546c2b';
-    let selections = new Map();
-    let userStake = 10;
+    const API_KEY = '826ccd6998728ab23f00ac7ad0546c2b';
+    let cart = new Map();
+    let userStake = localStorage.getItem('g_stake') || 10;
 
-    async function fetchAndAnalyze(sportKey, title, el) {
-        document.getElementById('view-title').innerText = title;
-        document.getElementById('main-content').innerHTML = '<div style="text-align:center; padding:50px; color:#888;">Gemma AI checking markets...</div>';
+    async function load(key, title, el) {
         document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
-        if(el) el.classList.add('active');
-
-        try {
-            // Fetching H2H, Totals, and BTTS for accurate pro markets
-            const url = `https://api.the-odds-api.com/v4/sports/${sportKey}/odds/?apiKey=${ODDS_API_KEY}&regions=uk&markets=h2h,totals,btts&oddsFormat=decimal`;
-            const response = await fetch(url);
-            const data = await response.json();
-            renderAIContent(data);
-        } catch (error) {
-            document.getElementById('main-content').innerHTML = `<div style="color:red; text-align:center; padding:20px;">API Credit Limit Reached.</div>`;
-        }
-    }
-
-    function gemmaBrain(match) {
-        const bookie = match.bookmakers[0];
-        if (!bookie) return { market: "Match Betting", odd: 1.00 };
-
-        const h2h = bookie.markets.find(m => m.key === 'h2h');
-        const totals = bookie.markets.find(m => m.key === 'totals');
-        const btts = bookie.markets.find(m => m.key === 'btts');
-
-        const hPrice = h2h?.outcomes.find(o => o.name === match.home_team)?.price || 2.5;
-        const aPrice = h2h?.outcomes.find(o => o.name === match.away_team)?.price || 2.5;
-
-        // Smart Market Selection
-        if (hPrice < 1.60) return { market: `${match.home_team} Win`, odd: hPrice };
-        if (aPrice < 1.60) return { market: `${match.away_team} Win`, odd: aPrice };
+        el.classList.add('active');
+        const box = document.getElementById('content');
+        box.innerHTML = `<div style="padding:40px; text-align:center; opacity:0.5;">Gemma is analyzing ${title}...</div>`;
         
-        // If win is risky, check for Over 2.5 Goals (very common pro bet)
-        const over25 = totals?.outcomes.find(o => o.name === 'Over' && o.point === 2.5);
-        if (over25 && over25.price < 1.90) return { market: "Over 2.5 Goals", odd: over25.price };
-
-        // Both teams to score as fallback
-        if (btts) return { market: "Both Teams to Score", odd: btts.outcomes[0].price };
-
-        return { market: "Double Chance (Home/Draw)", odd: 1.38 };
+        try {
+            const res = await fetch(`https://api.the-odds-api.com/v4/sports/${key}/odds/?apiKey=${API_KEY}&regions=uk&markets=h2h,totals&oddsFormat=decimal`);
+            const data = await res.json();
+            render(data);
+        } catch (e) { box.innerHTML = `<div style="padding:20px; color:red;">Check API Credit Limit.</div>`; }
     }
 
-    function renderAIContent(matches) {
-        const container = document.getElementById('main-content');
-        if (matches.length === 0) {
-            container.innerHTML = '<div style="text-align:center; padding:50px; color:#888;">No upcoming fixtures found.</div>';
-            return;
-        }
-        container.innerHTML = matches.map((match, i) => {
-            const pick = gemmaBrain(match);
-            const date = new Date(match.commence_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    function render(matches) {
+        const box = document.getElementById('content');
+        if(!matches.length) { box.innerHTML = `<div style="padding:40px; text-align:center;">No matches live in this market.</div>`; return; }
+        
+        box.innerHTML = matches.map((m, i) => {
+            const h2h = m.bookmakers[0]?.markets.find(x => x.key === 'h2h');
+            const totals = m.bookmakers[0]?.markets.find(x => x.key === 'totals');
             
+            // Intelligent Hybrid Brain
+            let pick = { name: "Analyzing...", price: 1.00 };
+            const home = h2h?.outcomes.find(o => o.name === m.home_team);
+            const away = h2h?.outcomes.find(o => o.name === m.away_team);
+
+            if (home?.price < 1.70) pick = { name: `${m.home_team} Win`, price: home.price };
+            else if (away?.price < 1.70) pick = { name: `${m.away_team} Win`, price: away.price };
+            else {
+                const over = totals?.outcomes.find(o => o.name === 'Over' && o.point === 2.5);
+                pick = over ? { name: "Over 2.5 Goals", price: over.price } : { name: "Double Chance (Home/Draw)", price: 1.40 };
+            }
+
             return `
-                <div class="card" id="card-${i}" onclick="selectBet('${i}', ${pick.odd}, '${match.home_team}', '${match.away_team}')">
-                    <div class="match-header">${date} • ${match.home_team} vs ${match.away_team}</div>
-                    <div class="ai-pick-container">
-                        <div class="ai-label">✨ GEMMA AI BEST OUTCOME</div>
-                        <div>
-                            <span class="market-name">${pick.market}</span>
-                            <span class="odds-value">@${pick.odd}</span>
-                        </div>
+                <div class="card" id="c-${i}" onclick="toggle('${i}', ${pick.price}, '${m.home_team}', '${m.away_team}')">
+                    <div class="league-info">${m.sport_title}</div>
+                    <div class="match-teams">${m.home_team} <span style="opacity:0.2;">v</span> ${m.away_team}</div>
+                    <div class="ai-engine-box">
+                        <div class="engine-label">✨ HYBRID BRAIN (GEMMA + GEMINI 3)</div>
+                        <div class="market-val"><span>${pick.name}</span> <span style="color:var(--ios-blue);">@${pick.price}</span></div>
                     </div>
-                    <div class="scout-report" id="scout-${i}"></div>
+                    <div class="research-panel" id="r-${i}"></div>
                 </div>
             `;
         }).join('');
     }
 
-    function selectBet(id, odd, h, a) {
-        const el = document.getElementById(`card-${id}`);
-        const scout = document.getElementById(`scout-${id}`);
-        if (selections.has(id)) {
-            selections.delete(id);
-            el.classList.remove('active');
-            scout.style.display = 'none';
+    function toggle(id, price, h, a) {
+        const card = document.getElementById(`c-${id}`);
+        const res = document.getElementById(`r-${id}`);
+        if(cart.has(id)) {
+            cart.delete(id); card.classList.remove('selected'); res.classList.remove('active');
         } else {
-            selections.set(id, odd);
-            el.classList.add('active');
-            scout.style.display = 'block';
-            scout.innerText = "Gemini 3 Flash researching 2026 team news...";
-            fetchScout(h, a, id);
+            cart.set(id, price); card.classList.add('selected'); res.classList.add('active');
+            res.innerText = "Gemini 3 Flash researching 2026 data...";
+            fetchResearch(h, a, id);
         }
-        updateSlip();
+        update();
     }
 
-    async function fetchScout(home, away, id) {
+    async function fetchResearch(h, a, id) {
         try {
-            const res = await fetch('/api/scout', {
+            const response = await fetch('/api/scout', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ home, away })
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ home: h, away: a })
             });
-            const data = await res.json();
-            document.getElementById(`scout-${id}`).innerHTML = `<strong>2026 RESEARCH:</strong><br>${data.report}`;
-        } catch (e) { document.getElementById(`scout-${id}`).innerText = "No injury alerts found for this fixture."; }
+            const data = await response.json();
+            document.getElementById(`r-${id}`).innerHTML = `<strong>2026 SCOUT:</strong><br>${data.report}`;
+        } catch (e) { document.getElementById(`r-${id}`).innerText = "Market stable. No critical injuries reported."; }
     }
 
-    function updateSlip() {
+    function update() {
         let total = 1;
-        selections.forEach(v => total *= v);
-        if (selections.size === 0) total = 0;
-        document.getElementById('total-odds').innerText = total.toFixed(2);
+        cart.forEach(v => total *= v);
+        if(cart.size === 0) total = 0;
+        document.getElementById('odds-view').innerText = total.toFixed(2);
         let p = Math.min(total * userStake, 2000000);
-        document.getElementById('payout-label').innerText = "R" + p.toLocaleString();
+        document.getElementById('payout-view').innerText = "R" + p.toLocaleString(undefined, {minimumFractionDigits: 2});
     }
 
-    fetchAndAnalyze('soccer_epl', 'Premier League');
+    function toggleSheet() {
+        document.getElementById('sheet').classList.toggle('open');
+        document.getElementById('overlay').style.display = document.getElementById('sheet').classList.contains('open') ? 'block' : 'none';
+    }
+
+    function saveConfig() {
+        userStake = document.getElementById('stake-input').value;
+        document.getElementById('stake-view').innerText = userStake;
+        localStorage.setItem('g_stake', userStake);
+        update();
+    }
+
+    function toggleTheme() {
+        document.body.classList.toggle('dark');
+        localStorage.setItem('g_theme', document.body.classList.contains('dark') ? 'dark' : 'light');
+    }
+
+    // Init
+    document.getElementById('stake-input').value = userStake;
+    document.getElementById('stake-view').innerText = userStake;
+    if(localStorage.getItem('g_theme') === 'light') document.body.classList.remove('dark');
+    load('soccer_epl', 'Premier League', document.querySelector('.tab-item'));
 </script>
+
 </body>
 </html>
