@@ -4,32 +4,25 @@ export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: "Method not allowed" });
 
     const { message } = req.body;
-    const API_KEY = "826ccd6998728ab23f00ac7ad0546c2b";
-    
-    // We fetch 'upcoming' to see everything across all leagues for the next few days
-    const getVerifiedOdds = async () => {
+    // Your JWT API Key
+    const API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImZyYW5rbmtpd2FuaUBnbWFpbC5jb20iLCJ0aWVyIjoiZnJlZSIsInVzZXJJZCI6InUwTlNoZmR5SjZROVJ5Z1NodXdHVGJZMEdoUTIiLCJpYXQiOjE3NzE3NTIzMzEsImV4cCI6MTgwMzI4ODMzMX0.GVGzPppZcMsZp-3kga8Ok6Xk6D8YKBTjc6czTWmcsyc";
+
+    const fetchSportsData = async () => {
         try {
-            const response = await fetch(`https://api.the-odds-api.com/v4/sports/soccer/odds/?apiKey=${API_KEY}&regions=eu&markets=h2h,totals,btts&oddsFormat=decimal`);
+            // Fetching upcoming fixtures for the next 7 days
+            const response = await fetch(`https://api.realtimesportsapi.com/v1/football/fixtures?days=7`, {
+                headers: { "Authorization": `Bearer ${API_KEY}` }
+            });
             const data = await response.json();
-            
-            if (!Array.isArray(data)) return [];
-
-            const now = new Date();
-            const sevenDaysFromNow = new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000));
-
-            return data.filter(match => {
-                const matchTime = new Date(match.commence_time);
-                return matchTime >= now && matchTime <= sevenDaysFromNow;
-            }).slice(0, 40);
+            return data.data || data.results || [];
         } catch { return []; }
     };
 
-    const verifiedPool = await getVerifiedOdds();
+    const fixtures = await fetchSportsData();
 
-    // If the API is truly empty, we tell the user clearly without crashing the UI
-    if (verifiedPool.length === 0) {
+    if (fixtures.length === 0) {
         return res.status(200).json({ 
-            choices: [{ message: { content: "### No Live Data | MARKET: API Empty | ODDS: 1.00 | WHY: The Odds API returned no matches for the next 7 days. Check your API quota.\n\nTOTAL MULTI: 1.00" } }] 
+            choices: [{ message: { content: "### API Offline | MARKET: N/A | ODDS: 0.00 | WHY: No live data available or API limit hit." } }] 
         });
     }
 
@@ -39,34 +32,21 @@ export default async function handler(req, res) {
 
         const SYSTEM_PROMPT = `
             ROLE: Elite Risk Auditor.
-            DATE: ${new Date().toISOString()}
-            DATA: ${JSON.stringify(verifiedPool)}
+            DATA: ${JSON.stringify(fixtures.slice(0, 30))}
 
-            STRICT INSTRUCTIONS:
-            1. ONLY use matches from the DATA provided. 
-            2. If the user asks for "Laliga" and it's not in the data, pick the 3 BEST VALUE matches available instead.
-            3. NO INTROS. NO "Okay". NO EXPLANATIONS.
-            4. 100-SCENARIO TEST: Pick markets that survive red cards.
-            
-            STRICT FORMAT:
+            TASK:
+            1. Find matches that match: "${message}".
+            2. For each match, find the "odds" or "price" in the data. If odds are missing, estimate based on probability (range 1.30 to 4.50).
+            3. Pick the 3 SAFEST bets.
+            4. FORMAT:
             ### [Home] vs [Away] | MARKET: [Pick] | ODDS: [Price] | WHY: [Tactical reason]
             
-            TOTAL MULTI: [X.XX]
+            TOTAL MULTI: [Result of Odds1 * Odds2 * Odds3]
         `;
 
-        const result = await model.generateContent(SYSTEM_PROMPT + "\nRequest: " + message);
-        let responseText = result.response.text().trim();
-
-        // Safety: Strip out any "yapping" sentences before the first ###
-        if (responseText.includes('###')) {
-            responseText = responseText.substring(responseText.indexOf('###'));
-        }
-
-        return res.status(200).json({ 
-            choices: [{ message: { content: responseText } }] 
-        });
-
-    } catch (error) {
-        return res.status(500).json({ error: "Audit Engine Failure" });
+        const result = await model.generateContent(SYSTEM_PROMPT);
+        return res.status(200).json({ choices: [{ message: { content: result.response.text().trim() } }] });
+    } catch (e) {
+        return res.status(500).json({ error: "Engine Fault" });
     }
 }
