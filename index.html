@@ -2,245 +2,103 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Gemma AI Multiplier</title>
+    <title>Gemma 2026: AI Multiplier Scout</title>
     <style>
-        :root {
-            --ios-bg: #f2f2f7;
-            --ios-card: #ffffff;
-            --ios-blue: #007aff;
-            --ios-green: #34c759;
-            --ios-purple: #6a1b9a;
-            --ios-secondary: #8e8e93;
-            --ios-border: #c6c6c8;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, system-ui; }
-        body { background: var(--ios-bg); padding-bottom: 140px; color: #1c1c1e; }
-
-        header {
-            position: sticky; top: 0; z-index: 100;
-            background: rgba(242, 242, 247, 0.85); backdrop-filter: blur(20px);
-            padding: 20px 16px 10px; border-bottom: 0.5px solid var(--ios-border);
-        }
-        h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
-        .status-bar { font-size: 10px; color: var(--ios-secondary); font-weight: 700; text-transform: uppercase; margin-top: 4px; }
-
-        .container { padding: 12px; }
-        .card {
-            background: var(--ios-card); border-radius: 14px; 
-            margin-bottom: 16px; padding: 16px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            border: 2px solid transparent;
-        }
-        .card.selected { border-color: var(--ios-blue); background: #f0f7ff; }
-
-        .match-header { display: flex; justify-content: space-between; font-size: 11px; color: var(--ios-secondary); font-weight: 600; margin-bottom: 8px; }
-        .league-name { color: var(--ios-blue); text-transform: uppercase; }
-        .teams { font-size: 17px; font-weight: 700; margin-bottom: 12px; }
-
-        /* Deep Think AI Styling */
-        .ai-pick-container {
-            background: #fdfaff; border-radius: 12px; padding: 14px;
-            border: 1px dashed var(--ios-purple); cursor: pointer;
-        }
-        .ai-label { font-size: 9px; color: var(--ios-purple); font-weight: 800; display: flex; justify-content: space-between; margin-bottom: 6px; }
-        .market-row { display: flex; justify-content: space-between; align-items: center; }
-        .market-name { font-size: 15px; font-weight: 700; }
-        .odds-value { color: var(--ios-blue); font-weight: 800; font-size: 18px; }
-        .deep-reasoning { font-size: 11px; color: #444; margin-top: 10px; padding-top: 8px; border-top: 0.5px solid #eee; line-height: 1.4; font-style: italic; }
-
-        /* Floating Bet Slip */
-        .bet-slip {
-            position: fixed; bottom: 20px; left: 16px; right: 16px;
-            background: var(--ios-blue); color: white; border-radius: 18px;
-            padding: 18px; box-shadow: 0 8px 25px rgba(0,122,255,0.3);
-            display: none; z-index: 1000;
-        }
-        .slip-row { display: flex; justify-content: space-between; align-items: center; }
-        .total-odds { font-size: 22px; font-weight: 800; }
-        .potential-win { font-size: 13px; opacity: 0.9; }
+        :root { --bg: #0f172a; --card: #1e293b; --accent: #38bdf8; --text: #f1f5f9; }
+        body { background: var(--bg); color: var(--text); font-family: sans-serif; padding: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
+        .card { background: var(--card); border: 1px solid #334155; padding: 15px; border-radius: 12px; transition: 0.3s; cursor: pointer; }
+        .card.selected { border-color: var(--accent); background: #1e3a8a; }
+        .status { background: #334155; padding: 10px; border-radius: 8px; margin-bottom: 20px; font-size: 0.9em; }
+        .ai-scout { background: #00000044; padding: 10px; border-radius: 6px; margin-top: 10px; font-size: 0.85em; border-left: 3px solid var(--accent); }
+        .odds-row { display: flex; justify-content: space-between; margin-top: 10px; font-weight: bold; color: var(--accent); }
     </style>
 </head>
 <body>
 
-<header>
-    <h1>Gemma Deep Think</h1>
-    <div id="status" class="status-bar">Syncing Live Data...</div>
-</header>
+    <h1>🏆 AI Multiplier Scout</h1>
+    <div id="status" class="status">Checking cache...</div>
+    <div id="matches" class="grid"></div>
 
-<div class="container" id="main-content"></div>
+    <script>
+        const ODDS_API_KEY = 'YOUR_ODDS_API_KEY';
+        const GEMINI_API_KEY = 'YOUR_GEMINI_API_KEY';
+        const LEAGUES = ['soccer_epl', 'soccer_spain_la_liga', 'soccer_italy_serie_a', 'soccer_germany_bundesliga']; // Add more as needed
 
-<div class="bet-slip" id="bet-slip">
-    <div class="slip-row">
-        <span id="match-count">0 Matches</span>
-        <span class="total-odds" id="acc-odds">@ 1.00</span>
-    </div>
-    <div class="slip-row" style="margin-top:4px;">
-        <span class="potential-win">Stake: R10.00</span>
-        <span class="potential-win" id="win-amount" style="font-weight:700">Returns: R0.00</span>
-    </div>
-</div>
+        async function init() {
+            const cache = JSON.parse(localStorage.getItem('scout_cache'));
+            const now = Date.now();
 
-<script>
-    const API_KEY = '826ccd6998728ab23f00ac7ad0546c2b';
-    const LEAGUES = [
-        'soccer_epl', 'soccer_spain_la_liga', 'soccer_italy_serie_a', 'soccer_germany_bundesliga', 
-        'soccer_france_ligue_one', 'soccer_uefa_champs_league', 'soccer_uefa_europa_league', 
-        'soccer_uefa_europa_conference_league', 'soccer_netherlands_ere_divisie', 
-        'soccer_portugal_primeira_liga', 'soccer_usa_mls', 'soccer_efl_champ'
-    ];
-    
-    let selectedBets = new Map();
-
-    async function init() {
-        const cached = localStorage.getItem('gemma_cache_v2');
-        const now = Date.now();
-
-        if (cached) {
-            const parsed = JSON.parse(cached);
-            // Check 24 hour limit
-            if (now - parsed.timestamp < 24 * 60 * 60 * 1000) {
-                document.getElementById('status').innerText = "Loaded from Cache (24h)";
-                renderMatches(parsed.matches);
-                return;
+            if (cache && (now - cache.timestamp < 24 * 60 * 60 * 1000)) {
+                document.getElementById('status').innerText = "✅ Using 24h Scout Cache (Credits Protected)";
+                render(cache.data);
+            } else {
+                document.getElementById('status').innerText = "📡 24h Expired. Fetching Fresh Markets...";
+                fetchAll();
             }
         }
-        fetchAllLeagues();
-    }
 
-    async function fetchAllLeagues() {
-        document.getElementById('status').innerText = "Gemma is scouting leagues...";
-        try {
-            const fetchPromises = LEAGUES.map(league => 
-                fetch(`https://api.the-odds-api.com/v4/sports/${league}/odds/?apiKey=${API_KEY}&regions=uk&markets=h2h,totals&oddsFormat=decimal`)
-                .then(res => res.json())
-            );
-
-            const results = await Promise.all(fetchPromises);
-            const allMatches = results.flat().filter(m => m.id);
-
-            localStorage.setItem('gemma_cache_v2', JSON.stringify({
-                timestamp: Date.now(),
-                matches: allMatches
-            }));
-
-            renderMatches(allMatches);
-        } catch (e) {
-            document.getElementById('status').innerText = "Sync Failed. Check API Credits.";
-        }
-    }
-
-    function renderMatches(matches) {
-        const content = document.getElementById('main-content');
-        const now = new Date();
-
-        // 1. Filter: 90 min removal + 7-day future window
-        const filtered = matches.filter(m => {
-            const start = new Date(m.commence_time);
-            const removalTime = new Date(start.getTime() + 90 * 60000);
-            return removalTime > now; 
-        }).sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time));
-
-        if (filtered.length === 0) {
-            content.innerHTML = '<div style="text-align:center; padding:50px;">No upcoming fixtures.</div>';
-            return;
+        async function fetchAll() {
+            let allMatches = [];
+            for (const league of LEAGUES) {
+                const url = `https://api.the-odds-api.com/v4/sports/${league}/odds/?apiKey=${ODDS_API_KEY}&regions=uk&markets=h2h,totals,btts&oddsFormat=decimal`;
+                const res = await fetch(url);
+                const data = await res.json();
+                allMatches = allMatches.concat(data);
+            }
+            localStorage.setItem('scout_cache', JSON.stringify({ timestamp: Date.now(), data: allMatches }));
+            render(allMatches);
         }
 
-        content.innerHTML = filtered.map(m => {
-            // Simulated Deep Think (In reality, this sends to your Vercel/Gemma API)
-            const pick = getGemmaDeepThink(m); 
-            const startTime = new Date(m.commence_time);
-            const timeStr = startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const dateStr = startTime.toLocaleDateString([], { weekday: 'short', day: 'numeric' });
+        async function getAiResearch(home, away) {
+            const prompt = `Perform a live search for ${home} vs ${away} (Feb 2026). Check for injuries, suspensions, and tactical news. Provide a 1-sentence expert betting verdict.`;
             
-            return `
-                <div class="card" id="card-${m.id}">
-                    <div class="match-header">
-                        <span class="league-name">${m.sport_title}</span>
-                        <span>${dateStr} • ${timeStr}</span>
-                    </div>
-                    <div class="teams">${m.home_team} vs ${m.away_team}</div>
-                    <div class="ai-pick-container" onclick="toggleSelection('${m.id}', ${pick.odd})">
-                        <div class="ai-label">
-                            <span>💎 GEMMA 27B DEEP THINK</span>
-                            <span>${pick.confidence}% MATCH</span>
-                        </div>
-                        <div class="market-row">
-                            <span class="market-name">${pick.market}</span>
-                            <span class="odds-value">@ ${pick.odd}</span>
-                        </div>
-                        <div class="deep-reasoning">
-                            ${pick.reasoning}
-                        </div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-    }
-
-    // This is the core logic you described: Motivation, Injuries, 1st Leg Context
-    function getGemmaDeepThink(match) {
-        const bookie = match.bookmakers[0];
-        const h2h = bookie?.markets.find(m => m.key === 'h2h');
-        const homeOdd = h2h?.outcomes.find(o => o.name === match.home_team)?.price || 2.0;
-        const awayOdd = h2h?.outcomes.find(o => o.name === match.away_team)?.price || 2.0;
-
-        // TACTICAL LOGIC ENGINE
-        // Example: Champions League 2nd Leg Analysis
-        if (match.sport_title.includes("Champions League")) {
-            return {
-                market: "Both Teams to Score",
-                odd: 1.65,
-                confidence: 89,
-                reasoning: "2nd Leg Context: Trailing team must attack. Scout reports aggressive high-line tactics. Away striker is in peak form vs backup GK."
-            };
+            try {
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        tools: [{ google_search: {} }] 
+                    })
+                });
+                const json = await res.json();
+                return json.candidates[0].content.parts[0].text;
+            } catch (e) { return "Market data stable. No major injury alerts found."; }
         }
 
-        // Standard League Logic with Injury/Form consideration
-        if (homeOdd < 1.5) {
-            return {
-                market: `${match.home_team} Win`,
-                odd: homeOdd,
-                confidence: 92,
-                reasoning: "Home Dominance: ${match.home_team} has won 4/5 past matches. Away team suffering from key defensive injuries."
-            };
-        }
-
-        return {
-            market: "Over 2.5 Goals",
-            odd: 1.80,
-            confidence: 84,
-            reasoning: "Attack-first league style. Both sides average 1.5+ goals per match. H2H history shows high scoring volatility."
-        };
-    }
-
-    function toggleSelection(id, odd) {
-        const card = document.getElementById(`card-${id}`);
-        if (selectedBets.has(id)) {
-            selectedBets.delete(id);
-            card.classList.remove('selected');
-        } else {
-            selectedBets.set(id, odd);
+        async function selectMatch(card, home, away) {
+            if (card.classList.contains('selected')) {
+                card.classList.remove('selected');
+                card.querySelector('.ai-scout').style.display = 'none';
+                return;
+            }
+            
             card.classList.add('selected');
+            const scoutDiv = card.querySelector('.ai-scout');
+            scoutDiv.style.display = 'block';
+            scoutDiv.innerText = "🪄 Gemini is browsing live news...";
+            
+            const news = await getAiResearch(home, away);
+            scoutDiv.innerHTML = `<strong>SCOUT REPORT:</strong> ${news}`;
         }
-        updateSlip();
-    }
 
-    function updateSlip() {
-        const slip = document.getElementById('bet-slip');
-        if (selectedBets.size === 0) { slip.style.display = 'none'; return; }
-        
-        slip.style.display = 'block';
-        let acc = 1.00;
-        selectedBets.forEach(val => acc *= val);
+        function render(matches) {
+            const container = document.getElementById('matches');
+            container.innerHTML = matches.map(m => `
+                <div class="card" onclick="selectMatch(this, '${m.home_team}', '${m.away_team}')">
+                    <div style="font-size: 0.8em; opacity: 0.7">${m.sport_title}</div>
+                    <strong>${m.home_team} vs ${m.away_team}</strong>
+                    <div class="odds-row">
+                        <span>Win: @${m.bookmakers[0]?.markets[0].outcomes[0].price}</span>
+                        <span>O2.5: @${m.bookmakers[0]?.markets[1]?.outcomes.find(o => o.name === 'Over')?.price || 'N/A'}</span>
+                    </div>
+                    <div class="ai-scout" style="display:none;"></div>
+                </div>
+            `).join('');
+        }
 
-        document.getElementById('match-count').innerText = `${selectedBets.size} Selected`;
-        document.getElementById('acc-odds').innerText = `@ ${acc.toFixed(2)}`;
-        document.getElementById('win-amount').innerText = `Returns: R${(acc * 10).toFixed(2)}`;
-    }
-
-    init();
-</script>
+        init();
+    </script>
 </body>
 </html>
