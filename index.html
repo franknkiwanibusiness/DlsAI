@@ -2,133 +2,203 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Scout Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gemma AI Picks</title>
     <style>
-        :root { --bg: #f8fafc; --panel: #ffffff; --text: #1e293b; --accent: #2563eb; --border: #e2e8f0; --safe: #10b981; }
-        body.dark { --bg: #0f172a; --panel: #1e293b; --text: #f1f5f9; --accent: #38bdf8; --border: #334155; }
+        :root {
+            --ios-bg: #f2f2f7; --ios-card: #ffffff; --ios-blue: #007aff;
+            --ios-green: #34c759; --ios-secondary: #8e8e93; --ios-border: #c6c6c8;
+            --text: #000000;
+        }
+        body.dark {
+            --ios-bg: #000000; --ios-card: #1c1c1e; --ios-blue: #0a84ff;
+            --ios-border: #38383a; --text: #ffffff;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, system-ui; }
+        body { background: var(--ios-bg); color: var(--text); padding-bottom: 150px; transition: 0.3s; }
+
+        header {
+            position: sticky; top: 0; z-index: 100;
+            background: rgba(var(--ios-bg), 0.85); backdrop-filter: blur(20px);
+            padding: 20px 16px 10px; border-bottom: 0.5px solid var(--ios-border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+
+        .card {
+            background: var(--ios-card); border-radius: 14px; 
+            margin: 12px; padding: 16px; border: 1px solid transparent;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05); transition: 0.2s;
+        }
+        .card.selected { border-color: var(--ios-blue); }
+
+        .match-header { font-size: 11px; color: var(--ios-secondary); font-weight: 600; margin-bottom: 8px; text-transform: uppercase; }
         
-        body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; margin: 0; padding-bottom: 100px; }
-        .header { background: var(--panel); border-bottom: 1px solid var(--border); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
-        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
-        
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
-        .card { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 16px; cursor: pointer; transition: 0.2s; }
-        .card.active { border-color: var(--accent); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        
-        .odds-row { display: flex; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
-        .best-mkt { color: var(--safe); font-weight: 700; font-size: 0.9em; }
-        
-        .report { display: none; margin-top: 12px; padding: 10px; background: var(--bg); border-radius: 4px; font-size: 0.85em; line-height: 1.4; border-left: 3px solid var(--accent); }
-        
-        .slip { position: fixed; bottom: 0; left: 0; right: 0; background: var(--panel); border-top: 2px solid var(--accent); padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; }
-        .payout { font-size: 1.5em; font-weight: 800; color: var(--safe); }
+        .ai-pick-container {
+            background: rgba(52, 199, 89, 0.1); border-radius: 10px; padding: 12px;
+            border: 1px dashed var(--ios-green); margin-top: 10px;
+        }
+        .ai-label { font-size: 10px; color: var(--ios-green); font-weight: 800; text-transform: uppercase; margin-bottom: 4px; }
+        .market-name { font-size: 15px; font-weight: 600; }
+        .odds-value { float: right; color: var(--ios-blue); font-weight: 800; }
+
+        .scout-report { 
+            font-size: 12px; margin-top: 10px; padding-top: 10px; 
+            border-top: 0.5px solid var(--ios-border); line-height: 1.4; display: none;
+        }
+
+        .tab-bar {
+            position: fixed; bottom: 0; width: 100%; height: 85px;
+            background: var(--ios-card); border-top: 0.5px solid var(--ios-border);
+            display: flex; padding-bottom: 20px;
+        }
+        .tab-item { flex: 1; text-align: center; color: var(--ios-secondary); padding-top: 10px; cursor: pointer; }
+        .tab-item.active { color: var(--ios-blue); }
+
+        /* Slip Styles */
+        .bottom-slip {
+            position: fixed; bottom: 85px; width: 100%; height: 60px;
+            background: var(--ios-blue); color: white; display: flex;
+            align-items: center; justify-content: space-between; padding: 0 20px;
+            font-weight: 700; z-index: 99;
+        }
     </style>
 </head>
 <body class="dark">
 
-<div class="header">
-    <div style="font-weight: 800; letter-spacing: -0.5px;">AI SCOUT <span style="font-weight: 400; opacity: 0.5;">PRO</span></div>
-    <div id="status" style="font-size: 0.75em; opacity: 0.6;">Syncing...</div>
+<header>
+    <h1 id="view-title">Gemma AI</h1>
+    <div onclick="toggleSettings()" style="font-size: 20px;">⚙️</div>
+</header>
+
+<div id="main-content"></div>
+
+<div class="bottom-slip">
+    <div>R<span id="stake-label">10</span> @ <span id="total-odds">1.00</span></div>
+    <div id="payout-label">R0.00</div>
 </div>
 
-<div class="container">
-    <div id="matches" class="grid"></div>
-</div>
-
-<div class="slip">
-    <div>
-        <div style="font-size: 0.7em; opacity: 0.6;">MULTIPLIER ODDS</div>
-        <div id="totalOdds" style="font-weight: 700;">1.00</div>
+<nav class="tab-bar">
+    <div class="tab-item active" onclick="fetchAndAnalyze('soccer_epl', 'Premier League', this)">
+        <div style="font-size:22px">🏴󠁧󠁢󠁥󠁮󠁧󠁿</div><div class="tab-label">EPL</div>
     </div>
-    <div style="text-align: right;">
-        <div style="font-size: 0.7em; opacity: 0.6;">EST. PAYOUT (R<span id="stakeVal">10</span>)</div>
-        <div id="payout" class="payout">R0.00</div>
+    <div class="tab-item" onclick="fetchAndAnalyze('soccer_spain_la_liga', 'La Liga', this)">
+        <div style="font-size:22px">🇪🇸</div><div class="tab-label">LaLiga</div>
     </div>
-</div>
+    <div class="tab-item" onclick="fetchAndAnalyze('soccer_italy_serie_a', 'Serie A', this)">
+        <div style="font-size:22px">🇮🇹</div><div class="tab-label">Serie A</div>
+    </div>
+</nav>
 
 <script>
-    const ODDS_KEY = '826ccd6998728ab23f00ac7ad0546c2b';
+    const ODDS_API_KEY = '826ccd6998728ab23f00ac7ad0546c2b';
     let selections = new Map();
-    let stake = localStorage.getItem('stake') || 10;
+    let stake = localStorage.getItem('gemma_stake') || 10;
 
-    async function init() {
-        document.getElementById('stakeVal').innerText = stake;
-        const cache = localStorage.getItem('scout_v7');
-        if (cache) {
-            const p = JSON.parse(cache);
-            if (Date.now() - p.ts < 3600000) return render(p.data); // 1 hour cache
-        }
-        fetchOdds();
-    }
+    async function fetchAndAnalyze(sportKey, title, el) {
+        document.getElementById('view-title').innerText = title;
+        document.getElementById('main-content').innerHTML = '<div style="text-align:center; padding:50px; color:#888;">Analyzing Markets...</div>';
+        document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+        if(el) el.classList.add('active');
 
-    async function fetchOdds() {
         try {
-            const res = await fetch(`https://api.the-odds-api.com/v4/sports/upcoming/odds/?apiKey=${ODDS_KEY}&regions=uk&markets=h2h&oddsFormat=decimal`);
-            const data = await res.json();
-            localStorage.setItem('scout_v7', JSON.stringify({ ts: Date.now(), data }));
-            render(data);
-            document.getElementById('status').innerText = "Live Sync Complete";
-        } catch (e) { document.getElementById('status').innerText = "Sync Error"; }
+            const url = `https://api.the-odds-api.com/v4/sports/${sportKey}/odds/?apiKey=${ODDS_API_KEY}&regions=uk&markets=h2h,totals&oddsFormat=decimal`;
+            const response = await fetch(url);
+            const data = await response.json();
+            renderAIContent(data);
+        } catch (error) {
+            document.getElementById('main-content').innerHTML = `<div style="color:red; text-align:center; padding:20px;">Check API Key</div>`;
+        }
     }
 
-    function render(data) {
-        document.getElementById('matches').innerHTML = data.map((m, i) => {
-            const odds = m.bookmakers[0]?.markets[0]?.outcomes || [];
-            const fav = odds.reduce((prev, curr) => (prev.price < curr.price) ? prev : curr, {price: 0});
+    function gemmaBrain(match) {
+        const bookie = match.bookmakers[0];
+        if (!bookie) return { market: "No Market", odd: 1.00 };
+        const h2h = bookie.markets.find(m => m.key === 'h2h');
+        const homePrice = h2h?.outcomes.find(o => o.name === match.home_team)?.price || 3.0;
+        const awayPrice = h2h?.outcomes.find(o => o.name === match.away_team)?.price || 3.0;
+        
+        // Favorite Logic
+        if (homePrice < 1.70) return { market: `${match.home_team} Win`, odd: homePrice };
+        if (awayPrice < 1.70) return { market: `${match.away_team} Win`, odd: awayPrice };
+        
+        // Goals Logic
+        const totals = bookie.markets.find(m => m.key === 'totals');
+        const over25 = totals?.outcomes.find(o => o.name === 'Over' && o.point === 2.5);
+        return over25 ? { market: "Over 2.5 Goals", odd: over25.price } : { market: "Home Draw No Bet", odd: (homePrice * 0.8).toFixed(2) };
+    }
+
+    function renderAIContent(matches) {
+        const container = document.getElementById('main-content');
+        container.innerHTML = matches.map((match, i) => {
+            const pick = gemmaBrain(match);
             return `
-                <div class="card" id="m-${i}" onclick="select(${i}, ${fav.price}, '${m.home_team}', '${m.away_team}')">
-                    <div style="font-size: 0.7em; opacity: 0.5; margin-bottom: 4px;">${m.sport_title}</div>
-                    <div style="font-weight: 600;">${m.home_team} v ${m.away_team}</div>
-                    <div class="odds-row">
-                        <div class="best-mkt">Likely: ${fav.name}</div>
-                        <div style="font-weight: 700;">@${fav.price}</div>
+                <div class="card" id="card-${i}" onclick="toggleSelect('${i}', ${pick.odd}, '${match.home_team}', '${match.away_team}')">
+                    <div class="match-header">${match.home_team} vs ${match.away_team}</div>
+                    <div class="ai-pick-container">
+                        <div class="ai-label">✨ GEMMA AI BEST OUTCOME</div>
+                        <div>
+                            <span class="market-name">${pick.market}</span>
+                            <span class="odds-value">@${pick.odd}</span>
+                        </div>
                     </div>
-                    <div class="report" id="rep-${i}"></div>
-                </div>`;
+                    <div class="scout-report" id="scout-${i}"></div>
+                </div>
+            `;
         }).join('');
     }
 
-    function select(id, price, h, a) {
-        const card = document.getElementById(`m-${id}`);
-        const rep = document.getElementById(`rep-${id}`);
+    function toggleSelect(id, odd, h, a) {
+        const el = document.getElementById(`card-${id}`);
+        const scout = document.getElementById(`scout-${id}`);
         if (selections.has(id)) {
             selections.delete(id);
-            card.classList.remove('active');
-            rep.style.display = 'none';
+            el.classList.remove('selected');
+            scout.style.display = 'none';
         } else {
-            selections.set(id, price);
-            card.classList.add('active');
-            rep.style.display = 'block';
-            rep.innerText = "Consulting Scout...";
-            fetchReport(h, a, id);
+            selections.set(id, odd);
+            el.classList.add('selected');
+            scout.style.display = 'block';
+            scout.innerText = "Consulting Gemma...";
+            fetchScout(h, a, id);
         }
-        calc();
+        updateSlip();
     }
 
-    async function fetchReport(h, a, id) {
-        const box = document.getElementById(`rep-${id}`);
+    async function fetchScout(home, away, id) {
         try {
             const res = await fetch('/api/scout', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ home: h, away: a })
+                body: JSON.stringify({ home, away })
             });
             const data = await res.json();
-            box.innerText = data.report;
-        } catch (e) { box.innerText = "Market stable."; }
+            document.getElementById(`scout-${id}`).innerText = data.report;
+        } catch (e) { document.getElementById(`scout-${id}`).innerText = "No injury alerts."; }
     }
 
-    function calc() {
+    function updateSlip() {
         let total = 1;
         selections.forEach(v => total *= v);
         if (selections.size === 0) total = 0;
-        document.getElementById('totalOdds').innerText = total.toFixed(2);
+        document.getElementById('total-odds').innerText = total.toFixed(2);
         let p = Math.min(total * stake, 2000000);
-        document.getElementById('payout').innerText = "R" + p.toLocaleString(undefined, {minimumFractionDigits: 2});
+        document.getElementById('payout-label').innerText = "R" + p.toLocaleString();
     }
 
-    init();
+    function toggleSettings() {
+        let newStake = prompt("Set Stake (R):", stake);
+        if(newStake) {
+            stake = newStake;
+            localStorage.setItem('gemma_stake', stake);
+            document.getElementById('stake-label').innerText = stake;
+            updateSlip();
+        }
+        document.body.classList.toggle('dark');
+    }
+
+    fetchAndAnalyze('soccer_epl', 'Premier League');
 </script>
 </body>
 </html>
