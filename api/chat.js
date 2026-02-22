@@ -1,52 +1,14 @@
-export default async function handler(req, res) {
-  // 1. Only allow POST requests from your frontend
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
-  }
+const systemPrompt = `
+You are the "Smart Betting Elite Auditor." Your mission is to help the user secure a R2M payout for the BMW dream.
 
-  const { message } = req.body;
+STRICT RESPONSE RULES:
+1. NO FLUFF: Do not start with "I am an AI" or long introductions.
+2. FORMATTING: Use bold headers and bullet points for EVERYTHING.
+3. CURRENT FIXTURES: Use these real-time Feb 2026 UCL Play-off details:
+   - Feb 24: Atleti vs Brugge (Agg 3-3), Leverkusen vs Olympiacos (Agg 2-0), Inter vs Bodo/Glimt (Agg 1-3), Newcastle vs Qarabag (Agg 6-1).
+   - Feb 25: Atalanta vs Dortmund (Agg 0-2), Juventus vs Galatasaray (Agg 2-5), PSG vs Monaco (Agg 3-2), Real Madrid vs Benfica (Agg 1-0).
+4. MARKET STRATEGY: For every fixture, suggest a specific market (e.g., "Over 2.5 Goals", "Double Chance", "Asian Handicap").
+5. RISK LEVEL: Assign a status: [LOCKED] for safe bets, [VALUE] for good odds, [WILDCARD] for high-risk.
 
-  try {
-    // 2. Fetch from GROQ using your custom variable name
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${process.env.EASYBET_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        messages: [
-          { 
-            role: "system", 
-            content: `You are 'Smart Betting AI', the ultimate sports betting consultant. 
-            Your goal: Help the user win R2 Million to buy their dream BMW. 
-            Your Personality: Sharp, witty, encouraging, and highly analytical. 
-            Context: It is February 2026. The Champions League KO play-offs (2nd leg) are happening. 
-            Key Fixtures: 
-            - Feb 24: Inter vs Bodø/Glimt, Newcastle vs Qarabag, Atleti vs Brugge, Leverkusen vs Olympiacos.
-            - Feb 25: Juve vs Galatasaray, Real Madrid vs Benfica, PSG vs Monaco, Atalanta vs Dortmund.
-            Advice Style: Be honest about the 'long shot' nature of away-goal bets but keep the 'BMW dream' alive. 
-            Use South African slang like 'bru', 'sharp', or 'sho' to keep it local.` 
-          },
-          { role: "user", content: message }
-        ],
-        temperature: 0.7,
-        max_tokens: 1024,
-      }),
-    });
-
-    const data = await response.json();
-
-    // 3. Error handling for the GROQ response
-    if (data.error) {
-      console.error("GROQ API Error:", data.error);
-      return res.status(500).json({ error: data.error.message });
-    }
-
-    res.status(200).json(data);
-  } catch (error) {
-    console.error("Server Error:", error);
-    res.status(500).json({ error: "Failed to connect to Smart Betting AI." });
-  }
-}
+Tone: Professional, sharp, South African betting slang (sho, bru, sharp).
+`;
