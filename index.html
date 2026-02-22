@@ -15,9 +15,10 @@
         .ai-bubble { background-color: var(--ios-card); color: #f2f2f7; align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid rgba(255,255,255,0.05); }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .input-area { background: var(--glass); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 0.5px solid rgba(255, 255, 255, 0.1); }
+        .preview-img { max-width: 200px; border-radius: 12px; margin-top: 8px; border: 1px solid rgba(255,255,255,0.2); }
         @keyframes pulse-blue { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         .typing-dots { display: flex; gap: 4px; padding: 4px; }
-        .dot { w: 6px; h: 6px; background: #8e8e93; border-radius: 50%; animation: pulse-blue 1s infinite; }
+        .dot { width: 6px; height: 6px; background: #8e8e93; border-radius: 50%; animation: pulse-blue 1s infinite; }
     </style>
 </head>
 <body class="flex flex-col h-screen">
@@ -30,27 +31,39 @@
             <div>
                 <h1 class="text-sm font-bold tracking-tight uppercase italic">Smart <span class="text-[#0a84ff]">Betting</span></h1>
                 <p class="text-[10px] text-green-400 font-medium flex items-center gap-1">
-                    <span class="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span> Analyzing Live Odds
+                    <span class="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span> Visual Audit Mode Active
                 </p>
             </div>
         </div>
-        <div class="flex gap-4">
-            <i data-lucide="shield-check" class="text-zinc-500 w-5 h-5"></i>
-        </div>
+        <div class="flex gap-4"><i data-lucide="shield-check" class="text-zinc-500 w-5 h-5"></i></div>
     </nav>
 
     <main id="chat-container" class="flex-1 overflow-y-auto px-4 pt-24 pb-32 flex flex-col no-scrollbar"></main>
 
     <footer class="input-area fixed bottom-0 w-full p-4 pb-8">
-        <div class="max-w-3xl mx-auto flex items-end gap-3">
-            <div class="flex-1 bg-white/5 border border-white/10 rounded-[24px] px-4 py-2 flex items-end min-h-[48px]">
-                <textarea id="user-input" rows="1" placeholder="Ask Smart Betting about your BMW slip..." 
-                    class="w-full bg-transparent border-none outline-none text-white py-2 resize-none text-[15px] placeholder-zinc-500"
-                    oninput="this.style.height = '';this.style.height = this.scrollHeight + 'px'"></textarea>
+        <div class="max-w-3xl mx-auto flex flex-col gap-2">
+            <div id="image-preview-container" class="hidden px-2 py-2 flex items-center gap-2">
+                <div class="relative">
+                    <img id="img-preview" src="" class="h-16 w-16 object-cover rounded-lg border border-white/20">
+                    <button onclick="clearImage()" class="absolute -top-2 -right-2 bg-red-500 rounded-full p-1"><i data-lucide="x" class="w-3 h-3 text-white"></i></button>
+                </div>
             </div>
-            <button onclick="handleSend()" class="w-12 h-12 bg-[#0a84ff] rounded-full flex items-center justify-center active:scale-90 transition-transform shadow-lg">
-                <i data-lucide="arrow-up" class="text-white w-6 h-6"></i>
-            </button>
+            
+            <div class="flex items-end gap-3">
+                <div class="flex-1 bg-white/5 border border-white/10 rounded-[24px] px-4 py-2 flex items-end min-h-[48px]">
+                    <button onclick="document.getElementById('file-input').click()" class="p-2 text-zinc-500 hover:text-[#0a84ff] transition">
+                        <i data-lucide="paperclip" class="w-5 h-5"></i>
+                    </button>
+                    <input type="file" id="file-input" accept="image/*" class="hidden" onchange="previewImage(event)">
+                    
+                    <textarea id="user-input" rows="1" placeholder="Upload slip or type..." 
+                        class="w-full bg-transparent border-none outline-none text-white py-2 resize-none text-[15px] placeholder-zinc-500"
+                        oninput="this.style.height = '';this.style.height = this.scrollHeight + 'px'"></textarea>
+                </div>
+                <button onclick="handleSend()" class="w-12 h-12 bg-[#0a84ff] rounded-full flex items-center justify-center active:scale-90 transition-transform shadow-lg">
+                    <i data-lucide="arrow-up" class="text-white w-6 h-6"></i>
+                </button>
+            </div>
         </div>
     </footer>
 
@@ -58,11 +71,36 @@
         lucide.createIcons();
         const container = document.getElementById('chat-container');
         const input = document.getElementById('user-input');
+        let currentBase64 = null;
 
-        function appendMessage(text, sender, isLoader = false) {
+        function previewImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                currentBase64 = e.target.result;
+                document.getElementById('img-preview').src = currentBase64;
+                document.getElementById('image-preview-container').classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearImage() {
+            currentBase64 = null;
+            document.getElementById('file-input').value = "";
+            document.getElementById('image-preview-container').classList.add('hidden');
+        }
+
+        function appendMessage(content, sender, isLoader = false, isImage = false) {
             const div = document.createElement('div');
-            div.className = `${sender}-bubble message-bubble shadow-md ${isLoader ? 'loading-ai' : ''}`;
-            div.innerHTML = isLoader ? '<div class="typing-dots"><div class="dot"></div><div class="dot" style="animation-delay:0.2s"></div><div class="dot" style="animation-delay:0.4s"></div></div>' : text;
+            div.className = `${sender}-bubble message-bubble shadow-md`;
+            if (isLoader) {
+                div.innerHTML = '<div class="typing-dots"><div class="dot"></div><div class="dot" style="animation-delay:0.2s"></div><div class="dot" style="animation-delay:0.4s"></div></div>';
+            } else if (isImage) {
+                div.innerHTML = `<img src="${content}" class="preview-img mb-2"><p class="text-xs opacity-50 italic">Analyzing slip...</p>`;
+            } else {
+                div.innerText = content;
+            }
             container.appendChild(div);
             container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
             return div;
@@ -70,11 +108,16 @@
 
         async function handleSend() {
             const text = input.value.trim();
-            if (!text) return;
+            if (!text && !currentBase64) return;
 
-            appendMessage(text, 'user');
+            if (currentBase64) appendMessage(currentBase64, 'user', false, true);
+            if (text) appendMessage(text, 'user');
+            
+            const payload = { message: text, image: currentBase64 };
+            
             input.value = '';
             input.style.height = 'auto';
+            clearImage();
 
             const loader = appendMessage('', 'ai', true);
 
@@ -82,19 +125,20 @@
                 const response = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: text })
+                    body: JSON.stringify(payload)
                 });
                 const data = await response.json();
-                loader.innerHTML = data.choices[0].message.content;
+                
+                // Handling Groq or Gemini response structure
+                const aiText = data.choices ? data.choices[0].message.content : data.audit;
+                loader.innerHTML = aiText;
             } catch (e) {
-                loader.innerText = "Connection lost. Check your GROQ setup.";
+                loader.innerText = "Connection lost. Check your EASYBET_API_KEY setup.";
             }
         }
 
         input.addEventListener("keypress", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } });
-        
-        // Initial Message
-        window.onload = () => appendMessage("Ready for that BMW? Drop your slip details or ask me for the highest-risk value picks for the Champions League.", 'ai');
+        window.onload = () => appendMessage("Ready for that BMW? Clip your Easybet screenshot below and I'll audit the risk for you.", 'ai');
     </script>
 </body>
 </html>
