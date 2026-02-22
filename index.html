@@ -3,170 +3,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Powerhouse Elite</title>
+    <title>Smart Betting AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        :root { --ios-bg: #000000; --ios-card: #1c1c1e; --ios-blue: #0a84ff; --win: #34c759; --loss: #ff3b30; --draw: #ffcc00; }
-        body { background: var(--ios-bg); color: #fff; font-family: -apple-system, system-ui; }
-        
-        /* Glassy Sticky Header */
-        .glass-header { 
-            position: sticky; top: 0; z-index: 100;
-            background: rgba(28, 28, 30, 0.7);
-            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            border-bottom: 0.5px solid rgba(255,255,255,0.1);
-        }
-
-        /* Sidebar Ticket */
-        .ticket-glass {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-        }
-
-        .ios-card { background: var(--ios-card); border-radius: 28px; border: 1px solid rgba(255,255,255,0.1); position: relative; overflow: hidden; }
-        .power-lightning { position: absolute; top: 12px; right: 12px; font-size: 20px; text-shadow: 0 0 10px #ffcc00; animation: flash 1.5s infinite; }
-        @keyframes flash { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-
-        .odd-fav { border: 1.5px solid var(--win); color: var(--win); background: rgba(52, 199, 89, 0.05); }
-        .odd-draw { border: 2px solid var(--draw); color: var(--draw); }
-        .odd-dog { border: 1px solid var(--loss); color: var(--loss); background: rgba(255, 59, 48, 0.05); }
-        
-        .ios-pill { border-radius: 18px; transition: all 0.2s; height: 60px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; }
-        .selected { background: var(--ios-blue) !important; color: #fff !important; border-color: var(--ios-blue) !important; }
-        
-        .progress-fill { transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+        :root { --ios-bg: #000000; --ios-card: #1c1c1e; --ios-blue: #0a84ff; --glass: rgba(28, 28, 30, 0.7); }
+        body { background-color: var(--ios-bg); color: white; font-family: -apple-system, BlinkMacSystemFont, sans-serif; overflow: hidden; }
+        .glass-nav { background: var(--glass); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 0.5px solid rgba(255, 255, 255, 0.1); }
+        .message-bubble { max-width: 85%; border-radius: 20px; padding: 12px 16px; font-size: 15px; line-height: 1.4; margin-bottom: 12px; position: relative; }
+        .user-bubble { background-color: var(--ios-blue); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+        .ai-bubble { background-color: var(--ios-card); color: #f2f2f7; align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid rgba(255,255,255,0.05); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .input-area { background: var(--glass); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 0.5px solid rgba(255, 255, 255, 0.1); }
+        @keyframes pulse-blue { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .typing-dots { display: flex; gap: 4px; padding: 4px; }
+        .dot { w: 6px; h: 6px; background: #8e8e93; border-radius: 50%; animation: pulse-blue 1s infinite; }
     </style>
 </head>
-<body class="pb-48">
+<body class="flex flex-col h-screen">
 
-    <header class="glass-header px-4 py-4 mb-8">
-        <div class="flex justify-between items-center max-w-lg mx-auto">
-            <div id="mini-ticket" class="ticket-glass px-3 py-2 flex items-center gap-3 opacity-0 transition-opacity">
-                <div>
-                    <p class="text-[8px] font-black text-zinc-500 uppercase leading-none mb-1">Win Prob</p>
-                    <div class="w-20 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                        <div id="prob-bar" class="progress-fill h-full bg-[#34c759]" style="width: 0%"></div>
-                    </div>
-                </div>
-                <p id="prob-text" class="text-xs font-black text-white">0%</p>
+    <nav class="glass-nav fixed top-0 w-full z-50 px-5 py-4 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-orange-500 to-yellow-400 flex items-center justify-center shadow-lg">
+                <i data-lucide="trending-up" class="text-black w-6 h-6"></i>
             </div>
-            
-            <div class="text-right">
-                <h1 class="text-xl font-black tracking-tighter italic">POWER<span class="text-[#0a84ff]">HOUSE</span></h1>
-            </div>
-        </div>
-    </header>
-
-    <div id="fixtures-container" class="max-w-lg mx-auto px-4 space-y-6">
-        </div>
-
-    <div id="bet-slip" class="fixed bottom-0 left-0 right-0 bg-[#1c1c1e]/98 backdrop-blur-3xl p-8 pb-12 z-50 rounded-t-[40px] border-t border-white/10 translate-y-full transition-transform duration-500">
-        <div class="flex justify-between items-end mb-8">
             <div>
-                <p class="text-[10px] font-black text-zinc-500 uppercase mb-1">Total Odds</p>
-                <p id="total-odds" class="text-4xl font-black">1.00</p>
-            </div>
-            <div class="text-right">
-                <p class="text-[10px] font-black text-zinc-500 uppercase mb-1">Stake (ZAR)</p>
-                <input type="number" id="stake-input" value="10" class="text-3xl font-black bg-transparent text-[#0a84ff] outline-none w-20 text-right">
+                <h1 class="text-sm font-bold tracking-tight uppercase italic">Smart <span class="text-[#0a84ff]">Betting</span></h1>
+                <p class="text-[10px] text-green-400 font-medium flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span> Analyzing Live Odds
+                </p>
             </div>
         </div>
-        <button class="w-full bg-[#0a84ff] py-5 rounded-3xl font-black text-lg active:scale-95 transition-transform">
-            WIN R<span id="potential-win">0.00</span>
-        </button>
-    </div>
+        <div class="flex gap-4">
+            <i data-lucide="shield-check" class="text-zinc-500 w-5 h-5"></i>
+        </div>
+    </nav>
+
+    <main id="chat-container" class="flex-1 overflow-y-auto px-4 pt-24 pb-32 flex flex-col no-scrollbar"></main>
+
+    <footer class="input-area fixed bottom-0 w-full p-4 pb-8">
+        <div class="max-w-3xl mx-auto flex items-end gap-3">
+            <div class="flex-1 bg-white/5 border border-white/10 rounded-[24px] px-4 py-2 flex items-end min-h-[48px]">
+                <textarea id="user-input" rows="1" placeholder="Ask Smart Betting about your BMW slip..." 
+                    class="w-full bg-transparent border-none outline-none text-white py-2 resize-none text-[15px] placeholder-zinc-500"
+                    oninput="this.style.height = '';this.style.height = this.scrollHeight + 'px'"></textarea>
+            </div>
+            <button onclick="handleSend()" class="w-12 h-12 bg-[#0a84ff] rounded-full flex items-center justify-center active:scale-90 transition-transform shadow-lg">
+                <i data-lucide="arrow-up" class="text-white w-6 h-6"></i>
+            </button>
+        </div>
+    </footer>
 
     <script>
-        const API_KEY = '826ccd6998728ab23f00ac7ad0546c2b';
-        const LEAGUES = {'soccer_epl':'EPL', 'soccer_uefa_champs_league':'UCL', 'soccer_spain_la_liga':'La Liga'};
-        let selections = [];
+        lucide.createIcons();
+        const container = document.getElementById('chat-container');
+        const input = document.getElementById('user-input');
 
-        async function fetchMatches() {
-            const container = document.getElementById('fixtures-container');
-            container.innerHTML = '';
-            for (const [id, name] of Object.entries(LEAGUES)) {
-                try {
-                    const res = await fetch(`https://api.the-odds-api.com/v4/sports/${id}/odds/?apiKey=${API_KEY}&regions=uk&markets=h2h`);
-                    const data = await res.json();
-                    data.slice(0, 5).forEach(m => render(m, name));
-                } catch(e) {}
+        function appendMessage(text, sender, isLoader = false) {
+            const div = document.createElement('div');
+            div.className = `${sender}-bubble message-bubble shadow-md ${isLoader ? 'loading-ai' : ''}`;
+            div.innerHTML = isLoader ? '<div class="typing-dots"><div class="dot"></div><div class="dot" style="animation-delay:0.2s"></div><div class="dot" style="animation-delay:0.4s"></div></div>' : text;
+            container.appendChild(div);
+            container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+            return div;
+        }
+
+        async function handleSend() {
+            const text = input.value.trim();
+            if (!text) return;
+
+            appendMessage(text, 'user');
+            input.value = '';
+            input.style.height = 'auto';
+
+            const loader = appendMessage('', 'ai', true);
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text })
+                });
+                const data = await response.json();
+                loader.innerHTML = data.choices[0].message.content;
+            } catch (e) {
+                loader.innerText = "Connection lost. Check your GROQ setup.";
             }
         }
 
-        function render(match, league) {
-            const container = document.getElementById('fixtures-container');
-            const outcomes = match.bookmakers[0]?.markets[0].outcomes || [];
-            const h2h = [outcomes.find(o => o.name === match.home_team), outcomes.find(o => o.name === 'Draw'), outcomes.find(o => o.name === match.away_team)];
-            const minPrice = Math.min(...outcomes.map(o => o.price));
-
-            const card = document.createElement('div');
-            card.className = 'ios-card p-6';
-            card.innerHTML = `
-                ${minPrice < 1.6 ? '<div class="power-lightning">🌩️</div>' : ''}
-                <div class="flex justify-between mb-6">
-                    <span class="bg-[#0a84ff] text-[9px] font-black px-2 py-0.5 rounded uppercase">${league}</span>
-                    <span class="text-[10px] text-zinc-600 font-bold">${new Date(match.commence_time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
-                </div>
-                <div class="flex justify-between items-center mb-8 px-1 text-sm font-black">
-                    <p class="w-5/12 text-left">${match.home_team}</p>
-                    <p class="text-zinc-800 italic">VS</p>
-                    <p class="w-5/12 text-right">${match.away_team}</p>
-                </div>
-                <div class="grid grid-cols-3 gap-3">
-                    ${h2h.map((o, i) => `
-                        <div onclick="toggleOdd(this, '${match.home_team}-${o.name}', ${o.price})" 
-                             class="ios-pill ${o.price === minPrice ? 'odd-fav' : (o.name === 'Draw' ? 'odd-draw' : 'odd-dog')}">
-                            <p class="text-[9px] font-black opacity-40 uppercase">${o.name === 'Draw' ? 'Draw' : (i===0?'Home':'Away')}</p>
-                            <p class="text-lg font-black tracking-tighter">${o.price}</p>
-                        </div>
-                    `).join('')}
-                </div>
-                <div class="mt-6 p-4 bg-white/5 rounded-2xl border border-white/5">
-                    <p class="text-[9px] font-black text-[#0a84ff] uppercase mb-1">Gemma Prediction</p>
-                    <p class="text-[11px] text-zinc-400 italic">Analyzing high-probability markets...</p>
-                </div>
-            `;
-            container.appendChild(card);
-        }
-
-        function toggleOdd(el, id, price) {
-            el.classList.toggle('selected');
-            if(el.classList.contains('selected')) selections.push({ id, price });
-            else selections = selections.filter(s => s.id !== id);
-            
-            updateUI();
-        }
-
-        function updateUI() {
-            const ticket = document.getElementById('mini-ticket');
-            const slip = document.getElementById('bet-slip');
-            const totalOddsEl = document.getElementById('total-odds');
-            const winEl = document.getElementById('potential-win');
-            const probBar = document.getElementById('prob-bar');
-            const probText = document.getElementById('prob-text');
-            const stake = parseFloat(document.getElementById('stake-input').value) || 0;
-
-            if(selections.length > 0) {
-                ticket.classList.replace('opacity-0', 'opacity-100');
-                slip.classList.remove('translate-y-full');
-                
-                const totalOdds = selections.reduce((a, b) => a * b.price, 1);
-                // Math: 1 / Odds = Implied Probability
-                const probability = Math.round((1 / totalOdds) * 100);
-                
-                totalOddsEl.innerText = totalOdds.toFixed(2);
-                probBar.style.width = `${probability}%`;
-                probText.innerText = `${probability}%`;
-                winEl.innerText = (totalOdds * stake).toLocaleString('en-ZA');
-            } else {
-                ticket.classList.replace('opacity-100', 'opacity-0');
-                slip.classList.add('translate-y-full');
-            }
-        }
-
-        document.getElementById('stake-input').addEventListener('input', updateUI);
-        fetchMatches();
+        input.addEventListener("keypress", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } });
+        
+        // Initial Message
+        window.onload = () => appendMessage("Ready for that BMW? Drop your slip details or ask me for the highest-risk value picks for the Champions League.", 'ai');
     </script>
 </body>
 </html>
