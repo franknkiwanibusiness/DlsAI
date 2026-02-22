@@ -5,10 +5,8 @@ export default async function handler(req, res) {
 
     const { message } = req.body;
     const API_KEY = "826ccd6998728ab23f00ac7ad0546c2b";
-    const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-    const now = new Date();
-
-    // 1. Fetch and Filter Real Data
+    
+    // We fetch 'upcoming' to see everything across all leagues for the next few days
     const getVerifiedOdds = async () => {
         try {
             const response = await fetch(`https://api.the-odds-api.com/v4/sports/soccer/odds/?apiKey=${API_KEY}&regions=eu&markets=h2h,totals,btts&oddsFormat=decimal`);
@@ -16,20 +14,22 @@ export default async function handler(req, res) {
             
             if (!Array.isArray(data)) return [];
 
-            // Filter for matches occurring within the next 7 days ONLY
+            const now = new Date();
+            const sevenDaysFromNow = new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000));
+
             return data.filter(match => {
                 const matchTime = new Date(match.commence_time);
-                return matchTime > now && (matchTime - now) < SEVEN_DAYS_MS;
-            }).slice(0, 30);
+                return matchTime >= now && matchTime <= sevenDaysFromNow;
+            }).slice(0, 40);
         } catch { return []; }
     };
 
     const verifiedPool = await getVerifiedOdds();
 
-    // 2. Kill switch if no real data exists
+    // If the API is truly empty, we tell the user clearly without crashing the UI
     if (verifiedPool.length === 0) {
         return res.status(200).json({ 
-            choices: [{ message: { content: "### No Fixtures | MARKET: None | ODDS: 1.00 | WHY: No verified matches found in the next 7 days." } }] 
+            choices: [{ message: { content: "### No Live Data | MARKET: API Empty | ODDS: 1.00 | WHY: The Odds API returned no matches for the next 7 days. Check your API quota.\n\nTOTAL MULTI: 1.00" } }] 
         });
     }
 
@@ -39,29 +39,34 @@ export default async function handler(req, res) {
 
         const SYSTEM_PROMPT = `
             ROLE: Elite Risk Auditor.
-            CURRENT_TIME: ${now.toISOString()}
-            DATA_POOL: ${JSON.stringify(verifiedPool)}
+            DATE: ${new Date().toISOString()}
+            DATA: ${JSON.stringify(verifiedPool)}
 
-            CRITICAL COMMANDS:
-            1. ONLY use matches from the DATA_POOL. If a match is not in the pool, it does not exist.
-            2. NO HALLUCINATIONS. No "Real Madrid vs Barcelona" unless it is in the pool.
-            3. NO INTROS/OUTROS. No "Understood" or "Here is the data".
-            4. 100-SCENARIO TEST: Pick the safest market that survives red cards/injuries.
+            STRICT INSTRUCTIONS:
+            1. ONLY use matches from the DATA provided. 
+            2. If the user asks for "Laliga" and it's not in the data, pick the 3 BEST VALUE matches available instead.
+            3. NO INTROS. NO "Okay". NO EXPLANATIONS.
+            4. 100-SCENARIO TEST: Pick markets that survive red cards.
             
-            STRICT OUTPUT FORMAT:
-            ### [Home] vs [Away] | MARKET: [Pick] | ODDS: [Price] | WHY: [1 tactical sentence]
+            STRICT FORMAT:
+            ### [Home] vs [Away] | MARKET: [Pick] | ODDS: [Price] | WHY: [Tactical reason]
             
             TOTAL MULTI: [X.XX]
         `;
 
         const result = await model.generateContent(SYSTEM_PROMPT + "\nRequest: " + message);
-        const responseText = result.response.text().trim();
+        let responseText = result.response.text().trim();
+
+        // Safety: Strip out any "yapping" sentences before the first ###
+        if (responseText.includes('###')) {
+            responseText = responseText.substring(responseText.indexOf('###'));
+        }
 
         return res.status(200).json({ 
             choices: [{ message: { content: responseText } }] 
         });
 
     } catch (error) {
-        return res.status(500).json({ error: "Audit Engine Offline" });
+        return res.status(500).json({ error: "Audit Engine Failure" });
     }
 }
