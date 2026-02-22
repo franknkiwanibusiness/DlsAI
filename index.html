@@ -1,1 +1,260 @@
-hi
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Smart Betting Elite</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --ios-blue: #0a84ff;
+            --ios-bg: #000000;
+            --glass: rgba(28, 28, 30, 0.6);
+            --border: rgba(255, 255, 255, 0.1);
+        }
+        body {
+            background-color: var(--ios-bg);
+            background-image: radial-gradient(circle at 50% -20%, #1c1c1e 0%, #000 100%);
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+            overflow: hidden;
+        }
+        .liquid-glass {
+            background: var(--glass);
+            backdrop-filter: blur(30px) saturate(180%);
+            -webkit-backdrop-filter: blur(30px) saturate(180%);
+            border: 0.5px solid var(--border);
+        }
+        .message-bubble {
+            max-width: 80%;
+            padding: 14px 18px;
+            font-size: 16px;
+            line-height: 1.45;
+            border-radius: 22px;
+            margin-bottom: 8px;
+        }
+        .user-bubble {
+            background: linear-gradient(180deg, #0a84ff 0%, #007aff 100%);
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        .ai-bubble {
+            background: #1c1c1e;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+            border: 0.5px solid var(--border);
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        
+        /* Modal Animation */
+        #settings-modal {
+            transition: all 0.3s ease;
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(1.1);
+        }
+        #settings-modal.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: scale(1);
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen">
+
+    <div id="settings-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md">
+        <div class="liquid-glass w-full max-w-sm rounded-[32px] p-8 shadow-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold">Preferences</h2>
+                <button onclick="toggleSettings()" class="text-zinc-400"><i data-lucide="x"></i></button>
+            </div>
+
+            <div class="space-y-6">
+                <div>
+                    <label class="text-xs font-bold text-zinc-500 uppercase mb-2 block">App Display Name</label>
+                    <input type="text" id="app-name-input" oninput="updateAppName(this.value)" 
+                        class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[#0a84ff]">
+                </div>
+
+                <div>
+                    <label class="text-xs font-bold text-zinc-500 uppercase mb-2 block">AI Engine</label>
+                    <div class="grid grid-cols-2 gap-2 bg-white/5 p-1 rounded-2xl">
+                        <button onclick="setModel('groq')" id="btn-groq" class="py-2 rounded-xl text-sm font-semibold transition-all">Groq</button>
+                        <button onclick="setModel('gemini')" id="btn-gemini" class="py-2 rounded-xl text-sm font-semibold transition-all">Gemma 3</button>
+                    </div>
+                </div>
+
+                <button onclick="clearChat()" class="w-full py-3 rounded-xl bg-red-500/10 text-red-500 text-sm font-bold border border-red-500/20">
+                    Clear Chat History
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <nav class="liquid-glass fixed top-0 w-full z-50 px-6 py-4 flex justify-between items-center">
+        <div class="flex items-center gap-4">
+            <div id="app-logo" class="w-11 h-11 rounded-2xl bg-gradient-to-br from-orange-400 to-red-600 flex items-center justify-center shadow-xl rotate-3">
+                <i data-lucide="trending-up" class="text-white w-6 h-6"></i>
+            </div>
+            <div>
+                <h1 id="display-name" class="text-lg font-bold tracking-tight">Smart <span class="text-[#0a84ff]">Betting</span></h1>
+                <p id="model-indicator" class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">GROQ LPU™</p>
+            </div>
+        </div>
+        <button onclick="toggleSettings()" class="bg-white/5 p-2 rounded-full border border-white/10"><i data-lucide="settings" class="w-5 h-5 text-zinc-400"></i></button>
+    </nav>
+
+    <main id="chat-container" class="flex-1 overflow-y-auto px-5 pt-28 pb-40 flex flex-col no-scrollbar"></main>
+
+    <footer class="fixed bottom-0 w-full p-4 pb-10 bg-gradient-to-t from-black via-black/80 to-transparent">
+        <div class="max-w-3xl mx-auto flex flex-col gap-3">
+            <div id="preview-card" class="bg-[#1c1c1e] p-2 rounded-2xl border border-white/10 inline-flex items-center gap-3 w-max hidden shadow-2xl">
+                <div class="relative">
+                    <img id="img-display" class="h-14 w-14 object-cover rounded-xl border border-white/10">
+                    <button onclick="clearImage()" class="absolute -top-2 -right-2 bg-white text-black rounded-full p-0.5 shadow-lg">
+                        <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+                <p class="text-[10px] text-zinc-500 pr-3 italic">Slip attached</p>
+            </div>
+
+            <div class="liquid-glass rounded-[32px] p-2 flex items-center gap-2 shadow-2xl">
+                <button onclick="document.getElementById('file-input').click()" class="w-11 h-11 flex items-center justify-center text-zinc-400 hover:text-[#0a84ff] transition-all">
+                    <i data-lucide="plus-circle" class="w-7 h-7"></i>
+                </button>
+                <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleImage(event)">
+                <textarea id="user-input" rows="1" placeholder="Type or upload..." class="flex-1 bg-transparent border-none outline-none text-white py-3 text-[16px] resize-none no-scrollbar"></textarea>
+                <button onclick="submit()" class="w-11 h-11 bg-[#0a84ff] rounded-full flex items-center justify-center active:scale-75 transition-all">
+                    <i data-lucide="arrow-up" class="text-white w-6 h-6 stroke-[2.5px]"></i>
+                </button>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+        const container = document.getElementById('chat-container');
+        const input = document.getElementById('user-input');
+        
+        // State Management
+        let state = JSON.parse(localStorage.getItem('bettingState')) || {
+            appName: 'Smart Betting',
+            model: 'groq',
+            history: []
+        };
+
+        function saveState() {
+            localStorage.setItem('bettingState', JSON.stringify(state));
+        }
+
+        function init() {
+            document.getElementById('display-name').innerHTML = state.appName;
+            document.getElementById('app-name-input').value = state.appName;
+            setModel(state.model);
+            state.history.forEach(msg => appendMsg(msg.content, msg.type, msg.isImg, false));
+            if (state.history.length === 0) {
+                appendMsg("Ready for that BMW? 🏎️ Drop your slip below.", 'ai');
+            }
+        }
+
+        function toggleSettings() {
+            document.getElementById('settings-modal').classList.toggle('active');
+        }
+
+        function updateAppName(val) {
+            state.appName = val || 'Smart Betting';
+            document.getElementById('display-name').innerText = state.appName;
+            saveState();
+        }
+
+        function setModel(type) {
+            state.model = type;
+            document.getElementById('model-indicator').innerText = type === 'groq' ? 'GROQ LPU™' : 'GEMMA 3 ENGINE';
+            
+            // UI Toggle
+            const isGroq = type === 'groq';
+            document.getElementById('btn-groq').className = isGroq ? 'py-2 rounded-xl text-sm font-bold bg-[#0a84ff] text-white shadow-lg' : 'py-2 rounded-xl text-sm font-semibold text-zinc-500';
+            document.getElementById('btn-gemini').className = !isGroq ? 'py-2 rounded-xl text-sm font-bold bg-[#0a84ff] text-white shadow-lg' : 'py-2 rounded-xl text-sm font-semibold text-zinc-500';
+            saveState();
+        }
+
+        function clearChat() {
+            state.history = [];
+            container.innerHTML = '';
+            saveState();
+            toggleSettings();
+            appendMsg("Chat cleared. Ready for a new slip!", 'ai');
+        }
+
+        let base64Image = null;
+        function handleImage(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                base64Image = event.target.result;
+                document.getElementById('img-display').src = base64Image;
+                document.getElementById('preview-card').classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearImage() {
+            base64Image = null;
+            document.getElementById('preview-card').classList.add('hidden');
+        }
+
+        function appendMsg(content, type, isImg = false, shouldSave = true) {
+            const div = document.createElement('div');
+            div.className = `${type}-bubble message-bubble shadow-lg`;
+            if (isImg) {
+                div.innerHTML = `<img src="${content}" class="rounded-xl max-h-64 shadow-md mb-2"> <p class="text-xs opacity-60">Audit active...</p>`;
+            } else {
+                div.innerText = content;
+            }
+            container.appendChild(div);
+            container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+            if (shouldSave) {
+                state.history.push({ content, type, isImg });
+                saveState();
+            }
+            return div;
+        }
+
+        async function submit() {
+            const text = input.value.trim();
+            if (!text && !base64Image) return;
+
+            const currentImg = base64Image;
+            if (currentImg) appendMsg(currentImg, 'user', true);
+            if (text) appendMsg(text, 'user');
+
+            input.value = '';
+            clearImage();
+
+            const loader = appendMsg("...", 'ai', false, false);
+            loader.classList.add('animate-pulse');
+
+            try {
+                // Pass the selected model in the request
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text, image: currentImg, modelType: state.model })
+                });
+                const data = await res.json();
+                loader.classList.remove('animate-pulse');
+                const responseText = data.choices ? data.choices[0].message.content : (data.audit || "Engine error");
+                loader.innerText = responseText;
+                state.history.push({ content: responseText, type: 'ai', isImg: false });
+                saveState();
+            } catch (err) {
+                loader.innerText = "Error: Check your API keys.";
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
