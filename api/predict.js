@@ -1,30 +1,47 @@
-// api/predict.js
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+export const config = {
+  runtime: 'edge', // Makes it start instantly and run faster
+};
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+export default async function handler(req) {
+  // 1. Get params from the URL (e.g., /api/predict?home=Chelsea&away=Arsenal)
+  const { searchParams } = new URL(req.url);
+  const home = searchParams.get('home');
+  const away = searchParams.get('away');
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  const API_KEY = process.env.GEMINI_API_KEY;
 
-  const { home, away, odds } = req.body;
+  // 2. Safety check
+  if (!home || !away) {
+    return new Response(JSON.stringify({ error: "Missing teams" }), { status: 400 });
+  }
+
+  const prompt = `Match: ${home} vs ${away}. 
+  Act as a pro football analyst. Provide only the single best betting market prediction (e.g., "Over 2.5 Goals" or "BTTS"). 
+  Max 5 words. No fluff.`;
 
   try {
-    // Using gemma-2-9b via the Google API
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); 
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }]
+        })
+      }
+    );
 
-    const prompt = `You are a professional football analyst. 
-    Analyze this match: ${home} vs ${away}. 
-    Current Odds: ${odds}. 
-    Provide the single best market bet and a 1-sentence reason. 
-    Format: [Pick] | [Reason]`;
+    const data = await response.json();
+    
+    // 3. Drill into the specific Gemini response structure
+    const prediction = data?.candidates?.[0]?.content?.parts?.[0]?.text || "No tip available";
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    return new Response(JSON.stringify({ prediction: prediction.trim() }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
 
-    res.status(200).json({ prediction: text });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ prediction: "Gemma engine offline. Check API key." });
+    return new Response(JSON.stringify({ error: "AI Failed" }), { status: 500 });
   }
 }
