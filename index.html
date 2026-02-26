@@ -10,51 +10,42 @@
     <style>
         body { font-family: 'Lexend', sans-serif; background: #F0F2F5; -webkit-tap-highlight-color: transparent; }
         .brutal-card { border: 4px solid black; box-shadow: 6px 6px 0px 0px rgba(0,0,0,1); transition: 0.2s; }
-        .brutal-card:active { transform: translate(2px, 2px); box-shadow: 0px 0px 0px 0px rgba(0,0,0,1); }
         .loading-shimmer { background: linear-gradient(90deg, #f0f0f0 25%, #e6e6e6 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
         @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
     </style>
 </head>
 <body x-data="app()" class="pb-32">
 
-    <nav class="bg-white border-b-4 border-black p-6 sticky top-0 z-50">
-        <div class="flex justify-between items-center">
-            <h1 class="text-2xl font-black italic tracking-tighter uppercase">FLASH<span class="text-lime-500">BETS</span></h1>
-            <button @click="refreshData()" class="bg-yellow-400 border-2 border-black px-3 py-1 rounded-xl text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">Update Data 📡</button>
-        </div>
+    <nav class="bg-white border-b-4 border-black p-6 sticky top-0 z-50 flex justify-between items-center">
+        <h1 class="text-2xl font-black italic tracking-tighter uppercase">FLASH<span class="text-lime-500">BETS</span></h1>
+        <button @click="refreshData()" class="bg-yellow-400 border-2 border-black px-4 py-1 rounded-xl text-[10px] font-black uppercase">Refresh 📡</button>
     </nav>
 
     <main class="p-4 space-y-6">
-        <template x-if="loading">
-            <div class="text-center py-20 animate-pulse font-black uppercase text-xl">Loading Top 7 Leagues...</div>
-        </template>
+        <template x-if="loading"><div class="text-center py-20 animate-pulse font-black uppercase">Scanning Top 7 Leagues...</div></template>
 
         <template x-for="match in fixtures" :key="match.id">
             <div class="bg-white rounded-[32px] p-5 brutal-card border-4 border-black">
                 <div class="flex justify-between items-center mb-4">
-                    <span class="bg-black text-white px-3 py-1 rounded-lg text-[9px] font-black uppercase" x-text="match.league"></span>
+                    <span class="bg-black text-white px-2 py-1 rounded text-[9px] font-black uppercase" x-text="match.league"></span>
                     <span class="text-[9px] font-black text-gray-400 italic" x-text="match.time"></span>
                 </div>
 
-                <div class="flex justify-between items-center text-center gap-2 mb-6">
-                    <div class="flex-1"><p class="font-black text-sm uppercase" x-text="match.home"></p></div>
+                <div class="flex justify-between items-center text-center gap-2 mb-4">
+                    <div class="flex-1 font-black text-xs uppercase" x-text="match.home"></div>
                     <div class="text-gray-200 font-black italic">VS</div>
-                    <div class="flex-1"><p class="font-black text-sm uppercase" x-text="match.away"></p></div>
+                    <div class="flex-1 font-black text-xs uppercase" x-text="match.away"></div>
                 </div>
 
-                <div class="bg-indigo-50 border-2 border-black border-dashed p-4 rounded-2xl mb-4 relative overflow-hidden">
-                    <div class="flex items-center gap-2 mb-2">
-                        <span class="text-xs">🤖</span>
-                        <span class="font-black text-[9px] uppercase opacity-40">Gemini Prediction</span>
-                    </div>
+                <div class="bg-indigo-50 border-2 border-black border-dashed p-4 rounded-2xl relative">
                     <template x-if="match.loadingAI">
-                        <div class="h-10 loading-shimmer rounded-lg w-full"></div>
+                        <div class="h-10 loading-shimmer rounded-lg"></div>
                     </template>
                     <template x-if="!match.loadingAI">
                         <div>
-                            <p class="text-xs font-bold leading-tight mb-3" x-text="match.analysis"></p>
-                            <div class="flex justify-between items-center pt-2 border-t border-black/10">
-                                <span class="bg-black text-lime-400 px-2 py-1 rounded-md text-[10px] font-black uppercase" x-text="match.best_market"></span>
+                            <p class="text-[11px] font-bold leading-tight mb-2" x-text="match.analysis"></p>
+                            <div class="flex justify-between items-center">
+                                <span class="bg-lime-400 border border-black px-2 py-1 rounded text-[9px] font-black uppercase" x-text="match.best_market"></span>
                                 <span class="font-black text-lg" x-text="match.price"></span>
                             </div>
                         </div>
@@ -64,86 +55,48 @@
         </template>
     </main>
 
-    <nav class="fixed bottom-6 left-4 right-4 bg-white border-4 border-black rounded-[32px] h-16 flex items-center justify-around z-50 shadow-[0px_8px_0px_0px_rgba(0,0,0,1)]">
-        <button class="flex flex-col items-center text-lime-600"><span class="text-xl">🏟️</span><span class="text-[8px] font-black uppercase">Home</span></button>
-        <button class="flex flex-col items-center opacity-30"><span class="text-xl">🧪</span><span class="text-[8px] font-black uppercase">Lab</span></button>
-        <button class="flex flex-col items-center opacity-30"><span class="text-xl">💰</span><span class="text-[8px] font-black uppercase">Wallet</span></button>
-    </nav>
-
     <script>
         function app() {
             return {
-                fixtures: [],
-                loading: true,
+                fixtures: [], loading: true,
                 leagues: ['soccer_epl', 'soccer_spain_la_liga', 'soccer_italy_serie_a', 'soccer_germany_bundesliga', 'soccer_france_ligue_one', 'soccer_portugal_primeira_liga', 'soccer_netherlands_eredivisie'],
-                
                 async init() {
-                    const cached = localStorage.getItem('flashbets_data');
+                    const cached = localStorage.getItem('fb_cache');
                     if (cached) {
                         const { timestamp, data } = JSON.parse(cached);
-                        if (new Date().getTime() - timestamp < 4 * 60 * 60 * 1000) { // 4 hour cache
-                            this.fixtures = data;
-                            this.loading = false;
-                            this.fixtures.filter(m => m.loadingAI).forEach(m => this.fetchAI(m));
+                        if (Date.now() - timestamp < 4 * 60 * 60 * 1000) {
+                            this.fixtures = data; this.loading = false;
+                            this.fixtures.filter(m => m.loadingAI).forEach((m, i) => setTimeout(() => this.fetchAI(m), i * 1000));
                             return;
                         }
                     }
                     await this.refreshData();
                 },
-
                 async refreshData() {
                     this.loading = true;
                     try {
-                        const fetchPromises = this.leagues.map(league => 
-                            fetch(`https://api.the-odds-api.com/v4/sports/${league}/odds/?apiKey=10257181b61bdaba7ac4ca4e276c9dae&regions=uk&markets=h2h&oddsFormat=decimal`)
-                            .then(r => r.json())
-                        );
-                        
-                        const allResults = await Promise.all(fetchPromises);
-                        const threeDays = new Date(); threeDays.setDate(threeDays.getDate() + 3);
-
-                        this.fixtures = allResults.flat()
-                            .filter(f => new Date(f.commence_time) < threeDays)
-                            .slice(0, 15)
-                            .map(f => ({
-                                id: f.id,
-                                home: f.home_team,
-                                away: f.away_team,
-                                league: f.sport_title,
-                                time: new Date(f.commence_time).toLocaleDateString([], {weekday: 'short', hour:'2-digit', minute:'2-digit'}),
-                                price: f.bookmakers[0]?.markets[0]?.outcomes[0]?.price || 'N/A',
-                                loadingAI: true,
-                                analysis: '',
-                                best_market: ''
-                            }));
-
-                        this.saveCache();
-                        this.loading = false;
-                        this.fixtures.forEach(m => this.fetchAI(m));
-                    } catch (e) { alert("API Limit Reached!"); this.loading = false; }
+                        const promises = this.leagues.map(l => fetch(`https://api.the-odds-api.com/v4/sports/${l}/odds/?apiKey=10257181b61bdaba7ac4ca4e276c9dae&regions=uk&markets=h2h&oddsFormat=decimal`).then(r => r.json()));
+                        const results = await Promise.all(promises);
+                        const limit = new Date(); limit.setDate(limit.getDate() + 3);
+                        this.fixtures = results.flat().filter(f => new Date(f.commence_time) < limit).slice(0, 12).map(f => ({
+                            id: f.id, home: f.home_team, away: f.away_team, league: f.sport_title,
+                            time: new Date(f.commence_time).toLocaleDateString([], {weekday:'short', hour:'2-digit', minute:'2-digit'}),
+                            price: f.bookmakers[0]?.markets[0]?.outcomes[0]?.price || 'N/A',
+                            loadingAI: true, analysis: '', best_market: ''
+                        }));
+                        this.save(); this.loading = false;
+                        this.fixtures.forEach((m, i) => setTimeout(() => this.fetchAI(m), i * 1000));
+                    } catch (e) { this.loading = false; }
                 },
-
                 async fetchAI(match) {
                     try {
-                        const res = await fetch('/api/bet', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ home: match.home, away: match.away })
-                        });
+                        const res = await fetch('/api/bet', { method: 'POST', body: JSON.stringify({ home: match.home, away: match.away }) });
                         const ai = await res.json();
-                        match.analysis = ai.scenario;
-                        match.best_market = ai.best_market;
-                        match.loadingAI = false;
-                        this.saveCache();
+                        match.analysis = ai.scenario; match.best_market = ai.best_market;
+                        match.loadingAI = false; this.save();
                     } catch (e) { match.loadingAI = false; }
                 },
-
-                saveCache() {
-                    localStorage.setItem('flashbets_data', JSON.stringify({
-                        timestamp: new Date().getTime(),
-                        data: this.fixtures
-                    }));
-                }
+                save() { localStorage.setItem('fb_cache', JSON.stringify({ timestamp: Date.now(), data: this.fixtures })); }
             }
         }
     </script>
