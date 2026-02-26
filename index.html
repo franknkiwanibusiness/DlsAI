@@ -2,256 +2,163 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>FRESH-BETS | ANIME EDITION</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>FRESH-BETS.EXE</title>
     <link href="https://fonts.googleapis.com/css2?family=Lexend+Mega:wght@400;900&display=swap" rel="stylesheet">
     <style>
-        /* THEME VARIABLES */
         :root {
-            --bg: #121212;
-            --card: #1e1e1e;
-            --text: #ffffff;
-            --accent: #bc95ff; /* Purple Anime Tint */
-            --border: #000000;
-            --header-bg: rgba(18, 18, 18, 0.9);
-            --shadow: 6px 6px 0px #000000;
+            --bg: #0D0D0D; --card: #1A1A1A; --text: #FFFFFF; --accent: #BB86FC;
+            --border: #000000; --shadow: 5px 5px 0px #000000;
         }
-
-        [data-theme="anime-light"] {
-            --bg: #fffcf2;
-            --card: #ffffff;
-            --text: #252422;
-            --accent: #4cc9f0; /* Sky Blue Anime Tint */
-            --border: #252422;
-            --header-bg: rgba(255, 252, 242, 0.9);
-            --shadow: 6px 6px 0px #252422;
+        [data-theme="light"] {
+            --bg: #F0F2F5; --card: #FFFFFF; --text: #1A1A1A; --accent: #007AFF;
+            --border: #1A1A1A; --shadow: 5px 5px 0px #1A1A1A;
         }
-
-        * { box-sizing: border-box; transition: background 0.3s, color 0.3s; }
 
         body {
-            background-color: var(--bg);
-            color: var(--text);
-            font-family: 'Lexend Mega', sans-serif;
-            margin: 0;
-            padding: 90px 15px 140px 15px;
+            background-color: var(--bg); color: var(--text);
+            font-family: 'Lexend Mega', sans-serif; margin: 0;
+            padding: calc(85px + env(safe-area-inset-top)) 16px 140px 16px;
         }
 
-        /* --- STICKY HEADER --- */
         header {
-            position: fixed;
-            top: 0; left: 0; right: 0;
-            height: 75px;
-            background: var(--header-bg);
-            backdrop-filter: blur(10px);
-            border-bottom: 4px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 15px;
-            z-index: 1000;
+            position: fixed; top: 0; left: 0; right: 0; height: 75px;
+            background: var(--bg); border-bottom: 3px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 20px; z-index: 1000;
         }
 
-        .logo { font-weight: 900; font-size: 1rem; color: var(--accent); }
-
-        .controls { display: flex; gap: 8px; }
-
-        .btn {
-            background: var(--accent);
-            border: 3px solid var(--border);
-            color: #000;
-            padding: 6px 12px;
-            font-weight: 900;
-            font-size: 0.7rem;
-            box-shadow: 3px 3px 0px var(--border);
-            cursor: pointer;
-            text-transform: uppercase;
+        .ios-btn {
+            background: var(--accent); border: 3px solid var(--border);
+            color: #000; font-weight: 900; font-size: 0.65rem;
+            padding: 8px 12px; box-shadow: 3px 3px 0px var(--border);
         }
 
-        .btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0px var(--border); }
-
-        /* --- MATCH CARDS --- */
         .match-card {
-            background: var(--card);
-            border: 4px solid var(--border);
-            border-radius: 0px; /* Flat Anime Look */
-            padding: 20px;
-            margin-bottom: 25px;
-            box-shadow: var(--shadow);
+            background: var(--card); border: 3px solid var(--border);
+            padding: 20px; margin-bottom: 25px; box-shadow: var(--shadow);
         }
 
-        .league-tag {
-            font-size: 0.6rem;
-            background: var(--border);
-            color: var(--accent);
-            padding: 4px 8px;
-            display: inline-block;
-            margin-bottom: 10px;
+        /* POWER LEVEL BAR */
+        .power-level-container {
+            height: 12px; background: #333; border: 2px solid var(--border);
+            margin-top: 10px; position: relative; overflow: hidden;
+        }
+        .power-bar {
+            height: 100%; width: 0%; background: var(--accent);
+            transition: width 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        .team-box {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 1.1rem;
-            font-weight: 900;
-            margin-bottom: 15px;
+        .ai-intel { margin-top: 15px; border-top: 2px dashed var(--border); padding-top: 10px; }
+        .ai-label { font-size: 0.6rem; font-weight: 900; color: var(--accent); display: block; }
+        .ai-text { font-size: 0.8rem; margin-top: 5px; }
+
+        .goal-dock {
+            position: fixed; bottom: 20px; left: 16px; right: 16px;
+            background: var(--card); border: 4px solid var(--border);
+            padding: 15px; box-shadow: var(--shadow);
         }
-
-        .vs { color: var(--accent); font-size: 0.8rem; }
-
-        /* AI SECTION */
-        .ai-box {
-            background: rgba(0,0,0,0.05);
-            border-left: 6px solid var(--accent);
-            padding: 12px;
-            font-size: 0.85rem;
-            line-height: 1.4;
+        #goal-input {
+            width: 100%; background: transparent; border: none;
+            border-bottom: 2px solid var(--accent); color: var(--text);
+            font-family: inherit; font-weight: 900; outline: none;
         }
-
-        .loading-text { font-style: italic; color: var(--accent); font-size: 0.7rem; }
-
-        /* --- GOAL BAR --- */
-        .goal-container {
-            position: fixed;
-            bottom: 20px; left: 15px; right: 15px;
-            background: var(--card);
-            border: 4px solid var(--border);
-            padding: 15px;
-            box-shadow: var(--shadow);
-        }
-
-        .goal-label { font-size: 0.7rem; font-weight: 900; margin-bottom: 5px; color: var(--accent); }
-        
-        input#goal-input {
-            width: 100%;
-            background: transparent;
-            border: none;
-            border-bottom: 3px solid var(--accent);
-            color: var(--text);
-            font-family: inherit;
-            font-weight: 900;
-            outline: none;
-        }
-
-        #status-msg { text-align: center; font-size: 0.8rem; margin-bottom: 20px; font-weight: 900; }
     </style>
 </head>
-<body data-theme="anime-dark">
+<body data-theme="dark">
 
 <header>
-    <div class="logo">FRESH-BETS.EXE</div>
-    <div class="controls">
-        <button class="btn" onclick="toggleTheme()">THEME</button>
-        <button class="btn" onclick="forceRefresh()">REFRESH</button>
+    <div style="font-weight:900; color:var(--accent)">FRESH-BETS.EXE</div>
+    <div style="display:flex; gap:10px">
+        <button class="ios-btn" onclick="toggleTheme()">MODE</button>
+        <button class="ios-btn" onclick="hardReset()">RELOAD</button>
     </div>
 </header>
 
-<div id="status-msg">INITIALIZING SCOUT...</div>
+<div id="main-list"></div>
 
-<div id="fixtures-list"></div>
-
-<div class="goal-container">
-    <div class="goal-label">CURRENT GOAL:</div>
+<div class="goal-dock">
+    <div style="font-size:0.6rem; font-weight:900; color:var(--accent)">OBJECTIVE:</div>
     <input type="text" id="goal-input" placeholder="Set Goal..." onchange="saveGoal(this.value)">
 </div>
 
 <script>
     const API_KEY = '10257181b61bdaba7ac4ca4e276c9dae';
-    const CACHE_KEY = 'fb_data_v3';
-    
-    async function init() {
-        document.getElementById('goal-input').value = localStorage.getItem('fb_goal') || "";
-        
-        const cached = localStorage.getItem(CACHE_KEY);
-        if (cached) {
-            const parsed = JSON.parse(cached);
-            if (Date.now() - parsed.time < 12 * 60 * 60 * 1000) {
-                render(parsed.data);
-                return;
+    const LEAGUES = ['soccer_epl', 'soccer_spain_la_liga', 'soccer_germany_bundesliga', 'soccer_italy_serie_a', 'soccer_france_ligue_one', 'soccer_uefa_champs_league', 'soccer_usa_mls'];
+
+    async function start() {
+        document.getElementById('goal-input').value = localStorage.getItem('user_goal') || "";
+        const cache = localStorage.getItem('fb_v5');
+        if (cache) {
+            const parsed = JSON.parse(cache);
+            if (Date.now() - parsed.timestamp < 12 * 60 * 60 * 1000) {
+                render(parsed.data); return;
             }
         }
         fetchOdds();
     }
 
     async function fetchOdds() {
-        const leagues = ['soccer_epl', 'soccer_spain_la_liga', 'soccer_germany_bundesliga', 'soccer_italy_serie_a', 'soccer_france_ligue_one', 'soccer_uefa_champs_league', 'soccer_usa_mls'];
-        document.getElementById('status-msg').innerText = "FETCHING LEAGUE DATA...";
-        
-        try {
-            const promises = leagues.map(l => fetch(`https://api.the-odds-api.com/v4/sports/${l}/events?apiKey=${API_KEY}`).then(r => r.json()));
-            const results = await Promise.all(promises);
-            const data = results.flat();
-            localStorage.setItem(CACHE_KEY, JSON.stringify({ time: Date.now(), data }));
-            render(data);
-        } catch (e) {
-            document.getElementById('status-msg').innerText = "API LIMIT REACHED.";
-        }
+        const requests = LEAGUES.map(l => fetch(`https://api.the-odds-api.com/v4/sports/${l}/events?apiKey=${API_KEY}`).then(r => r.json()));
+        const results = await Promise.all(requests);
+        const data = results.flat();
+        localStorage.setItem('fb_v5', JSON.stringify({ timestamp: Date.now(), data }));
+        render(data);
     }
 
     async function render(matches) {
-        const list = document.getElementById('fixtures-list');
+        const list = document.getElementById('main-list');
         list.innerHTML = '';
-        document.getElementById('status-msg').innerText = "SCANNING FIXTURES...";
+        const filtered = matches.slice(0, 15); // Show top 15 matches for speed
 
-        const upcoming = matches.filter(m => new Date(m.commence_time) < Date.now() + (72 * 60 * 60 * 1000))
-                                 .sort((a,b) => new Date(a.commence_time) - new Date(b.commence_time));
-
-        // Build Shells
-        upcoming.forEach(m => {
+        filtered.forEach(m => {
+            const safeId = m.id.replace(/[^a-z0-9]/gi,'');
             const card = document.createElement('div');
             card.className = 'match-card';
             card.innerHTML = `
-                <div class="league-tag">${m.sport_title}</div>
-                <div class="team-box">
-                    <span>${m.home_team}</span>
-                    <span class="vs">VS</span>
-                    <span>${m.away_team}</span>
-                </div>
-                <div class="ai-box" id="ai-${m.id.replace(/[^a-z0-9]/gi,'')}">
-                    <span class="loading-text">RESEARCHING...</span>
+                <div style="font-size:0.9rem; font-weight:900;">${m.home_team} vs ${m.away_team}</div>
+                <div class="ai-intel">
+                    <span class="ai-label">POWER LEVEL: <span id="val-${safeId}">0%</span></span>
+                    <div class="power-level-container"><div class="power-bar" id="bar-${safeId}"></div></div>
+                    <div class="ai-text" id="txt-${safeId}">Scanning battleground...</div>
                 </div>
             `;
             list.appendChild(card);
         });
 
-        // Staggered AI Load (Avoids Busy Error)
-        for (const m of upcoming) {
-            await getAiAnalysis(m);
-            await new Promise(r => setTimeout(r, 800)); // 0.8s gap
+        // Batch Process 5 at a time
+        for (let i = 0; i < filtered.length; i += 5) {
+            const batch = filtered.slice(i, i + 5);
+            await runBatch(batch);
+            await new Promise(r => setTimeout(r, 1500));
         }
-        document.getElementById('status-msg').innerText = "SCAN COMPLETE.";
     }
 
-    async function getAiAnalysis(match) {
-        const id = match.id.replace(/[^a-z0-9]/gi,'');
-        const box = document.getElementById(`ai-${id}`);
-        
+    async function runBatch(batch) {
         try {
             const res = await fetch('/api/research', {
                 method: 'POST',
-                body: JSON.stringify({ home: match.home_team, away: match.away_team, league: match.sport_title })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ matches: batch.map(m => ({ home: m.home_team, away: m.away_team, league: m.sport_title })) })
             });
             const data = await res.json();
-            box.innerHTML = data.prediction;
-        } catch (e) {
-            box.innerText = "SCOUT BUSY. TAP REFRESH.";
-        }
+            batch.forEach((m, idx) => {
+                const safeId = m.id.replace(/[^a-z0-9]/gi,'');
+                const pred = data.predictions[idx];
+                document.getElementById(`txt-${safeId}`).innerText = pred.text;
+                document.getElementById(`val-${safeId}`).innerText = pred.conf + "%";
+                document.getElementById(`bar-${safeId}`).style.width = pred.conf + "%";
+            });
+        } catch (e) { console.error("Batch Failed"); }
     }
 
     function toggleTheme() {
-        const curr = document.body.getAttribute('data-theme');
-        document.body.setAttribute('data-theme', curr === 'anime-dark' ? 'anime-light' : 'anime-dark');
+        document.body.setAttribute('data-theme', document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
     }
+    function hardReset() { localStorage.removeItem('fb_v5'); location.reload(); }
+    function saveGoal(v) { localStorage.setItem('user_goal', v); }
 
-    function forceRefresh() {
-        localStorage.removeItem(CACHE_KEY);
-        location.reload();
-    }
-
-    function saveGoal(v) { localStorage.setItem('fb_goal', v); }
-
-    init();
+    start();
 </script>
 </body>
 </html>
