@@ -2,163 +2,225 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>FRESH-BETS.EXE</title>
-    <link href="https://fonts.googleapis.com/css2?family=Lexend+Mega:wght@400;900&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI BET SCOUT | Gemma 3 + Llama 3.1</title>
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #0D0D0D; --card: #1A1A1A; --text: #FFFFFF; --accent: #BB86FC;
-            --border: #000000; --shadow: 5px 5px 0px #000000;
-        }
-        [data-theme="light"] {
-            --bg: #F0F2F5; --card: #FFFFFF; --text: #1A1A1A; --accent: #007AFF;
-            --border: #1A1A1A; --shadow: 5px 5px 0px #1A1A1A;
+            --yellow: #ffde06; --purple: #7d5fff; --pink: #ff4dff;
+            --cyan: #00d2ff; --dark: #1a1a1a; --white: #ffffff;
+            --border: 4px solid var(--dark);
+            --shadow: 8px 8px 0px var(--dark);
         }
 
         body {
-            background-color: var(--bg); color: var(--text);
-            font-family: 'Lexend Mega', sans-serif; margin: 0;
-            padding: calc(85px + env(safe-area-inset-top)) 16px 140px 16px;
+            background-color: #f0f0f0;
+            background-image: radial-gradient(var(--dark) 1px, transparent 0);
+            background-size: 25px 25px;
+            font-family: 'Space Grotesk', sans-serif;
+            margin: 0; padding: 20px; color: var(--dark);
         }
 
-        header {
-            position: fixed; top: 0; left: 0; right: 0; height: 75px;
-            background: var(--bg); border-bottom: 3px solid var(--border);
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 0 20px; z-index: 1000;
+        .container { max-width: 1200px; margin: 0 auto; }
+
+        header { text-align: center; margin-bottom: 40px; }
+        h1 {
+            font-family: 'Public Sans', sans-serif;
+            font-size: clamp(2rem, 8vw, 3.5rem);
+            background: var(--white); border: var(--border);
+            display: inline-block; padding: 10px 30px;
+            box-shadow: 10px 10px 0px var(--purple);
+            transform: rotate(-1deg);
         }
 
-        .ios-btn {
-            background: var(--accent); border: 3px solid var(--border);
-            color: #000; font-weight: 900; font-size: 0.65rem;
-            padding: 8px 12px; box-shadow: 3px 3px 0px var(--border);
+        /* GRID */
+        #app {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 30px;
         }
 
-        .match-card {
-            background: var(--card); border: 3px solid var(--border);
-            padding: 20px; margin-bottom: 25px; box-shadow: var(--shadow);
+        /* MATCH CARD */
+        .card {
+            background: var(--white); border: var(--border);
+            padding: 20px; box-shadow: var(--shadow);
+            transition: 0.2s ease; position: relative;
+            display: flex; flex-direction: column;
         }
 
-        /* POWER LEVEL BAR */
-        .power-level-container {
-            height: 12px; background: #333; border: 2px solid var(--border);
-            margin-top: 10px; position: relative; overflow: hidden;
-        }
-        .power-bar {
-            height: 100%; width: 0%; background: var(--accent);
-            transition: width 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        /* FINISHED STYLE: Red & Blurred */
+        .card.finished {
+            border-color: #ff4d4d;
+            box-shadow: 8px 8px 0px #ff4d4d;
+            filter: blur(1.5px) grayscale(60%);
+            opacity: 0.7;
+            pointer-events: none;
         }
 
-        .ai-intel { margin-top: 15px; border-top: 2px dashed var(--border); padding-top: 10px; }
-        .ai-label { font-size: 0.6rem; font-weight: 900; color: var(--accent); display: block; }
-        .ai-text { font-size: 0.8rem; margin-top: 5px; }
+        .card.finished::after {
+            content: "FULL TIME";
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%) rotate(-10deg);
+            background: #ff4d4d; color: white;
+            padding: 5px 15px; font-weight: 900; border: 2px solid white;
+        }
 
-        .goal-dock {
-            position: fixed; bottom: 20px; left: 16px; right: 16px;
-            background: var(--card); border: 4px solid var(--border);
-            padding: 15px; box-shadow: var(--shadow);
+        .league-tag {
+            background: var(--yellow); border: 2px solid var(--dark);
+            padding: 2px 8px; font-size: 0.7rem; font-weight: 900;
+            position: absolute; top: -15px; left: 15px;
         }
-        #goal-input {
-            width: 100%; background: transparent; border: none;
-            border-bottom: 2px solid var(--accent); color: var(--text);
-            font-family: inherit; font-weight: 900; outline: none;
+
+        .team-row { font-size: 1.5rem; font-weight: 900; line-height: 1.1; margin: 10px 0; }
+        .vs { color: var(--pink); font-size: 0.8rem; }
+
+        /* ODDS SECTION */
+        .odds-bar {
+            display: grid; grid-template-columns: 1fr 1fr 1fr;
+            gap: 5px; margin: 15px 0;
         }
+        .odd {
+            background: #eee; border: 2px solid var(--dark);
+            text-align: center; padding: 5px;
+        }
+        .odd small { display: block; font-size: 0.6rem; text-transform: uppercase; }
+
+        /* AI BUTTON & RESULTS */
+        .ai-btn {
+            background: var(--dark); color: white; border: none;
+            padding: 12px; font-weight: 900; cursor: pointer;
+            font-family: inherit; margin-top: auto;
+        }
+        .ai-btn:hover { background: var(--purple); }
+
+        .ai-panel {
+            margin-top: 15px; padding: 10px;
+            background: #f9f9f9; border: 2px dashed var(--dark);
+            animation: slideIn 0.3s ease-out;
+        }
+        .ai-badge {
+            font-size: 0.6rem; font-weight: 900; padding: 2px 5px;
+            border: 1px solid var(--dark); display: inline-block; margin-bottom: 5px;
+        }
+        .market-name { font-size: 1.1rem; color: var(--pink); font-weight: 900; }
+        
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } }
     </style>
 </head>
-<body data-theme="dark">
+<body>
 
-<header>
-    <div style="font-weight:900; color:var(--accent)">FRESH-BETS.EXE</div>
-    <div style="display:flex; gap:10px">
-        <button class="ios-btn" onclick="toggleTheme()">MODE</button>
-        <button class="ios-btn" onclick="hardReset()">RELOAD</button>
-    </div>
-</header>
+<div class="container">
+    <header>
+        <h1>AI BET SCOUT</h1>
+        <p><b>Today's Smart Picks</b> • Top Leagues Only</p>
+    </header>
 
-<div id="main-list"></div>
-
-<div class="goal-dock">
-    <div style="font-size:0.6rem; font-weight:900; color:var(--accent)">OBJECTIVE:</div>
-    <input type="text" id="goal-input" placeholder="Set Goal..." onchange="saveGoal(this.value)">
+    <div id="app"></div>
 </div>
 
 <script>
     const API_KEY = '10257181b61bdaba7ac4ca4e276c9dae';
-    const LEAGUES = ['soccer_epl', 'soccer_spain_la_liga', 'soccer_germany_bundesliga', 'soccer_italy_serie_a', 'soccer_france_ligue_one', 'soccer_uefa_champs_league', 'soccer_usa_mls'];
+    const CACHE_KEY = 'odds_data_v1';
+    const DATE_KEY = 'odds_fetch_date';
 
-    async function start() {
-        document.getElementById('goal-input').value = localStorage.getItem('user_goal') || "";
-        const cache = localStorage.getItem('fb_v5');
-        if (cache) {
-            const parsed = JSON.parse(cache);
-            if (Date.now() - parsed.timestamp < 12 * 60 * 60 * 1000) {
-                render(parsed.data); return;
-            }
+    // List of Top Leagues
+    const TOP_LEAGUES = ['soccer_epl', 'soccer_spain_la_liga', 'soccer_germany_bundesliga', 'soccer_italy_serie_a', 'soccer_france_ligue_one', 'soccer_uefa_champs_league'];
+
+    async function init() {
+        const today = new Date().toDateString();
+        const cachedDate = localStorage.getItem(DATE_KEY);
+        let data;
+
+        // LOAD ONCE A DAY LOGIC
+        if (cachedDate === today && localStorage.getItem(CACHE_KEY)) {
+            console.log("Loading from browser cache...");
+            data = JSON.parse(localStorage.getItem(CACHE_KEY));
+        } else {
+            console.log("Fetching fresh data for the day...");
+            const res = await fetch(`https://api.the-odds-api.com/v4/sports/upcoming/odds/?apiKey=${API_KEY}&regions=uk&markets=h2h`);
+            data = await res.json();
+            localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+            localStorage.setItem(DATE_KEY, today);
         }
-        fetchOdds();
-    }
 
-    async function fetchOdds() {
-        const requests = LEAGUES.map(l => fetch(`https://api.the-odds-api.com/v4/sports/${l}/events?apiKey=${API_KEY}`).then(r => r.json()));
-        const results = await Promise.all(requests);
-        const data = results.flat();
-        localStorage.setItem('fb_v5', JSON.stringify({ timestamp: Date.now(), data }));
         render(data);
     }
 
-    async function render(matches) {
-        const list = document.getElementById('main-list');
-        list.innerHTML = '';
-        const filtered = matches.slice(0, 15); // Show top 15 matches for speed
+    function render(matches) {
+        const container = document.getElementById('app');
+        const now = new Date();
+
+        // Filter for top leagues + games within next 72 hours
+        const filtered = matches.filter(m => TOP_LEAGUES.includes(m.sport_key));
 
         filtered.forEach(m => {
-            const safeId = m.id.replace(/[^a-z0-9]/gi,'');
+            const matchTime = new Date(m.commence_time);
+            // Mark as finished if 2.5 hours have passed since start
+            const isFinished = (now - matchTime) > (2.5 * 60 * 60 * 1000);
+
+            const bookie = m.bookmakers[0];
+            if (!bookie) return;
+            const odds = bookie.markets[0].outcomes;
+            const h = odds.find(o => o.name === m.home_team)?.price || '-';
+            const a = odds.find(o => o.name === m.away_team)?.price || '-';
+            const d = odds.find(o => o.name === 'Draw')?.price || '-';
+
             const card = document.createElement('div');
-            card.className = 'match-card';
+            card.className = `card ${isFinished ? 'finished' : ''}`;
             card.innerHTML = `
-                <div style="font-size:0.9rem; font-weight:900;">${m.home_team} vs ${m.away_team}</div>
-                <div class="ai-intel">
-                    <span class="ai-label">POWER LEVEL: <span id="val-${safeId}">0%</span></span>
-                    <div class="power-level-container"><div class="power-bar" id="bar-${safeId}"></div></div>
-                    <div class="ai-text" id="txt-${safeId}">Scanning battleground...</div>
+                <span class="league-tag">${m.sport_title}</span>
+                <div class="team-row">${m.home_team}</div>
+                <div class="vs">VS</div>
+                <div class="team-row">${m.away_team}</div>
+                
+                <div class="odds-bar">
+                    <div class="odd"><small>Home</small><b>${h}</b></div>
+                    <div class="odd"><small>Draw</small><b>${d}</b></div>
+                    <div class="odd"><small>Away</small><b>${a}</b></div>
+                </div>
+
+                <div style="font-size: 0.7rem; margin-bottom: 15px;">
+                    Starts: ${matchTime.toLocaleString([], {weekday:'short', hour:'2-digit', minute:'2-digit'})}
+                </div>
+
+                ${!isFinished ? `<button class="ai-btn" onclick="getAI('${m.home_team}', '${m.away_team}', ${h}, ${d}, ${a}, this)">GET AI INSIGHT</button>` : ''}
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    async function getAI(home, away, h, d, a, btn) {
+        const card = btn.closest('.card');
+        btn.innerText = "SCOUTING...";
+        btn.disabled = true;
+
+        try {
+            // CALL YOUR VERCEL SERVERLESS FUNCTION
+            const response = await fetch('/api/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ home, away, h, d, a })
+            });
+            const result = await response.json();
+
+            const panel = `
+                <div class="ai-panel">
+                    <div class="ai-badge" style="background:var(--cyan)">GEMMA 3 SCOUT</div>
+                    <p style="font-size: 0.7rem; margin: 0 0 10px 0;">${result.research}</p>
+                    <div class="ai-badge" style="background:var(--yellow)">LLAMA 3.1 PICK</div>
+                    <div class="market-name">${result.market}</div>
+                    <div style="font-size: 0.75rem; font-weight: bold;">Confidence: ${result.confidence}</div>
                 </div>
             `;
-            list.appendChild(card);
-        });
-
-        // Batch Process 5 at a time
-        for (let i = 0; i < filtered.length; i += 5) {
-            const batch = filtered.slice(i, i + 5);
-            await runBatch(batch);
-            await new Promise(r => setTimeout(r, 1500));
+            btn.remove();
+            card.insertAdjacentHTML('beforeend', panel);
+        } catch (e) {
+            btn.innerText = "ERROR";
         }
     }
 
-    async function runBatch(batch) {
-        try {
-            const res = await fetch('/api/research', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ matches: batch.map(m => ({ home: m.home_team, away: m.away_team, league: m.sport_title })) })
-            });
-            const data = await res.json();
-            batch.forEach((m, idx) => {
-                const safeId = m.id.replace(/[^a-z0-9]/gi,'');
-                const pred = data.predictions[idx];
-                document.getElementById(`txt-${safeId}`).innerText = pred.text;
-                document.getElementById(`val-${safeId}`).innerText = pred.conf + "%";
-                document.getElementById(`bar-${safeId}`).style.width = pred.conf + "%";
-            });
-        } catch (e) { console.error("Batch Failed"); }
-    }
-
-    function toggleTheme() {
-        document.body.setAttribute('data-theme', document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
-    }
-    function hardReset() { localStorage.removeItem('fb_v5'); location.reload(); }
-    function saveGoal(v) { localStorage.setItem('user_goal', v); }
-
-    start();
+    init();
 </script>
+
 </body>
 </html>
