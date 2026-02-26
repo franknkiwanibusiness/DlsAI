@@ -1,1 +1,226 @@
-sup
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI BET SCOUT | Gemma 3 + Llama 3.1</title>
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --yellow: #ffde06; --purple: #7d5fff; --pink: #ff4dff;
+            --cyan: #00d2ff; --dark: #1a1a1a; --white: #ffffff;
+            --border: 4px solid var(--dark);
+            --shadow: 8px 8px 0px var(--dark);
+        }
+
+        body {
+            background-color: #f0f0f0;
+            background-image: radial-gradient(var(--dark) 1px, transparent 0);
+            background-size: 25px 25px;
+            font-family: 'Space Grotesk', sans-serif;
+            margin: 0; padding: 20px; color: var(--dark);
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; }
+
+        header { text-align: center; margin-bottom: 40px; }
+        h1 {
+            font-family: 'Public Sans', sans-serif;
+            font-size: clamp(2rem, 8vw, 3.5rem);
+            background: var(--white); border: var(--border);
+            display: inline-block; padding: 10px 30px;
+            box-shadow: 10px 10px 0px var(--purple);
+            transform: rotate(-1deg);
+        }
+
+        /* GRID */
+        #app {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 30px;
+        }
+
+        /* MATCH CARD */
+        .card {
+            background: var(--white); border: var(--border);
+            padding: 20px; box-shadow: var(--shadow);
+            transition: 0.2s ease; position: relative;
+            display: flex; flex-direction: column;
+        }
+
+        /* FINISHED STYLE: Red & Blurred */
+        .card.finished {
+            border-color: #ff4d4d;
+            box-shadow: 8px 8px 0px #ff4d4d;
+            filter: blur(1.5px) grayscale(60%);
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .card.finished::after {
+            content: "FULL TIME";
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%) rotate(-10deg);
+            background: #ff4d4d; color: white;
+            padding: 5px 15px; font-weight: 900; border: 2px solid white;
+        }
+
+        .league-tag {
+            background: var(--yellow); border: 2px solid var(--dark);
+            padding: 2px 8px; font-size: 0.7rem; font-weight: 900;
+            position: absolute; top: -15px; left: 15px;
+        }
+
+        .team-row { font-size: 1.5rem; font-weight: 900; line-height: 1.1; margin: 10px 0; }
+        .vs { color: var(--pink); font-size: 0.8rem; }
+
+        /* ODDS SECTION */
+        .odds-bar {
+            display: grid; grid-template-columns: 1fr 1fr 1fr;
+            gap: 5px; margin: 15px 0;
+        }
+        .odd {
+            background: #eee; border: 2px solid var(--dark);
+            text-align: center; padding: 5px;
+        }
+        .odd small { display: block; font-size: 0.6rem; text-transform: uppercase; }
+
+        /* AI BUTTON & RESULTS */
+        .ai-btn {
+            background: var(--dark); color: white; border: none;
+            padding: 12px; font-weight: 900; cursor: pointer;
+            font-family: inherit; margin-top: auto;
+        }
+        .ai-btn:hover { background: var(--purple); }
+
+        .ai-panel {
+            margin-top: 15px; padding: 10px;
+            background: #f9f9f9; border: 2px dashed var(--dark);
+            animation: slideIn 0.3s ease-out;
+        }
+        .ai-badge {
+            font-size: 0.6rem; font-weight: 900; padding: 2px 5px;
+            border: 1px solid var(--dark); display: inline-block; margin-bottom: 5px;
+        }
+        .market-name { font-size: 1.1rem; color: var(--pink); font-weight: 900; }
+        
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>AI BET SCOUT</h1>
+        <p><b>Today's Smart Picks</b> • Top Leagues Only</p>
+    </header>
+
+    <div id="app"></div>
+</div>
+
+<script>
+    const API_KEY = '10257181b61bdaba7ac4ca4e276c9dae';
+    const CACHE_KEY = 'odds_data_v1';
+    const DATE_KEY = 'odds_fetch_date';
+
+    // List of Top Leagues
+    const TOP_LEAGUES = ['soccer_epl', 'soccer_spain_la_liga', 'soccer_germany_bundesliga', 'soccer_italy_serie_a', 'soccer_france_ligue_one', 'soccer_uefa_champs_league'];
+
+    async function init() {
+        const today = new Date().toDateString();
+        const cachedDate = localStorage.getItem(DATE_KEY);
+        let data;
+
+        // LOAD ONCE A DAY LOGIC
+        if (cachedDate === today && localStorage.getItem(CACHE_KEY)) {
+            console.log("Loading from browser cache...");
+            data = JSON.parse(localStorage.getItem(CACHE_KEY));
+        } else {
+            console.log("Fetching fresh data for the day...");
+            const res = await fetch(`https://api.the-odds-api.com/v4/sports/upcoming/odds/?apiKey=${API_KEY}&regions=uk&markets=h2h`);
+            data = await res.json();
+            localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+            localStorage.setItem(DATE_KEY, today);
+        }
+
+        render(data);
+    }
+
+    function render(matches) {
+        const container = document.getElementById('app');
+        const now = new Date();
+
+        // Filter for top leagues + games within next 72 hours
+        const filtered = matches.filter(m => TOP_LEAGUES.includes(m.sport_key));
+
+        filtered.forEach(m => {
+            const matchTime = new Date(m.commence_time);
+            // Mark as finished if 2.5 hours have passed since start
+            const isFinished = (now - matchTime) > (2.5 * 60 * 60 * 1000);
+
+            const bookie = m.bookmakers[0];
+            if (!bookie) return;
+            const odds = bookie.markets[0].outcomes;
+            const h = odds.find(o => o.name === m.home_team)?.price || '-';
+            const a = odds.find(o => o.name === m.away_team)?.price || '-';
+            const d = odds.find(o => o.name === 'Draw')?.price || '-';
+
+            const card = document.createElement('div');
+            card.className = `card ${isFinished ? 'finished' : ''}`;
+            card.innerHTML = `
+                <span class="league-tag">${m.sport_title}</span>
+                <div class="team-row">${m.home_team}</div>
+                <div class="vs">VS</div>
+                <div class="team-row">${m.away_team}</div>
+                
+                <div class="odds-bar">
+                    <div class="odd"><small>Home</small><b>${h}</b></div>
+                    <div class="odd"><small>Draw</small><b>${d}</b></div>
+                    <div class="odd"><small>Away</small><b>${a}</b></div>
+                </div>
+
+                <div style="font-size: 0.7rem; margin-bottom: 15px;">
+                    Starts: ${matchTime.toLocaleString([], {weekday:'short', hour:'2-digit', minute:'2-digit'})}
+                </div>
+
+                ${!isFinished ? `<button class="ai-btn" onclick="getAI('${m.home_team}', '${m.away_team}', ${h}, ${d}, ${a}, this)">GET AI INSIGHT</button>` : ''}
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    async function getAI(home, away, h, d, a, btn) {
+        const card = btn.closest('.card');
+        btn.innerText = "SCOUTING...";
+        btn.disabled = true;
+
+        try {
+            // CALL YOUR VERCEL SERVERLESS FUNCTION
+            const response = await fetch('/api/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ home, away, h, d, a })
+            });
+            const result = await response.json();
+
+            const panel = `
+                <div class="ai-panel">
+                    <div class="ai-badge" style="background:var(--cyan)">GEMMA 3 SCOUT</div>
+                    <p style="font-size: 0.7rem; margin: 0 0 10px 0;">${result.research}</p>
+                    <div class="ai-badge" style="background:var(--yellow)">LLAMA 3.1 PICK</div>
+                    <div class="market-name">${result.market}</div>
+                    <div style="font-size: 0.75rem; font-weight: bold;">Confidence: ${result.confidence}</div>
+                </div>
+            `;
+            btn.remove();
+            card.insertAdjacentHTML('beforeend', panel);
+        } catch (e) {
+            btn.innerText = "ERROR";
+        }
+    }
+
+    init();
+</script>
+
+</body>
+</html>
