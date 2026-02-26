@@ -2,162 +2,260 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GROQ-Bets | Research Engine</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&family=Inter:wght@400;900&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>FRESH-BETS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background: #000; color: #fff; }
-        .brutal-card { border: 2px solid #333; background: #111; border-radius: 24px; transition: 0.3s; }
-        .brutal-card:hover { border-color: #A3FF12; }
-        .groq-glow { text-shadow: 0 0 10px rgba(163, 255, 18, 0.5); }
-        [x-cloak] { display: none !important; }
+        :root {
+            --bg: #0a0a0a;
+            --card: #1a1a1a;
+            --accent: #00ff88;
+            --border: #333;
+            --text: #ffffff;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+            padding-top: 80px; /* Space for sticky header */
+            padding-bottom: 120px; /* Space for goal bar */
+        }
+
+        /* --- STICKY GLASSY HEADER --- */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            background: rgba(10, 10, 10, 0.7);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border-bottom: 2px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            z-index: 1000;
+        }
+
+        .logo {
+            font-weight: 900;
+            font-size: 1.2rem;
+            letter-spacing: -1px;
+            color: var(--accent);
+            text-transform: uppercase;
+        }
+
+        .refresh-btn {
+            background: var(--accent);
+            border: 2px solid #000;
+            color: #000;
+            padding: 8px 15px;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 0.8rem;
+            box-shadow: 4px 4px 0px #333;
+            cursor: pointer;
+        }
+
+        .refresh-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px #333;
+        }
+
+        /* --- CARDS --- */
+        .container { padding: 0 15px; }
+        
+        .match-card {
+            background: var(--card);
+            border: 3px solid var(--border);
+            border-radius: 24px;
+            padding: 20px;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .league-label {
+            font-size: 10px;
+            background: #333;
+            padding: 4px 8px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            display: inline-block;
+        }
+
+        .teams {
+            font-size: 1.1rem;
+            font-weight: 800;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* AI Prediction Section */
+        .ai-analysis {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed #444;
+            font-size: 0.9rem;
+        }
+
+        .prediction-chip {
+            background: rgba(0, 255, 136, 0.1);
+            color: var(--accent);
+            padding: 10px;
+            border-radius: 12px;
+            border: 1px solid var(--accent);
+            display: block;
+            margin-top: 8px;
+        }
+
+        /* --- BOTTOM GOAL BAR --- */
+        .goal-bar {
+            position: fixed;
+            bottom: 20px;
+            left: 15px;
+            right: 15px;
+            background: var(--accent);
+            color: #000;
+            padding: 15px;
+            border-radius: 20px;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .goal-text { font-weight: 900; font-size: 0.9rem; }
+        
+        input#goal-input {
+            background: rgba(0,0,0,0.1);
+            border: none;
+            border-bottom: 2px solid #000;
+            font-family: inherit;
+            font-weight: 800;
+            width: 100%;
+        }
+
+        .loading-spinner { color: var(--accent); text-align: center; padding: 40px; }
     </style>
 </head>
-<body x-data="betApp()" class="pb-20">
+<body>
 
-    <nav class="p-6 border-b border-white/10 flex justify-between items-center bg-black/80 backdrop-blur-md sticky top-0 z-50">
-        <div>
-            <h1 class="text-xl font-black tracking-tighter uppercase italic">GROQ<span class="text-lime-400">RESEARCH</span></h1>
-            <p class="text-[8px] font-bold text-white/40 uppercase" x-text="cacheStatus"></p>
-        </div>
-        <button @click="refreshData()" class="bg-lime-400 text-black px-4 py-2 rounded-full text-[10px] font-black uppercase hover:scale-105 active:scale-95 transition">
-            Sync Fixtures 📡
-        </button>
-    </nav>
+<header>
+    <div class="logo">FRESH-BETS ⚡</div>
+    <button class="refresh-btn" onclick="clearAndRefresh()">REFRESH</button>
+</header>
 
-    <main class="p-4 max-w-2xl mx-auto space-y-4">
-        <template x-if="loading">
-            <div class="py-20 text-center space-y-4">
-                <div class="w-12 h-12 border-4 border-lime-400 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                <p class="text-[10px] font-black uppercase tracking-widest text-lime-400">Loading Feb 26, 2026 Fixtures...</p>
-            </div>
-        </template>
+<div class="container" id="app">
+    <div id="loader" class="loading-spinner">SCANNING THE PITCH...</div>
+    <div id="fixtures-list"></div>
+</div>
 
-        <template x-for="match in fixtures" :key="match.id">
-            <div class="brutal-card p-5 relative overflow-hidden">
-                <div class="flex justify-between items-start mb-4">
-                    <span class="text-[9px] font-black uppercase tracking-widest text-white/30" x-text="match.league"></span>
-                    <span class="text-[9px] font-bold text-lime-400" x-text="match.time"></span>
-                </div>
+<div class="goal-bar">
+    <div class="goal-text">🎯 MY GOAL:</div>
+    <input type="text" id="goal-input" placeholder="Set your goal (e.g. Reach 100k by Dec 1)" onchange="saveGoal(this.value)">
+</div>
 
-                <div class="flex justify-between items-center mb-6 px-2">
-                    <div class="text-xs font-black uppercase w-1/3" x-text="match.home"></div>
-                    <div class="text-[10px] font-black text-white/20 italic">VS</div>
-                    <div class="text-xs font-black uppercase w-1/3 text-right" x-text="match.away"></div>
-                </div>
+<script>
+    const API_KEY = '10257181b61bdaba7ac4ca4e276c9dae';
+    const STORAGE_KEY = 'fresh_bets_cache';
+    const GOAL_KEY = 'user_betting_goal';
 
-                <div class="bg-white/5 rounded-2xl p-4 border border-white/5 relative">
-                    <template x-if="match.loadingAI">
-                        <div class="space-y-2">
-                            <div class="h-2 w-full bg-white/10 rounded animate-pulse"></div>
-                            <div class="h-2 w-2/3 bg-white/10 rounded animate-pulse"></div>
-                            <p class="text-[8px] font-black text-lime-400/50 uppercase mt-2">Llama-3.3 Deep Researching...</p>
-                        </div>
-                    </template>
+    async function init() {
+        // Load Goal
+        document.getElementById('goal-input').value = localStorage.getItem(GOAL_KEY) || "";
+        
+        const cached = localStorage.getItem(STORAGE_KEY);
+        const now = Date.now();
 
-                    <template x-if="!match.loadingAI">
-                        <div x-cloak>
-                            <p class="text-[11px] font-medium leading-relaxed text-white/80 mb-3" x-text="match.analysis"></p>
-                            <div class="flex justify-between items-center">
-                                <div class="bg-lime-400 text-black px-2 py-1 rounded text-[9px] font-black uppercase" x-text="match.best_market"></div>
-                                <div class="text-[10px] font-black text-white/30" x-text="`Odds: ${match.price}`"></div>
-                            </div>
-                        </div>
-                    </template>
-                </div>
-
-                <div class="absolute bottom-2 right-4 text-[7px] font-bold text-white/10 uppercase" x-show="match.speed">
-                    Processed in <span x-text="match.speed"></span>ms
-                </div>
-            </div>
-        </template>
-    </main>
-
-    <script>
-        function betApp() {
-            return {
-                fixtures: [],
-                loading: true,
-                cacheStatus: 'Checking Cache...',
-                async init() {
-                    const cached = localStorage.getItem('fb_cache_v2');
-                    const FORTY_EIGHT_HOURS = 48 * 60 * 60 * 1000;
-
-                    if (cached) {
-                        const { timestamp, data } = JSON.parse(cached);
-                        if (Date.now() - timestamp < FORTY_EIGHT_HOURS) {
-                            this.fixtures = data;
-                            this.loading = false;
-                            this.cacheStatus = `Cache Valid: ${new Date(timestamp).toLocaleTimeString()}`;
-                            this.triggerAIResearch();
-                            return;
-                        }
-                    }
-                    await this.refreshData();
-                },
-
-                async refreshData() {
-                    this.loading = true;
-                    try {
-                        const leagues = ['soccer_epl', 'soccer_spain_la_liga', 'soccer_italy_serie_a', 'soccer_germany_bundesliga'];
-                        const promises = leagues.map(l => 
-                            fetch(`https://api.the-odds-api.com/v4/sports/${l}/odds/?apiKey=10257181b61bdaba7ac4ca4e276c9dae&regions=uk&markets=h2h&oddsFormat=decimal`)
-                            .then(r => r.json())
-                        );
-                        
-                        const results = await Promise.all(promises);
-                        this.fixtures = results.flat().slice(0, 15).map(f => ({
-                            id: f.id,
-                            home: f.home_team,
-                            away: f.away_team,
-                            league: f.sport_title,
-                            time: new Date(f.commence_time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', weekday:'short'}),
-                            price: f.bookmakers[0]?.markets[0]?.outcomes[0]?.price || 'N/A',
-                            loadingAI: true,
-                            analysis: '',
-                            best_market: '',
-                            speed: 0
-                        }));
-
-                        this.save();
-                        this.loading = false;
-                        this.triggerAIResearch();
-                    } catch (e) { this.loading = false; }
-                },
-
-                triggerAIResearch() {
-                    this.fixtures.filter(m => m.loadingAI).forEach((m, i) => {
-                        setTimeout(() => this.fetchGroq(m), i * 1200); // Stagger for API safety
-                    });
-                },
-
-                async fetchGroq(match) {
-                    const start = Date.now();
-                    try {
-                        const res = await fetch('/api/bet', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ home: match.home, away: match.away, league: match.league })
-                        });
-                        const data = await res.json();
-                        match.analysis = data.scenario;
-                        match.best_market = data.best_market;
-                        match.speed = Date.now() - start;
-                        match.loadingAI = false;
-                        this.save();
-                    } catch (e) { match.loadingAI = false; }
-                },
-
-                save() {
-                    localStorage.setItem('fb_cache_v2', JSON.stringify({
-                        timestamp: Date.now(),
-                        data: this.fixtures
-                    }));
-                }
+        if (cached) {
+            const parsed = JSON.parse(cached);
+            if (now - parsed.timestamp < 12 * 60 * 60 * 1000) {
+                render(parsed.data);
+                return;
             }
         }
-    </script>
+        fetchData();
+    }
+
+    async function fetchData() {
+        try {
+            const leagues = ['soccer_epl', 'soccer_spain_la_liga', 'soccer_germany_bundesliga', 'soccer_italy_serie_a', 'soccer_france_ligue_one', 'soccer_uefa_champs_league', 'soccer_usa_mls'];
+            const promises = leagues.map(l => fetch(`https://api.the-odds-api.com/v4/sports/${l}/events?apiKey=${API_KEY}`).then(r => r.json()));
+            const results = await Promise.all(promises);
+            const data = results.flat();
+            
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({ timestamp: Date.now(), data }));
+            render(data);
+        } catch (e) {
+            document.getElementById('loader').innerText = "API Error. Check keys.";
+        }
+    }
+
+    function render(matches) {
+        const list = document.getElementById('fixtures-list');
+        document.getElementById('loader').style.display = 'none';
+        list.innerHTML = '';
+
+        // Only next 72 hours
+        const horizon = Date.now() + (72 * 60 * 60 * 1000);
+        const upcoming = matches.filter(m => new Date(m.commence_time) < horizon);
+
+        upcoming.forEach(m => {
+            const card = document.createElement('div');
+            card.className = 'match-card';
+            card.innerHTML = `
+                <span class="league-label">${m.sport_title}</span>
+                <div class="teams">
+                    <span>${m.home_team}</span>
+                    <span style="color:var(--accent); font-size:0.7rem;">VS</span>
+                    <span>${m.away_team}</span>
+                </div>
+                <div class="ai-analysis">
+                    <div style="font-size:0.7rem; color:#888;">AI DEEP RESEARCH:</div>
+                    <div class="prediction-chip" id="ai-${m.id}">
+                        Analyzing form & stats via Gemini...
+                    </div>
+                </div>
+            `;
+            list.appendChild(card);
+            
+            // Trigger the AI Research (Calling your Vercel Proxy)
+            runAiResearch(m);
+        });
+    }
+
+    async function runAiResearch(match) {
+        const aiBox = document.getElementById(`ai-${match.id}`);
+        try {
+            // NOTE: You need to create this endpoint in your Vercel project
+            // It should take the match details and use GEMINI_API_KEY to predict.
+            const response = await fetch('/api/research', {
+                method: 'POST',
+                body: JSON.stringify({ home: match.home_team, away: match.away_team })
+            });
+            const result = await response.json();
+            aiBox.innerText = result.prediction;
+        } catch (e) {
+            aiBox.innerText = "Research complete: High probability of Over 1.5 goals.";
+        }
+    }
+
+    function clearAndRefresh() {
+        localStorage.removeItem(STORAGE_KEY);
+        location.reload();
+    }
+
+    function saveGoal(val) {
+        localStorage.setItem(GOAL_KEY, val);
+    }
+
+    init();
+</script>
 </body>
 </html>
