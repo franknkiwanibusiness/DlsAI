@@ -1,45 +1,41 @@
-export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+import Groq from "groq-sdk";
 
-  const { home, away, league } = req.body;
+export default async function handler(req, res) {
+  // Setup Headers for CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET');
+
+  const { home, away, league } = req.query;
+  
+  // Verify API Key
+  if (!process.env.EASYBET_API_KEY) {
+      return res.status(500).json({ insight: "KEY MISSING" });
+  }
+
+  const groq = new Groq({ apiKey: process.env.EASYBET_API_KEY });
 
   try {
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${process.env.EASYBET_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: "mixtral-8x7b-32768",
-        messages: [
-          {
-            role: "system",
-            content: "You are a betting expert. Return ONLY JSON with 'market' and 'reason' (max 12 words). Market should be 'Home Win', 'Away Win', 'Draw', 'Over 2.5', or 'BTTS'."
-          },
-          {
-            role: "user",
-            content: `Analyze ${home} vs ${away} (${league})`
-          }
-        ],
-        response_format: { type: "json_object" }
-      })
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: "You are a betting bot. Respond ONLY with the market name in uppercase. No explanation. No extra words. Example: OVER 2.5 GOALS"
+        },
+        {
+          role: "user",
+          content: `${home} vs ${away} (${league})`
+        }
+      ],
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.1,
+      max_tokens: 10,
     });
 
-    const data = await response.json();
-    
-    if (data.choices && data.choices[0]) {
-      const aiResponse = JSON.parse(data.choices[0].message.content);
-      res.status(200).json(aiResponse);
-    } else {
-      throw new Error("Invalid Groq Response");
-    }
-
+    const insight = chatCompletion.choices[0]?.message?.content || "";
+    // Clean and return the prediction
+    res.status(200).json({ insight: insight.replace(/[".]/g, "").trim() });
   } catch (error) {
-    console.error("Bridge Error:", error);
-    res.status(200).json({ 
-      market: "Check Odds", 
-      reason: "AI limit reached or Key missing. Check Vercel Logs." 
-    });
+    console.error("Groq API Error:", error);
+    res.status(500).json({ insight: "RETRY" });
   }
 }
