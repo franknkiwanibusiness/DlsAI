@@ -3,21 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BET SMART | AI Elite</title>
+    <title>BET SMART | AI Elite Today</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg: #000; --header-bg: #0a0a0a; --text: #fff;
             --pink: #ff69b4; --green: #00ff00;
             --glass: rgba(255, 255, 255, 0.05); --border: rgba(255, 255, 255, 0.1);
-            --ai-glow: rgba(255, 105, 180, 0.15);
+            --ai-glow: rgba(255, 105, 180, 0.12);
         }
         body.light-theme {
             --bg: #f5f5f5; --header-bg: #fff; --text: #000;
             --glass: rgba(0,0,0,0.03); --border: rgba(0,0,0,0.1);
             --ai-glow: rgba(255, 105, 180, 0.05);
         }
-        body { margin: 0; background: var(--bg); font-family: 'Inter', sans-serif; color: var(--text); transition: 0.3s; }
+        body { margin: 0; background: var(--bg); font-family: 'Inter', sans-serif; color: var(--text); transition: 0.3s; overflow-x: hidden; }
         
         header { 
             position: sticky; top: 0; z-index: 2000; height: 60px; 
@@ -45,11 +45,11 @@
         
         .league-card {
             background: var(--glass); border: 1px solid var(--border); border-radius: 18px; padding: 20px;
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px); margin-bottom: 10px;
         }
         .league-title { 
             font-size: 0.75rem; font-weight: 900; color: var(--pink); 
-            text-transform: uppercase; margin-bottom: 15px; letter-spacing: 1px;
+            text-transform: uppercase; margin-bottom: 15px; letter-spacing: 1.5px;
             border-bottom: 1px solid var(--border); padding-bottom: 10px;
         }
         .match-row {
@@ -63,16 +63,15 @@
 
         .ai-box {
             margin-top: 15px; background: var(--ai-glow); border: 1px dashed var(--pink);
-            padding: 12px; border-radius: 10px; position: relative;
+            padding: 12px; border-radius: 10px; min-height: 40px;
         }
-        .ai-label { font-size: 0.6rem; font-weight: 900; color: var(--pink); text-transform: uppercase; margin-bottom: 5px; display: block; }
-        .ai-prediction { font-size: 0.85rem; font-weight: 700; line-height: 1.4; }
-        .ai-reason { font-size: 0.7rem; opacity: 0.7; font-weight: 400; margin-top: 4px; display: block; }
+        .ai-label { font-size: 0.6rem; font-weight: 900; color: var(--pink); text-transform: uppercase; margin-bottom: 4px; display: block; letter-spacing: 1px; }
+        .ai-prediction { font-size: 0.9rem; font-weight: 800; color: #fff; text-transform: uppercase; }
 
-        .loading-text { text-align: center; opacity: 0.4; padding: 50px; font-weight: 700; }
+        .loading-text { text-align: center; opacity: 0.4; padding: 50px; font-weight: 700; font-size: 0.9rem; }
     </style>
 </head>
-<body>
+<body class="dark-theme">
 
     <header>
         <div class="brand-section">
@@ -91,7 +90,7 @@
     </div>
 
     <div id="fixtures-container">
-        <div class="loading-text">Syncing with Top 10 Leagues & AI Research...</div>
+        <div class="loading-text">Analyzing Top 10 Leagues...</div>
     </div>
 
     <script>
@@ -116,6 +115,7 @@
             const isHidden = c.style.display === 'none';
             c.style.display = isHidden ? 'block' : 'none';
             localStorage.setItem('user-clock', !isHidden);
+            document.getElementById('clock-status').innerText = isHidden ? "HIDE" : "SHOW";
         }
 
         function clearCache() {
@@ -128,13 +128,11 @@
             const today = new Date().toISOString().split('T')[0];
             const cached = JSON.parse(localStorage.getItem('fixture_cache'));
 
-            // Cache check: Valid until 00:00 next day
             if (cached && cached.date === today) {
                 render(cached.data);
                 return;
             }
 
-            // Fresh Fetch
             let allData = [];
             for (const id of LEAGUES) {
                 try {
@@ -142,7 +140,7 @@
                     const data = await res.json();
                     const filtered = data.filter(m => m.commence_time.startsWith(today));
                     if (filtered.length > 0) allData.push({ name: filtered[0].sport_title, matches: filtered });
-                } catch (e) { console.error(e); }
+                } catch (e) { console.error("League Fetch Error:", e); }
             }
 
             localStorage.setItem('fixture_cache', JSON.stringify({ date: today, data: allData }));
@@ -152,7 +150,7 @@
         function render(leagues) {
             const container = document.getElementById('fixtures-container');
             if (leagues.length === 0) {
-                container.innerHTML = `<div class="loading-text">No Top 10 matches today.</div>`;
+                container.innerHTML = `<div class="loading-text">No Top 10 matches scheduled for today.</div>`;
                 return;
             }
             container.innerHTML = '';
@@ -167,21 +165,14 @@
                     html += `
                         <div class="match-row">
                             <div class="match-header"><span>TODAY</span><span>${time}</span></div>
-                            <div class="team-line">
-                                <span class="team-name">${m.home_team}</span>
-                                <span class="odds">${getOdds(m, 'home')}</span>
-                            </div>
-                            <div class="team-line">
-                                <span class="team-name">${m.away_team}</span>
-                                <span class="odds">${getOdds(m, 'away')}</span>
-                            </div>
+                            <div class="team-line"><span class="team-name">${m.home_team}</span><span class="odds">${getOdds(m, 'home')}</span></div>
+                            <div class="team-line"><span class="team-name">${m.away_team}</span><span class="odds">${getOdds(m, 'away')}</span></div>
                             <div class="ai-box" id="ai-${matchId}">
                                 <span class="ai-label">✨ Groq Analysis</span>
-                                <div class="ai-prediction">Researching stats...</div>
+                                <div class="ai-prediction" style="opacity:0.5; font-size:0.7rem;">RESEARCHING...</div>
                             </div>
                         </div>
                     `;
-                    // Fire off AI request
                     fetchAI(m, `ai-${matchId}`);
                 });
                 card.innerHTML = html;
@@ -190,20 +181,27 @@
         }
 
         async function fetchAI(match, divId) {
+            const aiBox = document.getElementById(divId);
             try {
-                const res = await fetch('/api/analyze', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ home: match.home_team, away: match.away_team, league: match.sport_title })
+                const params = new URLSearchParams({
+                    home: match.home_team,
+                    away: match.away_team,
+                    league: match.sport_title
                 });
-                const ai = await res.json();
-                document.getElementById(divId).innerHTML = `
-                    <span class="ai-label">✨ Groq Recommendation</span>
-                    <span class="ai-prediction">${ai.market}</span>
-                    <span class="ai-reason">${ai.reason}</span>
-                `;
+
+                const res = await fetch(`/api/analyze?${params.toString()}`);
+                const data = await res.json();
+                
+                if (data.insight && data.insight !== "RETRY") {
+                    aiBox.innerHTML = `
+                        <span class="ai-label">✨ AI PREDICTION</span>
+                        <div class="ai-prediction">${data.insight}</div>
+                    `;
+                } else {
+                    aiBox.innerHTML = `<span class="ai-label">✨ AI</span><div class="ai-prediction" style="font-size:0.7rem;">RETRYING...</div>`;
+                }
             } catch (e) {
-                document.getElementById(divId).innerHTML = `<span class="ai-label">✨ AI</span><span class="ai-prediction">Analysis Unavailable</span>`;
+                aiBox.innerHTML = `<span class="ai-label">✨ AI</span><div class="ai-prediction" style="font-size:0.7rem; color:red;">OFFLINE</div>`;
             }
         }
 
@@ -213,10 +211,11 @@
                 const market = bookie.markets.find(mk => mk.key === 'h2h');
                 const outcome = market.outcomes.find(o => side === 'home' ? o.name === m.home_team : o.name === m.away_team);
                 return outcome.price.toFixed(2);
-            } catch { return '1.00'; }
+            } catch { return '—'; }
         }
 
         setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString('en-GB'); }, 1000);
+        
         window.onload = () => {
             if (localStorage.getItem('user-theme') === 'light') changeTheme();
             if (localStorage.getItem('user-clock') === 'false') hideClock();
