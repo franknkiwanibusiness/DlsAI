@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BET SMART | Tactical AI</title>
+    <title>BET SMART | Debug Mode</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -15,35 +15,34 @@
         body.light-theme {
             --bg: #f5f5f5; --header-bg: #fff; --text: #000;
             --glass: rgba(0,0,0,0.03); --border: rgba(0,0,0,0.1);
-            --ai-glow: rgba(255, 105, 180, 0.05);
         }
-        body { margin: 0; background: var(--bg); font-family: 'Inter', sans-serif; color: var(--text); transition: 0.3s; overflow-x: hidden; }
+        body { margin: 0; background: var(--bg); font-family: 'Inter', sans-serif; color: var(--text); transition: 0.3s; }
         header { 
             position: sticky; top: 0; z-index: 2000; height: 60px; 
             background: var(--header-bg); border-bottom: 1px solid var(--border);
             display: flex; align-items: center; justify-content: space-between; padding: 0 20px;
         }
-        .brand { font-size: 1rem; font-weight: 900; text-transform: uppercase; letter-spacing: -0.5px; }
+        .brand { font-size: 1rem; font-weight: 900; text-transform: uppercase; }
         .pink { color: var(--pink); } .green { color: var(--green); }
         .hamburger { cursor: pointer; display: flex; flex-direction: column; gap: 4px; width: 22px; }
         .bar { height: 2px; width: 100%; background: var(--text); border-radius: 2px; }
 
         #fixtures-container { padding: 20px; max-width: 800px; margin: auto; display: grid; gap: 20px; }
-        .league-card { background: var(--glass); border: 1px solid var(--border); border-radius: 18px; padding: 20px; margin-bottom: 10px; }
+        .league-card { background: var(--glass); border: 1px solid var(--border); border-radius: 18px; padding: 20px; }
         .league-title { font-size: 0.75rem; font-weight: 900; color: var(--pink); text-transform: uppercase; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
         
         .match-row { background: rgba(255,255,255,0.02); margin-bottom: 15px; padding: 16px; border-radius: 14px; border: 1px solid var(--border); }
-        .match-header { display: flex; justify-content: space-between; font-size: 0.65rem; color: #777; font-weight: 800; margin-bottom: 10px; }
+        .match-header { display: flex; justify-content: space-between; font-size: 0.65rem; color: #777; margin-bottom: 10px; }
         .team-line { display: flex; justify-content: space-between; align-items: center; margin: 5px 0; }
         .odds { color: var(--green); font-weight: 900; font-family: monospace; }
         
         .ai-box { margin-top: 15px; background: var(--ai-glow); border: 1px dashed var(--pink); padding: 12px; border-radius: 10px; }
+        .error-log { color: #ff4444; font-family: monospace; font-size: 0.7rem; white-space: pre-wrap; word-break: break-all; }
         .ai-label { font-size: 0.6rem; font-weight: 900; color: var(--pink); text-transform: uppercase; display: block; margin-bottom: 6px; }
-        .ai-insight { font-size: 0.75rem; opacity: 0.9; line-height: 1.4; margin-bottom: 8px; font-weight: 400; }
-        .ai-pick { font-size: 0.85rem; font-weight: 900; color: var(--green); text-transform: uppercase; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px; }
+        .ai-content { font-size: 0.8rem; font-weight: 700; line-height: 1.4; }
 
-        .popup { position: fixed; top: 65px; left: 15px; width: 220px; background: var(--header-bg); border: 1px solid var(--border); border-radius: 12px; padding: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); transform: translateY(-10px); opacity: 0; visibility: hidden; transition: 0.2s; z-index: 3000; }
-        .popup.active { transform: translateY(0); opacity: 1; visibility: visible; }
+        .popup { position: fixed; top: 65px; left: 15px; width: 220px; background: var(--header-bg); border: 1px solid var(--border); border-radius: 12px; padding: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); visibility: hidden; z-index: 3000; }
+        .popup.active { visibility: visible; }
         .menu-row { display: flex; justify-content: space-between; padding: 12px 0; font-size: 0.8rem; cursor: pointer; border-bottom: 1px solid var(--border); }
     </style>
 </head>
@@ -63,7 +62,7 @@
     </div>
 
     <div id="fixtures-container">
-        <div style="text-align:center; opacity:0.5; padding:50px;">Initializing Tactical AI...</div>
+        <div style="text-align:center; padding:50px;">Fetching Fixtures...</div>
     </div>
 
     <script>
@@ -106,25 +105,20 @@
 
         function render(leagues) {
             const container = document.getElementById('fixtures-container');
-            if (!leagues || leagues.length === 0) {
-                container.innerHTML = `<div style="text-align:center; opacity:0.4; padding:50px;">No matches found for today.</div>`;
-                return;
-            }
             container.innerHTML = '';
             leagues.forEach(league => {
                 const card = document.createElement('div');
                 card.className = 'league-card';
                 let html = `<div class="league-title">${league.name}</div>`;
                 league.matches.forEach(m => {
-                    const time = new Date(m.commence_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                     html += `
                         <div class="match-row">
-                            <div class="match-header"><span>TODAY</span><span>${time}</span></div>
+                            <div class="match-header"><span>TODAY</span></div>
                             <div class="team-line"><span>${m.home_team}</span><span class="odds">${getOdds(m, 'home')}</span></div>
                             <div class="team-line"><span>${m.away_team}</span><span class="odds">${getOdds(m, 'away')}</span></div>
                             <div class="ai-box" id="ai-${m.id}">
-                                <span class="ai-label">⚽ Tactical Research</span>
-                                <div class="ai-insight">Scouting teams...</div>
+                                <span class="ai-label">GROQ DEBUG LOG</span>
+                                <div class="ai-content">Connecting...</div>
                             </div>
                         </div>`;
                     fetchAI(m, `ai-${m.id}`);
@@ -139,36 +133,40 @@
             try {
                 const params = new URLSearchParams({ home: match.home_team, away: match.away_team, league: match.sport_title });
                 const res = await fetch(`/api/analyze?${params.toString()}`);
-                const data = await res.json();
                 
-                // Final "Undefined" protection
-                const insight = data.insight || "Tactical data gathering in progress.";
-                const pick = data.pick || "ANALYZING...";
+                // If Vercel returns an error status (404, 500, etc)
+                if (!res.ok) {
+                    const errText = await res.text();
+                    aiBox.innerHTML = `
+                        <span class="ai-label" style="color:red">VERCEL ERROR ${res.status}</span>
+                        <div class="error-log">${errText || 'No error message body sent from Vercel.'}</div>
+                    `;
+                    return;
+                }
 
+                const data = await res.json();
                 aiBox.innerHTML = `
-                    <span class="ai-label">⚽ Tactical Research</span>
-                    <div class="ai-insight">${insight}</div>
-                    <div class="ai-pick">PICK: ${pick}</div>
+                    <span class="ai-label">✨ AI INSIGHT</span>
+                    <div class="ai-content">${data.insight || 'Field "insight" missing in JSON response.'}</div>
                 `;
             } catch (e) {
-                aiBox.innerHTML = `<span class="ai-label">⚽ Tactical Research</span><div class="ai-pick" style="color:red">RETRYING...</div>`;
+                aiBox.innerHTML = `
+                    <span class="ai-label" style="color:red">FETCH EXCEPTION</span>
+                    <div class="error-log">${e.message}</div>
+                `;
             }
         }
 
         function getOdds(m, side) {
             try {
-                if (!m.bookmakers || m.bookmakers.length === 0) return '—';
                 const market = m.bookmakers[0].markets.find(mk => mk.key === 'h2h');
                 const outcome = market.outcomes.find(o => side === 'home' ? o.name === m.home_team : o.name === m.away_team);
-                return outcome ? outcome.price.toFixed(2) : '—';
+                return outcome.price.toFixed(2);
             } catch { return '—'; }
         }
 
         setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString('en-GB'); }, 1000);
-        window.onload = () => {
-            if (localStorage.getItem('user-theme') === 'light') changeTheme();
-            init();
-        };
+        window.onload = init;
     </script>
 </body>
 </html>
