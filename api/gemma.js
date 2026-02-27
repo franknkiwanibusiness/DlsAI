@@ -1,26 +1,42 @@
-// api/gemma.js
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import Groq from "groq-sdk";
 
 export default async function handler(req, res) {
-  const { home, away, league } = req.query;
-  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  
-  // Using 'gemma-2-9b-it' or 'gemini-1.5-flash' depending on your project settings
-  const model = genAI.getGenerativeModel({ model: "gemma-2-9b-it" });
+  // CORS Headers for Vercel
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  const prompt = `Perform deep research on the football match: ${home} vs ${away} in ${league}.
-    Analyze their recent attacking and defensive patterns. 
-    Provide ONE best betting market outcome (e.g., Total Corners Over 8.5, Over 2.5 Goals, Under 2.5 Goals).
-    Format the response as a short, punchy 1-sentence prediction. 
-    Focus on WHY (e.g., 'Both teams score high but defend poorly, pick Over 2.5 goals').`;
+  if (req.method === 'OPTIONS') return res.status(200).end();
+
+  const { home, away, league } = req.query;
+
+  // Initialize Groq with your specific Key Name
+  const groq = new Groq({ apiKey: process.env.EASYBET_API_KEY });
 
   try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: "You are a professional football analyst. Provide deep research based on recent team form, injuries, and tactical matchups."
+        },
+        {
+          role: "user",
+          content: `Analyze: ${home} vs ${away} in ${league}. 
+          Give ONE high-confidence betting market and a 1-sentence reason why. 
+          Format: [Market Name] - [Short Logic]`
+        }
+      ],
+      model: "llama-3.3-70b-versatile", // Best model for deep research
+      temperature: 0.5,
+      max_tokens: 100,
+    });
+
+    const insight = chatCompletion.choices[0]?.message?.content || "";
+    res.status(200).json({ insight: insight.trim() });
     
-    res.status(200).json({ insight: text });
   } catch (error) {
-    res.status(500).json({ insight: "Gemma is currently over-capacity. Try again later." });
+    console.error("Groq Error:", error);
+    res.status(500).json({ insight: "Groq is processing other bets. Try in 5s." });
   }
 }
