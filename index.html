@@ -3,220 +3,216 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BET SMART | Tactical AI</title>
+    <title>BET SMART | Quantum Scout</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #000; --card-bg: #0d0d0d; --header-bg: #000;
+            --bg: #000; --card-bg: #0a0a0a; --header-bg: #000;
             --pink: #ff69b4; --green: #00ff00; --text: #fff;
-            --border: #1a1a1a;
+            --border: #1a1a1a; --accent: #111;
         }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { margin: 0; background: var(--bg); font-family: 'Inter', sans-serif; color: var(--text); line-height: 1.4; overflow-x: hidden; }
+        body { 
+            margin: 0; background: var(--bg); font-family: 'Inter', sans-serif; 
+            color: var(--text); line-height: 1.4; overflow-x: hidden;
+            user-select: none; -webkit-user-select: none;
+        }
         
         header { 
-            height: 55px; background: var(--header-bg); border-bottom: 1px solid var(--border);
+            height: 60px; background: var(--header-bg); border-bottom: 1px solid var(--border);
             display: flex; align-items: center; justify-content: space-between; padding: 0 15px;
-            position: sticky; top: 0; z-index: 2000; backdrop-filter: blur(10px);
+            position: sticky; top: 0; z-index: 2000; backdrop-filter: blur(15px);
         }
 
-        /* Hamburger Menu */
-        .menu-btn { cursor: pointer; display: flex; flex-direction: column; gap: 4px; width: 20px; z-index: 2100; }
-        .bar { height: 2px; width: 100%; background: var(--text); border-radius: 2px; transition: 0.3s; }
-        
-        .side-menu { 
-            position: fixed; top: 0; left: -250px; width: 250px; height: 100%; 
-            background: #0a0a0a; z-index: 2050; transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            border-right: 1px solid var(--border); padding: 80px 20px;
+        .status-bar {
+            background: #11050a; height: 25px; display: flex; align-items: center;
+            padding: 0 15px; font-size: 0.55rem; font-weight: 900; color: #666;
+            border-bottom: 1px solid var(--border); justify-content: space-between;
         }
-        .side-menu.active { left: 0; box-shadow: 20px 0 50px rgba(0,0,0,0.8); }
-        .menu-item { padding: 15px 0; border-bottom: 1px solid var(--border); color: #888; font-weight: 700; font-size: 0.8rem; cursor: pointer; }
-        .menu-item.danger { color: var(--pink); }
 
-        #fixtures-container { padding: 10px; padding-bottom: 50px; }
+        .menu-btn { cursor: pointer; display: flex; flex-direction: column; gap: 4px; width: 20px; }
+        .bar { height: 2px; width: 100%; background: var(--text); border-radius: 2px; }
 
-        .league-section { margin-bottom: 20px; }
+        #fixtures-container { padding: 12px; }
         .league-header { 
-            position: sticky; top: 55px; z-index: 900;
-            background: #111; padding: 10px 12px; border-left: 3px solid var(--pink);
-            font-weight: 900; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 1px;
-            margin-bottom: 8px;
+            position: sticky; top: 85px; z-index: 1000;
+            background: #000; padding: 12px 0; border-bottom: 1px solid var(--pink);
+            font-weight: 900; text-transform: uppercase; font-size: 0.75rem; margin-bottom: 12px;
         }
 
         .match-card { 
             background: var(--card-bg); border: 1px solid var(--border);
-            border-radius: 12px; padding: 15px; margin-bottom: 12px;
-            display: flex; flex-direction: column; gap: 12px;
+            border-radius: 14px; padding: 16px; margin-bottom: 15px;
+            transition: transform 0.2s;
         }
         
-        .match-top { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
-        .match-time { font-size: 0.65rem; color: #666; font-weight: 800; }
+        .match-meta { display: flex; justify-content: space-between; font-size: 0.6rem; color: #444; font-weight: 900; margin-bottom: 10px; }
         
-        .match-teams { display: flex; flex-direction: column; gap: 4px; }
-        .team-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.95rem; font-weight: 700; }
-        .team-label { color: #555; font-size: 0.55rem; font-weight: 900; }
+        .team-block { margin-bottom: 15px; }
+        .team-row { display: flex; justify-content: space-between; font-size: 1rem; font-weight: 800; margin: 2px 0; }
+        .label { font-size: 0.5rem; color: #555; align-self: center; }
 
-        .action-row { display: grid; grid-template-columns: 1fr 1fr 1fr 100px; gap: 6px; align-items: stretch; }
-        .odd-box { background: #181818; border: 1px solid #222; border-radius: 6px; display: flex; flex-direction: column; align-items: center; padding: 6px 0; }
-        .odd-label { font-size: 0.5rem; color: #555; font-weight: 900; }
-        .odd-val { color: var(--green); font-weight: 900; font-size: 0.85rem; }
+        .odds-grid { display: grid; grid-template-columns: repeat(3, 1fr) 110px; gap: 8px; }
+        .odd-item { 
+            background: var(--accent); border: 1px solid #222; border-radius: 8px;
+            display: flex; flex-direction: column; align-items: center; padding: 8px 0;
+        }
+        .odd-v { color: var(--green); font-weight: 900; font-size: 0.85rem; }
+        .odd-l { font-size: 0.45rem; color: #555; font-weight: 800; }
 
-        .btn-research { background: var(--pink); color: #000; border: none; border-radius: 6px; font-weight: 900; font-size: 0.6rem; text-transform: uppercase; cursor: pointer; }
-        .btn-research.cached { background: #fff; }
+        .scout-btn { 
+            background: var(--pink); color: #000; border: none; border-radius: 8px;
+            font-weight: 900; font-size: 0.7rem; letter-spacing: 0.5px;
+        }
+        .scout-btn.active { background: #fff; }
 
-        .ai-drawer { display: none; background: #11080d; border: 1px solid #301020; border-radius: 8px; padding: 12px; margin-top: 5px; }
-        .ai-text { font-size: 0.75rem; color: #ddd; line-height: 1.5; }
-        .ai-pick-badge { display: inline-block; margin-top: 8px; background: var(--green); color: #000; padding: 2px 8px; border-radius: 4px; font-weight: 900; font-size: 0.7rem; }
+        /* AI DRAWER STYLES */
+        .ai-drawer { 
+            display: none; background: #050505; border: 1px solid #1a1a1a; 
+            border-radius: 10px; padding: 15px; margin-top: 12px;
+        }
+        .scout-logs { font-size: 0.65rem; color: #888; border-left: 2px solid var(--pink); padding-left: 10px; margin-bottom: 15px; }
+        .prob-bar { display: flex; gap: 4px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px; }
+        .prob-pill { background: #111; padding: 4px 8px; border-radius: 5px; font-size: 0.55rem; font-weight: 900; color: var(--green); border: 1px solid #333; white-space: nowrap; }
+        .verdict-box { background: var(--green); color: #000; padding: 10px; border-radius: 8px; font-weight: 900; text-align: center; font-size: 0.8rem; }
         
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; z-index: 2040; }
-        .overlay.active { display: block; }
+        .loading { font-size: 0.6rem; color: var(--pink); font-weight: 900; animation: blink 1s infinite; text-align: center; padding: 10px; }
+        @keyframes blink { 50% { opacity: 0.2; } }
     </style>
 </head>
 <body>
 
     <header>
-        <div class="menu-btn" onclick="toggleMenu()">
-            <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-        </div>
-        <div style="font-weight: 900; font-size: 1rem;"><span class="pink">BET</span>SMART</div>
-        <div id="clock" style="font-size: 0.7rem; font-weight: 700; opacity: 0.6;"></div>
+        <div class="menu-btn"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
+        <div style="font-weight: 900; font-size: 1.1rem; letter-spacing: -1px;"><span style="color:var(--pink)">QUANTUM</span>SCOUT</div>
+        <div id="clock" style="font-size: 0.7rem; font-weight: 800; color:#444;"></div>
     </header>
 
-    <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
-    <div class="side-menu" id="side-menu">
-        <div class="menu-item" onclick="toggleMenu()">Dashboard</div>
-        <div class="menu-item danger" onclick="fullReset()">Reset All Data (Manual)</div>
-        <div style="margin-top: 40px; font-size: 0.6rem; color: #444;">TACTICAL ENGINE V2.1</div>
+    <div class="status-bar">
+        <div>CORE: LLAMA-3.3-70B + GEMINI-PRO</div>
+        <div style="color:var(--green)">SYSTEM ONLINE</div>
     </div>
 
     <div id="fixtures-container">
-        <div style="text-align: center; padding-top: 100px; color: #444; font-weight: 800; font-size: 0.8rem;">INITIALIZING SCOUT...</div>
+        <div class="loading">CONNECTING TO GLOBAL ODDS FEED...</div>
     </div>
 
     <script>
         const API_KEY = '10257181b61bdaba7ac4ca4e276c9dae';
         const LEAGUES = ['soccer_epl', 'soccer_spain_la_liga', 'soccer_germany_bundesliga', 'soccer_italy_serie_a', 'soccer_france_ligue_one'];
 
-        function toggleMenu() {
-            document.getElementById('side-menu').classList.toggle('active');
-            document.getElementById('overlay').classList.toggle('active');
-        }
-
-        function fullReset() {
-            localStorage.clear();
-            window.location.reload();
-        }
-
         async function init() {
             const today = new Date().toISOString().split('T')[0];
-            const cached = JSON.parse(localStorage.getItem('fixture_cache'));
+            const cache = JSON.parse(localStorage.getItem('f_cache_v3'));
+            if (cache && cache.date === today) { render(cache.data); return; }
 
-            if (cached && cached.date === today) {
-                render(cached.data);
-                return;
-            }
-
-            let allData = [];
+            let all = [];
             for (const id of LEAGUES) {
                 try {
                     const res = await fetch(`https://api.the-odds-api.com/v4/sports/${id}/odds/?apiKey=${API_KEY}&regions=uk&markets=h2h`);
                     const data = await res.json();
-                    const filtered = data.filter(m => m.commence_time.startsWith(today));
-                    if (filtered.length > 0) allData.push({ name: filtered[0].sport_title, matches: filtered });
+                    const games = data.filter(m => {
+                        const mDate = new Date(m.commence_time);
+                        const limit = new Date(); limit.setDate(limit.getDate() + 2);
+                        return mDate >= new Date() && mDate <= limit;
+                    });
+                    if (games.length > 0) all.push({ league: games[0].sport_title, matches: games });
                 } catch (e) { console.error(e); }
             }
-            localStorage.setItem('fixture_cache', JSON.stringify({ date: today, data: allData }));
-            render(allData);
+            localStorage.setItem('f_cache_v3', JSON.stringify({ date: today, data: all }));
+            render(all);
         }
 
-        function render(leagues) {
+        function render(data) {
             const container = document.getElementById('fixtures-container');
-            const aiCache = JSON.parse(localStorage.getItem('ai_research_cache')) || {};
+            const aiCache = JSON.parse(localStorage.getItem('ai_v3_cache')) || {};
             container.innerHTML = '';
-            
-            leagues.forEach(league => {
+
+            data.forEach(group => {
                 const section = document.createElement('div');
-                section.className = 'league-section';
-                let html = `<div class="league-header">${league.name}</div>`;
+                section.innerHTML = `<div class="league-header">${group.league}</div>`;
                 
-                league.matches.forEach(m => {
-                    const time = new Date(m.commence_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    const odds = getH2HOdds(m);
-                    const cached = aiCache[m.id];
+                group.matches.forEach(m => {
+                    const time = new Date(m.commence_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', weekday: 'short' });
+                    const odds = getOdds(m);
+                    const isCached = aiCache[m.id];
                     
-                    html += `
+                    section.innerHTML += `
                         <div class="match-card">
-                            <div class="match-top">
-                                <span class="match-time">${time}</span>
-                                <span style="font-size:0.5rem; color:#333; font-weight:900;">LIVE UPDATES</span>
+                            <div class="match-meta"><span>${time}</span><span>MODEL: POISSON v2</span></div>
+                            <div class="team-block">
+                                <div class="team-row"><span>${m.home_team}</span><span class="label">HOME</span></div>
+                                <div class="team-row"><span>${m.away_team}</span><span class="label">AWAY</span></div>
                             </div>
-                            <div class="match-teams">
-                                <div class="team-row"><span>${m.home_team}</span><span class="team-label">H</span></div>
-                                <div class="team-row"><span>${m.away_team}</span><span class="team-label">A</span></div>
-                            </div>
-                            <div class="action-row">
-                                <div class="odd-box"><span class="odd-label">1</span><span class="odd-val">${odds.h}</span></div>
-                                <div class="odd-box"><span class="odd-label">X</span><span class="odd-val">${odds.d}</span></div>
-                                <div class="odd-box"><span class="odd-label">2</span><span class="odd-val">${odds.a}</span></div>
-                                <button class="btn-research ${cached ? 'cached' : ''}" onclick="runResearch(this, '${m.home_team}', '${m.away_team}', '${league.name}', '${m.id}')">
-                                    ${cached ? 'SCOUT' : 'AI'}
+                            <div class="odds-grid">
+                                <div class="odd-item"><span class="odd-l">1</span><span class="odd-v">${odds.h}</span></div>
+                                <div class="odd-item"><span class="odd-l">X</span><span class="odd-v">${odds.d}</span></div>
+                                <div class="odd-item"><span class="odd-l">2</span><span class="odd-v">${odds.a}</span></div>
+                                <button class="scout-btn ${isCached ? 'active' : ''}" onclick="runScout(this, '${m.home_team}', '${m.away_team}', '${group.league}', '${m.id}')">
+                                    ${isCached ? 'VIEW REPORT' : 'SCOUT'}
                                 </button>
                             </div>
-                            <div class="ai-drawer" id="drawer-${m.id}" ${cached ? 'style="display:block;"' : ''}>
-                                ${cached ? `<div class="ai-text">${cached.insight}</div><div class="ai-pick-badge">PICK: ${cached.pick}</div>` : ''}
+                            <div class="ai-drawer" id="drawer-${m.id}" ${isCached ? 'style="display:block;"' : ''}>
+                                ${isCached ? buildAIDisplay(isCached) : ''}
                             </div>
                         </div>`;
                 });
-                section.innerHTML = html;
                 container.appendChild(section);
             });
         }
 
-        async function runResearch(btn, home, away, league, id) {
+        async function runScout(btn, home, away, league, id) {
             const drawer = document.getElementById(`drawer-${id}`);
-            const aiCache = JSON.parse(localStorage.getItem('ai_research_cache')) || {};
-            
-            if (aiCache[id]) {
-                drawer.style.display = (drawer.style.display === 'block') ? 'none' : 'block';
-                return;
-            }
+            const cache = JSON.parse(localStorage.getItem('ai_v3_cache')) || {};
+            if (cache[id]) { drawer.style.display = drawer.style.display === 'block' ? 'none' : 'block'; return; }
 
-            btn.disabled = true;
-            btn.innerText = '...';
+            btn.disabled = true; btn.innerText = 'WAIT...';
             drawer.style.display = 'block';
-            drawer.innerHTML = '<div style="font-size:0.6rem; color:var(--pink); font-weight:900;">ENGINEERING REPORT...</div>';
+            drawer.innerHTML = '<div class="loading">PERFORMING 24HR TACTICAL SWEEP...</div>';
 
             try {
-                const params = new URLSearchParams({ home, away, league });
-                const res = await fetch(`/api/analyze?${params.toString()}`);
+                const res = await fetch(`/api/analyze?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&league=${encodeURIComponent(league)}`);
                 const data = await res.json();
-                
-                aiCache[id] = { insight: data.insight, pick: data.pick };
-                localStorage.setItem('ai_research_cache', JSON.stringify(aiCache));
-
-                drawer.innerHTML = `
-                    <div class="ai-text">${data.insight}</div>
-                    <div class="ai-pick-badge">PICK: ${data.pick}</div>
-                `;
-                btn.innerText = 'SCOUT';
-                btn.classList.add('cached');
+                cache[id] = data;
+                localStorage.setItem('ai_v3_cache', JSON.stringify(cache));
+                drawer.innerHTML = buildAIDisplay(data);
+                btn.innerText = 'VIEW REPORT'; btn.classList.add('active');
             } catch (e) {
-                drawer.innerHTML = `<div style="color:red; font-size:0.6rem;">BRIDGE ERROR</div>`;
-                btn.innerText = 'AI';
-            } finally {
-                btn.disabled = false;
-            }
+                drawer.innerHTML = '<div style="color:red; font-size:0.6rem;">SCOUT DISCONNECTED</div>';
+                btn.innerText = 'RETRY';
+            } finally { btn.disabled = false; }
         }
 
-        function getH2HOdds(m) {
+        function buildAIDisplay(d) {
+            return `
+                <div class="scout-logs">
+                    <strong>INJURY REPORT:</strong> ${d.research_logs.injuries}<br><br>
+                    <strong>TACTICS:</strong> ${d.research_logs.tactics}
+                </div>
+                <div class="prob-bar">
+                    <div class="prob-pill">H: ${d.probabilities.home_win}</div>
+                    <div class="prob-pill">A: ${d.probabilities.away_win}</div>
+                    <div class="prob-pill">U2.5: ${d.probabilities.under_2_5}</div>
+                    <div class="prob-pill">BTTS: ${d.probabilities.btts_yes}</div>
+                </div>
+                <div style="font-size:0.65rem; color:#666; margin-bottom:10px;">
+                    <strong>PROJECTED SCORES:</strong> ${d.market_analysis.top_3_scores.join(' | ')}
+                </div>
+                <div class="verdict-box">
+                    ${d.market_analysis.primary_pick} (${d.confidence_score}%)
+                </div>
+            `;
+        }
+
+        function getOdds(m) {
             try {
-                const outcomes = m.bookmakers[0].markets[0].outcomes;
+                const outs = m.bookmakers[0].markets[0].outcomes;
                 return {
-                    h: outcomes.find(o => o.name === m.home_team).price.toFixed(2),
-                    a: outcomes.find(o => o.name === m.away_team).price.toFixed(2),
-                    d: outcomes.find(o => o.name === 'Draw').price.toFixed(2)
+                    h: outs.find(o => o.name === m.home_team).price.toFixed(2),
+                    a: outs.find(o => o.name === m.away_team).price.toFixed(2),
+                    d: outs.find(o => o.name === 'Draw').price.toFixed(2)
                 };
-            } catch { return { h: '—', d: '—', a: '—' }; }
+            } catch { return { h: '?', d: '?', a: '?' }; }
         }
 
         setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString('en-GB'); }, 1000);
