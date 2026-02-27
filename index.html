@@ -3,85 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BET SMART | Debug Mode</title>
+    <title>BET SMART | Manual AI Research</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg: #000; --header-bg: #0a0a0a; --text: #fff;
             --pink: #ff69b4; --green: #00ff00;
             --glass: rgba(255, 255, 255, 0.05); --border: rgba(255, 255, 255, 0.1);
-            --ai-glow: rgba(255, 105, 180, 0.12);
+            --ai-glow: rgba(255, 105, 180, 0.1);
         }
-        body.light-theme {
-            --bg: #f5f5f5; --header-bg: #fff; --text: #000;
-            --glass: rgba(0,0,0,0.03); --border: rgba(0,0,0,0.1);
-        }
-        body { margin: 0; background: var(--bg); font-family: 'Inter', sans-serif; color: var(--text); transition: 0.3s; }
+        body { margin: 0; background: var(--bg); font-family: 'Inter', sans-serif; color: var(--text); }
+        
         header { 
             position: sticky; top: 0; z-index: 2000; height: 60px; 
             background: var(--header-bg); border-bottom: 1px solid var(--border);
             display: flex; align-items: center; justify-content: space-between; padding: 0 20px;
         }
-        .brand { font-size: 1rem; font-weight: 900; text-transform: uppercase; }
-        .pink { color: var(--pink); } .green { color: var(--green); }
-        .hamburger { cursor: pointer; display: flex; flex-direction: column; gap: 4px; width: 22px; }
-        .bar { height: 2px; width: 100%; background: var(--text); border-radius: 2px; }
 
-        #fixtures-container { padding: 20px; max-width: 800px; margin: auto; display: grid; gap: 20px; }
-        .league-card { background: var(--glass); border: 1px solid var(--border); border-radius: 18px; padding: 20px; }
+        #fixtures-container { padding: 20px; max-width: 800px; margin: auto; }
+        .league-card { background: var(--glass); border: 1px solid var(--border); border-radius: 18px; padding: 20px; margin-bottom: 20px; }
         .league-title { font-size: 0.75rem; font-weight: 900; color: var(--pink); text-transform: uppercase; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
         
         .match-row { background: rgba(255,255,255,0.02); margin-bottom: 15px; padding: 16px; border-radius: 14px; border: 1px solid var(--border); }
-        .match-header { display: flex; justify-content: space-between; font-size: 0.65rem; color: #777; margin-bottom: 10px; }
-        .team-line { display: flex; justify-content: space-between; align-items: center; margin: 5px 0; }
-        .odds { color: var(--green); font-weight: 900; font-family: monospace; }
+        .match-main { display: flex; justify-content: space-between; align-items: center; }
+        .teams-col { flex: 1; }
+        .team-line { display: flex; justify-content: space-between; margin: 4px 0; font-weight: 700; }
         
-        .ai-box { margin-top: 15px; background: var(--ai-glow); border: 1px dashed var(--pink); padding: 12px; border-radius: 10px; }
-        .error-log { color: #ff4444; font-family: monospace; font-size: 0.7rem; white-space: pre-wrap; word-break: break-all; }
-        .ai-label { font-size: 0.6rem; font-weight: 900; color: var(--pink); text-transform: uppercase; display: block; margin-bottom: 6px; }
-        .ai-content { font-size: 0.8rem; font-weight: 700; line-height: 1.4; }
+        /* Research Button */
+        .btn-research {
+            background: var(--pink); color: #000; border: none; padding: 8px 16px;
+            border-radius: 8px; font-weight: 900; font-size: 0.7rem; cursor: pointer;
+            text-transform: uppercase; transition: 0.2s; margin-left: 15px;
+        }
+        .btn-research:hover { transform: scale(1.05); filter: brightness(1.1); }
+        .btn-research:disabled { background: #333; color: #777; cursor: not-allowed; }
 
-        .popup { position: fixed; top: 65px; left: 15px; width: 220px; background: var(--header-bg); border: 1px solid var(--border); border-radius: 12px; padding: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); visibility: hidden; z-index: 3000; }
-        .popup.active { visibility: visible; }
-        .menu-row { display: flex; justify-content: space-between; padding: 12px 0; font-size: 0.8rem; cursor: pointer; border-bottom: 1px solid var(--border); }
+        .ai-output { 
+            margin-top: 15px; padding: 12px; border-radius: 10px; 
+            background: var(--ai-glow); border: 1px dashed var(--pink);
+            display: none; font-size: 0.8rem; line-height: 1.4;
+        }
+        .error-log { color: #ff4444; font-family: monospace; font-size: 0.7rem; margin-top: 5px; }
+        .loading-spinner { font-size: 0.7rem; color: var(--pink); font-weight: 800; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
     </style>
 </head>
-<body class="dark-theme">
+<body>
 
     <header>
-        <div style="display:flex; align-items:center; gap:15px;">
-            <div class="hamburger" onclick="toggleSidebar(event)"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
-            <div class="brand"><span class="pink">BET</span><span class="green">SMART</span></div>
-        </div>
-        <div id="clock" style="font-size: 0.75rem; font-weight: 800; opacity: 0.6;"></div>
+        <div style="font-weight: 900; letter-spacing: -1px;"><span class="pink">BET</span><span class="green">SMART</span></div>
+        <div id="clock" style="font-size: 0.7rem; opacity: 0.5;"></div>
     </header>
 
-    <div class="popup" id="sidebar-popup">
-        <div class="menu-row" onclick="changeTheme()"><span>Theme</span><span id="theme-status">DARK</span></div>
-        <div class="menu-row" onclick="clearCache()" style="color:var(--pink)"><span>Clear Cache</span><span>↺</span></div>
-    </div>
-
     <div id="fixtures-container">
-        <div style="text-align:center; padding:50px;">Fetching Fixtures...</div>
+        <div id="status" style="text-align:center; padding:50px; opacity:0.5;">Loading Fixtures...</div>
     </div>
 
     <script>
         const API_KEY = '10257181b61bdaba7ac4ca4e276c9dae';
-        const LEAGUES = ['soccer_epl', 'soccer_spain_la_liga', 'soccer_germany_bundesliga', 'soccer_italy_serie_a', 'soccer_france_ligue_one', 'soccer_netherlands_ere_divisie', 'soccer_portugal_primeira_liga', 'soccer_usa_mls', 'soccer_belgium_pro_league', 'soccer_turkey_super_lig'];
-
-        function toggleSidebar(e) { e.stopPropagation(); document.getElementById('sidebar-popup').classList.toggle('active'); }
-        window.onclick = () => document.getElementById('sidebar-popup').classList.remove('active');
-
-        function changeTheme() {
-            const isLight = document.body.classList.toggle('light-theme');
-            localStorage.setItem('user-theme', isLight ? 'light' : 'dark');
-            document.getElementById('theme-status').innerText = isLight ? "LIGHT" : "DARK";
-        }
-
-        function clearCache() { localStorage.removeItem('fixture_cache'); window.location.reload(); }
+        const LEAGUES = ['soccer_epl', 'soccer_spain_la_liga', 'soccer_germany_bundesliga', 'soccer_italy_serie_a', 'soccer_france_ligue_one'];
 
         async function init() {
-            const container = document.getElementById('fixtures-container');
             const today = new Date().toISOString().split('T')[0];
             const cached = JSON.parse(localStorage.getItem('fixture_cache'));
 
@@ -106,54 +88,57 @@
         function render(leagues) {
             const container = document.getElementById('fixtures-container');
             container.innerHTML = '';
+            
             leagues.forEach(league => {
                 const card = document.createElement('div');
                 card.className = 'league-card';
                 let html = `<div class="league-title">${league.name}</div>`;
+                
                 league.matches.forEach(m => {
                     html += `
                         <div class="match-row">
-                            <div class="match-header"><span>TODAY</span></div>
-                            <div class="team-line"><span>${m.home_team}</span><span class="odds">${getOdds(m, 'home')}</span></div>
-                            <div class="team-line"><span>${m.away_team}</span><span class="odds">${getOdds(m, 'away')}</span></div>
-                            <div class="ai-box" id="ai-${m.id}">
-                                <span class="ai-label">GROQ DEBUG LOG</span>
-                                <div class="ai-content">Connecting...</div>
+                            <div class="match-main">
+                                <div class="teams-col">
+                                    <div class="team-line"><span>${m.home_team}</span><span class="green">${getOdds(m, 'home')}</span></div>
+                                    <div class="team-line"><span>${m.away_team}</span><span class="green">${getOdds(m, 'away')}</span></div>
+                                </div>
+                                <button class="btn-research" onclick="runResearch(this, '${m.home_team}', '${m.away_team}', '${league.name}')">Research</button>
                             </div>
+                            <div class="ai-output" id="output-${m.id}"></div>
                         </div>`;
-                    fetchAI(m, `ai-${m.id}`);
                 });
                 card.innerHTML = html;
                 container.appendChild(card);
             });
         }
 
-        async function fetchAI(match, divId) {
-            const aiBox = document.getElementById(divId);
+        async function runResearch(btn, home, away, league) {
+            const outputId = btn.closest('.match-row').querySelector('.ai-output');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner">Scouting...</span>';
+            outputId.style.display = 'block';
+            outputId.innerHTML = 'Connecting to Groq Tactical Engine...';
+
             try {
-                const params = new URLSearchParams({ home: match.home_team, away: match.away_team, league: match.sport_title });
+                const params = new URLSearchParams({ home, away, league });
                 const res = await fetch(`/api/analyze?${params.toString()}`);
                 
-                // If Vercel returns an error status (404, 500, etc)
                 if (!res.ok) {
-                    const errText = await res.text();
-                    aiBox.innerHTML = `
-                        <span class="ai-label" style="color:red">VERCEL ERROR ${res.status}</span>
-                        <div class="error-log">${errText || 'No error message body sent from Vercel.'}</div>
-                    `;
-                    return;
+                    const err = await res.text();
+                    throw new Error(`Vercel Error ${res.status}: ${err}`);
                 }
 
                 const data = await res.json();
-                aiBox.innerHTML = `
-                    <span class="ai-label">✨ AI INSIGHT</span>
-                    <div class="ai-content">${data.insight || 'Field "insight" missing in JSON response.'}</div>
+                outputId.innerHTML = `
+                    <div style="color:var(--pink); font-weight:900; font-size:0.6rem; margin-bottom:5px;">✨ AI TACTICAL REPORT</div>
+                    <div style="margin-bottom:8px;">${data.insight || 'No analysis text returned.'}</div>
+                    <div style="color:var(--green); font-weight:900; border-top:1px solid var(--border); padding-top:5px;">PICK: ${data.pick || 'UNKNOWN'}</div>
                 `;
             } catch (e) {
-                aiBox.innerHTML = `
-                    <span class="ai-label" style="color:red">FETCH EXCEPTION</span>
-                    <div class="error-log">${e.message}</div>
-                `;
+                outputId.innerHTML = `<div class="error-log"><strong>Research Failed:</strong><br>${e.message}</div>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Research';
             }
         }
 
