@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BET SMART | Tactical AI</title>
+    <title>BET SMART | Probability Engine</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -12,7 +12,11 @@
             --border: #1a1a1a;
         }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { margin: 0; background: var(--bg); font-family: 'Inter', sans-serif; color: var(--text); line-height: 1.4; overflow-x: hidden; }
+        body { 
+            margin: 0; background: var(--bg); font-family: 'Inter', sans-serif; 
+            color: var(--text); line-height: 1.4; overflow-x: hidden;
+            -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+        }
         
         header { 
             height: 55px; background: var(--header-bg); border-bottom: 1px solid var(--border);
@@ -20,7 +24,6 @@
             position: sticky; top: 0; z-index: 2000; backdrop-filter: blur(10px);
         }
 
-        /* Hamburger Menu */
         .menu-btn { cursor: pointer; display: flex; flex-direction: column; gap: 4px; width: 20px; z-index: 2100; }
         .bar { height: 2px; width: 100%; background: var(--text); border-radius: 2px; transition: 0.3s; }
         
@@ -34,7 +37,6 @@
         .menu-item.danger { color: var(--pink); }
 
         #fixtures-container { padding: 10px; padding-bottom: 50px; }
-
         .league-section { margin-bottom: 20px; }
         .league-header { 
             position: sticky; top: 55px; z-index: 900;
@@ -64,30 +66,21 @@
         .btn-research { background: var(--pink); color: #000; border: none; border-radius: 6px; font-weight: 900; font-size: 0.6rem; text-transform: uppercase; cursor: pointer; }
         .btn-research.cached { background: #fff; }
 
-        .ai-drawer { display: none; background: #11080d; border: 1px solid #301020; border-radius: 8px; padding: 12px; margin-top: 5px; }
-        .ai-text { font-size: 0.75rem; color: #ddd; line-height: 1.5; }
-        .ai-pick-badge { display: inline-block; margin-top: 8px; background: var(--green); color: #000; padding: 2px 8px; border-radius: 4px; font-weight: 900; font-size: 0.7rem; }
+        .ai-drawer { display: none; background: #0a0508; border: 1px solid #201018; border-radius: 8px; padding: 12px; margin-top: 5px; }
+        .ai-text { font-size: 0.75rem; color: #ddd; line-height: 1.5; user-select: text; -webkit-user-select: text; }
+        
+        /* NEW PROBABILITY STYLES */
+        .prob-row { display: flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap; }
+        .prob-tag { background: #1a1a1a; padding: 3px 6px; border-radius: 4px; font-size: 0.55rem; font-weight: 900; color: var(--green); border: 1px solid #333; }
+        .ai-pick-badge { display: inline-block; margin-top: 10px; background: var(--green); color: #000; padding: 4px 10px; border-radius: 4px; font-weight: 900; font-size: 0.75rem; width: 100%; text-align: center; }
+        .scores-box { font-size: 0.65rem; color: #888; margin-top: 8px; border-top: 1px solid #222; padding-top: 8px; }
         
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; z-index: 2040; }
         .overlay.active { display: block; }
- 
-/* Disable text selection across the whole app */
-body {
-    -webkit-user-select: none; /* Safari */
-    -ms-user-select: none;     /* IE 10 and Consumer Preview */
-    user-select: none;         /* Standard syntax */
-    
-    /* Also helps prevent the "long-press" context menu on mobile images/links */
-    -webkit-touch-callout: none;
-}
 
-/* Optional: Allow selection only in AI output if you want to copy the insight */
-.ai-text {
-    -webkit-user-select: text;
-    user-select: text;
-}
-
-   </style>
+        .loading-pulse { font-size: 0.6rem; color: var(--pink); font-weight: 900; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    </style>
 </head>
 <body>
 
@@ -95,7 +88,7 @@ body {
         <div class="menu-btn" onclick="toggleMenu()">
             <div class="bar"></div><div class="bar"></div><div class="bar"></div>
         </div>
-        <div style="font-weight: 900; font-size: 1rem;"><span class="pink">BET</span>SMART</div>
+        <div style="font-weight: 900; font-size: 1rem;"><span class="pink">BET</span>SMART <span style="font-size: 0.5rem; border: 1px solid #333; padding: 2px 4px; border-radius: 3px; color: #666;">PROBABILITY ENGINE</span></div>
         <div id="clock" style="font-size: 0.7rem; font-weight: 700; opacity: 0.6;"></div>
     </header>
 
@@ -103,11 +96,11 @@ body {
     <div class="side-menu" id="side-menu">
         <div class="menu-item" onclick="toggleMenu()">Dashboard</div>
         <div class="menu-item danger" onclick="fullReset()">Reset All Data (Manual)</div>
-        <div style="margin-top: 40px; font-size: 0.6rem; color: #444;">TACTICAL ENGINE V2.1</div>
+        <div style="margin-top: 40px; font-size: 0.6rem; color: #444;">ENGINE: DUAL-BRAIN LLAMA/GEMINI</div>
     </div>
 
     <div id="fixtures-container">
-        <div style="text-align: center; padding-top: 100px; color: #444; font-weight: 800; font-size: 0.8rem;">INITIALIZING SCOUT...</div>
+        <div style="text-align: center; padding-top: 100px; color: #444; font-weight: 800; font-size: 0.8rem;">LOADING MATCHES...</div>
     </div>
 
     <script>
@@ -119,19 +112,12 @@ body {
             document.getElementById('overlay').classList.toggle('active');
         }
 
-        function fullReset() {
-            localStorage.clear();
-            window.location.reload();
-        }
+        function fullReset() { localStorage.clear(); window.location.reload(); }
 
         async function init() {
             const today = new Date().toISOString().split('T')[0];
             const cached = JSON.parse(localStorage.getItem('fixture_cache'));
-
-            if (cached && cached.date === today) {
-                render(cached.data);
-                return;
-            }
+            if (cached && cached.date === today) { render(cached.data); return; }
 
             let allData = [];
             for (const id of LEAGUES) {
@@ -165,7 +151,7 @@ body {
                         <div class="match-card">
                             <div class="match-top">
                                 <span class="match-time">${time}</span>
-                                <span style="font-size:0.5rem; color:#333; font-weight:900;">LIVE UPDATES</span>
+                                <span style="font-size:0.5rem; color:#444; font-weight:900;">30-DAY STATS MODE</span>
                             </div>
                             <div class="match-teams">
                                 <div class="team-row"><span>${m.home_team}</span><span class="team-label">H</span></div>
@@ -176,11 +162,11 @@ body {
                                 <div class="odd-box"><span class="odd-label">X</span><span class="odd-val">${odds.d}</span></div>
                                 <div class="odd-box"><span class="odd-label">2</span><span class="odd-val">${odds.a}</span></div>
                                 <button class="btn-research ${cached ? 'cached' : ''}" onclick="runResearch(this, '${m.home_team}', '${m.away_team}', '${league.name}', '${m.id}')">
-                                    ${cached ? 'SCOUT' : 'AI'}
+                                    ${cached ? 'VIEW' : 'SCOUT'}
                                 </button>
                             </div>
                             <div class="ai-drawer" id="drawer-${m.id}" ${cached ? 'style="display:block;"' : ''}>
-                                ${cached ? `<div class="ai-text">${cached.insight}</div><div class="ai-pick-badge">PICK: ${cached.pick}</div>` : ''}
+                                ${cached ? formatAIData(cached) : ''}
                             </div>
                         </div>`;
                 });
@@ -189,40 +175,48 @@ body {
             });
         }
 
+        function formatAIData(data) {
+            const confidenceColor = data.confidence_score > 75 ? 'var(--green)' : '#ffcc00';
+            return `
+                <div class="prob-row">
+                    <div class="prob-tag">H: ${data.probabilities.home_win}</div>
+                    <div class="prob-tag">X: ${data.probabilities.draw}</div>
+                    <div class="prob-tag">A: ${data.probabilities.away_win}</div>
+                    <div class="prob-tag">O2.5: ${data.probabilities.over_2_5}</div>
+                    <div class="prob-tag">BTTS: ${data.probabilities.btts_yes}</div>
+                </div>
+                <div class="ai-text">${data.tactical_insight}</div>
+                <div class="scores-box"><strong>PROBABLE SCORES:</strong> ${data.top_3_scores.join(' | ')}</div>
+                <div class="ai-pick-badge" style="background:${confidenceColor}">
+                    ${data.final_pick} (${data.confidence_score}%)
+                </div>
+            `;
+        }
+
         async function runResearch(btn, home, away, league, id) {
             const drawer = document.getElementById(`drawer-${id}`);
             const aiCache = JSON.parse(localStorage.getItem('ai_research_cache')) || {};
-            
-            if (aiCache[id]) {
-                drawer.style.display = (drawer.style.display === 'block') ? 'none' : 'block';
-                return;
-            }
+            if (aiCache[id]) { drawer.style.display = (drawer.style.display === 'block') ? 'none' : 'block'; return; }
 
             btn.disabled = true;
-            btn.innerText = '...';
+            btn.innerText = 'CALC';
             drawer.style.display = 'block';
-            drawer.innerHTML = '<div style="font-size:0.6rem; color:var(--pink); font-weight:900;">ENGINEERING REPORT...</div>';
+            drawer.innerHTML = '<div class="loading-pulse">POISSON MODELS & LINEUP SYNC...</div>';
 
             try {
-                const params = new URLSearchParams({ home, away, league });
-                const res = await fetch(`/api/analyze?${params.toString()}`);
+                const res = await fetch(`/api/analyze?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&league=${encodeURIComponent(league)}`);
                 const data = await res.json();
                 
-                aiCache[id] = { insight: data.insight, pick: data.pick };
+                aiCache[id] = data;
                 localStorage.setItem('ai_research_cache', JSON.stringify(aiCache));
 
-                drawer.innerHTML = `
-                    <div class="ai-text">${data.insight}</div>
-                    <div class="ai-pick-badge">PICK: ${data.pick}</div>
-                `;
-                btn.innerText = 'SCOUT';
+                drawer.innerHTML = formatAIData(data);
+                btn.innerText = 'VIEW';
                 btn.classList.add('cached');
             } catch (e) {
-                drawer.innerHTML = `<div style="color:red; font-size:0.6rem;">BRIDGE ERROR</div>`;
-                btn.innerText = 'AI';
-            } finally {
-                btn.disabled = false;
-            }
+                drawer.innerHTML = `<div style="color:red; font-size:0.6rem;">BRIDGE TIMEOUT</div>`;
+                btn.innerText = 'RETRY';
+            } finally { btn.disabled = false; }
         }
 
         function getH2HOdds(m) {
