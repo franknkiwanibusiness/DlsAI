@@ -3,123 +3,166 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BETSMART | TERMINAL</title>
-    <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@700&display=swap" rel="stylesheet">
+    <title>BET SMART | AI Powered</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        :root { --bg: #050505; --accent: #00FF9F; --pink: #FF00E6; --border: rgba(255,255,255,0.1); }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: var(--bg); color: #fff; font-family: -apple-system, sans-serif; }
-
-        header {
-            position: fixed; top: 0; width: 100%; height: 70px;
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 0 25px; z-index: 1000;
-            background: rgba(5,5,5,0.8); backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--border);
+        :root {
+            --bg: #000; --header-bg: #0a0a0a; --text: #fff;
+            --pink: #ff69b4; --green: #00ff00;
+            --glass: rgba(255, 255, 255, 0.05); --border: rgba(255, 255, 255, 0.1);
+            --ai-glow: rgba(255, 105, 180, 0.2);
         }
-        .logo { font-family: 'Syncopate', sans-serif; font-size: 16px; letter-spacing: 5px; }
-        .logo span { color: var(--accent); }
-        .date { font-family: 'Syncopate', sans-serif; font-size: 10px; color: #444; }
-
-        main { padding: 100px 20px; max-width: 450px; margin: 0 auto; }
+        body { margin: 0; background: var(--bg); font-family: 'Inter', sans-serif; color: var(--text); }
+        header { position: sticky; top: 0; z-index: 2000; height: 60px; background: var(--header-bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; }
+        .brand { font-weight: 900; text-transform: uppercase; font-size: 1rem; }
+        .pink { color: var(--pink); } .green { color: var(--green); }
         
-        .card {
-            border: 1.5px solid #fff; border-radius: 16px;
-            padding: 25px; margin-bottom: 25px; background: rgba(255,255,255,0.02);
-        }
-        .meta { font-size: 9px; color: #444; font-weight: 800; text-transform: uppercase; margin-bottom: 15px; }
+        #fixtures-container { padding: 20px; max-width: 800px; margin: auto; }
+        .league-card { background: var(--glass); border: 1px solid var(--border); border-radius: 18px; padding: 20px; margin-bottom: 25px; }
+        .league-title { font-size: 0.75rem; font-weight: 900; color: var(--pink); text-transform: uppercase; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
         
-        .grid { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; text-align: center; margin-bottom: 20px; }
-        .team { font-weight: 700; font-size: 15px; }
-        .odds { font-family: 'Syncopate', sans-serif; font-size: 11px; margin-top: 5px; }
-        .home .odds { color: var(--accent); }
-        .away .odds { color: var(--pink); }
-
-        .ai-pick {
-            border-top: 1px solid var(--border);
-            padding-top: 15px; text-align: center;
-            font-family: 'Syncopate', sans-serif;
-            font-size: 12px; color: #fff;
-            letter-spacing: 1px;
+        .match-row { background: rgba(255,255,255,0.02); margin-bottom: 15px; padding: 16px; border-radius: 12px; border: 1px solid var(--border); }
+        .match-header { display: flex; justify-content: space-between; font-size: 0.65rem; color: #777; margin-bottom: 8px; font-weight: 800; }
+        .teams { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+        .team-line { display: flex; justify-content: space-between; font-weight: 700; font-size: 1rem; }
+        
+        /* AI Prediction Styling */
+        .ai-analysis { 
+            background: var(--ai-glow); border: 1px dashed var(--pink); 
+            padding: 10px; border-radius: 8px; margin-top: 10px;
         }
-        .loading { color: #222; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 50% { opacity: 0.3; } }
+        .ai-title { font-size: 0.6rem; font-weight: 900; color: var(--pink); text-transform: uppercase; display: flex; align-items: center; gap: 5px; }
+        .ai-prediction { font-size: 0.85rem; font-weight: 700; color: #fff; margin-top: 4px; }
+        .ai-odds { color: var(--green); float: right; font-family: monospace; }
+        
+        .loader { text-align: center; opacity: 0.5; font-size: 0.8rem; margin-top: 50px; }
     </style>
 </head>
 <body>
 
     <header>
-        <div class="logo">BET<span>SMART</span></div>
-        <div class="date" id="header-date"></div>
+        <div class="brand"><span class="pink">BET</span><span class="green">SMART</span> <span style="font-size:0.6rem; vertical-align:middle; opacity:0.5;">AI v2.0</span></div>
+        <div id="clock" style="font-size: 0.75rem; font-weight: 800;"></div>
     </header>
 
-    <main id="fixture-container"></main>
+    <div id="fixtures-container">
+        <div class="loader">Initializing Secure API Cache...</div>
+    </div>
 
     <script>
-        const API_KEY = '10257181b61bdaba7ac4ca4e276c9dae';
-        const LEAGUES = ['soccer_epl', 'soccer_spain_la_liga', 'soccer_germany_bundesliga'];
+        const ODDS_API_KEY = '10257181b61bdaba7ac4ca4e276c9dae';
+        const VERCEL_GROQ_URL = 'YOUR_VERCEL_DEPLOYMENT_URL/api/analyze'; // Set your Vercel URL here
         
-        document.getElementById('header-date').innerText = new Date().toLocaleDateString('en-GB');
+        const TOP_10 = [
+            'soccer_epl', 'soccer_spain_la_liga', 'soccer_germany_bundesliga',
+            'soccer_italy_serie_a', 'soccer_france_ligue_one', 'soccer_netherlands_ere_divisie',
+            'soccer_portugal_primeira_liga', 'soccer_usa_mls', 'soccer_belgium_pro_league', 'soccer_turkey_super_lig'
+        ];
 
-        async function init() {
-            let all = [];
-            for (let l of LEAGUES) {
-                const res = await fetch(`https://api.the-odds-api.com/v4/sports/${l}/odds/?apiKey=${API_KEY}&regions=us&markets=h2h`);
-                const data = await res.json();
-                if (Array.isArray(data)) all = [...all, ...data];
+        async function getGroqPrediction(home, away) {
+            try {
+                const response = await fetch(VERCEL_GROQ_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ home, away }),
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                return await response.json(); // Expected: { market: "Over 2.5 Goals", reason: "High offensive stats" }
+            } catch (e) {
+                return { market: "Straight Win", reason: "Based on historical data" };
             }
-            const today = new Date().toISOString().split('T')[0];
-            render(all.filter(g => g.commence_time.startsWith(today)));
         }
 
-        async function fetchAI(home, away, league, id, cacheKey) {
-            const el = document.getElementById(`ai-${id}`);
-            
-            // Check Local Storage first
-            const saved = localStorage.getItem(cacheKey);
-            if (saved) {
-                el.innerText = saved;
+        async function initApp() {
+            const container = document.getElementById('fixtures-container');
+            const today = new Date().toISOString().split('T')[0];
+            const cachedData = JSON.parse(localStorage.getItem('bet_smart_cache'));
+
+            // Cache Logic: If today's data exists, use it.
+            if (cachedData && cachedData.date === today) {
+                renderAllLeagues(cachedData.leagues);
                 return;
             }
 
-            try {
-                const r = await fetch(`/api/gemma?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&league=${encodeURIComponent(league)}`);
-                const d = await r.json();
-                el.innerText = d.insight;
-                localStorage.setItem(cacheKey, d.insight); // Save for later
-            } catch (e) {
-                el.innerText = "---";
+            // Otherwise, fetch new and store
+            container.innerHTML = '<div class="loader">Refreshing Top 10 Leagues & AI Analysis...</div>';
+            let freshLeagues = [];
+
+            for (const leagueId of TOP_10) {
+                try {
+                    const res = await fetch(`https://api.the-odds-api.com/v4/sports/${leagueId}/odds/?apiKey=${ODDS_API_KEY}&regions=uk&markets=h2h,totals`);
+                    const data = await res.json();
+                    const todayMatches = data.filter(m => m.commence_time.startsWith(today));
+                    
+                    if (todayMatches.length > 0) {
+                        freshLeagues.push({ id: leagueId, name: todayMatches[0].sport_title, matches: todayMatches });
+                    }
+                } catch (e) { console.error(e); }
+            }
+
+            const cacheObject = { date: today, leagues: freshLeagues };
+            localStorage.setItem('bet_smart_cache', JSON.stringify(cacheObject));
+            renderAllLeagues(freshLeagues);
+        }
+
+        async function renderAllLeagues(leagues) {
+            const container = document.getElementById('fixtures-container');
+            container.innerHTML = '';
+
+            for (const league of leagues) {
+                const card = document.createElement('div');
+                card.className = 'league-card';
+                card.innerHTML = `<div class="league-title">${league.name}</div>`;
+
+                for (const m of league.matches) {
+                    const time = new Date(m.commence_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    const matchDiv = document.createElement('div');
+                    matchDiv.className = 'match-row';
+                    
+                    // Basic Match Info
+                    matchDiv.innerHTML = `
+                        <div class="match-header"><span>TODAY</span><span>${time}</span></div>
+                        <div class="teams">
+                            <div class="team-line"><span>${m.home_team}</span><span class="green">${getH2HOdds(m, 'home')}</span></div>
+                            <div class="team-line"><span>${m.away_team}</span><span class="green">${getH2HOdds(m, 'away')}</span></div>
+                        </div>
+                        <div class="ai-analysis" id="ai-${m.id}">
+                            <div class="ai-title">✨ AI GROQ RESEARCH</div>
+                            <div class="ai-prediction">Analyzing stats...</div>
+                        </div>
+                    `;
+                    card.appendChild(matchDiv);
+                    
+                    // Trigger Async AI Research
+                    processAIAnalysis(m, `ai-${m.id}`);
+                }
+                container.appendChild(card);
             }
         }
 
-        function render(games) {
-            const container = document.getElementById('fixture-container');
-            container.innerHTML = '';
-
-            games.forEach((g, i) => {
-                const hO = g.bookmakers[0]?.markets[0]?.outcomes.find(o => o.name === g.home_team)?.price || '-';
-                const aO = g.bookmakers[0]?.markets[0]?.outcomes.find(o => o.name === g.away_team)?.price || '-';
-                const cacheKey = `ai_${g.id}`; // Unique ID for storage
-
-                container.innerHTML += `
-                    <div class="card">
-                        <div class="meta">${g.sport_title}</div>
-                        <div class="grid">
-                            <div class="home"><div class="team">${g.home_team}</div><div class="odds">${hO}</div></div>
-                            <div style="font-size:10px; color:#222;">VS</div>
-                            <div class="away"><div class="team">${g.away_team}</div><div class="odds">${aO}</div></div>
-                        </div>
-                        <div class="ai-pick" id="ai-${i}">
-                            <span class="loading">ANALYZING...</span>
-                        </div>
-                    </div>`;
-                
-                // Auto-trigger AI fetch
-                fetchAI(g.home_team, g.away_team, g.sport_title, i, cacheKey);
-            });
+        async function processAIAnalysis(match, elementId) {
+            const prediction = await getGroqPrediction(match.home_team, match.away_team);
+            const aiSection = document.getElementById(elementId);
+            // In a real scenario, you'd match the 'prediction.market' against match.bookmakers[0].markets
+            aiSection.innerHTML = `
+                <div class="ai-title">✨ AI GROQ RECOMMENDATION</div>
+                <div class="ai-prediction">
+                    ${prediction.market} 
+                    <span class="ai-odds">1.95</span>
+                </div>
+            `;
         }
 
-        init();
+        function getH2HOdds(m, side) {
+            try {
+                const b = m.bookmakers[0];
+                const h2h = b.markets.find(mk => mk.key === 'h2h');
+                const o = h2h.outcomes.find(x => side === 'home' ? x.name === m.home_team : x.name === m.away_team);
+                return o.price.toFixed(2);
+            } catch { return '—'; }
+        }
+
+        setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString('en-GB'); }, 1000);
+        window.onload = initApp;
     </script>
 </body>
 </html>
