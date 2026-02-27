@@ -1,50 +1,45 @@
-// /api/analyze.js
-import { Groq } from "groq-sdk";
-
-// Initialize Groq with your Secret Key from Vercel Environment Variables
-const groq = new Groq({
-  apiKey: process.env.EASYBET_API_KEY, 
-});
-
 export default async function handler(req, res) {
-  // Only allow POST requests
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { home, away, league } = req.body;
 
   try {
-    const completion = await groq.chat.completions.create({
-      messages: [
-        {
-          role: "system",
-          content: `You are an elite sports betting analyst. 
-          Analyze the match based on current form and league standings. 
-          Identify the highest probability market (e.g., 'Home Win', 'Over 2.5 Goals', 'BTTS - Yes'). 
-          Return ONLY a JSON object with two fields: 'market' and 'reason'.
-          Keep the 'reason' under 15 words.`
-        },
-        {
-          role: "user",
-          content: `Analyze: ${home} vs ${away} in ${league}.`
-        }
-      ],
-      model: "mixtral-8x7b-32768",
-      response_format: { type: "json_object" },
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.EASYBET_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "mixtral-8x7b-32768",
+        messages: [
+          {
+            role: "system",
+            content: "You are a betting expert. Return ONLY JSON with 'market' and 'reason' (max 12 words). Market should be 'Home Win', 'Away Win', 'Draw', 'Over 2.5', or 'BTTS'."
+          },
+          {
+            role: "user",
+            content: `Analyze ${home} vs ${away} (${league})`
+          }
+        ],
+        response_format: { type: "json_object" }
+      })
     });
 
-    // Parse the AI response
-    const aiResponse = JSON.parse(completion.choices[0].message.content);
+    const data = await response.json();
     
-    // Send back to your HTML frontend
-    res.status(200).json(aiResponse);
+    if (data.choices && data.choices[0]) {
+      const aiResponse = JSON.parse(data.choices[0].message.content);
+      res.status(200).json(aiResponse);
+    } else {
+      throw new Error("Invalid Groq Response");
+    }
 
   } catch (error) {
-    console.error("Groq Bridge Error:", error);
-    res.status(500).json({ 
-      market: "Market Analysis Offline", 
-      reason: "AI connection currently resetting." 
+    console.error("Bridge Error:", error);
+    res.status(200).json({ 
+      market: "Check Odds", 
+      reason: "AI limit reached or Key missing. Check Vercel Logs." 
     });
   }
 }
