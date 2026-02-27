@@ -1,44 +1,56 @@
 import Groq from "groq-sdk";
-const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 export default async function handler(req, res) {
+  // 1. Set CORS Headers (Crucial for the "Dead Bridge")
   res.setHeader('Access-Control-Allow-Origin', '*');
-  const { home, away, league } = req.query;
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  
+  if (req.method === 'OPTIONS') return res.status(200).end();
 
+  const { home, away, league } = req.query;
   const groq = new Groq({ apiKey: process.env.EASYBET_API_KEY });
-  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const GEMINI_KEY = process.env.GEMINI_API_KEY;
 
   try {
-    const prompt = `Perform DEEP RESEARCH on ${home} vs ${away} (${league}) for today Feb 27, 2026.
-    1. Check last 30 days form only.
-    2. Check confirmed injuries/lineups.
-    3. Evaluate ALL markets: H2H, Over/Under, BTTS, Double Chance.
-    4. Provide 1 tactical insight and 1 high-probability PICK.
-    Return ONLY JSON: {"insight": "...", "pick": "..."}`;
+    const prompt = `Match: ${home} vs ${away} (${league}). Date: Feb 27, 2026.
+    Requirement: 30-day form, injury check, tactical pick.
+    Return JSON ONLY: {"insight": "...", "pick": "..."}`;
 
-    // Run both AI brains in parallel for maximum speed
-    const [groqRes, geminiRes] = await Promise.all([
-      groq.chat.completions.create({
-        messages: [{ role: "system", content: "You are a pro scout." }, { role: "user", content: prompt }],
-        model: "llama-3.3-70b-versatile",
-        response_format: { type: "json_object" }
-      }),
-      genAI.getGenerativeModel({ model: "gemini-1.5-pro" }).generateContent(prompt)
-    ]);
+    // BRAIN 1: Groq (Llama 3.3)
+    const groqTask = groq.chat.completions.create({
+      messages: [{ role: "system", content: "You are a pro scout." }, { role: "user", content: prompt }],
+      model: "llama-3.3-70b-versatile",
+      response_format: { type: "json_object" }
+    });
 
+    // BRAIN 2: Gemini (Standard Fetch - Bypass SDK issues)
+    const geminiTask = fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
+      method: 'POST',
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt + " Output JSON format." }] }] })
+    }).then(r => r.json());
+
+    const [groqRes, geminiRes] = await Promise.all([groqTask, geminiTask]);
+
+    // Parse Brain 1
     const dataGroq = JSON.parse(groqRes.choices[0].message.content);
-    const dataGemini = JSON.parse(geminiRes.response.text());
-
-    // Compare Brains: If they agree on the pick, label it HIGH CONFIDENCE
-    const agreement = dataGroq.pick.toLowerCase() === dataGemini.pick.toLowerCase();
     
+    // Parse Brain 2 (Gemini structure is different in raw fetch)
+    let dataGemini = { pick: "" };
+    try {
+      const rawText = geminiRes.candidates[0].content.parts[0].text;
+      dataGemini = JSON.parse(rawText.replace(/```json|```/g, ""));
+    } catch (e) { console.log("Gemini parse failed"); }
+
+    const agreement = dataGroq.pick.toLowerCase().includes(dataGemini.pick.toLowerCase());
+
     res.status(200).json({
-      insight: agreement ? `[DUAL-BRAIN AGREEMENT]: ${dataGroq.insight}` : `[GROQ]: ${dataGroq.insight} | [GEMINI]: ${dataGemini.insight}`,
-      pick: agreement ? `🔥 ${dataGroq.pick}` : `⚖️ ${dataGroq.pick} (Low Consensus)`,
+      insight: agreement ? `[CONSENSUS]: ${dataGroq.insight}` : `[TACTICAL]: ${dataGroq.insight}`,
+      pick: agreement ? `🔥 ${dataGroq.pick}` : `⚖️ ${dataGroq.pick}`,
       confidence: agreement ? "HIGH" : "MEDIUM"
     });
 
   } catch (error) {
-    res.status(500).json({ insight: "Error in Dual-Brain sync.", pick: "RETRY" });
+    console.error("Bridge Error:", error);
+    res.status(500).json({ insight: "Tactical Bridge collapsed. Check Vercel Logs.", pick: "RETRY" });
   }
 }
