@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BETSMART | AI Insights</title>
+    <title>BETSMART | Manual AI</title>
     <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -18,12 +18,9 @@
         }
         .logo { font-family: 'Syncopate', sans-serif; font-size: 16px; letter-spacing: 3px; }
         .green { color: #00FF9F; } .pink { color: #FF00E6; }
-        .reset-btn { background: #FF3B30; color: #fff; border: none; padding: 8px 18px; border-radius: 20px; font-size: 11px; font-weight: bold; cursor: pointer; }
 
         main { padding: 90px 15px; max-width: 480px; margin: 0 auto; }
-        .status { font-size: 10px; color: #666; text-align: center; margin-bottom: 25px; text-transform: uppercase; letter-spacing: 2px; }
-
-        /* Fixture Card with White Border */
+        
         .fixture-card {
             background: rgba(255, 255, 255, 0.05); 
             border: 2px solid #ffffff; 
@@ -32,89 +29,56 @@
             margin-bottom: 25px;
         }
 
-        .league-row { font-size: 10px; color: #aaa; text-transform: uppercase; margin-bottom: 12px; display: flex; justify-content: space-between; font-weight: bold; }
         .team-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; }
         .team-name { font-weight: 700; font-size: 15px; }
-        .vs { font-size: 10px; color: #444; margin: 4px 0; font-weight: 900; }
-        .odd { font-family: 'Syncopate', sans-serif; font-size: 12px; min-width: 60px; text-align: right; }
-        .home-row .odd { color: #00FF9F; } .away-row .odd { color: #FF00E6; }
+        .odd { font-family: 'Syncopate', sans-serif; font-size: 12px; color: #00FF9F; }
+        .away-row .odd { color: #FF00E6; }
 
-        /* AI Prediction Box */
+        /* AI Insight Box */
         .ai-insight {
             margin-top: 15px;
-            background: linear-gradient(90deg, rgba(0, 255, 159, 0.05), rgba(255, 0, 230, 0.05));
+            background: rgba(255, 255, 255, 0.03);
             border: 1px dashed rgba(255, 255, 255, 0.2);
             border-radius: 8px;
-            padding: 12px;
-            position: relative;
-            overflow: hidden;
+            padding: 15px;
+            text-align: center;
         }
 
-        .ai-header {
+        .ai-market { font-size: 13px; color: #aaa; margin-bottom: 10px; line-height: 1.4; }
+
+        /* The Manual Action Button */
+        .gemma-btn {
+            background: #fff;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
             font-family: 'Syncopate', sans-serif;
-            font-size: 9px;
-            letter-spacing: 1px;
-            color: #fff;
-            margin-bottom: 6px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
+            font-size: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
         }
 
-        .ai-header span { color: #00FF9F; }
+        .gemma-btn:hover { background: #00FF9F; }
+        .gemma-btn:disabled { background: #222; color: #444; cursor: not-allowed; }
 
-        .ai-market {
-            font-size: 13px;
-            font-weight: 600;
-            color: #ddd;
-            line-height: 1.4;
-        }
-
-        /* Loading shimmer for AI */
-        .pulse {
-            display: inline-block;
-            width: 6px;
-            height: 6px;
-            background: #00FF9F;
-            border-radius: 50%;
-            animation: blink 1.5s infinite;
-        }
-
-        @keyframes blink {
-            0% { opacity: 0.2; }
-            50% { opacity: 1; }
-            100% { opacity: 0.2; }
-        }
-
-        .time { font-size: 10px; color: #555; text-align: right; margin-top: 10px; }
+        .loading-text { color: #00FF9F; font-size: 11px; font-weight: bold; display: none; }
+        .time { font-size: 10px; color: #444; text-align: right; margin-top: 10px; }
     </style>
 </head>
 <body>
 
     <header>
         <div class="logo"><span class="green">BET</span><span class="pink">SMART</span></div>
-        <button class="reset-btn" onclick="resetData()">RESET</button>
     </header>
 
-    <main>
-        <div id="status" class="status">Syncing Today's Markets...</div>
-        <div id="list"></div>
-    </main>
+    <main id="list"></main>
 
     <script>
         const API_KEY = '10257181b61bdaba7ac4ca4e276c9dae';
-        const LEAGUES = ['soccer_epl', 'soccer_spain_la_liga', 'soccer_germany_bundesliga', 'soccer_italy_serie_a', 'soccer_france_ligue_one', 'soccer_uefa_champions_league', 'soccer_portugal_primeira_liga', 'soccer_netherlands_eredivisie', 'soccer_usa_mls', 'soccer_mexico_ligamx'];
-
-        async function init() {
-            const todayStr = new Date().toDateString();
-            const cached = JSON.parse(localStorage.getItem('bs_cache_v4'));
-            if (cached && cached.day === todayStr) {
-                render(cached.data);
-                document.getElementById('status').innerText = `Gemma Live: ${todayStr}`;
-            } else {
-                fetchAll();
-            }
-        }
+        const LEAGUES = ['soccer_epl', 'soccer_spain_la_liga', 'soccer_usa_mls']; // Simplified for example
 
         async function fetchAll() {
             let allGames = [];
@@ -125,41 +89,58 @@
                     if (Array.isArray(data)) allGames = [...allGames, ...data];
                 } catch (e) {}
             }
-            const todayISO = new Date().toISOString().split('T')[0];
-            const filtered = allGames.filter(g => g.commence_time.startsWith(todayISO));
-            localStorage.setItem('bs_cache_v4', JSON.stringify({ day: new Date().toDateString(), data: filtered }));
-            render(filtered);
+            const today = new Date().toISOString().split('T')[0];
+            render(allGames.filter(g => g.commence_time.startsWith(today)));
+        }
+
+        // THE MANUAL CLICK FUNCTION
+        async function runResearch(home, away, league, btnId, textId) {
+            const btn = document.getElementById(btnId);
+            const text = document.getElementById(textId);
+            
+            btn.style.display = 'none';
+            text.style.display = 'block';
+            text.innerText = "GEMMA IS ANALYZING...";
+
+            try {
+                const response = await fetch(`/api/gemma?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&league=${encodeURIComponent(league)}`);
+                const data = await response.json();
+                
+                text.innerText = data.insight;
+                text.style.color = "#fff";
+            } catch (e) {
+                text.innerText = "Error. Try again.";
+                btn.style.display = 'block';
+            }
         }
 
         function render(games) {
             const list = document.getElementById('list');
             list.innerHTML = '';
-            games.sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time));
-
-            games.forEach(g => {
+            
+            games.forEach((g, i) => {
+                const btnId = `btn-${i}`;
+                const textId = `text-${i}`;
                 const hO = g.bookmakers[0]?.markets[0]?.outcomes.find(o => o.name === g.home_team)?.price || '-';
                 const aO = g.bookmakers[0]?.markets[0]?.outcomes.find(o => o.name === g.away_team)?.price || '-';
-                const timeStr = new Date(g.commence_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                 list.innerHTML += `
                     <div class="fixture-card">
-                        <div class="league-row"><span>${g.sport_title}</span><span>TODAY</span></div>
-                        <div class="team-row home-row"><div class="team-name">${g.home_team}</div><div class="odd">${hO}</div></div>
-                        <div class="vs">VS</div>
-                        <div class="team-row away-row"><div class="team-name">${g.away_team}</div><div class="odd">${aO}</div></div>
+                        <div class="team-row"><span>${g.home_team}</span><span class="odd">${hO}</span></div>
+                        <div style="font-size:9px; color:#333; margin:5px 0;">VS</div>
+                        <div class="team-row"><span>${g.away_team}</span><span class="odd">${aO}</span></div>
                         
                         <div class="ai-insight">
-                            <div class="ai-header"><div class="pulse"></div> <span>GEMMA</span> RESEARCHING...</div>
-                            <div class="ai-market">Analyzing attack/defense patterns for best market...</div>
+                            <div id="${textId}" class="ai-market">No research conducted yet.</div>
+                            <button id="${btnId}" class="gemma-btn" onclick="runResearch('${g.home_team}', '${g.away_team}', '${g.sport_title}', '${btnId}', '${textId}')">
+                                RUN GEMMA RESEARCH
+                            </button>
                         </div>
-
-                        <div class="time">Kickoff ${timeStr}</div>
                     </div>`;
             });
         }
 
-        function resetData() { localStorage.clear(); location.reload(); }
-        init();
+        fetchAll();
     </script>
 </body>
 </html>
