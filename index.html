@@ -3,144 +3,136 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BETSMART | Manual AI</title>
-    <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@700&display=swap" rel="stylesheet">
+    <title>BETSMART | PRO</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@700&family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <style>
+        :root { --green: #00FF9F; --pink: #FF00E6; --dark: #0a0a0a; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background-color: #000; color: #fff; font-family: -apple-system, sans-serif; }
+        body { background-color: var(--dark); color: #fff; font-family: 'Inter', sans-serif; overflow-x: hidden; }
 
+        /* Navigation */
         header {
-            position: fixed; top: 0; width: 100%; height: 65px;
+            position: fixed; top: 0; width: 100%; height: 70px;
             display: flex; align-items: center; justify-content: space-between;
             padding: 0 25px; z-index: 1000;
-            background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
-        .logo { font-family: 'Syncopate', sans-serif; font-size: 16px; letter-spacing: 3px; }
-        .green { color: #00FF9F; } .pink { color: #FF00E6; }
+        .logo { font-family: 'Syncopate', sans-serif; font-size: 18px; letter-spacing: 4px; }
+        .logo span { color: var(--green); } .logo i { color: var(--pink); font-style: normal; }
 
-        main { padding: 90px 15px; max-width: 480px; margin: 0 auto; }
+        /* Container */
+        main { padding: 100px 20px 40px; max-width: 500px; margin: 0 auto; }
+        .status { font-size: 10px; color: #555; text-align: center; margin-bottom: 30px; letter-spacing: 2px; text-transform: uppercase; }
+
+        /* Fixture Cards */
+        .card {
+            background: #111; border: 2px solid #fff; border-radius: 16px;
+            padding: 20px; margin-bottom: 25px; position: relative;
+        }
+        .league { font-size: 9px; color: #666; font-weight: 700; text-transform: uppercase; margin-bottom: 15px; display: block; }
         
-        .fixture-card {
-            background: rgba(255, 255, 255, 0.05); 
-            border: 2px solid #ffffff; 
-            border-radius: 12px; 
-            padding: 18px; 
-            margin-bottom: 25px;
+        .match-grid { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; text-align: center; margin-bottom: 20px; }
+        .team-name { font-weight: 700; font-size: 16px; }
+        .odds { font-family: 'Syncopate', sans-serif; font-size: 11px; margin-top: 5px; color: var(--green); }
+        .away .odds { color: var(--pink); }
+        .vs { font-size: 10px; font-weight: 900; color: #333; }
+
+        /* AI Section */
+        .ai-zone { border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px; margin-top: 5px; }
+        .ai-result { font-size: 13px; font-weight: 600; color: #fff; display: none; padding: 10px 0; }
+        
+        .ai-btn {
+            width: 100%; padding: 12px; border: none; border-radius: 8px;
+            background: #fff; color: #000; font-family: 'Syncopate', sans-serif;
+            font-size: 10px; cursor: pointer; transition: 0.2s;
         }
+        .ai-btn:hover { background: var(--green); transform: translateY(-2px); }
+        .ai-btn:active { transform: translateY(0); }
 
-        .team-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; }
-        .team-name { font-weight: 700; font-size: 15px; }
-        .odd { font-family: 'Syncopate', sans-serif; font-size: 12px; color: #00FF9F; }
-        .away-row .odd { color: #FF00E6; }
+        /* Loading Animation */
+        .shimmer { color: var(--green); font-size: 11px; display: none; font-weight: bold; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
-        /* AI Insight Box */
-        .ai-insight {
-            margin-top: 15px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px dashed rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            padding: 15px;
-            text-align: center;
-        }
-
-        .ai-market { font-size: 13px; color: #aaa; margin-bottom: 10px; line-height: 1.4; }
-
-        /* The Manual Action Button */
-        .gemma-btn {
-            background: #fff;
-            color: #000;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            font-family: 'Syncopate', sans-serif;
-            font-size: 10px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s;
-            width: 100%;
-        }
-
-        .gemma-btn:hover { background: #00FF9F; }
-        .gemma-btn:disabled { background: #222; color: #444; cursor: not-allowed; }
-
-        .loading-text { color: #00FF9F; font-size: 11px; font-weight: bold; display: none; }
-        .time { font-size: 10px; color: #444; text-align: right; margin-top: 10px; }
+        .kickoff { font-size: 10px; color: #444; margin-top: 15px; text-align: right; }
     </style>
 </head>
 <body>
 
     <header>
-        <div class="logo"><span class="green">BET</span><span class="pink">SMART</span></div>
+        <div class="logo"><span>BET</span><i>SMART</i></div>
     </header>
 
-    <main id="list"></main>
+    <main>
+        <div id="status" class="status">Syncing Today's Fixtures...</div>
+        <div id="list"></div>
+    </main>
 
     <script>
         const API_KEY = '10257181b61bdaba7ac4ca4e276c9dae';
-        const LEAGUES = ['soccer_epl', 'soccer_spain_la_liga', 'soccer_usa_mls']; // Simplified for example
+        const LEAGUES = ['soccer_epl', 'soccer_spain_la_liga', 'soccer_germany_bundesliga', 'soccer_italy_serie_a', 'soccer_france_ligue_one'];
 
-        async function fetchAll() {
-            let allGames = [];
-            for (let league of LEAGUES) {
+        async function fetchGames() {
+            let all = [];
+            for(let l of LEAGUES) {
                 try {
-                    const res = await fetch(`https://api.the-odds-api.com/v4/sports/${league}/odds/?apiKey=${API_KEY}&regions=us&markets=h2h`);
-                    const data = await res.json();
-                    if (Array.isArray(data)) allGames = [...allGames, ...data];
-                } catch (e) {}
+                    const r = await fetch(`https://api.the-odds-api.com/v4/sports/${l}/odds/?apiKey=${API_KEY}&regions=us&markets=h2h`);
+                    const d = await r.json();
+                    if(Array.isArray(d)) all = [...all, ...d];
+                } catch(e){}
             }
             const today = new Date().toISOString().split('T')[0];
-            render(allGames.filter(g => g.commence_time.startsWith(today)));
+            render(all.filter(g => g.commence_time.startsWith(today)));
         }
 
-        // THE MANUAL CLICK FUNCTION
-        async function runResearch(home, away, league, btnId, textId) {
-            const btn = document.getElementById(btnId);
-            const text = document.getElementById(textId);
-            
+        async function getMarket(home, away, league, id) {
+            const btn = document.getElementById(`btn-${id}`);
+            const loader = document.getElementById(`load-${id}`);
+            const result = document.getElementById(`res-${id}`);
+
             btn.style.display = 'none';
-            text.style.display = 'block';
-            text.innerText = "GEMMA IS ANALYZING...";
+            loader.style.display = 'block';
 
             try {
-                const response = await fetch(`/api/gemma?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&league=${encodeURIComponent(league)}`);
-                const data = await response.json();
-                
-                text.innerText = data.insight;
-                text.style.color = "#fff";
-            } catch (e) {
-                text.innerText = "Error. Try again.";
-                btn.style.display = 'block';
+                const r = await fetch(`/api/gemma?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&league=${encodeURIComponent(league)}`);
+                const d = await r.json();
+                loader.style.display = 'none';
+                result.innerText = d.insight;
+                result.style.display = 'block';
+            } catch(e) {
+                loader.innerText = "OFFLINE";
             }
         }
 
         function render(games) {
             const list = document.getElementById('list');
             list.innerHTML = '';
-            
+            document.getElementById('status').innerText = `${games.length} Fixtures Found Today`;
+
             games.forEach((g, i) => {
-                const btnId = `btn-${i}`;
-                const textId = `text-${i}`;
                 const hO = g.bookmakers[0]?.markets[0]?.outcomes.find(o => o.name === g.home_team)?.price || '-';
                 const aO = g.bookmakers[0]?.markets[0]?.outcomes.find(o => o.name === g.away_team)?.price || '-';
+                const time = new Date(g.commence_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                 list.innerHTML += `
-                    <div class="fixture-card">
-                        <div class="team-row"><span>${g.home_team}</span><span class="odd">${hO}</span></div>
-                        <div style="font-size:9px; color:#333; margin:5px 0;">VS</div>
-                        <div class="team-row"><span>${g.away_team}</span><span class="odd">${aO}</span></div>
-                        
-                        <div class="ai-insight">
-                            <div id="${textId}" class="ai-market">No research conducted yet.</div>
-                            <button id="${btnId}" class="gemma-btn" onclick="runResearch('${g.home_team}', '${g.away_team}', '${g.sport_title}', '${btnId}', '${textId}')">
-                                RUN GEMMA RESEARCH
-                            </button>
+                    <div class="card">
+                        <span class="league">${g.sport_title}</span>
+                        <div class="match-grid">
+                            <div class="home"><div class="team-name">${g.home_team}</div><div class="odds">${hO}</div></div>
+                            <div class="vs">VS</div>
+                            <div class="away"><div class="team-name">${g.away_team}</div><div class="odds">${aO}</div></div>
                         </div>
+                        <div class="ai-zone">
+                            <div id="load-${i}" class="shimmer">RESEARCHING...</div>
+                            <div id="res-${i}" class="ai-result"></div>
+                            <button id="btn-${i}" class="ai-btn" onclick="getMarket('${g.home_team}','${g.away_team}','${g.sport_title}',${i})">RESEARCH BEST MARKET</button>
+                        </div>
+                        <div class="kickoff">Today at ${time}</div>
                     </div>`;
             });
         }
 
-        fetchAll();
+        fetchGames();
     </script>
 </body>
 </html>
