@@ -3,60 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BET SMART | Manual AI Research</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <title>BET SMART | Tactical AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #000; --header-bg: #0a0a0a; --text: #fff;
-            --pink: #ff69b4; --green: #00ff00;
-            --glass: rgba(255, 255, 255, 0.05); --border: rgba(255, 255, 255, 0.1);
-            --ai-glow: rgba(255, 105, 180, 0.1);
+            --bg: #050505; --card-bg: #111; --header-bg: #000;
+            --pink: #ff69b4; --green: #00ff00; --text: #eee;
+            --border: #222;
         }
         body { margin: 0; background: var(--bg); font-family: 'Inter', sans-serif; color: var(--text); }
         
         header { 
-            position: sticky; top: 0; z-index: 2000; height: 60px; 
-            background: var(--header-bg); border-bottom: 1px solid var(--border);
+            height: 60px; background: var(--header-bg); border-bottom: 2px solid var(--pink);
             display: flex; align-items: center; justify-content: space-between; padding: 0 20px;
+            position: sticky; top: 0; z-index: 100;
         }
 
-        #fixtures-container { padding: 20px; max-width: 800px; margin: auto; }
-        .league-card { background: var(--glass); border: 1px solid var(--border); border-radius: 18px; padding: 20px; margin-bottom: 20px; }
-        .league-title { font-size: 0.75rem; font-weight: 900; color: var(--pink); text-transform: uppercase; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        #fixtures-container { padding: 15px; max-width: 900px; margin: auto; }
+
+        /* League Grouping */
+        .league-section { margin-bottom: 30px; }
+        .league-header { 
+            background: linear-gradient(90deg, var(--pink), transparent);
+            padding: 8px 15px; border-radius: 4px; font-weight: 900; 
+            text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; color: #000;
+        }
+
+        /* Fixture Row */
+        .match-card { 
+            background: var(--card-bg); border-bottom: 1px solid var(--border);
+            padding: 12px; display: grid; grid-template-columns: 60px 1fr 140px 100px;
+            align-items: center; gap: 10px;
+        }
+        .match-time { font-size: 0.7rem; color: #777; font-weight: 600; }
+        .match-teams { font-weight: 600; font-size: 0.9rem; border-left: 1px solid var(--border); padding-left: 15px; }
+        .team-name { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         
-        .match-row { background: rgba(255,255,255,0.02); margin-bottom: 15px; padding: 16px; border-radius: 14px; border: 1px solid var(--border); }
-        .match-main { display: flex; justify-content: space-between; align-items: center; }
-        .teams-col { flex: 1; }
-        .team-line { display: flex; justify-content: space-between; margin: 4px 0; font-weight: 700; }
-        
-        /* Research Button */
+        /* Odds Grid */
+        .odds-grid { display: flex; gap: 5px; }
+        .odd-box { 
+            background: #1a1a1a; flex: 1; text-align: center; 
+            padding: 6px 0; border-radius: 4px; border: 1px solid #333;
+        }
+        .odd-val { color: var(--green); font-weight: 800; font-size: 0.8rem; display: block; }
+        .odd-label { font-size: 0.5rem; color: #555; text-transform: uppercase; }
+
+        /* Action */
         .btn-research {
-            background: var(--pink); color: #000; border: none; padding: 8px 16px;
-            border-radius: 8px; font-weight: 900; font-size: 0.7rem; cursor: pointer;
-            text-transform: uppercase; transition: 0.2s; margin-left: 15px;
+            background: #fff; color: #000; border: none; padding: 10px;
+            border-radius: 6px; font-weight: 800; font-size: 0.65rem; 
+            cursor: pointer; text-transform: uppercase;
         }
-        .btn-research:hover { transform: scale(1.05); filter: brightness(1.1); }
-        .btn-research:disabled { background: #333; color: #777; cursor: not-allowed; }
 
-        .ai-output { 
-            margin-top: 15px; padding: 12px; border-radius: 10px; 
-            background: var(--ai-glow); border: 1px dashed var(--pink);
-            display: none; font-size: 0.8rem; line-height: 1.4;
+        /* AI Result Box */
+        .ai-drawer { 
+            grid-column: 1 / -1; display: none; margin-top: 10px;
+            background: rgba(255, 105, 180, 0.05); border: 1px dashed var(--pink);
+            border-radius: 8px; padding: 15px; position: relative;
         }
-        .error-log { color: #ff4444; font-family: monospace; font-size: 0.7rem; margin-top: 5px; }
-        .loading-spinner { font-size: 0.7rem; color: var(--pink); font-weight: 800; animation: pulse 1s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+        .ai-pick { color: var(--green); font-weight: 900; margin-top: 10px; border-top: 1px solid #333; padding-top: 10px; }
     </style>
 </head>
 <body>
 
     <header>
-        <div style="font-weight: 900; letter-spacing: -1px;"><span class="pink">BET</span><span class="green">SMART</span></div>
-        <div id="clock" style="font-size: 0.7rem; opacity: 0.5;"></div>
+        <div style="font-weight: 900; font-size: 1.2rem;"><span class="pink">BET</span>SMART</div>
+        <div id="clock" style="font-size: 0.8rem; font-weight: 600;"></div>
     </header>
 
     <div id="fixtures-container">
-        <div id="status" style="text-align:center; padding:50px; opacity:0.5;">Loading Fixtures...</div>
+        <div style="text-align: center; padding-top: 50px; opacity: 0.5;">Syncing Today's Schedule...</div>
     </div>
 
     <script>
@@ -90,64 +106,70 @@
             container.innerHTML = '';
             
             leagues.forEach(league => {
-                const card = document.createElement('div');
-                card.className = 'league-card';
-                let html = `<div class="league-title">${league.name}</div>`;
+                const section = document.createElement('div');
+                section.className = 'league-section';
+                
+                let matchesHtml = `<div class="league-header">${league.name}</div>`;
                 
                 league.matches.forEach(m => {
-                    html += `
-                        <div class="match-row">
-                            <div class="match-main">
-                                <div class="teams-col">
-                                    <div class="team-line"><span>${m.home_team}</span><span class="green">${getOdds(m, 'home')}</span></div>
-                                    <div class="team-line"><span>${m.away_team}</span><span class="green">${getOdds(m, 'away')}</span></div>
-                                </div>
-                                <button class="btn-research" onclick="runResearch(this, '${m.home_team}', '${m.away_team}', '${league.name}')">Research</button>
+                    const time = new Date(m.commence_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    const odds = getH2HOdds(m);
+                    
+                    matchesHtml += `
+                        <div class="match-card">
+                            <div class="match-time">${time}</div>
+                            <div class="match-teams">
+                                <span class="team-name" style="color:var(--pink)">${m.home_team} (H)</span>
+                                <span class="team-name">${m.away_team} (A)</span>
                             </div>
-                            <div class="ai-output" id="output-${m.id}"></div>
+                            <div class="odds-grid">
+                                <div class="odd-box"><span class="odd-label">1</span><span class="odd-val">${odds.h}</span></div>
+                                <div class="odd-box"><span class="odd-label">X</span><span class="odd-val">${odds.d}</span></div>
+                                <div class="odd-box"><span class="odd-label">2</span><span class="odd-val">${odds.a}</span></div>
+                            </div>
+                            <button class="btn-research" onclick="runResearch(this, '${m.home_team}', '${m.away_team}', '${league.name}', '${m.id}')">Research</button>
+                            <div class="ai-drawer" id="drawer-${m.id}"></div>
                         </div>`;
                 });
-                card.innerHTML = html;
-                container.appendChild(card);
+                section.innerHTML = matchesHtml;
+                container.appendChild(section);
             });
         }
 
-        async function runResearch(btn, home, away, league) {
-            const outputId = btn.closest('.match-row').querySelector('.ai-output');
+        async function runResearch(btn, home, away, league, id) {
+            const drawer = document.getElementById(`drawer-${id}`);
             btn.disabled = true;
-            btn.innerHTML = '<span class="loading-spinner">Scouting...</span>';
-            outputId.style.display = 'block';
-            outputId.innerHTML = 'Connecting to Groq Tactical Engine...';
+            btn.innerText = 'Scouting...';
+            drawer.style.display = 'block';
+            drawer.innerHTML = 'Connecting to Groq...';
 
             try {
                 const params = new URLSearchParams({ home, away, league });
                 const res = await fetch(`/api/analyze?${params.toString()}`);
-                
-                if (!res.ok) {
-                    const err = await res.text();
-                    throw new Error(`Vercel Error ${res.status}: ${err}`);
-                }
-
                 const data = await res.json();
-                outputId.innerHTML = `
-                    <div style="color:var(--pink); font-weight:900; font-size:0.6rem; margin-bottom:5px;">✨ AI TACTICAL REPORT</div>
-                    <div style="margin-bottom:8px;">${data.insight || 'No analysis text returned.'}</div>
-                    <div style="color:var(--green); font-weight:900; border-top:1px solid var(--border); padding-top:5px;">PICK: ${data.pick || 'UNKNOWN'}</div>
+                
+                drawer.innerHTML = `
+                    <div style="font-size:0.6rem; font-weight:900; color:var(--pink); margin-bottom:10px;">TACTICAL SCOUT REPORT</div>
+                    <div style="font-size:0.85rem; line-height:1.5;">${data.insight}</div>
+                    <div class="ai-pick">PICK: ${data.pick}</div>
                 `;
             } catch (e) {
-                outputId.innerHTML = `<div class="error-log"><strong>Research Failed:</strong><br>${e.message}</div>`;
+                drawer.innerHTML = `<span style="color:red; font-size:0.7rem;">Error: ${e.message}</span>`;
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = 'Research';
+                btn.innerText = 'Research';
             }
         }
 
-        function getOdds(m, side) {
+        function getH2HOdds(m) {
             try {
-                const market = m.bookmakers[0].markets.find(mk => mk.key === 'h2h');
-                const outcome = market.outcomes.find(o => side === 'home' ? o.name === m.home_team : o.name === m.away_team);
-                return outcome.price.toFixed(2);
-            } catch { return '—'; }
+                const outcomes = m.bookmakers[0].markets[0].outcomes;
+                return {
+                    h: outcomes.find(o => o.name === m.home_team).price.toFixed(2),
+                    a: outcomes.find(o => o.name === m.away_team).price.toFixed(2),
+                    d: outcomes.find(o => o.name === 'Draw').price.toFixed(2)
+                };
+            } catch { return { h: '—', d: '—', a: '—' }; }
         }
 
         setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString('en-GB'); }, 1000);
