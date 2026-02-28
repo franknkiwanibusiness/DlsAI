@@ -1,6 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Still use your GEMINI_API_KEY from Google AI Studio
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 export default async function handler(req, res) {
@@ -8,40 +7,42 @@ export default async function handler(req, res) {
     const { home, away, groq_suggestion } = req.body;
 
     try {
-        // FORCE THE MODEL TO GEMMA 3 27B
-        // This model is optimized for logic and research 
+        // Correct 2026 Model ID for the most powerful Gemma
         const model = genAI.getGenerativeModel({ model: "gemma-3-27b-it" });
         
         const prompt = `You are the Gemma-3 Research Engine. 
-        TASK: Audit the following match: ${home} vs ${away}.
-        
-        The Groq Analyst suggests: ${JSON.stringify(groq_suggestion)}.
-        
-        Using your 2026 tactical database:
-        1. Verify if the 'pick' is statistically sound (check 30-day xG and defensive form).
-        2. If Groq says 'BTTS Yes' but one team has failed to score in 3 of their last 4 games, you MUST DISAGREE.
-        3. Only AGREE if your confidence is above 75%.
+        AUDIT DATA: ${home} vs ${away}.
+        ANALYST SUGGESTION: ${JSON.stringify(groq_suggestion)}.
 
-        Return ONLY JSON:
+        CRITICAL INSTRUCTIONS:
+        1. Conduct a tactical 30-day form audit.
+        2. If the suggestion (e.g. Over 2.5) contradicts defensive stats, set decision to 'DISAGREE'.
+        3. Only 'AGREE' if confidence > 75%.
+        
+        RESPONSE RULE: Return ONLY a raw JSON object. No markdown, no backticks, no intro text.
         {
           "decision": "AGREE" or "DISAGREE",
-          "confidence": 0-100,
-          "audit_reason": "Provide a 15-word tactical fact (e.g., 'Home team 0.4 xG away suggests low scoring match')."
+          "confidence": 75,
+          "audit_reason": "15-word tactical fact"
         }`;
 
         const result = await model.generateContent(prompt);
         const response = await result.response;
-        
-        // Clean the response in case Gemma adds markdown backticks
-        const text = response.text().replace(/```json|```/g, "").trim();
-        
+        let text = response.text().trim();
+
+        // FAIL-SAFE: Remove markdown backticks if Gemma includes them
+        if (text.includes("```")) {
+            text = text.split(/```(?:json)?/)[1].split("```")[0].trim();
+        }
+
         res.status(200).json(JSON.parse(text));
     } catch (e) {
-        // Fallback to a safe 'Disagree' if the API is overwhelmed
+        console.error("Gemma Error:", e);
+        // Fallback so the frontend doesn't just hang
         res.status(200).json({ 
             decision: "DISAGREE", 
             confidence: 0, 
-            audit_reason: "Gemma Engine Timeout - Fixture marked risky." 
+            audit_reason: "Audit engine busy. Match marked as High Risk." 
         });
     }
 }
