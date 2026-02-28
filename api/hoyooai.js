@@ -1,68 +1,87 @@
-import axios from 'axios';
-import { Groq } from 'groq-sdk';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import admin from 'firebase-admin';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hoyoo AI | Mobile</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+    <style>
+        .glass { background: rgba(15, 15, 15, 0.8); backdrop-filter: blur(12px); }
+        body { background-color: #050505; -webkit-tap-highlight-color: transparent; }
+    </style>
+</head>
+<body class="text-white pb-20">
 
-// Initialize Firebase Admin (Singleton pattern)
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      // Fix for Vercel's handling of private keys
-      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-    }),
-    databaseURL: `https://${process.env.FIREBASE_PROJECT_ID}-default-rtdb.firebaseio.com`
-  });
-}
+    <header class="sticky top-0 z-50 glass border-b border-white/10 p-4 flex justify-between items-center">
+        <div>
+            <h1 class="text-xl font-black tracking-tighter text-blue-500">HOYOO AI</h1>
+            <div class="flex items-center gap-1">
+                <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                <span class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Live Engine</span>
+            </div>
+        </div>
+        <button id="scan-btn" class="bg-blue-600 px-4 py-2 rounded-full text-xs font-bold active:scale-90 transition">SCAN ALL</button>
+    </header>
 
-const db = admin.database();
+    <main id="feed" class="p-4 space-y-4">
+        <div class="bg-gray-900/50 h-40 rounded-3xl animate-pulse"></div>
+        <div class="bg-gray-900/50 h-40 rounded-3xl animate-pulse"></div>
+    </main>
 
-export default async function handler(req, res) {
-  const { ODDS_API_KEY, GROQ_API_KEY, GEMINI_API_KEY } = process.env;
+    <script>
+        // FIREBASE CONFIG (Replace with yours)
+        const firebaseConfig = { 
+            apiKey: "...", 
+            databaseURL: "https://your-project-default-rtdb.firebaseio.com",
+            projectId: "..."
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
-  try {
-    // 1. Fetch live odds for Over/Under (Totals)
-    const oddsRes = await axios.get('https://api.the-odds-api.com/v4/sports/soccer_epl/odds/', {
-      params: { apiKey: ODDS_API_KEY, regions: 'uk', markets: 'totals', oddsFormat: 'decimal' }
-    });
+        // REAL-TIME AUTO LOAD
+        db.ref('hoyoo_predictions').limitToLast(20).on('value', (snap) => {
+            const feed = document.getElementById('feed');
+            feed.innerHTML = '';
+            const data = snap.val();
+            if(!data) return;
 
-    const game = oddsRes.data[0];
-    if (!game) return res.status(404).json({ error: "No games found" });
+            Object.values(data).reverse().forEach(p => {
+                feed.innerHTML += `
+                    <div class="bg-[#111] border border-white/5 rounded-[2rem] p-5 shadow-2xl">
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="text-[10px] font-bold text-blue-400 border border-blue-400/30 px-2 py-0.5 rounded-full uppercase">${p.league}</span>
+                            <span class="text-[10px] text-gray-500">${new Date(p.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                        </div>
+                        <h2 class="text-lg font-bold mb-4 leading-tight">${p.match}</h2>
+                        
+                        <div class="space-y-3">
+                            <div class="bg-white/5 p-3 rounded-2xl border-l-4 border-purple-500">
+                                <p class="text-[9px] font-black text-purple-400 uppercase tracking-tighter">Groq Intelligence</p>
+                                <p class="text-sm text-gray-300 mt-1">${p.predictions.groq}</p>
+                            </div>
+                            <div class="bg-white/5 p-3 rounded-2xl border-l-4 border-blue-500">
+                                <p class="text-[9px] font-black text-blue-400 uppercase tracking-tighter">Gemini Reason</p>
+                                <p class="text-sm text-gray-300 mt-1">${p.predictions.gemini}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        });
 
-    // 2. Prepare the AI Prompt
-    const prompt = `Match: ${game.home_team} vs ${game.away_team}. Market: Over/Under. Odds: ${JSON.stringify(game.bookmakers[0]?.markets[0])}. Provide a short prediction and confidence %.`;
-
-    // 3. Get Consensus from AIs
-    const groq = new Groq({ apiKey: GROQ_API_KEY });
-    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    const geminiModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-    const [groqRes, geminiRes] = await Promise.all([
-      groq.chat.completions.create({ messages: [{ role: 'user', content: prompt }], model: 'llama3-8b-8192' }),
-      geminiModel.generateContent(prompt)
-    ]);
-
-    // 4. Create the Prediction Object
-    const prediction = {
-      match: `${game.home_team} vs ${game.away_team}`,
-      timestamp: new Date().toISOString(),
-      predictions: {
-        groq: groqRes.choices[0].message.content,
-        gemini: geminiRes.response.text()
-      },
-      status: "pending_result"
-    };
-
-    // 5. Save to Firebase
-    const newRef = db.ref('hoyoo_predictions').push();
-    await newRef.set(prediction);
-
-    // 6. Return response
-    return res.status(200).json({ id: newRef.key, ...prediction });
-
-  } catch (error) {
-    console.error("Hoyoo Engine Error:", error);
-    return res.status(500).json({ error: error.message });
-  }
-}
+        // TRIGGER ENGINE
+        document.getElementById('scan-btn').onclick = async function() {
+            this.innerText = "SCANNING...";
+            this.classList.add('opacity-50');
+            try {
+                await fetch('/api/hoyooai');
+            } finally {
+                this.innerText = "SCAN ALL";
+                this.classList.remove('opacity-50');
+            }
+        };
+    </script>
+</body>
+</html>
