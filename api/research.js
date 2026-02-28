@@ -1,50 +1,44 @@
 import { Groq } from "groq-sdk";
-
 const groq = new Groq({ apiKey: process.env.EASYBET_API_KEY });
 
 export default async function handler(req, res) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-    if (req.method === 'OPTIONS') return res.status(200).end();
-    
+    if (req.method !== 'POST') return res.status(405).json({ error: 'Use POST' });
+    const { home, away } = req.body;
     try {
-        const { home, away } = req.body;
-
         const chat = await groq.chat.completions.create({
             messages: [
                 { 
                     role: "system", 
-                    content: `You are a Lead Football Analyst for a pro betting syndicate. 
-                    Simulate a deep-dive search of the last 30 days of 2026 match data. 
-                    Focus on: xG, defensive blocks, wing-play (for corners), and clinical finishing.
-                    STRICT: Return ONLY valid JSON. Avoid generic "safe" picks if data suggests otherwise.` 
+                    content: `You are a 2026 Football Data Analyst. 
+                    STRICT RULES:
+                    1. Never default to 'Over 2.5' or 'BTTS Yes'. If teams are low-scoring (e.g., Serie A or La Liga bottom-half), predict 'Under'.
+                    2. Evaluate Double Chance (1X, 2X) for high-risk games.
+                    3. Calculate a specific 'Confidence Percentage' (0-100) for each pick.
+                    4. Return ONLY valid JSON with the EXACT keys requested.`
                 },
                 { 
                     role: "user", 
-                    content: `COMPREHENSIVE ANALYSIS: ${home} vs ${away}. 
-                    Evaluate these specific markets and return the HIGHEST PROBABILITY / LOWEST RISK option for each:
-                    1. h2h: (1, 2, X, 1X, 2X, or 12).
-                    2. btts: (Yes/No).
-                    3. goals: (Over 1.5, 2.5, 3.5 OR Under 2.5, 3.5).
-                    4. corners: (Over 6.5, 7.5 OR Under 10.5, 11.5, 12.5).
-                    5. first_half_goals: (Over 0.5, 1.5 OR Under 1.5).
-                    6. first_score: (Which team scores first).
-                    7. highest_half: (1st Half, 2nd Half, or Equal).
-                    8. reason: A 15-word tactical reason citing 2026 form.
-
-                    Return JSON: {"h2h":"","btts":"","goals":"","corners":"","fh_goals":"","first_score":"","highest_half":"","reason":""}`
+                    content: `Analyze ${home} vs ${away} for Feb 28 - March 1, 2026 fixtures. 
+                    Return this EXACT JSON structure:
+                    {
+                      "pick": "1, 2, X, 1X, or 2X",
+                      "pick_pct": 75,
+                      "goals": "Over/Under 1.5/2.5/3.5",
+                      "goals_pct": 60,
+                      "corners": "Over/Under 8.5/9.5/10.5",
+                      "corners_pct": 55,
+                      "btts": "Yes/No",
+                      "btts_pct": 50,
+                      "fh_goals": "Over 0.5 or Under 1.5",
+                      "first_score": "Home, Away, or None",
+                      "reason": "Technical 15-word reason using 2026 form."
+                    }` 
                 }
             ],
-            model: "llama-3.3-70b-versatile", 
-            temperature: 0.6, // Balanced for precision and deep research
+            model: "llama-3.3-70b-versatile",
+            temperature: 0.5, // Lower temperature = more factual, less 'creative' guessing
             response_format: { type: "json_object" }
         });
-
         res.status(200).json(JSON.parse(chat.choices[0].message.content));
-
-    } catch (e) {
-        res.status(500).json({ error: "Bridge crash: " + e.message });
-    }
+    } catch (e) { res.status(500).json({ error: "Bridge Error: " + e.message }); }
 }
