@@ -3,121 +3,104 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EasyBet AI - Smart Odds</title>
+    <title>EasyBet AI - Live & Researched</title>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --bg: #f0f7ff; --card: #ffffff; --accent: #ff6b6b;
-            --ai-purple: #a29bfe; --border: 4px solid #2d3436;
-        }
+        :root { --bg: #f0f7ff; --card: #ffffff; --accent: #ff6b6b; --ai-purple: #a29bfe; --border: 4px solid #2d3436; }
         body { font-family: 'Quicksand', sans-serif; background: var(--bg); padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        h1 { font-family: 'Fredoka One'; font-size: 3rem; color: var(--accent); text-shadow: 3px 3px 0px #2d3436; margin: 0; }
-        
-        .badge { padding: 5px 12px; border-radius: 12px; border: var(--border); font-weight: bold; background: white; box-shadow: 3px 3px 0px #2d3436; margin: 5px; }
-        
-        #grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 25px; width: 100%; max-width: 1200px; margin-top: 30px; }
-        
-        .card { background: var(--card); border: var(--border); border-radius: 25px; padding: 20px; box-shadow: 8px 8px 0px #2d3436; position: relative; }
-        
-        .ai-header { background: var(--ai-purple); border-bottom: var(--border); margin: -20px -20px 15px -20px; padding: 10px; border-radius: 20px 20px 0 0; display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 0.8rem; }
-        
-        .match { display: flex; justify-content: space-between; align-items: center; margin: 15px 0; font-weight: 800; font-size: 1.1rem; }
-        
-        .odds-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
-        .odd-box { border: 2px solid #2d3436; border-radius: 12px; padding: 10px; text-align: center; background: #f1f2f6; }
-        .odd-box.highlight { background: #1dd1a1; color: white; }
-        
-        .reasoning { font-size: 0.8rem; font-style: italic; color: #636e72; background: #f9f9f9; padding: 10px; border-radius: 10px; border-left: 5px solid var(--ai-purple); margin: 10px 0; }
+        h1 { font-family: 'Fredoka One'; font-size: 3rem; color: var(--accent); text-shadow: 3px 3px 0px #2d3436; margin-bottom: 10px; }
+        .status-bar { display: flex; gap: 10px; margin-bottom: 20px; }
+        .badge { padding: 8px 15px; border-radius: 15px; border: var(--border); font-weight: bold; background: white; box-shadow: 3px 3px 0px #2d3436; }
+        #grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; width: 100%; max-width: 1200px; }
+        .card { background: var(--card); border: var(--border); border-radius: 20px; padding: 15px; box-shadow: 8px 8px 0px #2d3436; transition: 0.2s; }
+        .match-row { display: flex; justify-content: space-between; align-items: center; font-weight: 800; margin: 10px 0; }
+        .odds-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 10px; }
+        .odd-btn { border: 2px solid #2d3436; border-radius: 10px; padding: 5px; text-align: center; font-size: 0.9rem; font-weight: 800; background: #f1f2f6; }
+        .ai-btn { width: 100%; margin-top: 15px; background: var(--ai-purple); border: 3px solid #2d3436; padding: 8px; border-radius: 12px; cursor: pointer; font-family: 'Fredoka One'; box-shadow: 3px 3px 0px #2d3436; }
+        .ai-result { display: none; margin-top: 10px; padding: 10px; background: #f9f9f9; border-left: 4px solid var(--ai-purple); font-size: 0.8rem; border-radius: 8px; }
     </style>
 </head>
 <body>
 
-    <h1>EasyBet AI</h1>
-    <div style="display:flex; flex-wrap: wrap; justify-content: center;">
+    <h1>GoalGetter AI</h1>
+    <div class="status-bar">
         <div id="quota" class="badge">Tokens: --</div>
-        <button id="refresh" class="badge" style="cursor:pointer; background: var(--ai-purple);">Run AI Research ↻</button>
+        <button onclick="fetchFixtures()" class="badge" style="background:#4ecdc4; cursor:pointer;">Refresh Games ↻</button>
     </div>
 
     <div id="grid">
-        <div style="grid-column: 1/-1; text-align: center; font-family: 'Fredoka One'; padding: 50px;">Waiting for kickoff... ⚽</div>
+        <div style="grid-column: 1/-1; text-align:center; padding:50px;">Lacing boots... ⚽</div>
     </div>
 
     <script>
         const ODDS_KEY = 'ad7cc474657e32a32bf5d56e68e84fa8';
-        const VERCEL_URL = '/api/research'; // Replace with your actual deployed Vercel URL
+        // PUT YOUR FULL VERCEL URL HERE
+        const VERCEL_URL = 'https://dlsvalue.site/api/research'; 
         const leagues = ['soccer_epl', 'soccer_spain_la_liga', 'soccer_germany_bundesliga', 'soccer_italy_serie_a', 'soccer_france_ligue_1'];
 
-        async function runResearch() {
+        async function fetchFixtures() {
             const grid = document.getElementById('grid');
-            grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center;">🧠 Groq is researching matchups...</div>';
+            grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center;">Fetching Live Odds...</div>';
             
             try {
-                // 1. Get all matches for today
-                let fixtures = [];
-                for (let league of leagues) {
-                    const res = await fetch(`https://api.the-odds-api.com/v4/sports/${league}/odds/?apiKey=${ODDS_KEY}&regions=uk&markets=h2h,btts,totals`);
+                let all = [];
+                for (let l of leagues) {
+                    const res = await fetch(`https://api.the-odds-api.com/v4/sports/${l}/odds/?apiKey=${ODDS_KEY}&regions=uk&markets=h2h`);
+                    document.getElementById('quota').innerText = `Tokens: ${res.headers.get('x-requests-remaining') || '?'}`;
                     const data = await res.json();
-                    if (Array.isArray(data)) fixtures = [...fixtures, ...data];
+                    if (Array.isArray(data)) all = [...all, ...data];
                 }
-
-                // Filter for today
-                const today = fixtures.filter(m => new Date(m.commence_time).toDateString() === new Date().toDateString());
-                
-                grid.innerHTML = '';
-                
-                // 2. Process each match with AI
-                for (let match of today.slice(0, 10)) { // Limit to 10 to save your Groq/Vercel usage
-                    const aiRes = await fetch(VERCEL_URL, {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ home: match.home_team, away: match.away_team })
-                    });
-                    const research = await aiRes.json();
-                    
-                    renderCard(match, research);
-                }
-            } catch (err) {
-                grid.innerHTML = 'Error connecting to system. Check Vercel logs.';
+                render(all);
+            } catch (e) {
+                grid.innerHTML = '<div style="color:red;">Error: Check Odds API Key.</div>';
             }
         }
 
-        function renderCard(match, ai) {
+        function render(matches) {
             const grid = document.getElementById('grid');
-            const card = document.createElement('div');
-            card.className = 'card';
-
-            // Find the odds for the market Groq suggested
-            const bookie = match.bookmakers[0];
-            const market = bookie.markets.find(m => m.key === ai.market) || bookie.markets[0];
-            
-            let oddsHtml = '';
-            market.outcomes.forEach(o => {
-                const isPick = o.name.includes(ai.pick) || o.name === ai.pick;
-                oddsHtml += `
-                    <div class="odd-box ${isPick ? 'highlight' : ''}">
-                        <div style="font-size: 0.7rem;">${o.name}</div>
-                        <div style="font-weight: 800;">${o.price}</div>
-                    </div>`;
+            grid.innerHTML = '';
+            matches.forEach((m, index) => {
+                const bookie = m.bookmakers[0];
+                const h2h = bookie?.markets[0]?.outcomes || [];
+                
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div style="font-size:0.7rem; font-weight:800; color:#636e72;">${m.sport_title}</div>
+                    <div class="match-row">
+                        <span>${m.home_team}</span>
+                        <span style="color:var(--accent)">VS</span>
+                        <span>${m.away_team}</span>
+                    </div>
+                    <div class="odds-grid">
+                        ${h2h.map(o => `<div class="odd-btn"><div>${o.name}</div>${o.price}</div>`).join('')}
+                    </div>
+                    <button class="ai-btn" onclick="getAIResearch('${m.home_team}', '${m.away_team}', ${index})">ASK GROQ AI 🧠</button>
+                    <div id="ai-res-${index}" class="ai-result">Thinking...</div>
+                `;
+                grid.appendChild(card);
             });
-
-            card.innerHTML = `
-                <div class="ai-header">
-                    <span>🤖 AI INSIGHT</span>
-                    <span style="margin-left:auto; background:white; padding:2px 6px; border-radius:5px;">${ai.market.toUpperCase()}</span>
-                </div>
-                <div class="match">
-                    <span>${match.home_team}</span>
-                    <span style="font-family:'Fredoka One'; color:var(--accent);">VS</span>
-                    <span>${match.away_team}</span>
-                </div>
-                <div class="reasoning">"${ai.reason}"</div>
-                <div class="odds-container">${oddsHtml}</div>
-            `;
-            grid.appendChild(card);
         }
 
-        document.getElementById('refresh').onclick = runResearch;
-        runResearch();
+        async function getAIResearch(home, away, id) {
+            const resBox = document.getElementById(`ai-res-${id}`);
+            resBox.style.display = 'block';
+            resBox.innerText = "🧠 Analyzing form and data...";
+            
+            try {
+                const res = await fetch(VERCEL_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ home, away })
+                });
+                const data = await res.json();
+                resBox.innerHTML = `<strong>Pick: ${data.pick}</strong><br><em>"${data.reason}"</em>`;
+            } catch (e) {
+                resBox.innerText = "AI connection failed. Check Vercel URL.";
+            }
+        }
+
+        fetchFixtures();
     </script>
 </body>
 </html>
