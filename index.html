@@ -3,21 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EasyBet AI - Live & Researched</title>
+    <title>EasyBet AI - Classic Mode</title>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
     <style>
         :root { --bg: #f0f7ff; --card: #ffffff; --accent: #ff6b6b; --ai-purple: #a29bfe; --border: 4px solid #2d3436; }
         body { font-family: 'Quicksand', sans-serif; background: var(--bg); padding: 20px; display: flex; flex-direction: column; align-items: center; }
         h1 { font-family: 'Fredoka One'; font-size: 3rem; color: var(--accent); text-shadow: 3px 3px 0px #2d3436; margin-bottom: 10px; }
+        
         .status-bar { display: flex; gap: 10px; margin-bottom: 20px; }
         .badge { padding: 8px 15px; border-radius: 15px; border: var(--border); font-weight: bold; background: white; box-shadow: 3px 3px 0px #2d3436; }
-        #grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; width: 100%; max-width: 1200px; }
-        .card { background: var(--card); border: var(--border); border-radius: 20px; padding: 15px; box-shadow: 8px 8px 0px #2d3436; transition: 0.2s; }
-        .match-row { display: flex; justify-content: space-between; align-items: center; font-weight: 800; margin: 10px 0; }
-        .odds-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 10px; }
-        .odd-btn { border: 2px solid #2d3436; border-radius: 10px; padding: 5px; text-align: center; font-size: 0.9rem; font-weight: 800; background: #f1f2f6; }
-        .ai-btn { width: 100%; margin-top: 15px; background: var(--ai-purple); border: 3px solid #2d3436; padding: 8px; border-radius: 12px; cursor: pointer; font-family: 'Fredoka One'; box-shadow: 3px 3px 0px #2d3436; }
-        .ai-result { display: none; margin-top: 10px; padding: 10px; background: #f9f9f9; border-left: 4px solid var(--ai-purple); font-size: 0.8rem; border-radius: 8px; }
+        
+        #grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 20px; width: 100%; max-width: 1200px; }
+        
+        .card { background: var(--card); border: var(--border); border-radius: 20px; padding: 15px; box-shadow: 8px 8px 0px #2d3436; position: relative; }
+        .league-label { font-size: 0.7rem; font-weight: 800; color: #636e72; text-transform: uppercase; margin-bottom: 5px; }
+        
+        .match-row { display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: 1.1rem; margin: 15px 0; }
+        
+        /* THE OLD FORMAT: 3 COLUMNS */
+        .odds-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .odd-btn { border: 3px solid #2d3436; border-radius: 12px; padding: 10px 5px; text-align: center; font-weight: 800; color: #2d3436; }
+        
+        /* COLOR CODING */
+        .home-btn { background: #1dd1a1; color: white; } /* Green */
+        .draw-btn { background: #f1f2f6; }               /* Light/White */
+        .away-btn { background: #ff6b6b; color: white; } /* Red */
+        
+        .odd-val { display: block; font-size: 1.2rem; font-family: 'Fredoka One'; }
+        .odd-name { font-size: 0.7rem; text-transform: uppercase; opacity: 0.9; }
+
+        .ai-btn { width: 100%; margin-top: 15px; background: var(--ai-purple); border: 3px solid #2d3436; padding: 10px; border-radius: 12px; cursor: pointer; font-family: 'Fredoka One'; box-shadow: 4px 4px 0px #2d3436; transition: 0.1s; }
+        .ai-btn:active { box-shadow: 0px 0px 0px; transform: translate(4px, 4px); }
+        
+        .ai-result { display: none; margin-top: 12px; padding: 12px; background: #f8f9fa; border: 2px dashed var(--ai-purple); border-radius: 10px; font-size: 0.85rem; line-height: 1.4; }
     </style>
 </head>
 <body>
@@ -25,7 +43,7 @@
     <h1>GoalGetter AI</h1>
     <div class="status-bar">
         <div id="quota" class="badge">Tokens: --</div>
-        <button onclick="forceRefresh()" class="badge" style="background:#4ecdc4; cursor:pointer;">Refresh Games ↻</button>
+        <button onclick="forceRefresh()" class="badge" style="background:#4ecdc4; cursor:pointer;">New Day Refresh ↻</button>
     </div>
 
     <div id="grid">
@@ -36,17 +54,13 @@
         const ODDS_KEY = 'ad7cc474657e32a32bf5d56e68e84fa8';
         const VERCEL_URL = 'https://dlsvalue.site/api/research'; 
         const leagues = ['soccer_epl', 'soccer_spain_la_liga', 'soccer_germany_bundesliga', 'soccer_italy_serie_a', 'soccer_france_ligue_1'];
-        
-        // Dynamic key based on the date
         const storageKey = `fixtures_${new Date().toLocaleDateString('en-CA')}`;
 
         async function initApp() {
             const cached = localStorage.getItem(storageKey);
             const savedQuota = localStorage.getItem('last_quota');
-            
             if (cached) {
-                console.log("Loading from storage...");
-                document.getElementById('quota').innerText = `Tokens: ${savedQuota || 'Saved'}`;
+                document.getElementById('quota').innerText = `Tokens: ${savedQuota || 'Cached'}`;
                 render(JSON.parse(cached));
             } else {
                 fetchFixtures();
@@ -55,8 +69,7 @@
 
         async function fetchFixtures() {
             const grid = document.getElementById('grid');
-            grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center;">Fetching Live Odds...</div>';
-            
+            grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center;">Scanning the pitch... 🔍</div>';
             try {
                 let all = [];
                 let quotaVal = "--";
@@ -66,15 +79,12 @@
                     const data = await res.json();
                     if (Array.isArray(data)) all = [...all, ...data];
                 }
-
-                // Save to local storage
                 localStorage.setItem(storageKey, JSON.stringify(all));
                 localStorage.setItem('last_quota', quotaVal);
-                
                 document.getElementById('quota').innerText = `Tokens: ${quotaVal}`;
                 render(all);
             } catch (e) {
-                grid.innerHTML = '<div style="color:red;">Error: Check Odds API Key.</div>';
+                grid.innerHTML = '<div style="color:red;">API Key Error or Limit Reached.</div>';
             }
         }
 
@@ -90,20 +100,36 @@
                 const bookie = m.bookmakers[0];
                 const h2h = bookie?.markets[0]?.outcomes || [];
                 
+                // Map outcomes to 1, X, 2 positions
+                const home = h2h.find(o => o.name === m.home_team);
+                const draw = h2h.find(o => o.name === 'Draw');
+                const away = h2h.find(o => o.name === m.away_team);
+
                 const card = document.createElement('div');
                 card.className = 'card';
                 card.innerHTML = `
-                    <div style="font-size:0.7rem; font-weight:800; color:#636e72;">${m.sport_title}</div>
+                    <div class="league-label">${m.sport_title}</div>
                     <div class="match-row">
                         <span>${m.home_team}</span>
-                        <span style="color:var(--accent)">VS</span>
+                        <span style="color:var(--accent); font-family:'Fredoka One';">VS</span>
                         <span>${m.away_team}</span>
                     </div>
                     <div class="odds-grid">
-                        ${h2h.map(o => `<div class="odd-btn"><div>${o.name}</div>${o.price}</div>`).join('')}
+                        <div class="odd-btn home-btn">
+                            <span class="odd-name">Home</span>
+                            <span class="odd-val">${home?.price || '-'}</span>
+                        </div>
+                        <div class="odd-btn draw-btn">
+                            <span class="odd-name">Draw</span>
+                            <span class="odd-val">${draw?.price || '-'}</span>
+                        </div>
+                        <div class="odd-btn away-btn">
+                            <span class="odd-name">Away</span>
+                            <span class="odd-val">${away?.price || '-'}</span>
+                        </div>
                     </div>
-                    <button class="ai-btn" onclick="getAIResearch('${m.home_team}', '${m.away_team}', ${index})">ASK GROQ AI 🧠</button>
-                    <div id="ai-res-${index}" class="ai-result">Thinking...</div>
+                    <button class="ai-btn" onclick="getAIResearch('${m.home_team}', '${m.away_team}', ${index})">AI RESEARCH 🧠</button>
+                    <div id="ai-res-${index}" class="ai-result"></div>
                 `;
                 grid.appendChild(card);
             });
@@ -112,8 +138,7 @@
         async function getAIResearch(home, away, id) {
             const resBox = document.getElementById(`ai-res-${id}`);
             resBox.style.display = 'block';
-            resBox.innerText = "🧠 Analyzing form and data...";
-            
+            resBox.innerText = "⏳ Groq AI is researching stats...";
             try {
                 const res = await fetch(VERCEL_URL, {
                     method: 'POST',
@@ -121,13 +146,12 @@
                     body: JSON.stringify({ home, away })
                 });
                 const data = await res.json();
-                resBox.innerHTML = `<strong>Pick: ${data.pick}</strong><br><em>"${data.reason}"</em>`;
+                resBox.innerHTML = `<b style="color:var(--ai-purple)">PICK: ${data.pick}</b><br><em>"${data.reason}"</em>`;
             } catch (e) {
-                resBox.innerText = "AI connection failed. Check Vercel URL.";
+                resBox.innerText = "Connection failed. Check Vercel logs.";
             }
         }
 
-        // Run init on start
         initApp();
     </script>
 </body>
