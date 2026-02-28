@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Void Live Feed</title>
+    <title>Void Terminal</title>
     <style>
         :root {
             --bg: #000000;
             --text: #ffffff;
-            --glass: rgba(0, 0, 0, 0.8);
+            --glass: rgba(0, 0, 0, 0.85);
             --border: rgba(255, 255, 255, 0.1);
             --accent: #00ff88;
         }
@@ -17,11 +17,11 @@
             margin: 0;
             background: var(--bg);
             color: var(--text);
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            font-family: 'Inter', -apple-system, sans-serif;
             overflow: hidden;
         }
 
-        /* 40px Glassy Header */
+        /* 40px Header */
         header {
             position: sticky;
             top: 0;
@@ -30,22 +30,20 @@
             align-items: center;
             justify-content: space-between;
             padding: 0 15px;
-            backdrop-filter: blur(20px);
+            backdrop-filter: blur(25px);
             background: var(--glass);
             border-bottom: 1px solid var(--border);
             z-index: 1000;
         }
 
-        /* CSS Gear Icon */
         .settings-btn {
-            width: 16px; height: 16px; border: 2px solid #fff;
+            width: 14px; height: 14px; border: 1.5px solid #fff;
             border-radius: 50%; position: relative; cursor: pointer;
-            opacity: 0.6; transition: 0.2s;
+            opacity: 0.5;
         }
-        .settings-btn:hover { opacity: 1; transform: rotate(45deg); }
         .settings-btn::after {
             content: ''; position: absolute; top: 50%; left: 50%;
-            width: 4px; height: 4px; background: #fff; border-radius: 50%;
+            width: 3px; height: 3px; background: #fff; border-radius: 50%;
             transform: translate(-50%, -50%);
         }
 
@@ -53,22 +51,21 @@
         .ticker-row {
             width: 100%;
             height: 30px;
-            background: #050505;
+            background: #000;
             border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
             overflow: hidden;
             font-size: 10px;
-            font-weight: 600;
+            font-weight: 700;
             white-space: nowrap;
-            position: relative;
         }
 
-        .odds-row { background: #000; color: var(--accent); }
+        .odds-row { color: var(--accent); }
 
         .scroller {
             display: flex;
-            animation: scroll 60s linear infinite;
+            animation: scroll 50s linear infinite;
         }
 
         @keyframes scroll {
@@ -76,35 +73,29 @@
             to { transform: translateX(-50%); }
         }
 
-        .item { padding: 0 50px; letter-spacing: 1px; text-transform: uppercase; }
+        .item { padding: 0 60px; letter-spacing: 1.5px; text-transform: uppercase; }
 
         /* Spinner */
         .spinner {
-            width: 14px; height: 14px;
+            width: 12px; height: 12px;
             border: 2px solid rgba(255,255,255,0.1);
             border-top: 2px solid var(--accent);
             border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin-left: 20px;
+            animation: spin 0.6s linear infinite;
+            margin: 0 auto;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* Dropdown */
+        /* Menu */
         #settings-menu {
             display: none; position: absolute; top: 45px; left: 10px;
-            background: #111; border: 1px solid var(--border);
-            border-radius: 4px; padding: 5px 0; z-index: 2000;
-            box-shadow: 0 10px 30px rgba(0,0,0,1);
+            background: #000; border: 1px solid var(--border);
+            border-radius: 2px; padding: 10px; z-index: 2000;
         }
         #settings-menu.show { display: block; }
+        .clear-btn { color: #ff3333; font-size: 10px; cursor: pointer; font-weight: bold; }
 
-        .menu-item { 
-            cursor: pointer; padding: 10px 20px; font-size: 11px; 
-            color: #ff4444; font-weight: bold; letter-spacing: 1px;
-        }
-        .menu-item:hover { background: rgba(255,255,255,0.05); }
-
-        .date-time { font-size: 11px; font-family: monospace; opacity: 0.8; }
+        .date-time { font-size: 10px; font-family: monospace; letter-spacing: 1px; }
     </style>
 </head>
 <body>
@@ -112,7 +103,7 @@
     <header>
         <div class="settings-btn" id="trigger"></div>
         <div id="settings-menu">
-            <div class="menu-item" onclick="clearStorage()">CLEAR LOCAL STORAGE</div>
+            <div class="clear-btn" onclick="localStorage.clear(); location.reload();">CLEAR LOCAL STORAGE</div>
         </div>
         <div class="date-time" id="clock"></div>
     </header>
@@ -126,12 +117,6 @@
     </div>
 
     <script>
-        function clearStorage() {
-            localStorage.clear();
-            alert("Storage Purged");
-            location.reload();
-        }
-
         document.getElementById('trigger').onclick = (e) => {
             e.stopPropagation();
             document.getElementById('settings-menu').classList.toggle('show');
@@ -139,31 +124,37 @@
 
         function updateClock() {
             const now = new Date();
-            const date = now.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
-            const time = now.toLocaleTimeString(undefined, { hour12: false });
-            document.getElementById('clock').innerText = `${date} | ${time}`;
+            const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
+            const timeStr = now.toTimeString().split(' ')[0];
+            document.getElementById('clock').innerText = `${dateStr} | ${timeStr}`;
         }
 
-        async function init() {
+        async function loadData() {
             try {
                 const res = await fetch('/api/live-data');
                 const data = await res.json();
                 
-                const news = data.news.map(n => `<span class="item">${n}</span>`).join('');
-                document.getElementById('news-ticker').innerHTML = news + news;
+                // Set News
+                if (data.news && data.news.length > 0) {
+                    const newsHTML = data.news.map(n => `<span class="item">${n}</span>`).join('');
+                    document.getElementById('news-ticker').innerHTML = newsHTML + newsHTML;
+                }
 
-                const odds = data.fixtures.map(f => `
-                    <span class="item">${f.home_team} v ${f.away_team} — ${f.sport_key.replace(/_/g, ' ')}</span>
-                `).join('');
-                document.getElementById('odds-ticker').innerHTML = odds + odds;
-            } catch (e) {
-                document.querySelectorAll('.scroller').forEach(s => s.innerText = "OFFLINE");
+                // Set Odds
+                if (data.fixtures && data.fixtures.length > 0) {
+                    const oddsHTML = data.fixtures.map(f => `
+                        <span class="item">${f.home_team} VS ${f.away_team} — [${f.sport_title}]</span>
+                    `).join('');
+                    document.getElementById('odds-ticker').innerHTML = oddsHTML + oddsHTML;
+                }
+            } catch (err) {
+                console.error("Fetch Error");
             }
         }
 
         setInterval(updateClock, 1000);
         updateClock();
-        init();
+        loadData();
         window.onclick = () => document.getElementById('settings-menu').classList.remove('show');
     </script>
 </body>
