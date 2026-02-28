@@ -1,83 +1,75 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hoyoo AI | Test Dashboard</title>
+    <title>Hoyoo AI Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 </head>
-<body class="bg-gray-900 text-white font-sans">
+<body class="bg-black text-white p-8">
+    <div class="max-w-3xl mx-auto">
+        <header class="mb-10 text-center">
+            <h1 class="text-4xl font-black text-blue-500 italic">HOYOO AI</h1>
+            <p class="text-gray-500">Multi-League Prediction Engine</p>
+        </header>
 
-    <nav class="p-6 border-b border-gray-800 flex justify-between items-center">
-        <h1 class="text-2xl font-bold tracking-tighter text-blue-500">HOYOO AI <span class="text-xs text-gray-500 uppercase">Engine Test</span></h1>
-        <div id="status" class="text-xs bg-green-900 text-green-300 px-3 py-1 rounded-full">Live Connection</div>
-    </nav>
-
-    <main class="p-6 max-w-4xl mx-auto">
-        <h2 class="text-lg text-gray-400 mb-6">Latest Predictions from Engine</h2>
-        
-        <div id="prediction-list" class="space-y-4">
-            <div class="animate-pulse bg-gray-800 h-32 rounded-xl"></div>
+        <div class="bg-gray-900 p-6 rounded-2xl mb-8 flex gap-4 items-end">
+            <div class="flex-1">
+                <label class="text-xs uppercase text-gray-500 font-bold">Select League</label>
+                <select id="league" class="w-full bg-gray-800 p-3 rounded-lg mt-1 border border-gray-700">
+                    <option value="soccer_epl">English Premier League</option>
+                    <option value="soccer_spain_la_liga">La Liga</option>
+                    <option value="soccer_italy_serie_a">Serie A</option>
+                    <option value="soccer_germany_bundesliga">Bundesliga</option>
+                    <option value="soccer_uefa_champions_league">Champions League</option>
+                </select>
+            </div>
+            <button id="run" class="bg-blue-600 px-6 py-3 rounded-lg font-bold hover:bg-blue-500 transition">Analyze</button>
         </div>
-    </main>
+
+        <div id="results" class="space-y-6"></div>
+    </div>
 
     <script>
-        // 1. YOUR FIREBASE CONFIG (Get this from Firebase Console)
-        const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-            databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT_ID.appspot.com",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID"
-        };
-
-        // Initialize Firebase
+        // Use YOUR Firebase Config here
+        const firebaseConfig = { /* ... paste from Firebase Console ... */ };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // 2. Listen for Data in Real-time
-        const predictionList = document.getElementById('prediction-list');
-        const dbRef = db.ref('hoyoo_predictions');
+        // Listen for new predictions
+        db.ref('hoyoo_predictions').limitToLast(15).on('value', (snap) => {
+            const container = document.getElementById('results');
+            container.innerHTML = '';
+            const data = snap.val();
+            if(!data) return;
 
-        dbRef.limitToLast(10).on('value', (snapshot) => {
-            predictionList.innerHTML = ''; // Clear loading/old data
-            const data = snapshot.val();
-
-            if (!data) {
-                predictionList.innerHTML = '<p class="text-gray-500">No predictions found yet. Run your engine!</p>';
-                return;
-            }
-
-            // Convert object to array and reverse to see newest first
-            const items = Object.entries(data).reverse();
-
-            items.forEach(([key, val]) => {
-                const card = `
-                    <div class="bg-gray-800 border border-gray-700 p-5 rounded-xl hover:border-blue-500 transition-all">
-                        <div class="flex justify-between items-start mb-3">
-                            <h3 class="font-bold text-xl">${val.match}</h3>
-                            <span class="text-[10px] bg-gray-700 text-gray-400 px-2 py-1 rounded">${new Date(val.timestamp).toLocaleTimeString()}</span>
+            Object.values(data).reverse().forEach(p => {
+                container.innerHTML += `
+                    <div class="bg-gray-900 border border-gray-800 p-6 rounded-2xl shadow-xl">
+                        <div class="flex justify-between items-center mb-4">
+                            <span class="text-blue-400 font-bold text-sm uppercase tracking-widest">${p.league}</span>
+                            <span class="text-xs text-gray-600">${new Date(p.timestamp).toLocaleTimeString()}</span>
                         </div>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="bg-gray-900/50 p-3 rounded-lg border-l-2 border-purple-500">
-                                <span class="text-[10px] text-purple-400 uppercase font-bold">Groq (Speed)</span>
-                                <p class="text-sm mt-1 text-gray-300 italic">"${val.predictions.groq}"</p>
+                        <h2 class="text-2xl font-bold mb-4">${p.match}</h2>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-black/50 p-4 rounded-xl border-t-2 border-purple-500">
+                                <p class="text-[10px] text-purple-400 font-bold uppercase mb-2">Groq Prediction</p>
+                                <p class="text-xs text-gray-300 leading-relaxed">${p.predictions.groq}</p>
                             </div>
-                            <div class="bg-gray-900/50 p-3 rounded-lg border-l-2 border-blue-500">
-                                <span class="text-[10px] text-blue-400 uppercase font-bold">Gemini (Logic)</span>
-                                <p class="text-sm mt-1 text-gray-300">"${val.predictions.gemini}"</p>
+                            <div class="bg-black/50 p-4 rounded-xl border-t-2 border-blue-500">
+                                <p class="text-[10px] text-blue-400 font-bold uppercase mb-2">Gemini Analysis</p>
+                                <p class="text-xs text-gray-300 leading-relaxed">${p.predictions.gemini}</p>
                             </div>
                         </div>
                     </div>
                 `;
-                predictionList.innerHTML += card;
             });
         });
+
+        document.getElementById('run').onclick = async () => {
+            const league = document.getElementById('league').value;
+            await fetch(`/api/hoyooai?sport=${league}`);
+        };
     </script>
 </body>
 </html>
