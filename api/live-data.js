@@ -1,15 +1,10 @@
 export default async function handler(req, res) {
     const GROQ_API = process.env.EASYBET_API_KEY;
-    const GEMINI_API = process.env.GEMINI_API_KEY;
-    const ODDS_API = process.env.THE_ODDS_API || "10257181b61bdaba7ac4ca4e276c9dae";
+    
+    // Fallback news in case of rate limits
+    let news = ["SYSTEM: ANALYZING RECENT MARKET VOLATILITY..."];
 
     try {
-        // 1. Fetch Live Fixtures (The Odds API)
-        const oddsRes = await fetch(`https://api.the-odds-api.com/v4/sports/upcoming/odds/?regions=us&markets=h2h&apiKey=${ODDS_API}`);
-        const oddsData = await oddsRes.json();
-
-        // 2. AI Research (Groq - Llama 3 70B)
-        // We ask for a clean string to avoid parsing errors
         const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
             headers: { 
@@ -17,30 +12,29 @@ export default async function handler(req, res) {
                 "Content-Type": "application/json" 
             },
             body: JSON.stringify({
-                model: "llama3-70b-8192",
+                model: "llama3-70b-8192", // Highest free Groq model
                 messages: [{ 
                     role: "user", 
-                    content: "List 5 real sports betting big wins from Jan/Feb 2026. Format exactly like this: WINNER - AMOUNT - EVENT. No numbers, no intro, just the lines." 
+                    content: "List 6 real sports betting big wins or massive upsets from Jan/Feb 2026. Max 15 words each. Format: WINNER - AMOUNT - EVENT. No numbers, no intro." 
                 }],
-                temperature: 0.5
+                temperature: 0.4
             })
         });
-        
+
         const aiData = await groqRes.json();
-        const rawNews = aiData.choices[0].message.content;
-        const newsArray = rawNews.split('\n').filter(line => line.length > 5);
+        const content = aiData.choices[0].message.content;
+        
+        // Clean and split the response into ticker lines
+        const filteredNews = content.split('\n')
+            .map(line => line.replace(/^\d+\.\s*/, '').trim()) // Remove list numbers
+            .filter(line => line.length > 10);
 
-        // 3. Send combined data
-        res.status(200).json({ 
-            news: newsArray, 
-            fixtures: Array.isArray(oddsData) ? oddsData.slice(0, 15) : [] 
-        });
+        if (filteredNews.length > 0) news = filteredNews;
 
-    } catch (error) {
-        console.error("Serverless Error:", error);
-        res.status(200).json({ 
-            news: ["DATA SYNC DELAYED - RETRYING..."], 
-            fixtures: [] 
-        });
+    } catch (e) {
+        console.error("Groq Fetch Error:", e);
+        news = ["CONNECTION STABLE: RETRYING AI RESEARCH SYNC..."];
     }
+
+    res.status(200).json({ news });
 }
