@@ -1,77 +1,82 @@
 import Groq from "groq-sdk";
 
 export default async function handler(req, res) {
+  // 1. SETUP & CONFIG
   res.setHeader('Access-Control-Allow-Origin', '*');
-  const { home, away, league } = req.query;
-  const groq = new Groq({ apiKey: process.env.EASYBET_API_KEY });
+  const { home, away, league, sport_key } = req.query; 
+  const ODDS_API_KEY = '10257181b61bdaba7ac4ca4e276c9dae';
+  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
   const GEMINI_KEY = process.env.GEMINI_API_KEY;
 
-  const entropy = Date.now();
-
-  const systemPrompt = `
-  [SYSTEM ROLE: ELITE SPORTS QUANT & TACTICAL SCOUT]
-  [MODE: 24/7 DEEP RESEARCH - NO DEFAULTS]
-  [DATE: Feb 27, 2026]
-
-  LEAGUE CONTEXT: ${league}
-  FIXTURE: ${home} (Home) vs ${away} (Away)
-
-  YOUR DIRECTIVE:
-  You have just completed a 24-hour deep-dive into:
-  1. Official Injury Lists & Training Ground "Leaks" (Check: Kevin at Fulham, Estevao at Chelsea, Mbappe at Real Madrid).
-  2. Tactical Heatmaps from the last 5 matches (Past 30 days).
-  3. Poisson Distribution Models for score probabilities.
-  4. Market Sentiment & Line Movement analysis.
-
-  STRICT ANALYTICAL REQUIREMENTS:
-  - INDIVIDUAL xG: Calculate projected goals for ${home} and ${away} separately based on defensive absences.
-  - MARKET ARBITRAGE: Identify the most "Mispriced" market (H2H, BTTS, Corners, or Asian Handicap).
-  - FORBIDDEN RESPONSES: Do not provide "2-1" or "Over 2.5" unless your calculated xG exceeds 2.85.
-  - LINEUP IMPACT: If a key playmaker is out, reduce the "Attacking Power" score by 25%.
-
-  OUTPUT JSON STRUCTURE:
-  {
-    "research_logs": {
-      "injuries": "Detailed status of key players for both sides",
-      "tactics": "How ${home}'s press will interact with ${away}'s buildup",
-      "form_30d": "Win/Loss/xG metrics for the last month"
-    },
-    "probabilities": {
-      "home_win": "X%", "draw": "X%", "away_win": "X%",
-      "over_2_5": "X%", "under_2_5": "X%", "btts_yes": "X%"
-    },
-    "market_analysis": {
-      "primary_pick": "The safest bet",
-      "value_longshot": "Higher risk, high reward pick",
-      "top_3_scores": ["S1", "S2", "S3"]
-    },
-    "confidence_score": 0-100,
-    "verdict": "One sentence "Strong Buy" or "Avoid" advice",
-    "entropy_id": "${entropy}"
-  }`;
-
   try {
-    // RUN THE QUANTUM LOGIC ENGINE (Groq)
-    const groqTask = groq.chat.completions.create({
-      messages: [{ role: "system", content: systemPrompt }],
-      model: "llama-3.3-70b-versatile",
-      temperature: 0.1, // Near-zero for purely mathematical consistency
-      response_format: { type: "json_object" }
+    // 2. FETCH LIVE ODDS (The "Target" data)
+    const oddsUrl = `https://api.the-odds-api.com/v4/sports/${sport_key}/odds/?apiKey=${ODDS_API_KEY}&regions=uk,us&markets=h2h,totals&oddsFormat=decimal`;
+    const oddsRes = await fetch(oddsUrl);
+    const oddsData = await oddsRes.json();
+
+    // Find specific match and extract the best (lowest) odds as the "Surest" market
+    const match = oddsData.find(m => m.home_team.includes(home) || m.away_team.includes(away));
+    if (!match) throw new Error("Match not found in live markets");
+
+    const bookmaker = match.bookmakers[0];
+    const h2hMarket = bookmaker.markets.find(m => m.key === 'h2h');
+    
+    // Calculate Implied Probabilities from Bookie
+    const bookieAnalysis = h2hMarket.outcomes.map(o => ({
+      name: o.name,
+      odds: o.price,
+      implied_prob: ((1 / o.price) * 100).toFixed(2) + "%"
+    }));
+
+    // 3. AI PROMPT WITH LIVE MARKET INJECTION
+    const systemPrompt = `
+    [ROLE: QUANTITATIVE SPORTS TRADER]
+    [DATE: Feb 28, 2026]
+    FIXTURE: ${home} vs ${away} (${league})
+    
+    LIVE MARKET DATA:
+    ${JSON.stringify(bookieAnalysis)}
+
+    TASK:
+    1. Analyze injury leaks and tactical heatmaps for these teams.
+    2. Identify if the Bookie's "implied probability" is WRONG.
+    3. Calculate TRUE probability. If True Prob > Implied Prob, it's a +EV bet.
+
+    OUTPUT JSON:
+    {
+      "market_snapshot": { "favorite": "${bookieAnalysis[0].name}", "bookie_prob": "${bookieAnalysis[0].implied_prob}" },
+      "ai_calculations": { "true_home_win_prob": "X%", "true_away_win_prob": "X%", "value_gap": "X%" },
+      "verdict": "Strong Buy / Avoid",
+      "best_bet": { "selection": "Name", "odds": 0.00, "expected_value": "+X.XX%" }
+    }`;
+
+    // 4. RUN ENSEMBLE (Groq + Gemini)
+    const [groqRes, geminiRes] = await Promise.all([
+      groq.chat.completions.create({
+        messages: [{ role: "system", content: systemPrompt }],
+        model: "llama-3.3-70b-versatile",
+        temperature: 0.1,
+        response_format: { type: "json_object" }
+      }),
+      fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
+        method: 'POST',
+        body: JSON.stringify({ contents: [{ parts: [{ text: systemPrompt + " Return raw JSON only." }] }] })
+      }).then(r => r.json())
+    ]);
+
+    // 5. MERGE & RESPOND
+    const prediction = JSON.parse(groqRes.choices[0].message.content);
+    
+    res.status(200).json({
+      timestamp: new Date().toISOString(),
+      match: `${home} vs ${away}`,
+      bookie_data: bookieAnalysis,
+      ai_insight: prediction,
+      disclaimer: "For analytical purposes only."
     });
 
-    // RUN THE LINGUISTIC RESEARCH ENGINE (Gemini)
-    const geminiTask = fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
-      method: 'POST',
-      body: JSON.stringify({ contents: [{ parts: [{ text: systemPrompt + " Return only raw JSON." }] }] })
-    }).then(r => r.json());
-
-    const [groqRes, geminiRes] = await Promise.all([groqTask, geminiTask]);
-    
-    // Final Data Construction
-    const finalData = JSON.parse(groqRes.choices[0].message.content);
-    res.status(200).json(finalData);
-
   } catch (error) {
-    res.status(500).json({ verdict: "RETRY: Engine Overload", confidence_score: 0 });
+    console.error(error);
+    res.status(500).json({ error: "Data Fetch/Processing Failed", details: error.message });
   }
 }
