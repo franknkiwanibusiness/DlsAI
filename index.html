@@ -3,106 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hoyoo AI | Quantum Scout</title>
+    <title>HOYOO AI | Command Center</title>
     <style>
-        :root { --neon: #00ff88; --bg: #0a0a0a; --card: #141414; }
-        body { background: var(--bg); color: white; font-family: 'Inter', sans-serif; padding: 20px; }
-        .input-group { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-        input, select { background: #222; border: 1px solid #444; color: white; padding: 12px; border-radius: 8px; flex: 1; }
-        button { background: var(--neon); color: black; border: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        :root { --neon: #00ff88; --dark: #050505; --card: #111; --text: #e0e0e0; }
+        body { background: var(--dark); color: var(--text); font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; }
         
-        #error-display { background: #ff444422; color: #ff4444; border: 1px solid #ff4444; padding: 15px; border-radius: 8px; display: none; margin-bottom: 20px; }
+        /* Command Inputs */
+        .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 25px; background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid #222; }
+        input, select { background: #1a1a1a; border: 1px solid #333; color: white; padding: 12px; border-radius: 6px; font-size: 14px; }
+        button { background: var(--neon); color: black; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        button:hover { filter: brightness(1.2); }
+        button:disabled { background: #333; color: #666; cursor: wait; }
+
+        /* Error Shield */
+        #error-shield { background: #330000; color: #ff4444; border: 1px solid #ff0000; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: none; font-family: monospace; white-space: pre-wrap; }
+
+        /* Analysis Display */
+        .analysis-container { display: none; }
+        .scout-card { background: var(--card); border: 1px solid #222; border-radius: 16px; overflow: hidden; animation: fadeIn 0.4s ease-out; }
+        .card-header { background: #1a1a1a; padding: 20px; border-bottom: 1px solid #222; display: flex; justify-content: space-between; align-items: center; }
+        .confidence-pill { background: var(--neon); color: black; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 800; }
+        .card-body { padding: 20px; }
         
-        .scout-card { background: var(--card); border: 1px solid #333; padding: 25px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .badge { background: var(--neon); color: black; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 900; }
-        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 20px 0; }
-        .stat-box { background: #1a1a1a; padding: 10px; border-radius: 8px; text-align: center; border: 1px solid #333; }
+        .market-highlight { background: #00ff8811; border-left: 4px solid var(--neon); padding: 15px; margin: 15px 0; }
+        .prob-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 20px 0; }
+        .prob-box { background: #1a1a1a; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #222; }
+        .prob-val { display: block; font-size: 20px; font-weight: bold; color: var(--neon); }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-    <div id="error-display"></div>
+    <div id="error-shield"></div>
 
-    <div class="input-group">
-        <input type="text" id="home-team" placeholder="Home Team">
-        <input type="text" id="away-team" placeholder="Away Team">
-        <select id="sport-select">
+    <div class="controls">
+        <input type="text" id="home-team" placeholder="Home Team Name">
+        <input type="text" id="away-team" placeholder="Away Team Name">
+        <select id="sport-id">
             <option value="soccer_epl">Premier League</option>
             <option value="soccer_uefa_champs_league">Champions League</option>
             <option value="soccer_spain_la_liga">La Liga</option>
+            <option value="soccer_italy_serie_a">Serie A</option>
         </select>
-        <button id="scout-btn" onclick="runScout()">SCOUT FIXTURE</button>
+        <button id="scout-btn">SCOUT FIXTURE</button>
     </div>
 
-    <div id="output">
+    <div id="output" class="analysis-container">
         </div>
 
     <script>
-        const API_URL = "https://your-vercel-domain.vercel.app/api/analyze";
+        const btn = document.getElementById('scout-btn');
+        const output = document.getElementById('output');
+        const shield = document.getElementById('error-shield');
+        const API_URL = "https://your-vercel-domain.vercel.app/api/analyze"; // Update this!
 
-        // LOAD FROM LOCAL STORAGE ON REFRESH
-        window.onload = () => {
-            const saved = localStorage.getItem('hoyoo_latest');
-            if (saved) renderUI(JSON.parse(saved));
-        };
+        // 1. PERSISTENCE ENGINE: Check localStorage on start
+        window.addEventListener('DOMContentLoaded', () => {
+            const cachedData = localStorage.getItem('hoyoo_latest_intel');
+            if (cachedData) {
+                renderUI(JSON.parse(cachedData));
+            }
+        });
 
-        async function runScout() {
-            const btn = document.getElementById('scout-btn');
-            const errBox = document.getElementById('error-display');
-            
+        btn.addEventListener('click', async () => {
+            const home = document.getElementById('home-team').value;
+            const away = document.getElementById('away-team').value;
+            const sport = document.getElementById('sport-id').value;
+
+            if (!home || !away) return alert("Enter team names.");
+
+            // Reset UI
             btn.disabled = true;
-            btn.innerText = "THINKING...";
-            errBox.style.display = 'none';
-
-            const query = new URLSearchParams({
-                home: document.getElementById('home-team').value,
-                away: document.getElementById('away-team').value,
-                sport: document.getElementById('sport-select').value
-            });
+            btn.innerText = "PROCESSING DATA...";
+            shield.style.display = "none";
 
             try {
-                const res = await fetch(`${API_URL}?${query}`);
+                const res = await fetch(`${API_URL}?home=${home}&away=${away}&sport=${sport}`);
                 const data = await res.json();
 
-                if (!res.ok) throw new Error(data.message || "Brain Timeout");
+                if (!res.ok) throw new Error(data.message || data.error || "Brain Synapse Failure");
 
-                // SAVE & RENDER
-                localStorage.setItem('hoyoo_latest', JSON.stringify(data));
+                // 2. STORE DATA: Lock it in local storage
+                localStorage.setItem('hoyoo_latest_intel', JSON.stringify(data));
+                
                 renderUI(data);
-
             } catch (err) {
-                errBox.innerText = `[CRITICAL ERROR]: ${err.message}`;
-                errBox.style.display = 'block';
+                shield.innerText = `BRIDGE ERROR: ${err.message}`;
+                shield.style.display = "block";
             } finally {
                 btn.disabled = false;
                 btn.innerText = "SCOUT FIXTURE";
             }
-        }
+        });
 
         function renderUI(d) {
-            document.getElementById('output').innerHTML = `
+            output.style.display = "block";
+            output.innerHTML = `
                 <div class="scout-card">
-                    <div style="display:flex; justify-content:between; align-items:center;">
-                        <span class="badge">CONFIDENCE: ${d.confidence_score}%</span>
-                        <h2 style="margin: 10px 0;">${d.fixture}</h2>
+                    <div class="card-header">
+                        <h2 style="margin:0;">${d.fixture || 'Match Analysis'}</h2>
+                        <span class="confidence-pill">CONFIDENCE: ${d.confidence_score}%</span>
                     </div>
-                    
-                    <div class="grid">
-                        <div class="stat-box">Home: ${d.probabilities.home}</div>
-                        <div class="stat-box">Draw: ${d.probabilities.draw}</div>
-                        <div class="stat-box">Away: ${d.probabilities.away}</div>
-                    </div>
+                    <div class="card-body">
+                        <div class="prob-grid">
+                            <div class="prob-box"><small>HOME</small><span class="prob-val">${d.probabilities.home}</span></div>
+                            <div class="prob-box"><small>DRAW</small><span class="prob-val">${d.probabilities.draw}</span></div>
+                            <div class="prob-box"><small>AWAY</small><span class="prob-val">${d.probabilities.away}</span></div>
+                        </div>
 
-                    <div style="border-left: 4px solid var(--neon); padding-left: 15px; margin: 20px 0;">
-                        <h3 style="color: var(--neon); margin:0;">PICK: ${d.market_analysis.primary_pick}</h3>
-                        <small>EXPECTED VALUE: ${d.market_analysis.ev_edge}</small>
-                    </div>
+                        <div class="market-highlight">
+                            <h3 style="margin:0; color:var(--neon);">${d.market_analysis.primary_pick}</h3>
+                            <div style="margin-top:5px; font-size:13px; opacity:0.8;">
+                                EV CALCULATION: ${d.market_analysis.ev_edge || d.market_analysis.ev_calculation}
+                            </div>
+                        </div>
 
-                    <p style="color: #aaa; line-height: 1.6;">${d.brain_thoughts}</p>
-                    
-                    <div style="margin-top: 20px; font-weight: bold;">
-                        TOP PROJECTED SCORES: ${d.market_analysis.top_3_scores.join(' | ')}
+                        <div style="margin: 20px 0;">
+                            <strong>HOYOO TACTICAL BRAIN:</strong>
+                            <p style="line-height:1.6; color:#bbb;">${d.brain_thoughts}</p>
+                        </div>
+
+                        <div style="background: #1a1a1a; padding: 15px; border-radius: 8px;">
+                            <strong>PROJECTED FINAL SCORES:</strong><br>
+                            <span style="font-size: 18px; letter-spacing: 2px; color: var(--neon);">
+                                ${d.market_analysis.top_3_scores.join(' | ')}
+                            </span>
+                        </div>
                     </div>
                 </div>
             `;
