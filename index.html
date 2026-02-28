@@ -3,73 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GoalGetter AI - Pro Research 2026</title>
+    <title>GoalGetter AI - Value Engine 2026</title>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
     <style>
-        /* Restoring your original CSS exactly */
         :root { --bg: #0f172a; --card: #1e293b; --accent: #38bdf8; --ai-purple: #818cf8; --border: 2px solid #334155; --green: #22c55e; --yellow: #fbbf24; --text: #f8fafc; }
         body { font-family: 'Quicksand', sans-serif; background: var(--bg); color: var(--text); padding: 15px; margin: 0; display: flex; flex-direction: column; align-items: center; }
         header { text-align: center; margin-bottom: 20px; width: 100%; }
         h1 { font-family: 'Fredoka One'; font-size: 2.5rem; color: var(--accent); margin: 0; }
-        .badge { padding: 8px 15px; border-radius: 12px; border: var(--border); background: #1e293b; font-weight: bold; font-size: 0.8rem; margin: 5px; }
         
-        /* Your Grid Layout */
         #grid { display: grid; grid-template-columns: 1fr; gap: 20px; width: 100%; max-width: 450px; }
         @media (min-width: 768px) { #grid { grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); max-width: 1200px; } }
         
         .card { background: var(--card); border: var(--border); border-radius: 20px; padding: 20px; position: relative; transition: 0.3s; }
-        .margin-tag { position: absolute; top: 15px; right: 15px; font-size: 0.7rem; color: #94a3b8; }
         .match-row { display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: 1.1rem; margin: 15px 0; }
         
-        .odds-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 15px; }
-        .odd-btn { background: #334155; border-radius: 10px; padding: 10px; text-align: center; font-size: 0.9rem; }
-        .prob-label { display: block; font-size: 0.65rem; color: #38bdf8; margin-top: 4px; font-weight: bold; }
+        .ai-btn { width: 100%; background: var(--ai-purple); color: white; border: none; padding: 14px; border-radius: 12px; font-family: 'Fredoka One'; cursor: pointer; font-size: 1rem; }
+        .ai-btn:disabled { background: #475569; cursor: not-allowed; }
+
+        /* Progress Bar Styles */
+        .progress-container { width: 100%; background: #0f172a; border-radius: 10px; height: 8px; margin: 15px 0; display: none; overflow: hidden; border: 1px solid #334155; }
+        .progress-bar { height: 100%; background: var(--accent); width: 0%; transition: 0.4s ease-in-out; box-shadow: 0 0 10px var(--accent); }
         
-        .ai-btn { width: 100%; background: var(--ai-purple); color: white; border: none; padding: 12px; border-radius: 12px; font-family: 'Fredoka One'; cursor: pointer; }
         .ai-panel { display: none; margin-top: 15px; padding: 15px; background: #0f172a; border-radius: 12px; border-left: 4px solid var(--ai-purple); }
-        
-        /* State-based colors we added for the logic */
-        .stage-2 { background: var(--yellow) !important; color: #000 !important; }
-        .verified-card { border: 3px solid var(--green) !important; }
-        .non-bettable { border: 3px solid #ef4444 !important; opacity: 0.7; }
-        
-        .ai-market-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #334155; font-size: 0.85rem; }
+        .ai-market-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #334155; font-size: 0.9rem; }
         .ai-val { color: var(--accent); font-weight: 800; }
-        .ai-reason { font-size: 0.8rem; font-style: italic; color: #94a3b8; margin-top: 10px; line-height: 1.4; }
+        .ai-reason { font-size: 0.85rem; margin-top: 12px; line-height: 1.4; }
+        .badge-value { background: var(--green); color: #000; padding: 2px 8px; border-radius: 6px; font-weight: 900; font-size: 0.7rem; }
     </style>
 </head>
 <body>
     <header>
         <h1>GoalGetter AI</h1>
-        <div class="status-bar">
-            <div id="q-groq" class="badge">Groq: --</div>
-            <div id="q-gemma" class="badge">Gemma: --</div>
-            <button onclick="forceRefresh()" class="badge" style="color:var(--yellow); cursor:pointer;">↻ Refresh</button>
-        </div>
+        <p style="font-size: 0.8rem; color: #94a3b8;">Value & Margin Auditor 2.0</p>
     </header>
     <div id="grid"></div>
 
     <script>
         const ODDS_KEY = 'ad7cc474657e32a32bf5d56e68e84fa8';
-        const VERCEL_GROQ = '/api/groq.js'; 
-        const VERCEL_GEMMA = '/api/gemma.js'; 
-        const leagues = ['soccer_epl', 'soccer_spain_la_liga', 'soccer_germany_bundesliga', 'soccer_italy_serie_a', 'soccer_france_ligue_1'];
-        const storageKey = `gg_cache_${new Date().toLocaleDateString('en-CA')}`;
-        let tempResearch = {}; 
-
-        function calcMargin(h, d, a) {
-            if (h === '-' || d === '-' || a === '-') return { margin: 0, probs: [0, 0, 0] };
-            const rawProbs = [1/h, 1/d, 1/a];
-            const sum = rawProbs.reduce((s, p) => s + p, 0);
-            return { 
-                margin: ((sum - 1) * 100).toFixed(1),
-                probs: rawProbs.map(p => ((p / sum) * 100).toFixed(0))
-            };
-        }
+        const leagues = ['soccer_epl', 'soccer_spain_la_liga', 'soccer_germany_bundesliga', 'soccer_italy_serie_a'];
 
         async function fetchData() {
             const grid = document.getElementById('grid');
-            grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center;">Analyzing Markets... ⏳</div>';
+            grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center;">📡 Loading Live Fixtures...</div>';
             try {
                 let all = [];
                 for (let l of leagues) {
@@ -77,90 +52,94 @@
                     const d = await res.json();
                     if (Array.isArray(d)) all = [...all, ...d];
                 }
-                localStorage.setItem(storageKey, JSON.stringify(all));
                 render(all);
             } catch (e) { grid.innerHTML = 'Error loading matches.'; }
         }
 
         function render(matches) {
             const grid = document.getElementById('grid');
-            grid.innerHTML = matches.map((m, i) => {
-                const bookie = m.bookmakers[0];
-                const h2h = bookie?.markets[0]?.outcomes || [];
-                const h = h2h.find(o => o.name === m.home_team)?.price || '-';
-                const d = h2h.find(o => o.name === 'Draw')?.price || '-';
-                const a = h2h.find(o => o.name === m.away_team)?.price || '-';
-                const { margin, probs } = calcMargin(h, d, a);
-                return `
+            grid.innerHTML = matches.map((m, i) => `
                 <div class="card" id="card-${i}">
-                    <span class="margin-tag">Vig: ${margin}%</span>
                     <div class="match-row"><span>${m.home_team}</span><span style="color:var(--accent)">VS</span><span>${m.away_team}</span></div>
-                    <div class="odds-grid">
-                        <div class="odd-btn">1: ${h}<span class="prob-label">${probs[0]}%</span></div>
-                        <div class="odd-btn">X: ${d}<span class="prob-label">${probs[1]}%</span></div>
-                        <div class="odd-btn">2: ${a}<span class="prob-label">${probs[2]}%</span></div>
+                    
+                    <button id="btn-${i}" class="ai-btn" onclick="runValueEngine('${m.home_team}', '${m.away_team}', '${m.sport_key}', ${i})">START DEEP ANALYSIS</button>
+                    
+                    <div id="prog-cont-${i}" class="progress-container">
+                        <div id="bar-${i}" class="progress-bar"></div>
                     </div>
-                    <button id="btn-${i}" class="ai-btn" onclick="runAI('${m.home_team}', '${m.away_team}', ${i})">DEEP RESEARCH 🧠</button>
+                    
                     <div id="ai-${i}" class="ai-panel"></div>
-                </div>`;
-            }).join('');
+                </div>`).join('');
         }
 
-        async function runAI(home, away, id) {
+        async function runValueEngine(home, away, sportKey, id) {
             const btn = document.getElementById(`btn-${id}`);
             const panel = document.getElementById(`ai-${id}`);
-            const card = document.getElementById(`card-${id}`);
+            const bar = document.getElementById(`bar-${id}`);
+            const progCont = document.getElementById(`prog-cont-${id}`);
 
-            // STEP 1: GROQ ANALYST
-            if (!tempResearch[id]) {
-                btn.innerText = "⏳ Analyst Researching...";
-                panel.style.display = 'block';
-                panel.innerHTML = "📡 Groq (Llama) is fetching initial data...";
-                try {
-                    const res = await fetch(VERCEL_GROQ, {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ home, away })
-                    });
-                    tempResearch[id] = await res.json();
-                    btn.innerText = "🔍 FINAL AUDIT (Gemma)";
-                    btn.classList.add("stage-2");
-                    panel.innerHTML = "✅ Analyst ready. Click above to run Gemma's 30-day Audit.";
-                } catch (e) { panel.innerText = "Groq Failed."; }
-                return;
-            }
+            btn.disabled = true;
+            btn.innerText = "Processing...";
+            progCont.style.display = "block";
+            panel.style.display = "block";
+            
+            const updateProg = (pct, text) => {
+                bar.style.width = pct + "%";
+                panel.innerHTML = `<small style="color:#94a3b8">${text}</small>`;
+            };
 
-            // STEP 2: GEMMA AUDITOR
-            btn.innerText = "🧬 Auditing Data...";
             try {
-                const res = await fetch(VERCEL_GEMMA, {
+                // STEP 1: GROQ MARKET PICKER
+                updateProg(25, "🧠 Analyst: Selecting Market...");
+                const s1 = await fetch('/api/groq', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ home, away, groq_suggestion: tempResearch[id] })
+                    body: JSON.stringify({ home, away })
                 });
-                const audit = await res.json();
+                const aiPick = await s1.json();
+
+                // STEP 2: ODDS API FETCH
+                updateProg(50, `📡 Fetching Live ${aiPick.market_key} Odds...`);
+                const s2 = await fetch(`https://api.the-odds-api.com/v4/sports/${sportKey}/odds/?apiKey=${ODDS_KEY}&regions=uk&markets=${aiPick.market_key}`);
+                const oddsData = await s2.json();
                 
-                if (audit.decision === "AGREE") {
-                    card.classList.add('verified-card');
+                const matchOdds = oddsData.find(m => m.home_team === home);
+                const bookie = matchOdds?.bookmakers[0];
+                const market = bookie?.markets.find(m => m.key === aiPick.market_key);
+                const livePrice = market?.outcomes.find(o => o.name.includes(aiPick.selection) || aiPick.selection.includes(o.name))?.price || 2.0;
+
+                // STEP 3: THE QUANT AUDIT
+                updateProg(75, `⚖️ Quant: Calculating Fair Value (Odds: ${livePrice})...`);
+                const s3 = await fetch('/api/gemma', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ home, away, groq_suggestion: aiPick, odds: livePrice })
+                });
+                const audit = await s3.json();
+
+                // FINAL RESULT
+                updateProg(100, "✅ Analysis Complete");
+                setTimeout(() => {
+                    progCont.style.display = "none";
                     panel.innerHTML = `
-                        <div class="ai-market-row"><span>Verified Pick</span> <span class="ai-val">${tempResearch[id].pick}</span></div>
-                        <div class="ai-market-row"><span>Confidence</span> <span class="ai-val">${audit.confidence}%</span></div>
-                        <div class="ai-reason">"${audit.audit_reason}"</div>
+                        <div class="ai-market-row"><span>AI Selection</span> <span class="ai-val">${aiPick.selection}</span></div>
+                        <div class="ai-market-row"><span>Market Price</span> <span class="ai-val">${livePrice}</span></div>
+                        <div class="ai-market-row"><span>Final Prob</span> <span class="ai-val">${audit.final_prob}%</span></div>
+                        <div class="ai-reason">
+                            ${audit.is_value ? '<span class="badge-value">VALUE BET</span> ' : ''}
+                            ${audit.verdict}
+                        </div>
                     `;
-                } else {
-                    card.classList.add('non-bettable');
-                    panel.innerHTML = `<div style="color:#ef4444">⚠️ NON-BETTABLE: ${audit.audit_reason}</div>`;
-                }
-                btn.style.display = "none";
-            } catch (e) { panel.innerText = "Audit Failed."; }
+                }, 500);
+
+            } catch (e) {
+                panel.innerHTML = "❌ Error in AI Pipeline.";
+                btn.disabled = false;
+                btn.innerText = "RETRY ANALYSIS";
+            }
         }
 
-        function init() {
-            const cached = localStorage.getItem(storageKey);
-            if (cached) render(JSON.parse(cached)); else fetchData();
-        }
-        function forceRefresh() { localStorage.removeItem(storageKey); fetchData(); }
-        init();
+        fetchData();
     </script>
 </body>
 </html>
