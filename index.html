@@ -25,7 +25,7 @@
     <h1>GoalGetter AI</h1>
     <div class="status-bar">
         <div id="quota" class="badge">Tokens: --</div>
-        <button onclick="fetchFixtures()" class="badge" style="background:#4ecdc4; cursor:pointer;">Refresh Games ↻</button>
+        <button onclick="forceRefresh()" class="badge" style="background:#4ecdc4; cursor:pointer;">Refresh Games ↻</button>
     </div>
 
     <div id="grid">
@@ -34,9 +34,24 @@
 
     <script>
         const ODDS_KEY = 'ad7cc474657e32a32bf5d56e68e84fa8';
-        // PUT YOUR FULL VERCEL URL HERE
         const VERCEL_URL = 'https://dlsvalue.site/api/research'; 
         const leagues = ['soccer_epl', 'soccer_spain_la_liga', 'soccer_germany_bundesliga', 'soccer_italy_serie_a', 'soccer_france_ligue_1'];
+        
+        // Dynamic key based on the date
+        const storageKey = `fixtures_${new Date().toLocaleDateString('en-CA')}`;
+
+        async function initApp() {
+            const cached = localStorage.getItem(storageKey);
+            const savedQuota = localStorage.getItem('last_quota');
+            
+            if (cached) {
+                console.log("Loading from storage...");
+                document.getElementById('quota').innerText = `Tokens: ${savedQuota || 'Saved'}`;
+                render(JSON.parse(cached));
+            } else {
+                fetchFixtures();
+            }
+        }
 
         async function fetchFixtures() {
             const grid = document.getElementById('grid');
@@ -44,16 +59,28 @@
             
             try {
                 let all = [];
+                let quotaVal = "--";
                 for (let l of leagues) {
                     const res = await fetch(`https://api.the-odds-api.com/v4/sports/${l}/odds/?apiKey=${ODDS_KEY}&regions=uk&markets=h2h`);
-                    document.getElementById('quota').innerText = `Tokens: ${res.headers.get('x-requests-remaining') || '?'}`;
+                    quotaVal = res.headers.get('x-requests-remaining') || quotaVal;
                     const data = await res.json();
                     if (Array.isArray(data)) all = [...all, ...data];
                 }
+
+                // Save to local storage
+                localStorage.setItem(storageKey, JSON.stringify(all));
+                localStorage.setItem('last_quota', quotaVal);
+                
+                document.getElementById('quota').innerText = `Tokens: ${quotaVal}`;
                 render(all);
             } catch (e) {
                 grid.innerHTML = '<div style="color:red;">Error: Check Odds API Key.</div>';
             }
+        }
+
+        function forceRefresh() {
+            localStorage.removeItem(storageKey);
+            fetchFixtures();
         }
 
         function render(matches) {
@@ -100,7 +127,8 @@
             }
         }
 
-        fetchFixtures();
+        // Run init on start
+        initApp();
     </script>
 </body>
 </html>
