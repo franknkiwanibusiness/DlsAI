@@ -1,82 +1,74 @@
 import Groq from "groq-sdk";
 
 export default async function handler(req, res) {
-  // 1. SETUP & CONFIG
   res.setHeader('Access-Control-Allow-Origin', '*');
-  const { home, away, league, sport_key } = req.query; 
+  
+  // 1. EXTRACT PARAMS (Add 'sport' like 'soccer_epl')
+  const { home, away, league, sport = 'soccer_epl' } = req.query;
   const ODDS_API_KEY = '10257181b61bdaba7ac4ca4e276c9dae';
-  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+  const groq = new Groq({ apiKey: process.env.EASYBET_API_KEY });
   const GEMINI_KEY = process.env.GEMINI_API_KEY;
 
   try {
-    // 2. FETCH LIVE ODDS (The "Target" data)
-    const oddsUrl = `https://api.the-odds-api.com/v4/sports/${sport_key}/odds/?apiKey=${ODDS_API_KEY}&regions=uk,us&markets=h2h,totals&oddsFormat=decimal`;
+    // 2. FETCH THE "BOOKIE'S TRUTH" (Real-time Odds)
+    const oddsUrl = `https://api.the-odds-api.com/v4/sports/${sport}/odds/?apiKey=${ODDS_API_KEY}&regions=uk,us&markets=h2h,totals&oddsFormat=decimal`;
     const oddsRes = await fetch(oddsUrl);
     const oddsData = await oddsRes.json();
 
-    // Find specific match and extract the best (lowest) odds as the "Surest" market
+    // Find the specific fixture and the "Surest" market (lowest odds)
     const match = oddsData.find(m => m.home_team.includes(home) || m.away_team.includes(away));
-    if (!match) throw new Error("Match not found in live markets");
+    const marketSnapshot = match ? match.bookmakers[0].markets : "No live odds found";
 
-    const bookmaker = match.bookmakers[0];
-    const h2hMarket = bookmaker.markets.find(m => m.key === 'h2h');
-    
-    // Calculate Implied Probabilities from Bookie
-    const bookieAnalysis = h2hMarket.outcomes.map(o => ({
-      name: o.name,
-      odds: o.price,
-      implied_prob: ((1 / o.price) * 100).toFixed(2) + "%"
-    }));
-
-    // 3. AI PROMPT WITH LIVE MARKET INJECTION
     const systemPrompt = `
-    [ROLE: QUANTITATIVE SPORTS TRADER]
+    [SYSTEM ROLE: ELITE SPORTS QUANT]
     [DATE: Feb 28, 2026]
     FIXTURE: ${home} vs ${away} (${league})
-    
-    LIVE MARKET DATA:
-    ${JSON.stringify(bookieAnalysis)}
 
-    TASK:
-    1. Analyze injury leaks and tactical heatmaps for these teams.
-    2. Identify if the Bookie's "implied probability" is WRONG.
-    3. Calculate TRUE probability. If True Prob > Implied Prob, it's a +EV bet.
+    LIVE MARKET DATA FROM BOOKMAKERS:
+    ${JSON.stringify(marketSnapshot)}
 
-    OUTPUT JSON:
+    YOUR DIRECTIVE:
+    1. Identify the 'Banker' (the outcome with lowest decimal odds).
+    2. Analyze if the AI predicts a HIGHER probability than the bookie's implied probability.
+    3. Calculate Expected Value: (AI_Prob * Bookie_Odds) - 1.
+
+    OUTPUT JSON STRUCTURE:
     {
-      "market_snapshot": { "favorite": "${bookieAnalysis[0].name}", "bookie_prob": "${bookieAnalysis[0].implied_prob}" },
-      "ai_calculations": { "true_home_win_prob": "X%", "true_away_win_prob": "X%", "value_gap": "X%" },
-      "verdict": "Strong Buy / Avoid",
-      "best_bet": { "selection": "Name", "odds": 0.00, "expected_value": "+X.XX%" }
+      "bookie_consensus": {
+        "implied_favorite": "Name",
+        "current_odds": 0.00,
+        "implied_win_chance": "X%"
+      },
+      "ai_analysis": {
+        "true_win_probability": "X%",
+        "expected_value_roi": "+X%",
+        "tactical_edge": "Why the bookie is wrong/right"
+      },
+      "verdict": "STRONG BUY if EV > 5%, otherwise AVOID",
+      "best_market_odds": "Current price of the top pick"
     }`;
 
-    // 4. RUN ENSEMBLE (Groq + Gemini)
-    const [groqRes, geminiRes] = await Promise.all([
-      groq.chat.completions.create({
-        messages: [{ role: "system", content: systemPrompt }],
-        model: "llama-3.3-70b-versatile",
-        temperature: 0.1,
-        response_format: { type: "json_object" }
-      }),
-      fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
-        method: 'POST',
-        body: JSON.stringify({ contents: [{ parts: [{ text: systemPrompt + " Return raw JSON only." }] }] })
-      }).then(r => r.json())
-    ]);
-
-    // 5. MERGE & RESPOND
-    const prediction = JSON.parse(groqRes.choices[0].message.content);
-    
-    res.status(200).json({
-      timestamp: new Date().toISOString(),
-      match: `${home} vs ${away}`,
-      bookie_data: bookieAnalysis,
-      ai_insight: prediction,
-      disclaimer: "For analytical purposes only."
+    // 3. RUN DUAL-ENGINE ENSEMBLE
+    const groqTask = groq.chat.completions.create({
+      messages: [{ role: "system", content: systemPrompt }],
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.1,
+      response_format: { type: "json_object" }
     });
+
+    const geminiTask = fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
+      method: 'POST',
+      body: JSON.stringify({ contents: [{ parts: [{ text: systemPrompt + " Return only raw JSON." }] }] })
+    }).then(r => r.json());
+
+    const [groqRes, geminiRes] = await Promise.all([groqTask, geminiTask]);
+    
+    // 4. RESPOND WITH THE MERGED DATA
+    const finalData = JSON.parse(groqRes.choices[0].message.content);
+    res.status(200).json(finalData);
 
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Data Fetch/Processing Failed", details: error.message });
+    res.status(500).json({ verdict: "RETRY: Connection to Odds API or AI failed", confidence_score: 0 });
   }
 }
