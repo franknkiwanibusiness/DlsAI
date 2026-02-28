@@ -2,239 +2,111 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BET SMART | Quantum Scout</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hoyoo AI | Quantum Scout</title>
     <style>
-        :root {
-            --bg: #000; --card-bg: #0a0a0a; --header-bg: #000;
-            --pink: #ff69b4; --green: #00ff00; --text: #fff;
-            --border: #1a1a1a; --accent: #111;
-        }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { 
-            margin: 0; background: var(--bg); font-family: 'Inter', sans-serif; 
-            color: var(--text); line-height: 1.4; overflow-x: hidden;
-            user-select: none; -webkit-user-select: none;
-        }
+        :root { --neon: #00ff88; --bg: #0a0a0a; --card: #141414; }
+        body { background: var(--bg); color: white; font-family: 'Inter', sans-serif; padding: 20px; }
+        .input-group { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        input, select { background: #222; border: 1px solid #444; color: white; padding: 12px; border-radius: 8px; flex: 1; }
+        button { background: var(--neon); color: black; border: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
         
-        header { 
-            height: 60px; background: var(--header-bg); border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; justify-content: space-between; padding: 0 15px;
-            position: sticky; top: 0; z-index: 2000; backdrop-filter: blur(15px);
-        }
-
-        /* MENU STYLES */
-        .menu-btn { cursor: pointer; display: flex; flex-direction: column; gap: 4px; width: 22px; z-index: 3000; padding: 10px 0; }
-        .bar { height: 2px; width: 100%; background: var(--text); border-radius: 2px; transition: 0.3s; }
+        #error-display { background: #ff444422; color: #ff4444; border: 1px solid #ff4444; padding: 15px; border-radius: 8px; display: none; margin-bottom: 20px; }
         
-        .side-menu { 
-            position: fixed; top: 0; left: -280px; width: 280px; height: 100%; 
-            background: #050505; z-index: 2500; transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            border-right: 1px solid var(--border); padding: 80px 20px;
-        }
-        .side-menu.active { left: 0; box-shadow: 20px 0 60px rgba(0,0,0,0.9); }
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; z-index: 2400; }
-        .overlay.active { display: block; }
-        
-        .menu-item { padding: 18px 0; border-bottom: 1px solid var(--border); color: #888; font-weight: 800; font-size: 0.85rem; cursor: pointer; }
-        .menu-item.danger { color: var(--pink); border-bottom: 1px solid #301018; }
-
-        .status-bar {
-            background: #11050a; height: 25px; display: flex; align-items: center;
-            padding: 0 15px; font-size: 0.55rem; font-weight: 900; color: #666;
-            border-bottom: 1px solid var(--border); justify-content: space-between;
-        }
-
-        #fixtures-container { padding: 12px; }
-        .league-header { 
-            position: sticky; top: 85px; z-index: 1000;
-            background: #000; padding: 12px 0; border-bottom: 1px solid var(--pink);
-            font-weight: 900; text-transform: uppercase; font-size: 0.75rem; margin-bottom: 12px;
-        }
-
-        .match-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 15px; }
-        .match-meta { display: flex; justify-content: space-between; font-size: 0.6rem; color: #444; font-weight: 900; margin-bottom: 10px; }
-        .team-row { display: flex; justify-content: space-between; font-size: 1rem; font-weight: 800; margin: 2px 0; }
-        .label { font-size: 0.5rem; color: #555; align-self: center; }
-
-        .odds-grid { display: grid; grid-template-columns: repeat(3, 1fr) 100px; gap: 8px; margin-top: 10px; }
-        .odd-item { background: var(--accent); border: 1px solid #222; border-radius: 8px; display: flex; flex-direction: column; align-items: center; padding: 8px 0; }
-        .odd-v { color: var(--green); font-weight: 900; font-size: 0.85rem; }
-        .odd-l { font-size: 0.45rem; color: #555; font-weight: 800; }
-
-        .scout-btn { background: var(--pink); color: #000; border: none; border-radius: 8px; font-weight: 900; font-size: 0.65rem; text-transform: uppercase; }
-        .scout-btn.active { background: #fff; }
-
-        .ai-drawer { display: none; background: #050505; border: 1px solid #1a1a1a; border-radius: 10px; padding: 15px; margin-top: 12px; }
-        .scout-logs { font-size: 0.65rem; color: #888; border-left: 2px solid var(--pink); padding-left: 10px; margin-bottom: 15px; }
-        .prob-bar { display: flex; gap: 4px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px; }
-        .prob-pill { background: #111; padding: 4px 8px; border-radius: 5px; font-size: 0.55rem; font-weight: 900; color: var(--green); border: 1px solid #333; white-space: nowrap; }
-        .verdict-box { background: var(--green); color: #000; padding: 10px; border-radius: 8px; font-weight: 900; text-align: center; font-size: 0.8rem; }
-        
-        .loading { font-size: 0.6rem; color: var(--pink); font-weight: 900; animation: blink 1s infinite; text-align: center; padding: 20px; }
-        @keyframes blink { 50% { opacity: 0.2; } }
+        .scout-card { background: var(--card); border: 1px solid #333; padding: 25px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .badge { background: var(--neon); color: black; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 900; }
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 20px 0; }
+        .stat-box { background: #1a1a1a; padding: 10px; border-radius: 8px; text-align: center; border: 1px solid #333; }
     </style>
 </head>
 <body>
 
-    <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
-    
-    <div class="side-menu" id="side-menu">
-        <div class="menu-item" onclick="toggleMenu()">Dashboard</div>
-        <div class="menu-item danger" onclick="fullReset()">RESET LOCAL STORAGE</div>
-        <div style="margin-top: 50px; font-size: 0.55rem; color: #333; font-weight: 900; letter-spacing: 1px;">ENGINE: QUANTUM v3.1</div>
+    <div id="error-display"></div>
+
+    <div class="input-group">
+        <input type="text" id="home-team" placeholder="Home Team">
+        <input type="text" id="away-team" placeholder="Away Team">
+        <select id="sport-select">
+            <option value="soccer_epl">Premier League</option>
+            <option value="soccer_uefa_champs_league">Champions League</option>
+            <option value="soccer_spain_la_liga">La Liga</option>
+        </select>
+        <button id="scout-btn" onclick="runScout()">SCOUT FIXTURE</button>
     </div>
 
-    <header>
-        <div class="menu-btn" onclick="toggleMenu()">
-            <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+    <div id="output">
         </div>
-        <div style="font-weight: 900; font-size: 1.1rem; letter-spacing: -1px;"><span style="color:var(--pink)">QUANTUM</span>SCOUT</div>
-        <div id="clock" style="font-size: 0.7rem; font-weight: 800; color:#444;"></div>
-    </header>
-
-    <div class="status-bar">
-        <div>BRIDGE: ACTIVE</div>
-        <div style="color:var(--green)">SYSTEM ONLINE</div>
-    </div>
-
-    <div id="fixtures-container">
-        <div class="loading">WAKING UP THE SCOUTS...</div>
-    </div>
 
     <script>
-        const API_KEY = '10257181b61bdaba7ac4ca4e276c9dae';
-        const LEAGUES = ['soccer_epl', 'soccer_spain_la_liga', 'soccer_germany_bundesliga', 'soccer_italy_serie_a', 'soccer_france_ligue_one'];
+        const API_URL = "https://your-vercel-domain.vercel.app/api/analyze";
 
-        function toggleMenu() {
-            document.getElementById('side-menu').classList.toggle('active');
-            document.getElementById('overlay').classList.toggle('active');
-        }
+        // LOAD FROM LOCAL STORAGE ON REFRESH
+        window.onload = () => {
+            const saved = localStorage.getItem('hoyoo_latest');
+            if (saved) renderUI(JSON.parse(saved));
+        };
 
-        function fullReset() {
-            if(confirm("Wipe all cached AI research and fixture data?")) {
-                localStorage.clear();
-                window.location.reload();
-            }
-        }
+        async function runScout() {
+            const btn = document.getElementById('scout-btn');
+            const errBox = document.getElementById('error-display');
+            
+            btn.disabled = true;
+            btn.innerText = "THINKING...";
+            errBox.style.display = 'none';
 
-        async function init() {
-            const today = new Date().toISOString().split('T')[0];
-            const cache = JSON.parse(localStorage.getItem('f_cache_v3'));
-            if (cache && cache.date === today) { render(cache.data); return; }
-
-            let all = [];
-            for (const id of LEAGUES) {
-                try {
-                    const res = await fetch(`https://api.the-odds-api.com/v4/sports/${id}/odds/?apiKey=${API_KEY}&regions=uk&markets=h2h`);
-                    const data = await res.json();
-                    const games = data.filter(m => {
-                        const mDate = new Date(m.commence_time);
-                        const limit = new Date(); limit.setDate(limit.getDate() + 2);
-                        return mDate >= new Date() && mDate <= limit;
-                    });
-                    if (games.length > 0) all.push({ league: games[0].sport_title, matches: games });
-                } catch (e) { console.error(e); }
-            }
-            localStorage.setItem('f_cache_v3', JSON.stringify({ date: today, data: all }));
-            render(all);
-        }
-
-        function render(data) {
-            const container = document.getElementById('fixtures-container');
-            const aiCache = JSON.parse(localStorage.getItem('ai_v3_cache')) || {};
-            container.innerHTML = '';
-
-            data.forEach(group => {
-                const section = document.createElement('div');
-                section.innerHTML = `<div class="league-header">${group.league}</div>`;
-                
-                group.matches.forEach(m => {
-                    const time = new Date(m.commence_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', weekday: 'short' });
-                    const odds = getOdds(m);
-                    const isCached = aiCache[m.id];
-                    
-                    section.innerHTML += `
-                        <div class="match-card">
-                            <div class="match-meta"><span>${time}</span><span>MODEL: POISSON v2</span></div>
-                            <div class="team-block">
-                                <div class="team-row"><span>${m.home_team}</span><span class="label">HOME</span></div>
-                                <div class="team-row"><span>${m.away_team}</span><span class="label">AWAY</span></div>
-                            </div>
-                            <div class="odds-grid">
-                                <div class="odd-item"><span class="odd-l">1</span><span class="odd-v">${odds.h}</span></div>
-                                <div class="odd-item"><span class="odd-l">X</span><span class="odd-v">${odds.d}</span></div>
-                                <div class="odd-item"><span class="odd-l">2</span><span class="odd-v">${odds.a}</span></div>
-                                <button class="scout-btn ${isCached ? 'active' : ''}" onclick="runScout(this, '${m.home_team}', '${m.away_team}', '${group.league}', '${m.id}')">
-                                    ${isCached ? 'REPORT' : 'SCOUT'}
-                                </button>
-                            </div>
-                            <div class="ai-drawer" id="drawer-${m.id}" ${isCached ? 'style="display:block;"' : ''}>
-                                ${isCached ? buildAIDisplay(isCached) : ''}
-                            </div>
-                        </div>`;
-                });
-                container.appendChild(section);
+            const query = new URLSearchParams({
+                home: document.getElementById('home-team').value,
+                away: document.getElementById('away-team').value,
+                sport: document.getElementById('sport-select').value
             });
-        }
-
-        async function runScout(btn, home, away, league, id) {
-            const drawer = document.getElementById(`drawer-${id}`);
-            const cache = JSON.parse(localStorage.getItem('ai_v3_cache')) || {};
-            if (cache[id]) { drawer.style.display = drawer.style.display === 'block' ? 'none' : 'block'; return; }
-
-            btn.disabled = true; btn.innerText = '...';
-            drawer.style.display = 'block';
-            drawer.innerHTML = '<div class="loading">SIMULATING 24HR TACTICAL SWEEP...</div>';
 
             try {
-                const res = await fetch(`/api/analyze?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&league=${encodeURIComponent(league)}`);
+                const res = await fetch(`${API_URL}?${query}`);
                 const data = await res.json();
-                cache[id] = data;
-                localStorage.setItem('ai_v3_cache', JSON.stringify(cache));
-                drawer.innerHTML = buildAIDisplay(data);
-                btn.innerText = 'REPORT'; btn.classList.add('active');
-            } catch (e) {
-                drawer.innerHTML = '<div style="color:red; font-size:0.6rem; text-align:center;">SCOUT TIMEOUT - RETRY</div>';
-                btn.innerText = 'SCOUT';
-            } finally { btn.disabled = false; }
+
+                if (!res.ok) throw new Error(data.message || "Brain Timeout");
+
+                // SAVE & RENDER
+                localStorage.setItem('hoyoo_latest', JSON.stringify(data));
+                renderUI(data);
+
+            } catch (err) {
+                errBox.innerText = `[CRITICAL ERROR]: ${err.message}`;
+                errBox.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "SCOUT FIXTURE";
+            }
         }
 
-        function buildAIDisplay(d) {
-            return `
-                <div class="scout-logs">
-                    <strong>SCOUT LOG:</strong> ${d.research_logs.injuries}<br><br>
-                    <strong>TACTICS:</strong> ${d.research_logs.tactics}
-                </div>
-                <div class="prob-bar">
-                    <div class="prob-pill">H: ${d.probabilities.home_win}</div>
-                    <div class="prob-pill">A: ${d.probabilities.away_win}</div>
-                    <div class="prob-pill">U2.5: ${d.probabilities.under_2_5}</div>
-                    <div class="prob-pill">BTTS: ${d.probabilities.btts_yes}</div>
-                </div>
-                <div style="font-size:0.6rem; color:#444; margin-bottom:10px; font-weight:800;">
-                    PROBABLE: ${d.market_analysis.top_3_scores.join(' | ')}
-                </div>
-                <div class="verdict-box">
-                    ${d.market_analysis.primary_pick} [${d.confidence_score}%]
+        function renderUI(d) {
+            document.getElementById('output').innerHTML = `
+                <div class="scout-card">
+                    <div style="display:flex; justify-content:between; align-items:center;">
+                        <span class="badge">CONFIDENCE: ${d.confidence_score}%</span>
+                        <h2 style="margin: 10px 0;">${d.fixture}</h2>
+                    </div>
+                    
+                    <div class="grid">
+                        <div class="stat-box">Home: ${d.probabilities.home}</div>
+                        <div class="stat-box">Draw: ${d.probabilities.draw}</div>
+                        <div class="stat-box">Away: ${d.probabilities.away}</div>
+                    </div>
+
+                    <div style="border-left: 4px solid var(--neon); padding-left: 15px; margin: 20px 0;">
+                        <h3 style="color: var(--neon); margin:0;">PICK: ${d.market_analysis.primary_pick}</h3>
+                        <small>EXPECTED VALUE: ${d.market_analysis.ev_edge}</small>
+                    </div>
+
+                    <p style="color: #aaa; line-height: 1.6;">${d.brain_thoughts}</p>
+                    
+                    <div style="margin-top: 20px; font-weight: bold;">
+                        TOP PROJECTED SCORES: ${d.market_analysis.top_3_scores.join(' | ')}
+                    </div>
                 </div>
             `;
         }
-
-        function getOdds(m) {
-            try {
-                const outs = m.bookmakers[0].markets[0].outcomes;
-                return {
-                    h: outs.find(o => o.name === m.home_team).price.toFixed(2),
-                    a: outs.find(o => o.name === m.away_team).price.toFixed(2),
-                    d: outs.find(o => o.name === 'Draw').price.toFixed(2)
-                };
-            } catch { return { h: '?', d: '?', a: '?' }; }
-        }
-
-        setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString('en-GB'); }, 1000);
-        window.onload = init;
     </script>
 </body>
 </html>
