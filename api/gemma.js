@@ -9,32 +9,43 @@ export default async function handler(req, res) {
         const chat = await groq.chat.completions.create({
             messages: [
                 { 
-                  role: "system", 
-                  content: "You are a Betting Quant. Your job is to calculate 'Fair Value'. " +
-                           "Compare AI probability vs Bookmaker Fair Probability (Odds with Vig removed)." 
+                    role: "system", 
+                    content: "You are a Betting Quant. Calculate Fair Value by removing bookmaker overround." 
                 },
                 { 
-                  role: "user", 
-                  content: `
-                  Match: ${home} vs ${away}
-                  AI Prediction: ${groq_suggestion.pick} at ${groq_suggestion.confidence}%
-                  Bookie Odds for this pick: ${odds}
-                  
-                  TASK: 
-                  1. Calculate Implied Prob: (1 / ${odds}) * 100.
-                  2. Subtract estimated 5% Vig to get 'Fair Market Prob'.
-                  3. If AI confidence (${groq_suggestion.confidence}%) is > Fair Market Prob + 10%, it is a VALUE BET.
-                  4. Adjust the final result to be realistic (no 99% wins).
-                  
-                  Return JSON: {"final_prob": 0-100, "is_value": true/false, "verdict": "15-word math reason"}`
+                    role: "user", 
+                    content: `
+                    MATCH: ${home} vs ${away}
+                    AI RESEARCH PROBABILITY: ${groq_suggestion.confidence}%
+                    BOOKIE ODDS: ${odds}
+
+                    INSTRUCTIONS:
+                    1. Implied Prob = (1 / ${odds}) * 100.
+                    2. Fair Market Prob = Implied Prob / 1.05 (Assuming 5% average vig).
+                    3. Calculate Edge = AI Research Prob - Fair Market Prob.
+                    4. A 'Value Bet' must have an Edge > 8%.
+                    
+                    Return ONLY JSON:
+                    {
+                        "final_prob": 0-100,
+                        "is_value": true/false,
+                        "edge": "percentage",
+                        "verdict": "12-word mathematical justification"
+                    }`
                 }
             ],
             model: "llama-3.3-70b-versatile",
+            temperature: 0, // Keep math consistent
             response_format: { type: "json_object" }
         });
 
-        res.status(200).json(JSON.parse(chat.choices[0].message.content));
+        const result = JSON.parse(chat.choices[0].message.content);
+        res.status(200).json(result);
     } catch (e) {
-        res.status(200).json({ final_prob: 50, is_value: false, verdict: "Math calculation failed." });
+        res.status(200).json({ 
+            final_prob: 50, 
+            is_value: false, 
+            verdict: "Math engine timed out. Prediction unverified." 
+        });
     }
 }
