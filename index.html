@@ -3,159 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Void Terminal</title>
+    <title>Void Terminal | 24H Feed</title>
     <style>
-        :root {
-            --bg: #000000;
-            --text: #ffffff;
-            --glass: rgba(0, 0, 0, 0.85);
-            --border: rgba(255, 255, 255, 0.1);
-            --accent: #00ff88;
-        }
-
-        body {
-            margin: 0;
-            background: var(--bg);
-            color: var(--text);
-            font-family: 'Inter', -apple-system, sans-serif;
-            overflow: hidden;
-        }
-
-        /* 40px Header */
+        :root { --bg: #000; --text: #fff; --accent: #00ff88; --border: rgba(255,255,255,0.1); }
+        body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; }
+        
         header {
-            position: sticky;
-            top: 0;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 15px;
-            backdrop-filter: blur(25px);
-            background: var(--glass);
-            border-bottom: 1px solid var(--border);
-            z-index: 1000;
+            position: sticky; top: 0; height: 40px; display: flex; align-items: center;
+            justify-content: space-between; padding: 0 15px; background: rgba(0,0,0,0.9);
+            backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); z-index: 1000;
         }
 
-        .settings-btn {
-            width: 14px; height: 14px; border: 1.5px solid #fff;
-            border-radius: 50%; position: relative; cursor: pointer;
-            opacity: 0.5;
+        .ticker-row { 
+            width: 100%; height: 30px; background: #050505; border-bottom: 1px solid var(--border); 
+            display: flex; align-items: center; overflow: hidden; font-size: 10px; font-weight: 800; 
         }
-        .settings-btn::after {
-            content: ''; position: absolute; top: 50%; left: 50%;
-            width: 3px; height: 3px; background: #fff; border-radius: 50%;
-            transform: translate(-50%, -50%);
-        }
+        .scroller { display: flex; animation: scroll 50s linear infinite; white-space: nowrap; }
+        @keyframes scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+        .item { padding: 0 60px; letter-spacing: 2px; text-transform: uppercase; }
 
-        /* Tickers */
-        .ticker-row {
-            width: 100%;
-            height: 30px;
-            background: #000;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            overflow: hidden;
-            font-size: 10px;
-            font-weight: 700;
-            white-space: nowrap;
+        .container {
+            padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 12px; max-width: 1400px; margin: 0 auto;
         }
 
-        .odds-row { color: var(--accent); }
-
-        .scroller {
-            display: flex;
-            animation: scroll 50s linear infinite;
+        .fixture-card {
+            background: #050505; border: 1px solid var(--border); padding: 18px;
+            display: flex; flex-direction: column; gap: 8px; transition: 0.3s;
         }
+        .fixture-card:hover { border-color: var(--accent); background: #080808; }
 
-        @keyframes scroll {
-            from { transform: translateX(0); }
-            to { transform: translateX(-50%); }
+        .league-label { font-size: 8px; font-weight: 900; color: var(--accent); letter-spacing: 2px; text-transform: uppercase; }
+        .teams { font-size: 14px; font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
+        .vs { color: #444; font-size: 10px; }
+
+        .match-footer {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);
         }
+        .match-time { font-size: 10px; font-family: monospace; color: #888; }
+        .status-tag { font-size: 9px; color: var(--accent); font-weight: 900; letter-spacing: 1px; }
 
-        .item { padding: 0 60px; letter-spacing: 1.5px; text-transform: uppercase; }
-
-        /* Spinner */
-        .spinner {
-            width: 12px; height: 12px;
-            border: 2px solid rgba(255,255,255,0.1);
-            border-top: 2px solid var(--accent);
-            border-radius: 50%;
-            animation: spin 0.6s linear infinite;
-            margin: 0 auto;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* Menu */
-        #settings-menu {
-            display: none; position: absolute; top: 45px; left: 10px;
-            background: #000; border: 1px solid var(--border);
-            border-radius: 2px; padding: 10px; z-index: 2000;
-        }
-        #settings-menu.show { display: block; }
-        .clear-btn { color: #ff3333; font-size: 10px; cursor: pointer; font-weight: bold; }
-
-        .date-time { font-size: 10px; font-family: monospace; letter-spacing: 1px; }
+        .date-time { font-size: 10px; font-family: monospace; display: flex; align-items: center; gap: 8px; }
+        .pulse { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        
+        .loading { grid-column: 1/-1; text-align: center; padding: 100px; color: #444; letter-spacing: 4px; font-size: 12px; }
     </style>
 </head>
 <body>
 
     <header>
-        <div class="settings-btn" id="trigger"></div>
-        <div id="settings-menu">
-            <div class="clear-btn" onclick="localStorage.clear(); location.reload();">CLEAR LOCAL STORAGE</div>
+        <div style="width:14px; height:14px; border:1.5px solid #fff; border-radius:50%; opacity:0.5;"></div>
+        <div class="date-time">
+            <span id="clock"></span>
+            <div class="pulse"></div>
         </div>
-        <div class="date-time" id="clock"></div>
     </header>
 
     <div class="ticker-row">
-        <div class="scroller" id="news-ticker"><div class="spinner"></div></div>
+        <div class="scroller">
+            <span class="item"><span style="color:var(--accent)">WIN:</span> FANATICS USER - $160,000 - 5-LEG PROPS</span>
+            <span class="item"><span style="color:var(--accent)">WIN:</span> CAESARS USER - $140,000 - PHILLY ML</span>
+            <span class="item"><span style="color:var(--accent)">UPSET:</span> BODØ/GLIMT ELIMINATES INTER MILAN - UCL</span>
+            <span class="item"><span style="color:var(--accent)">WIN:</span> FANATICS USER - $160,000 - 5-LEG PROPS</span>
+        </div>
     </div>
 
-    <div class="ticker-row odds-row">
-        <div class="scroller" id="odds-ticker"><div class="spinner"></div></div>
+    <div class="container" id="fixtures-grid">
+        <div class="loading">SYNCING 24-HOUR ELITE DATA...</div>
     </div>
 
     <script>
-        document.getElementById('trigger').onclick = (e) => {
-            e.stopPropagation();
-            document.getElementById('settings-menu').classList.toggle('show');
-        };
+        const API_KEY = '10257181b61bdaba7ac4ca4e276c9dae';
+        const ELITE_LEAGUES = [
+            'soccer_epl', 'soccer_spain_la_liga', 'soccer_italy_serie_a', 
+            'soccer_germany_bundesliga', 'soccer_france_ligue_one',
+            'soccer_uefa_champs_league', 'soccer_uefa_europa_league'
+        ];
+
+        async function fetchAll() {
+            const grid = document.getElementById('fixtures-grid');
+            const now = new Date();
+            const tomorrow = new Date(now.getTime() + (24 * 60 * 60 * 1000));
+            
+            try {
+                // Fetch all soccer fixtures
+                const res = await fetch(`https://api.the-odds-api.com/v4/sports/soccer/odds/?regions=uk&apiKey=${API_KEY}`);
+                const data = await res.json();
+
+                if (Array.isArray(data)) {
+                    // Filter: Elite League + Within 24 Hours
+                    const filtered = data.filter(m => {
+                        const mTime = new Date(m.commence_time);
+                        return ELITE_LEAGUES.includes(m.sport_key) && mTime >= now && mTime <= tomorrow;
+                    });
+
+                    if (filtered.length > 0) {
+                        filtered.sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time));
+                        
+                        grid.innerHTML = filtered.map(match => {
+                            const matchTime = new Date(match.commence_time);
+                            const isToday = matchTime.getDate() === now.getDate();
+                            
+                            return `
+                                <div class="fixture-card">
+                                    <div class="league-label">${match.sport_title}</div>
+                                    <div class="teams">
+                                        <span>${match.home_team}</span>
+                                        <span class="vs">VS</span>
+                                        <span>${match.away_team}</span>
+                                    </div>
+                                    <div class="match-footer">
+                                        <div class="match-time">
+                                            ${matchTime.toLocaleDateString('en-GB', {day:'2-digit', month:'short'})} | 
+                                            ${matchTime.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
+                                        </div>
+                                        <div class="status-tag">${isToday ? 'TODAY' : 'TOMORROW'}</div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                    } else {
+                        grid.innerHTML = '<div class="loading">NO ELITE MATCHES IN NEXT 24H</div>';
+                    }
+                }
+            } catch (err) {
+                grid.innerHTML = '<div class="loading">SYNC ERROR - CHECK API QUOTA</div>';
+            }
+        }
 
         function updateClock() {
             const now = new Date();
-            const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
-            const timeStr = now.toTimeString().split(' ')[0];
-            document.getElementById('clock').innerText = `${dateStr} | ${timeStr}`;
-        }
-
-        async function loadData() {
-            try {
-                const res = await fetch('/api/live-data');
-                const data = await res.json();
-                
-                // Set News
-                if (data.news && data.news.length > 0) {
-                    const newsHTML = data.news.map(n => `<span class="item">${n}</span>`).join('');
-                    document.getElementById('news-ticker').innerHTML = newsHTML + newsHTML;
-                }
-
-                // Set Odds
-                if (data.fixtures && data.fixtures.length > 0) {
-                    const oddsHTML = data.fixtures.map(f => `
-                        <span class="item">${f.home_team} VS ${f.away_team} — [${f.sport_title}]</span>
-                    `).join('');
-                    document.getElementById('odds-ticker').innerHTML = oddsHTML + oddsHTML;
-                }
-            } catch (err) {
-                console.error("Fetch Error");
-            }
+            document.getElementById('clock').innerText = 
+                `${now.toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'numeric'}).toUpperCase()} | ${now.toTimeString().split(' ')[0]}`;
         }
 
         setInterval(updateClock, 1000);
         updateClock();
-        loadData();
-        window.onclick = () => document.getElementById('settings-menu').classList.remove('show');
+        fetchAll();
     </script>
 </body>
 </html>
