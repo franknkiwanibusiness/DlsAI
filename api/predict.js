@@ -1,66 +1,48 @@
 export default async function handler(req, res) {
-    const { home_team, away_team, odds, sport_title } = req.body;
-    const today = "Wednesday, March 4, 2026";
+    if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-    // API Keys from your environment
-    const GEMINI_KEY = process.env.GEMINI_API_KEY;
+    const { home_team, away_team, odds } = req.body;
     const GROQ_KEY = process.env.EASYBET_API_KEY;
 
+    // The "All-in-One" Prompt
+    const prompt = `
+    TODAY'S DATE: March 4, 2026.
+    FIXTURE: ${home_team} vs ${away_team}
+    BOOKIE ODDS: Home(${odds.h}), Draw(${odds.d}), Away(${odds.a})
+
+    INSTRUCTIONS:
+    1. Act as a Master Analyst and Quant.
+    2. Calculate the 'True Probability' by stripping the bookie margin.
+    3. Use 2026 Season Context: (Arsenal is 1st, Villa 4th, Chelsea 6th. Pedro Neto is suspended, John McGinn has a minor knee issue).
+    4. If the odds for the favorite are too low compared to the risk (Value Trap), PIVOT to a safer market like "Over 1.5 Goals", "Double Chance", or "Corners".
+    
+    OUTPUT: Provide a 1-sentence logic and then the final pick in **BOLD**.
+    `;
+
     try {
-        // --- STAGE 1: THE SCOUT (Gemini 3 Flash) ---
-        // Does the heavy lifting of searching the 2026 live web
-        const scoutRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: `Today is ${today}. SEARCH LIVE: ${home_team} vs ${away_team}. 
-                Find: 1. 2026 Table (Arsenal 1st, Villa 4th, Chelsea 6th). 
-                2. Status of John McGinn, Pedro Neto (Suspended), and Manager Liam Rosenior. 
-                3. Last 3 results in Feb/March 2026. Return facts only.` }] }],
-                tools: [{ googleSearch: {} }]
-            })
-        });
-        const scoutData = await scoutRes.json();
-        const research = scoutData.candidates[0].content.parts[0].text;
-
-        // --- STAGE 2: THE QUANT (Gemma 2 9b via Groq) ---
-        // Uses your EASYBET_API_KEY to wipe margins
-        const quantRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
-            headers: { "Authorization": `Bearer ${GROQ_KEY}`, "Content-Type": "application/json" },
-            body: JSON.stringify({
-                model: "gemma2-9b-it",
-                messages: [{ role: "user", content: `You are THE QUANT. 
-                1. Odds: H:${odds.h}, D:${odds.d}, A:${odds.a}. 
-                2. Research: ${research}. 
-                3. TASK: Wipe the bookie margin to find fair probability. If margin is high or research (like Neto's red card) contradicts the odds, flag as "HIGH RISK TRAP".` }],
-                temperature: 0
-            })
-        });
-        const quantData = await quantRes.json();
-        const calculations = quantData.choices[0].message.content;
-
-        // --- STAGE 3: THE FINAL BOSS (Llama 3.3 70B via Groq) ---
-        // The final audit and market pivot
-        const bossRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-            method: "POST",
-            headers: { "Authorization": `Bearer ${GROQ_KEY}`, "Content-Type": "application/json" },
+            headers: {
+                "Authorization": `Bearer ${GROQ_KEY}`,
+                "Content-Type": "application/json"
+            },
             body: JSON.stringify({
                 model: "llama-3.3-70b-versatile",
-                messages: [
-                    { role: "system", content: `You are THE FINAL BOSS. Review the SCOUT facts and the QUANT math. Today is ${today}. If the 1X2 market is a "trap" or "high risk", pivot to a safer market like Corners, BTTS, or Team Goals.` },
-                    { role: "user", content: `Facts: ${research}. Math: ${calculations}. Give the lethal verdict.` }
-                ]
+                messages: [{ role: "user", content: prompt }],
+                temperature: 0.2,
+                max_tokens: 150
             })
         });
-        const bossData = await bossRes.json();
-        const finalVerdict = bossData.choices[0].message.content;
 
-        // Return the final result to the frontend
-        return res.status(200).json({ prediction: finalVerdict });
+        const data = await response.json();
+        
+        if (!data.choices) {
+            return res.status(500).json({ error: "Groq API Limit Reached or Error" });
+        }
+
+        return res.status(200).json({ prediction: data.choices[0].message.content });
 
     } catch (e) {
-        console.error("Pipeline Error:", e);
-        return res.status(500).json({ error: "Final Boss Pipeline Crashed" });
+        return res.status(500).json({ error: "Server connection failed" });
     }
 }
