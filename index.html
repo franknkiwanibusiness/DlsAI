@@ -4,163 +4,69 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>BMW Wealth AI</title>
-    <!-- CSS Dependencies -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
             --bmw-blue: #0066B2;
-            --bmw-red: #FF0000;
-            --dark-bg: #000000;
-            --glass: rgba(255, 255, 255, 0.08);
+            --stage-1: #2ecc71; /* Green */
+            --stage-2: #f1c40f; /* Yellow */
+            --stage-3: #e74c3c; /* Red */
             --safe-top: env(safe-area-inset-top);
             --safe-bottom: env(safe-area-inset-bottom);
         }
 
-        /* 🚫 UI Lockdown */
-        * { -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; box-sizing: border-box; outline: none; }
-        body, html { margin: 0; padding: 0; height: 100%; background: var(--dark-bg); color: white; font-family: -apple-system, system-ui, sans-serif; overflow: hidden; }
+        * { -webkit-tap-highlight-color: transparent; user-select: none; box-sizing: border-box; }
+        body { background: #000; color: white; font-family: -apple-system, sans-serif; margin: 0; height: 100vh; display: flex; flex-direction: column; }
 
-        /* 🏁 Header */
-        header {
-            padding-top: calc(var(--safe-top) + 10px);
-            padding-bottom: 15px;
-            background: rgba(0,0,0,0.85);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid #222;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding-left: 20px;
-            padding-right: 20px;
-            z-index: 1000;
-        }
-
-        .m-logo { font-weight: 900; letter-spacing: -1px; font-size: 1.2rem; }
-        .m-logo span { color: var(--bmw-blue); }
-
-        /* ⚙️ Sidebar Menu */
-        #settings-panel {
-            position: fixed;
-            top: 0; right: -280px;
-            width: 280px; height: 100%;
-            background: #111;
-            z-index: 2000;
-            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            padding: 40px 20px;
-            border-left: 1px solid #333;
-            box-shadow: -10px 0 30px rgba(0,0,0,0.5);
-        }
-        #settings-panel.open { right: 0; }
-        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1500; }
-
-        .setting-group { margin-bottom: 25px; }
-        .setting-label { font-size: 10px; color: #666; text-transform: uppercase; font-weight: 800; margin-bottom: 10px; display: block; }
-        .btn-action { background: var(--glass); border: none; color: white; width: 100%; padding: 12px; border-radius: 10px; margin-bottom: 10px; text-align: left; font-size: 14px; cursor: pointer; }
-
-        /* 💬 Chat View */
+        header { padding: calc(var(--safe-top) + 10px) 20px 10px; background: #000; border-bottom: 1px solid #222; text-align: center; z-index: 10; }
+        
+        /* 📜 FIXED SCROLLING */
         #chat-view {
             flex: 1;
             overflow-y: auto;
-            padding: 20px;
-            padding-top: 10px;
-            padding-bottom: 100px;
+            padding: 15px;
             display: flex;
             flex-direction: column;
             gap: 15px;
-            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch; /* Smooth iOS scroll */
         }
 
-        .bubble { max-width: 85%; padding: 12px 16px; border-radius: 20px; font-size: 15px; line-height: 1.5; animation: pop 0.25s ease-out; position: relative; }
-        .ai { background: var(--glass); align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid #333; }
-        .user { background: var(--bmw-blue); align-self: flex-end; border-bottom-right-radius: 4px; font-weight: 500; }
+        .bubble { max-width: 90%; padding: 12px 16px; border-radius: 15px; font-size: 14px; line-height: 1.4; }
+        .user { background: var(--bmw-blue); align-self: flex-end; border-bottom-right-radius: 2px; }
+        
+        /* 🚥 STAGE STYLING */
+        .stage-box { margin-top: 8px; border-radius: 10px; padding: 10px; border-left: 4px solid; background: rgba(255,255,255,0.05); }
+        .s1 { border-color: var(--stage-1); color: var(--stage-1); }
+        .s2 { border-color: var(--stage-2); color: var(--stage-2); }
+        .s3 { border-color: var(--stage-3); color: var(--stage-3); opacity: 0.8; font-size: 12px; }
+        .stage-label { font-weight: 900; font-size: 10px; text-transform: uppercase; display: block; margin-bottom: 4px; }
 
-        /* 🏟️ Odds UI */
-        .odds-card { background: #1a1a1a; border-radius: 12px; padding: 12px; margin-top: 5px; border: 1px solid #444; }
-        .odds-header { font-size: 12px; font-weight: 800; color: #aaa; margin-bottom: 5px; display: block; }
-
-        /* ⌨️ Bottom Bar */
         .input-bar {
-            position: fixed;
-            bottom: 0; left: 0; right: 0;
-            padding: 10px 15px calc(var(--safe-bottom) + 10px) 15px;
-            background: rgba(0,0,0,0.9);
-            backdrop-filter: blur(20px);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            z-index: 1000;
+            padding: 10px 15px calc(var(--safe-bottom) + 10px);
+            background: #000; display: flex; gap: 10px; border-top: 1px solid #222;
         }
 
-        input {
-            flex: 1;
-            background: #1a1a1a;
-            border: 1px solid #333;
-            color: white;
-            padding: 14px 20px;
-            border-radius: 30px;
-            font-size: 16px; /* Native feel */
-            -webkit-user-select: text;
-        }
-
-        .send-btn {
-            width: 46px; height: 46px;
-            background: var(--bmw-blue);
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            border: none; color: white;
-        }
-
-        @keyframes pop { from { opacity: 0; transform: scale(0.95) translateY(10px); } }
+        input { flex: 1; background: #111; border: 1px solid #333; color: white; padding: 12px 18px; border-radius: 25px; font-size: 16px; -webkit-user-select: text; }
+        .send-btn { width: 45px; height: 45px; background: var(--bmw-blue); border-radius: 50%; border: none; color: white; }
     </style>
 </head>
 <body>
 
-<div class="overlay" id="overlay"></div>
-
-<!-- Management Console -->
-<div id="settings-panel">
-    <h2 style="font-weight: 900; margin-bottom: 30px;">SETTINGS</h2>
-    
-    <div class="setting-group">
-        <span class="setting-label">Strategy Commands</span>
-        <button class="btn-action" onclick="setCommand('/target.')"><i class="fa-solid fa-bullseye"></i> Set New Target</button>
-        <button class="btn-action" onclick="handleAction('Check EPL Odds')"><i class="fa-solid fa-chart-line"></i> View Live Odds</button>
-    </div>
-
-    <div class="setting-group">
-        <span class="setting-label">App Theme</span>
-        <button class="btn-action" onclick="changeTheme('#0066B2')"><i class="fa-solid fa-circle" style="color:#0066B2"></i> M-Blue (Classic)</button>
-        <button class="btn-action" onclick="changeTheme('#FF0000')"><i class="fa-solid fa-circle" style="color:#FF0000"></i> M-Red (Aggressive)</button>
-        <button class="btn-action" onclick="changeTheme('#222')"><i class="fa-solid fa-circle" style="color:#222"></i> Carbon Fiber</button>
-    </div>
-
-    <div class="setting-group">
-        <span class="setting-label">Storage</span>
-        <button class="btn-action" onclick="clearLocalHistory()" style="color:var(--bmw-red)"><i class="fa-solid fa-trash"></i> Reset Chat Session</button>
-    </div>
-</div>
-
 <header>
-    <div class="m-logo">M-POWERED<span>AI</span></div>
-    <div style="font-size: 11px; text-align: center;">
-        <span id="target-ui" style="font-weight:900; color:var(--bmw-blue)">R1,000,000</span><br>
-        <span style="opacity: 0.5; font-size: 9px;" id="chassis-id">BMW-0000</span>
-    </div>
-    <i class="fa-solid fa-sliders" style="font-size: 1.2rem; cursor: pointer;" id="gear-btn"></i>
+    <div style="font-weight:900; letter-spacing:1px;">M-POWERED AI</div>
+    <div style="font-size:10px; color:var(--bmw-blue)" id="target-ui">R1,000,000 GOAL</div>
 </header>
 
 <div id="chat-view"></div>
 
 <div class="input-bar">
-    <input type="text" id="userInput" placeholder="Message..." autocomplete="off">
-    <button class="send-btn" id="sendBtn">
-        <i class="fa-solid fa-paper-plane"></i>
-    </button>
+    <input type="text" id="userInput" placeholder="Ask for odds or strategy..." autocomplete="off">
+    <button class="send-btn" id="sendBtn"><i class="fa-solid fa-bolt"></i></button>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
-    import { getDatabase, ref, push, onValue, update, remove } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+    import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
@@ -168,35 +74,17 @@
         databaseURL: "https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com",
         projectId: "itzhoyoo-f9f7e",
         storageBucket: "itzhoyoo-f9f7e.filestorage.app",
-        messagingSenderId: "1094792075584",
         appId: "1:1094792075584:web:d49e9c3f899d3cd31082a5"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-    const ODDS_KEY = "ad7cc474657e32a32bf5d56e68e84fa8";
-
-    // Session Logic
     let chatID = localStorage.getItem('activeChatID') || 'BMW-' + Math.random().toString(36).substr(2, 5).toUpperCase();
     localStorage.setItem('activeChatID', chatID);
-    document.getElementById('chassis-id').innerText = chatID;
 
     const chatRef = ref(db, 'chats/' + chatID);
-    const setRef = ref(db, 'settings/' + chatID);
 
-    // Sidebar Logic
-    const gear = document.getElementById('gear-btn');
-    const panel = document.getElementById('settings-panel');
-    const overlay = document.getElementById('overlay');
-    gear.onclick = () => { panel.classList.add('open'); overlay.style.display = 'block'; };
-    overlay.onclick = () => { panel.classList.remove('open'); overlay.style.display = 'none'; };
-
-    window.changeTheme = (color) => { document.documentElement.style.setProperty('--bmw-blue', color); };
-    window.setCommand = (cmd) => { document.getElementById('userInput').value = cmd; panel.classList.remove('open'); overlay.style.display = 'none'; document.getElementById('userInput').focus(); };
-    window.clearLocalHistory = async () => { if(confirm("Clear this chassis history?")) { await remove(chatRef); location.reload(); } };
-
-    // Firebase Sync
-    onValue(setRef, (s) => { if(s.exists()) document.getElementById('target-ui').innerText = s.val().target; });
+    // 🚀 SCROLL & RENDER LOGIC
     onValue(chatRef, (s) => {
         const view = document.getElementById('chat-view');
         view.innerHTML = '';
@@ -207,51 +95,48 @@
                 div.innerHTML = m.text;
                 view.appendChild(div);
             });
-            view.scrollTo({ top: view.scrollHeight, behavior: 'smooth' });
+            // Auto-scroll to bottom
+            view.scrollTop = view.scrollHeight;
         }
     });
 
-    // Action Logic
-    window.handleAction = async (forcedText = null) => {
+    async function handleAction() {
         const input = document.getElementById('userInput');
-        const val = forcedText || input.value.trim();
+        const val = input.value.trim();
         if(!val) return;
-        
         input.value = '';
-        panel.classList.remove('open');
-        overlay.style.display = 'none';
 
-        if(val.toLowerCase().startsWith('/target.')) {
-            const t = 'R' + val.split('.')[1].toUpperCase();
-            await update(setRef, { target: t });
-            await push(chatRef, { role: 'ai', text: `🎯 Target recalibrated: ${t}. Drive hard.` });
-            return;
-        }
-
+        // Save User Message
         await push(chatRef, { role: 'user', text: val });
 
-        let reply = "";
-        if(val.toLowerCase().includes('odds')) {
-            try {
-                const r = await fetch(`https://api.the-odds-api.com/v4/sports/soccer_epl/odds/?apiKey=${ODDS_KEY}&regions=uk&markets=h2h`);
-                const d = await r.json();
-                reply = d.slice(0,3).map(g => `
-                    <div class="odds-card">
-                        <span class="odds-header">PREMIER LEAGUE</span>
-                        <strong>${g.home_team} vs ${g.away_team}</strong><br>
-                        ${g.bookmakers[0].markets[0].outcomes.map(o => o.name + ": " + o.price).join(' | ')}
-                    </div>`).join('');
-            } catch { reply = "Odds data stalled."; }
-        } else {
-            try {
-                const r = await fetch('/api/chat', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({messages:[{role:'user',content:val}]}) });
-                const d = await r.json(); reply = d.content;
-            } catch { reply = "System offline. Check Vercel."; }
-        }
-        await push(chatRef, { role: 'ai', text: reply });
-    };
+        try {
+            const r = await fetch('/api/chat', { 
+                method:'POST', 
+                headers:{'Content-Type':'application/json'}, 
+                body:JSON.stringify({messages:[{role:'user',content:val}]}) 
+            });
+            const d = await r.json();
+            
+            // 🚥 SPLIT RESPONSE INTO STAGES
+            // Assuming the AI returns info separated by "---" or we split by content length
+            const parts = d.content.split('\n\n'); 
+            const stage1 = parts[0] || "Analyzing...";
+            const stage2 = parts[1] || "Calculations in progress.";
+            const stage3 = parts[2] || "Risk: High.";
 
-    document.getElementById('sendBtn').onclick = () => handleAction();
+            const formattedAI = `
+                <div class="stage-box s1"><span class="stage-label">Stage 1: Action</span>${stage1}</div>
+                <div class="stage-box s2"><span class="stage-label">Stage 2: Insight</span>${stage2}</div>
+                <div class="stage-box s3"><span class="stage-label">Stage 3: Risk Factor</span>${stage3}</div>
+            `;
+
+            await push(chatRef, { role: 'ai', text: formattedAI });
+        } catch {
+            await push(chatRef, { role: 'ai', text: "Turbo lag. Server down." });
+        }
+    }
+
+    document.getElementById('sendBtn').onclick = handleAction;
     document.getElementById('userInput').onkeydown = (e) => { if(e.key === 'Enter') handleAction(); };
 </script>
 </body>
