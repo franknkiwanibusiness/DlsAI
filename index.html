@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BET SMART</title>
+    <title>BET SMART | FINAL BOSS</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        :root { --accent: #00f2fe; --glass: rgba(255, 255, 255, 0.07); --border: rgba(255, 255, 255, 0.12); }
+        :root { --accent: #00f2fe; --glass: rgba(255, 255, 255, 0.07); --border: rgba(255, 255, 255, 0.12); --danger: #ff4b2b; }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Outfit', sans-serif; user-select: none; -webkit-tap-highlight-color: transparent; }
         
         body { background: #000; color: #fff; padding-top: 85px; padding-bottom: 120px; transition: 0.3s; }
@@ -19,7 +19,7 @@
             padding: 0 20px; z-index: 1000; border-bottom: 1px solid var(--border);
         }
         .logo { font-weight: 900; color: var(--accent); font-size: 1.3rem; letter-spacing: -1px; }
-        .clear-btn { background: var(--glass); color: #ff4b2b; border: 1px solid rgba(255,75,43,0.3); padding: 8px 14px; border-radius: 12px; font-weight: 700; cursor: pointer; font-size: 0.7rem; }
+        .clear-btn { background: var(--glass); color: var(--danger); border: 1px solid rgba(255,75,43,0.3); padding: 8px 14px; border-radius: 12px; font-weight: 700; cursor: pointer; font-size: 0.7rem; }
 
         #fixtures-container { width: 100%; max-width: 480px; margin: 0 auto; padding: 15px; }
 
@@ -41,14 +41,20 @@
             padding: 12px; border-radius: 16px; text-align: center; cursor: pointer;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .odd-btn:active { transform: scale(0.92); background: var(--accent); color: #000; }
-        .odd-btn.selected { background: var(--accent); color: #000; border-color: var(--accent); }
+        .odd-btn.selected { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 900; }
         .odd-label { display: block; font-size: 0.6rem; opacity: 0.6; margin-bottom: 2px; }
         .odd-val { font-weight: 900; font-size: 1rem; }
 
         /* AI Analysis Box */
-        .ai-box { background: rgba(0, 242, 254, 0.03); border-left: 4px solid var(--accent); padding: 14px; border-radius: 6px 18px 18px 6px; font-size: 0.85rem; line-height: 1.5; color: #ddd; }
+        .ai-box { 
+            background: rgba(0, 242, 254, 0.03); border-left: 4px solid var(--accent); 
+            padding: 14px; border-radius: 6px 18px 18px 6px; font-size: 0.85rem; 
+            line-height: 1.5; color: #ddd; min-height: 60px;
+        }
         .ai-title { color: var(--accent); font-weight: 900; font-size: 0.65rem; display: block; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
+        .status-dot { height: 8px; width: 8px; background-color: var(--accent); border-radius: 50%; display: inline-block; margin-right: 5px; animation: pulse 1.5s infinite; }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
 
         /* Multiplier Slip */
         #bet-slip {
@@ -69,10 +75,10 @@
 
     <header>
         <div class="logo">BET SMART</div>
-        <button class="clear-btn" onclick="clearAll()">CLEAR STORAGE</button>
+        <button class="clear-btn" onclick="clearAllData()">RESET ALL</button>
     </header>
 
-    <div id="loader">FETCHING LIVE FIXTURES...</div>
+    <div id="loader">WAKING UP FINAL BOSS...</div>
     <div id="fixtures-container"></div>
 
     <div id="bet-slip">
@@ -84,42 +90,46 @@
     </div>
 
     <script>
-        const API_KEY = 'ad7cc474657e32a32bf5d56e68e84fa8';
-        const STORAGE_KEY = 'BET_SMART_V3';
+        const ODDS_API_KEY = 'ad7cc474657e32a32bf5d56e68e84fa8';
+        const FIXTURE_CACHE_KEY = 'BS_FIXTURES_V4';
+        const AI_CACHE_PREFIX = 'BS_AI_';
         let selections = new Map();
 
         async function init() {
-            const cached = JSON.parse(localStorage.getItem(STORAGE_KEY));
+            const cached = JSON.parse(localStorage.getItem(FIXTURE_CACHE_KEY));
             const now = Date.now();
-            if (cached && (now - cached.time < 86400000)) {
+            
+            // Fixtures expire every 12 hours
+            if (cached && (now - cached.time < 43200000)) {
                 render(cached.data);
             } else {
-                fetchData();
+                fetchFixtures();
             }
         }
 
-        async function fetchData() {
+        async function fetchFixtures() {
             const leagues = ['soccer_uefa_champs_league', 'soccer_epl', 'soccer_spain_la_liga', 'soccer_germany_bundesliga', 'soccer_italy_serie_a'];
             try {
                 let all = [];
                 for (let l of leagues) {
-                    const r = await fetch(`https://api.the-odds-api.com/v4/sports/${l}/odds/?apiKey=${API_KEY}&regions=eu&markets=h2h`);
+                    const r = await fetch(`https://api.the-odds-api.com/v4/sports/${l}/odds/?apiKey=${ODDS_API_KEY}&regions=eu&markets=h2h`);
                     const d = await r.json();
                     if(Array.isArray(d)) all.push(...d);
                 }
                 const today = new Date().toISOString().split('T')[0];
                 const filtered = all.filter(m => m.commence_time.startsWith(today));
-                localStorage.setItem(STORAGE_KEY, JSON.stringify({ time: Date.now(), data: filtered }));
+                
+                localStorage.setItem(FIXTURE_CACHE_KEY, JSON.stringify({ time: Date.now(), data: filtered }));
                 render(filtered);
             } catch (e) {
-                document.getElementById('loader').innerText = "Network Error. Refresh.";
+                document.getElementById('loader').innerText = "Fixture Error. Please refresh.";
             }
         }
 
         function render(matches) {
             document.getElementById('loader').classList.add('hidden');
             const container = document.getElementById('fixtures-container');
-            container.innerHTML = matches.length ? '' : '<p style="text-align:center; margin-top:50px; opacity:0.5;">No matches today.</p>';
+            container.innerHTML = matches.length ? '' : '<p style="text-align:center; margin-top:50px; opacity:0.5;">No major fixtures today.</p>';
 
             matches.forEach(m => {
                 const bookie = m.bookmakers[0]?.markets[0]?.outcomes || [];
@@ -149,35 +159,63 @@
                             <span class="odd-label">2</span><span class="odd-val">${odds.a}</span>
                         </div>
                     </div>
-                    <div class="ai-box" id="ai-${m.id.substring(0,8)}">
-                        <span class="ai-title">Groq AI Analysis</span>
-                        Analyzing market trends...
+                    <div class="ai-box" id="ai-${m.id}">
+                        <span class="ai-title">Final Boss Audit</span>
+                        <span class="status-dot"></span> Waiting for chain start...
                     </div>
                 `;
                 container.appendChild(card);
-                fetchAI(m, odds);
+                
+                // Trigger the AI chain
+                startFinalBossChain(m, odds);
             });
         }
 
-        async function fetchAI(m, odds) {
-            const el = document.getElementById(`ai-${m.id.substring(0,8)}`);
+        async function startFinalBossChain(m, odds) {
+            const aiBox = document.getElementById(`ai-${m.id}`);
+            const cacheKey = AI_CACHE_PREFIX + m.id;
+            
+            // 1. Check Smart Cache (24-hour limit shield)
+            const cached = JSON.parse(localStorage.getItem(cacheKey));
+            if (cached && (Date.now() - cached.time < 86400000)) {
+                aiBox.innerHTML = `<span class="ai-title">Lethal Verdict (Cached)</span> ${cached.text}`;
+                return;
+            }
+
+            // 2. Run the Server-Side Chain (/api/research triggers the whole 3-stage process)
             try {
-                const res = await fetch('/api/predict', {
+                aiBox.innerHTML = `<span class="ai-title">Final Boss Audit</span> <span class="status-dot"></span> Deep Researching 2026 Database...`;
+                
+                const res = await fetch('/api/research', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ home_team: m.home_team, away_team: m.away_team, odds })
+                    body: JSON.stringify({ 
+                        home_team: m.home_team, 
+                        away_team: m.away_team, 
+                        sport_title: m.sport_title,
+                        odds 
+                    })
                 });
+
                 if(!res.ok) throw new Error(`${res.status}`);
+                
                 const data = await res.json();
-                el.innerHTML = `<span class="ai-title">Groq AI Analysis</span> ${data.prediction}`;
+                
+                // 3. Save to Smart Cache
+                localStorage.setItem(cacheKey, JSON.stringify({ 
+                    time: Date.now(), 
+                    text: data.prediction 
+                }));
+
+                aiBox.innerHTML = `<span class="ai-title">Lethal Verdict</span> ${data.prediction}`;
+                
             } catch (e) {
-                el.innerHTML = `<span class="ai-title" style="color:#ff4b2b">Error ${e.message}</span> API path not found. Check Vercel logs.`;
-                el.style.borderLeft = "4px solid #ff4b2b";
+                aiBox.innerHTML = `<span class="ai-title" style="color:var(--danger)">Offline</span> Failed to connect to Final Boss pipeline.`;
+                aiBox.style.borderLeft = "4px solid var(--danger)";
             }
         }
 
         function toggleSelection(matchId, type, value, el) {
-            // Deselect others in same match
             el.parentElement.querySelectorAll('.odd-btn').forEach(btn => {
                 if(btn !== el) btn.classList.remove('selected');
             });
@@ -214,8 +252,8 @@
             updateSlip();
         }
 
-        function clearAll() {
-            localStorage.removeItem(STORAGE_KEY);
+        function clearAllData() {
+            localStorage.clear();
             location.reload();
         }
 
