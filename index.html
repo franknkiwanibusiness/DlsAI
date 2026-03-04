@@ -3,141 +3,222 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>BMW Wealth AI</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>ToonChat AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --bmw-blue: #0066B2;
-            --stage-1: #2ecc71; /* Green */
-            --stage-2: #f1c40f; /* Yellow */
-            --stage-3: #e74c3c; /* Red */
-            --safe-top: env(safe-area-inset-top);
-            --safe-bottom: env(safe-area-inset-bottom);
-        }
-
-        * { -webkit-tap-highlight-color: transparent; user-select: none; box-sizing: border-box; }
-        body { background: #000; color: white; font-family: -apple-system, sans-serif; margin: 0; height: 100vh; display: flex; flex-direction: column; }
-
-        header { padding: calc(var(--safe-top) + 10px) 20px 10px; background: #000; border-bottom: 1px solid #222; text-align: center; z-index: 10; }
+        :root { --app-bg: #F0F4F8; }
+        body { font-family: 'Quicksand', sans-serif; background-color: var(--app-bg); -webkit-tap-highlight-color: transparent; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .bottom-sheet { transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1); }
+        .bottom-sheet.active { transform: translateY(0); }
         
-        /* 📜 FIXED SCROLLING */
-        #chat-view {
-            flex: 1;
-            overflow-y: auto;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            -webkit-overflow-scrolling: touch; /* Smooth iOS scroll */
+        /* Message Animation */
+        @keyframes popIn {
+            0% { transform: scale(0.9); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
         }
+        .msg-pop { animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
 
-        .bubble { max-width: 90%; padding: 12px 16px; border-radius: 15px; font-size: 14px; line-height: 1.4; }
-        .user { background: var(--bmw-blue); align-self: flex-end; border-bottom-right-radius: 2px; }
-        
-        /* 🚥 STAGE STYLING */
-        .stage-box { margin-top: 8px; border-radius: 10px; padding: 10px; border-left: 4px solid; background: rgba(255,255,255,0.05); }
-        .s1 { border-color: var(--stage-1); color: var(--stage-1); }
-        .s2 { border-color: var(--stage-2); color: var(--stage-2); }
-        .s3 { border-color: var(--stage-3); color: var(--stage-3); opacity: 0.8; font-size: 12px; }
-        .stage-label { font-weight: 900; font-size: 10px; text-transform: uppercase; display: block; margin-bottom: 4px; }
-
-        .input-bar {
-            padding: 10px 15px calc(var(--safe-bottom) + 10px);
-            background: #000; display: flex; gap: 10px; border-top: 1px solid #222;
-        }
-
-        input { flex: 1; background: #111; border: 1px solid #333; color: white; padding: 12px 18px; border-radius: 25px; font-size: 16px; -webkit-user-select: text; }
-        .send-btn { width: 45px; height: 45px; background: var(--bmw-blue); border-radius: 50%; border: none; color: white; }
+        /* Themes */
+        .theme-dark { --app-bg: #111827; }
+        .theme-dark .bg-white { background-color: #1F2937 !important; color: white; border-color: #374151 !important; }
+        .theme-pink { --app-bg: #FDF2F8; }
+        .theme-pink .bg-indigo-500 { background-color: #EC4899 !important; }
     </style>
 </head>
-<body>
+<body id="app-body" class="h-screen flex flex-col overflow-hidden transition-colors duration-300">
 
-<header>
-    <div style="font-weight:900; letter-spacing:1px;">M-POWERED AI</div>
-    <div style="font-size:10px; color:var(--bmw-blue)" id="target-ui">R1,000,000 GOAL</div>
-</header>
+    <!-- 1. AUTH MODAL -->
+    <div id="auth-modal" class="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md flex items-center justify-center p-6">
+        <div class="bg-white w-full max-w-sm rounded-[40px] border-4 border-black p-8 shadow-[8px_8px_0_0_#000] text-center">
+            <div class="mb-4 text-5xl">👋</div>
+            <h2 class="text-2xl font-bold mb-2">Welcome!</h2>
+            <p class="text-gray-500 mb-6 text-sm">Sign up to chat with Groq AI</p>
+            <input id="email" type="email" placeholder="Email" class="w-full mb-3 p-4 bg-gray-100 rounded-2xl border-2 border-transparent focus:border-indigo-500 outline-none font-bold">
+            <input id="password" type="password" placeholder="Password" class="w-full mb-6 p-4 bg-gray-100 rounded-2xl border-2 border-transparent focus:border-indigo-500 outline-none font-bold">
+            <button id="btn-signup" class="w-full bg-indigo-500 text-white font-bold py-4 rounded-2xl border-b-4 border-indigo-900 active:border-b-0 active:translate-y-1 transition-all">Start Chatting</button>
+            <p id="auth-error" class="text-red-500 text-xs mt-4 hidden"></p>
+        </div>
+    </div>
 
-<div id="chat-view"></div>
+    <!-- 2. HEADER -->
+    <header class="bg-white px-6 pt-12 pb-4 border-b-4 border-gray-100 flex items-center justify-between z-10">
+        <div class="flex items-center gap-3">
+            <div class="relative">
+                <img id="header-avatar" src="https://api.dicebear.com/7.x/adventurer/svg?seed=Lucky" class="w-12 h-12 rounded-2xl bg-yellow-200 border-2 border-gray-800 shadow-sm">
+                <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 border-2 border-white rounded-full"></div>
+            </div>
+            <div>
+                <h1 id="user-display" class="font-bold text-gray-800 text-lg">Groq Assistant</h1>
+                <div id="typing-indicator" class="hidden flex items-center gap-1">
+                    <span class="text-[10px] font-bold text-indigo-500 uppercase italic">Thinking...</span>
+                </div>
+            </div>
+        </div>
+        <button onclick="toggleSheet(true)" class="bg-gray-100 p-3 rounded-2xl active:scale-90 transition-transform">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                <path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0M12 19m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0M12 5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
+            </svg>
+        </button>
+    </header>
 
-<div class="input-bar">
-    <input type="text" id="userInput" placeholder="Ask for odds or strategy..." autocomplete="off">
-    <button class="send-btn" id="sendBtn"><i class="fa-solid fa-bolt"></i></button>
-</div>
+    <!-- 3. CHAT AREA -->
+    <main id="chat-window" class="flex-1 overflow-y-auto p-4 space-y-6 hide-scrollbar">
+        <div class="text-center py-10 opacity-20">
+            <p class="text-xs font-bold uppercase tracking-[0.2em]">Encrypted & Playful</p>
+        </div>
+    </main>
 
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
-    import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+    <!-- 4. INPUT AREA -->
+    <section class="p-4 pb-8">
+        <div class="bg-white border-4 border-gray-800 rounded-[30px] p-2 flex items-center shadow-[0_6px_0_0_#000]">
+            <input type="text" id="msg-input" placeholder="Ask Groq anything..." class="flex-1 bg-transparent border-none focus:ring-0 px-4 font-bold text-gray-700 outline-none">
+            <button id="send-btn" class="bg-yellow-400 border-2 border-gray-800 p-3 rounded-2xl shadow-[3px_3px_0_0_#000] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+            </button>
+        </div>
+    </section>
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
-        authDomain: "itzhoyoo-f9f7e.firebaseapp.com",
-        databaseURL: "https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com",
-        projectId: "itzhoyoo-f9f7e",
-        storageBucket: "itzhoyoo-f9f7e.filestorage.app",
-        appId: "1:1094792075584:web:d49e9c3f899d3cd31082a5"
-    };
+    <!-- 5. BOTTOM SHEET (Customization) -->
+    <div id="sheet-overlay" onclick="toggleSheet(false)" class="fixed inset-0 bg-black/40 hidden z-[110]"></div>
+    <div id="bottom-sheet" class="bottom-sheet fixed bottom-0 left-0 right-0 bg-white z-[120] rounded-t-[45px] border-t-4 border-black p-8 shadow-[0_-10px_40px_rgba(0,0,0,0.1)]">
+        <div class="w-16 h-1.5 bg-gray-200 rounded-full mx-auto mb-8"></div>
+        <h3 class="text-xl font-bold mb-6 text-center">App Settings</h3>
+        
+        <div class="space-y-3">
+            <button onclick="setTheme('default')" class="w-full p-4 rounded-2xl border-2 border-black bg-blue-100 font-bold flex justify-between">Light Mode ☀️ <span>✓</span></button>
+            <button onclick="setTheme('dark')" class="w-full p-4 rounded-2xl border-2 border-black bg-slate-900 text-white font-bold flex justify-between">Dark Mode 🌙</button>
+            <button onclick="setTheme('pink')" class="w-full p-4 rounded-2xl border-2 border-black bg-pink-200 font-bold flex justify-between">Bubblegum 🎀</button>
+        </div>
+        
+        <button onclick="toggleSheet(false)" class="w-full mt-8 py-4 font-bold text-gray-400">Dismiss</button>
+    </div>
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-    let chatID = localStorage.getItem('activeChatID') || 'BMW-' + Math.random().toString(36).substr(2, 5).toUpperCase();
-    localStorage.setItem('activeChatID', chatID);
+    <!-- FIREBASE & LOGIC -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
+        import { getDatabase, ref, push, onChildAdded, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
 
-    const chatRef = ref(db, 'chats/' + chatID);
+        const firebaseConfig = {
+            apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
+            authDomain: "itzhoyoo-f9f7e.firebaseapp.com",
+            databaseURL: "https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com",
+            projectId: "itzhoyoo-f9f7e",
+            storageBucket: "itzhoyoo-f9f7e.filestorage.app",
+            messagingSenderId: "1094792075584",
+            appId: "1:1094792075584:web:d49e9c3f899d3cd31082a5"
+        };
 
-    // 🚀 SCROLL & RENDER LOGIC
-    onValue(chatRef, (s) => {
-        const view = document.getElementById('chat-view');
-        view.innerHTML = '';
-        if(s.exists()){
-            Object.values(s.val()).forEach(m => {
-                const div = document.createElement('div');
-                div.className = `bubble ${m.role}`;
-                div.innerHTML = m.text;
-                view.appendChild(div);
-            });
-            // Auto-scroll to bottom
-            view.scrollTop = view.scrollHeight;
-        }
-    });
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
 
-    async function handleAction() {
-        const input = document.getElementById('userInput');
-        const val = input.value.trim();
-        if(!val) return;
-        input.value = '';
+        const chatWindow = document.getElementById('chat-window');
+        const typingInd = document.getElementById('typing-indicator');
 
-        // Save User Message
-        await push(chatRef, { role: 'user', text: val });
-
-        try {
-            const r = await fetch('/api/chat', { 
-                method:'POST', 
-                headers:{'Content-Type':'application/json'}, 
-                body:JSON.stringify({messages:[{role:'user',content:val}]}) 
-            });
-            const d = await r.json();
+        // Render Message UI
+        function createBubble(text, role) {
+            const isAi = (role === 'assistant');
+            const div = document.createElement('div');
+            div.className = `flex flex-col ${isAi ? 'items-start' : 'items-end'} max-w-[85%] ${isAi ? '' : 'ml-auto'} msg-pop`;
             
-            // 🚥 SPLIT RESPONSE INTO STAGES
-            // Assuming the AI returns info separated by "---" or we split by content length
-            const parts = d.content.split('\n\n'); 
-            const stage1 = parts[0] || "Analyzing...";
-            const stage2 = parts[1] || "Calculations in progress.";
-            const stage3 = parts[2] || "Risk: High.";
-
-            const formattedAI = `
-                <div class="stage-box s1"><span class="stage-label">Stage 1: Action</span>${stage1}</div>
-                <div class="stage-box s2"><span class="stage-label">Stage 2: Insight</span>${stage2}</div>
-                <div class="stage-box s3"><span class="stage-label">Stage 3: Risk Factor</span>${stage3}</div>
+            div.innerHTML = `
+                <div class="${isAi ? 'bg-white text-gray-800' : 'bg-indigo-500 text-white'} border-2 border-black p-4 rounded-2xl ${isAi ? 'rounded-tl-none shadow-[4px_4px_0_0_#000]' : 'rounded-tr-none shadow-[4px_4px_0_0_#312e81]'}">
+                    <p class="text-sm font-bold leading-relaxed">${text}</p>
+                </div>
+                <span class="text-[9px] font-black text-gray-400 mt-2 uppercase tracking-tighter">${role}</span>
             `;
-
-            await push(chatRef, { role: 'ai', text: formattedAI });
-        } catch {
-            await push(chatRef, { role: 'ai', text: "Turbo lag. Server down." });
+            chatWindow.appendChild(div);
+            chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'smooth' });
         }
-    }
 
-    document.getElementById('sendBtn').onclick = handleAction;
-    document.getElementById('userInput').onkeydown = (e) => { if(e.key === 'Enter') handleAction(); };
-</script>
+        // Auth Logic
+        document.getElementById('btn-signup').onclick = async () => {
+            const email = document.getElementById('email').value;
+            const pass = document.getElementById('password').value;
+            try {
+                await createUserWithEmailAndPassword(auth, email, pass);
+                document.getElementById('auth-modal').classList.add('hidden');
+            } catch (err) {
+                document.getElementById('auth-error').innerText = err.message;
+                document.getElementById('auth-error').classList.remove('hidden');
+            }
+        };
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.getElementById('auth-modal').classList.add('hidden');
+                document.getElementById('header-avatar').src = `https://api.dicebear.com/7.x/adventurer/svg?seed=${user.uid}`;
+            }
+        });
+
+        // Real-time Database Listener
+        onChildAdded(ref(db, 'messages'), (snap) => {
+            const data = snap.val();
+            createBubble(data.text, data.role);
+        });
+
+        // Send to Groq via Vercel Function
+        async function handleSend() {
+            const text = document.getElementById('msg-input').value.trim();
+            if (!text || !auth.currentUser) return;
+
+            document.getElementById('msg-input').value = '';
+            typingInd.classList.remove('hidden');
+
+            // 1. Push User message to Firebase
+            await push(ref(db, 'messages'), { text, role: 'user', timestamp: serverTimestamp() });
+
+            try {
+                // 2. Call your Vercel API
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        messages: [{ role: 'user', content: text }] 
+                    })
+                });
+                
+                const data = await response.json();
+                const aiResponse = data.choices[0].message.content;
+
+                // 3. Push AI message to Firebase
+                await push(ref(db, 'messages'), { text: aiResponse, role: 'assistant', timestamp: serverTimestamp() });
+            } catch (e) {
+                console.error("AI Fetch Error:", e);
+            } finally {
+                typingInd.classList.add('hidden');
+            }
+        }
+
+        document.getElementById('send-btn').onclick = handleSend;
+        document.getElementById('msg-input').onkeypress = (e) => e.key === 'Enter' && handleSend();
+    </script>
+
+    <script>
+        // UI Toggles
+        function toggleSheet(show) {
+            const sheet = document.getElementById('bottom-sheet');
+            const overlay = document.getElementById('sheet-overlay');
+            if(show) {
+                sheet.classList.add('active');
+                overlay.classList.remove('hidden');
+            } else {
+                sheet.classList.remove('active');
+                overlay.classList.add('hidden');
+            }
+        }
+
+        function setTheme(theme) {
+            const body = document.getElementById('app-body');
+            body.className = 'h-screen flex flex-col overflow-hidden transition-colors duration-300';
+            if(theme !== 'default') body.classList.add(`theme-${theme}`);
+            toggleSheet(false);
+        }
+    </script>
 </body>
 </html>
