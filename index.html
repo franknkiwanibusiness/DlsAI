@@ -41,6 +41,7 @@
             padding: 12px; border-radius: 16px; text-align: center; cursor: pointer;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
+        .odd-btn:active { transform: scale(0.95); }
         .odd-btn.selected { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 900; }
         .odd-label { display: block; font-size: 0.6rem; opacity: 0.6; margin-bottom: 2px; }
         .odd-val { font-weight: 900; font-size: 1rem; }
@@ -48,15 +49,15 @@
         /* AI Analysis Box */
         .ai-box { 
             background: rgba(0, 242, 254, 0.03); border-left: 4px solid var(--accent); 
-            padding: 14px; border-radius: 6px 18px 18px 6px; font-size: 0.85rem; 
-            line-height: 1.5; color: #ddd; min-height: 60px;
+            padding: 16px; border-radius: 6px 18px 18px 6px; font-size: 0.85rem; 
+            line-height: 1.5; color: #ddd; min-height: 80px; transition: 0.3s;
         }
-        .ai-title { color: var(--accent); font-weight: 900; font-size: 0.65rem; display: block; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
+        .ai-title { color: var(--accent); font-weight: 900; font-size: 0.65rem; display: block; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+        
         .status-dot { height: 8px; width: 8px; background-color: var(--accent); border-radius: 50%; display: inline-block; margin-right: 5px; animation: pulse 1.5s infinite; }
-
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
 
-        /* Multiplier Slip */
+        /* Bet Slip */
         #bet-slip {
             position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(150%);
             width: calc(100% - 40px); max-width: 440px; background: var(--accent); color: #000;
@@ -67,7 +68,7 @@
         .slip-info { font-weight: 900; font-size: 1.2rem; }
         .slip-count { font-size: 0.7rem; text-transform: uppercase; font-weight: 700; opacity: 0.7; }
 
-        #loader { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: 700; color: var(--accent); }
+        #loader { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: 700; color: var(--accent); text-align: center; }
         .hidden { display: none; }
     </style>
 </head>
@@ -75,10 +76,10 @@
 
     <header>
         <div class="logo">BET SMART</div>
-        <button class="clear-btn" onclick="clearAllData()">RESET ALL</button>
+        <button class="clear-btn" onclick="clearAppData()">RESET ALL</button>
     </header>
 
-    <div id="loader">WAKING UP FINAL BOSS...</div>
+    <div id="loader">WAKING UP FINAL BOSS...<br><span style="font-size:0.6rem; opacity:0.6">MARCH 2026 DATABASE</span></div>
     <div id="fixtures-container"></div>
 
     <div id="bet-slip">
@@ -91,23 +92,23 @@
 
     <script>
         const ODDS_API_KEY = 'ad7cc474657e32a32bf5d56e68e84fa8';
-        const FIXTURE_CACHE_KEY = 'BS_FIXTURES_V4';
-        const AI_CACHE_PREFIX = 'BS_AI_';
+        const STORAGE_KEY = 'BS_V4_MASTER';
+        const AI_CACHE_KEY = 'BS_AI_CACHE_';
         let selections = new Map();
 
         async function init() {
-            const cached = JSON.parse(localStorage.getItem(FIXTURE_CACHE_KEY));
+            const cached = JSON.parse(localStorage.getItem(STORAGE_KEY));
             const now = Date.now();
             
-            // Fixtures expire every 12 hours
-            if (cached && (now - cached.time < 43200000)) {
+            // Reload fixtures if older than 6 hours to stay fresh
+            if (cached && (now - cached.time < 21600000)) {
                 render(cached.data);
             } else {
-                fetchFixtures();
+                fetchLiveFixtures();
             }
         }
 
-        async function fetchFixtures() {
+        async function fetchLiveFixtures() {
             const leagues = ['soccer_uefa_champs_league', 'soccer_epl', 'soccer_spain_la_liga', 'soccer_germany_bundesliga', 'soccer_italy_serie_a'];
             try {
                 let all = [];
@@ -119,17 +120,17 @@
                 const today = new Date().toISOString().split('T')[0];
                 const filtered = all.filter(m => m.commence_time.startsWith(today));
                 
-                localStorage.setItem(FIXTURE_CACHE_KEY, JSON.stringify({ time: Date.now(), data: filtered }));
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({ time: Date.now(), data: filtered }));
                 render(filtered);
             } catch (e) {
-                document.getElementById('loader').innerText = "Fixture Error. Please refresh.";
+                document.getElementById('loader').innerText = "NETWORK ERROR. REFRESH.";
             }
         }
 
         function render(matches) {
             document.getElementById('loader').classList.add('hidden');
             const container = document.getElementById('fixtures-container');
-            container.innerHTML = matches.length ? '' : '<p style="text-align:center; margin-top:50px; opacity:0.5;">No major fixtures today.</p>';
+            container.innerHTML = matches.length ? '' : '<p style="text-align:center; margin-top:50px; opacity:0.5;">No major fixtures detected for today.</p>';
 
             matches.forEach(m => {
                 const bookie = m.bookmakers[0]?.markets[0]?.outcomes || [];
@@ -160,33 +161,31 @@
                         </div>
                     </div>
                     <div class="ai-box" id="ai-${m.id}">
-                        <span class="ai-title">Final Boss Audit</span>
-                        <span class="status-dot"></span> Waiting for chain start...
+                        <span class="ai-title">Final Boss Pipeline</span>
+                        <span class="status-dot"></span> Starting Triple-Stage Audit...
                     </div>
                 `;
                 container.appendChild(card);
                 
-                // Trigger the AI chain
-                startFinalBossChain(m, odds);
+                // Run the unified AI pipeline
+                triggerFinalBoss(m, odds);
             });
         }
 
-        async function startFinalBossChain(m, odds) {
+        async function triggerFinalBoss(m, odds) {
             const aiBox = document.getElementById(`ai-${m.id}`);
-            const cacheKey = AI_CACHE_PREFIX + m.id;
+            const cacheKey = AI_CACHE_KEY + m.id;
             
-            // 1. Check Smart Cache (24-hour limit shield)
+            // Check Smart Cache (24h protection)
             const cached = JSON.parse(localStorage.getItem(cacheKey));
             if (cached && (Date.now() - cached.time < 86400000)) {
-                aiBox.innerHTML = `<span class="ai-title">Lethal Verdict (Cached)</span> ${cached.text}`;
+                aiBox.innerHTML = `<span class="ai-title">Final Boss Verdict (Cached)</span> ${cached.text}`;
                 return;
             }
 
-            // 2. Run the Server-Side Chain (/api/research triggers the whole 3-stage process)
             try {
-                aiBox.innerHTML = `<span class="ai-title">Final Boss Audit</span> <span class="status-dot"></span> Deep Researching 2026 Database...`;
-                
-                const res = await fetch('/api/research', {
+                // Single fetch to your massive unified predict.js
+                const res = await fetch('/api/predict', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ 
@@ -198,19 +197,17 @@
                 });
 
                 if(!res.ok) throw new Error(`${res.status}`);
-                
                 const data = await res.json();
                 
-                // 3. Save to Smart Cache
-                localStorage.setItem(cacheKey, JSON.stringify({ 
-                    time: Date.now(), 
-                    text: data.prediction 
-                }));
-
-                aiBox.innerHTML = `<span class="ai-title">Lethal Verdict</span> ${data.prediction}`;
+                if(data.prediction) {
+                    localStorage.setItem(cacheKey, JSON.stringify({ time: Date.now(), text: data.prediction }));
+                    aiBox.innerHTML = `<span class="ai-title">Final Boss Verdict</span> ${data.prediction}`;
+                } else {
+                    throw new Error("No Prediction");
+                }
                 
             } catch (e) {
-                aiBox.innerHTML = `<span class="ai-title" style="color:var(--danger)">Offline</span> Failed to connect to Final Boss pipeline.`;
+                aiBox.innerHTML = `<span class="ai-title" style="color:var(--danger)">Pipeline Error</span> Using general stats for ${m.home_team}.`;
                 aiBox.style.borderLeft = "4px solid var(--danger)";
             }
         }
@@ -252,7 +249,7 @@
             updateSlip();
         }
 
-        function clearAllData() {
+        function clearAppData() {
             localStorage.clear();
             location.reload();
         }
