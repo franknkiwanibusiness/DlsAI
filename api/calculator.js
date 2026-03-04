@@ -6,31 +6,38 @@ export default async function handler(req, res) {
 
     const prompt = `You are THE QUANT. 
     1. Calculate Implied Prob for Odds: H:${odds.h}, D:${odds.d}, A:${odds.a}.
-    2. Remove the Margin (Vig) to find the Fair Probability.
-    3. Adjust math based on RESEARCH: ${research}. (e.g., If Neto is suspended, Chelsea's True Chance drops).
-    4. If the Bookie's Margin is high or research contradicts the odds, label this "HIGH MARGIN RISK".
-    Return the math breakdown and risk level.`;
+    2. Strip the Bookmaker Margin to find the 'Fair Probability'.
+    3. FACTOR IN RESEARCH: ${research}. 
+       Example: If Pedro Neto (Chelsea) is suspended, drop Chelsea's win probability by 10%. 
+       If John McGinn is out, drop Villa's control rating.
+    4. Label as "HIGH MARGIN RISK" if the fair probability is much lower than the bookie's odds.
+    
+    Return math breakdown and risk level.`;
 
     try {
         const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
-            headers: { "Authorization": `Bearer ${process.env.GROQ_API_KEY}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ model: "gemma-3-27b-it", messages: [{ role: "user", content: prompt }] })
+            headers: { "Authorization": `Bearer ${process.env.EASYBET_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+                model: "gemma2-9b-it", // Gemma 27b/9b on Groq for math
+                messages: [{ role: "user", content: prompt }],
+                temperature: 0
+            })
         });
 
-        const calcData = await groqRes.json();
-        const calculations = calcData.choices[0].message.content;
+        const data = await groqRes.json();
+        const calculations = data.choices[0].message.content;
 
-        // CHAIN TO FINAL PREDICT (THE BOSS)
-        const bossRes = await fetch(`${protocol}://${host}/api/predict`, {
+        // CHAIN TO FINAL AUDIT
+        const finalStage = await fetch(`${protocol}://${host}/api/predict`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ research, calculations, home_team, away_team })
         });
 
-        const finalVerdict = await bossRes.json();
-        return res.status(200).json(finalVerdict);
+        const finalOutput = await finalStage.json();
+        return res.status(200).json(finalOutput);
     } catch (e) {
-        return res.status(500).json({ error: "Stage 2 Failed" });
+        return res.status(500).json({ error: "Calculation Stage Failed" });
     }
 }
