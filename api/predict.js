@@ -1,4 +1,3 @@
-// /api/predict.js
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -8,6 +7,11 @@ export default async function handler(req, res) {
 
     const { home_team, away_team, odds, sport_title } = req.body;
 
+    // Get current date dynamically
+    const today = new Date().toLocaleDateString('en-GB', { 
+        day: 'numeric', month: 'long', year: 'numeric' 
+    });
+
     try {
         const groq = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
@@ -16,26 +20,28 @@ export default async function handler(req, res) {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                model: "llama-3.3-70b-versatile", // Or your search-enabled model
+                model: "llama-3.3-70b-versatile", 
                 messages: [
                     {
                         role: "system",
-                        content: `You are a professional Betting Scout. 
-                        Perform a Deep Research analysis on BOTH teams:
-                        1. SEARCH: Injuries & Lineups for the last 48 hours.
-                        2. FORM: Past 30 days performance.
-                        3. SPLITS: ${home_team}'s Home Record vs ${away_team}'s Away Record.
-                        4. TABLE: Current positions and Goal Difference (GD).
-                        5. UEFA: If '${sport_title}' is a UEFA comp, check their history against foreign clubs.
-                        6. VERDICT: Combine stats + market odds ${JSON.stringify(odds)} for a 'High Value' tip.
-                        BE SPECIFIC: Mention specific players injured or exact goal counts. Keep it under 80 words.`
+                        content: `Today is ${today}. You are a Deep Research Sports Scout.
+                        Task: Analyze ${home_team} (HOME) vs ${away_team} (AWAY) in ${sport_title}.
+                        
+                        REQUIREMENTS:
+                        1. RESEARCH BOTH: Get 2026 Table positions, Goal Difference, and 30-day form for BOTH.
+                        2. HOME/AWAY SPLITS: Compare ${home_team}'s home record vs ${away_team}'s away record.
+                        3. UPDATES: Check injuries/lineups from the last 48 hours (e.g., John McGinn's status for Villa).
+                        4. UEFA: If international, check cross-league history.
+                        5. VERDICT: Suggest the best market (H2H, O/U, BTTS) based on this data.
+                        
+                        OUTPUT: Max 80 words. Be sharp and data-heavy.`
                     },
                     {
                         role: "user",
-                        content: `Comprehensive Scout Report: ${home_team} (Home) vs ${away_team} (Away). League: ${sport_title}.`
+                        content: `Provide a Deep Scout report for ${home_team} vs ${away_team} for today, ${today}.`
                     }
                 ],
-                temperature: 0.2 // Lower temperature for more factual accuracy
+                temperature: 0.2
             })
         });
 
@@ -43,6 +49,6 @@ export default async function handler(req, res) {
         const report = data.choices[0].message.content;
         return res.status(200).json({ prediction: report });
     } catch (e) {
-        return res.status(500).json({ prediction: "Scout research failed. Check API logs." });
+        return res.status(500).json({ prediction: "Deep Research currently unavailable." });
     }
 }
