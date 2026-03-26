@@ -1,45 +1,49 @@
-import Groq from "groq-sdk";
 import { initializeApp } from "firebase/app";
 import { getDatabase, ref, set } from "firebase/database";
+import Groq from "groq-sdk";
 
+// Initialize Groq
 const groq = new Groq({ apiKey: process.env.EASYBET_API_KEY });
 
-// Firebase config should be in your Vercel Environment Variables
+// Firebase Config from Environment Variables
 const firebaseConfig = {
-    databaseURL: process.env.FIREBASE_DATABASE_URL,
+    databaseURL: process.env.FIREBASE_DATABASE_URL
 };
 
 export default async function handler(req, res) {
+    // Enable CORS for your mobile dashboard
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
-    const { teams, groupLetter } = req.body;
-
-    const prompt = `
-        You are a football league scheduler. 
-        Teams: ${JSON.stringify(teams.map(t => ({id: t.uid, name: t.teamName})))}
-        Task: Create a 6-match Round Robin schedule for Group ${groupLetter}.
-        Rules:
-        1. Every team must play exactly 3 matches.
-        2. Format: JSON array of objects with keys: hUid, aUid, startTime (ISO string starting from tomorrow 18:00 CAT).
-        3. Output ONLY the JSON array.
-    `;
-
     try {
-        const chatCompletion = await groq.chat.completions.create({
-            messages: [{ role: "user", content: prompt }],
-            model: "llama-3.3-70b-versatile", // Use Groq's fast Llama 3 model
+        const { teams, groupLetter } = req.body;
+
+        // 1. Call Groq Llama 3
+        const completion = await groq.chat.completions.create({
+            messages: [
+                { role: "system", content: "You are a football scheduler. Return ONLY a raw JSON array of 6 match objects." },
+                { role: "user", content: `Create 6 matches for Group ${groupLetter} using these teams: ${JSON.stringify(teams)}. Format: {hUid, aUid, startTime (ISO string 18:00 CAT)}.` }
+            ],
+            model: "llama-3.3-70b-versatile",
             response_format: { type: "json_object" }
         });
 
-        const fixtures = JSON.parse(chatCompletion.choices[0].message.content);
+        const rawData = JSON.parse(completion.choices[0].message.content);
+        // Ensure we get an array even if the AI wraps it in an object
+        const fixtures = Array.isArray(rawData) ? rawData : (rawData.fixtures || Object.values(rawData)[0]);
 
-        // Update Firebase directly from the server
+        // 2. Update Firebase
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
         await set(ref(db, `UCL_DATA/groups/Group ${groupLetter}/fixtures`), fixtures);
 
-        return res.status(200).json({ success: true, fixtures });
+        return res.status(200).json({ success: true, count: fixtures.length });
     } catch (error) {
+        console.error(error);
         return res.status(500).json({ error: error.message });
     }
 }
