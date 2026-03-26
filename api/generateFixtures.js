@@ -2,22 +2,23 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import { getDatabase, ref, set } from "firebase/database";
 import Groq from "groq-sdk";
 
+// Initialize Firebase once
 const firebaseConfig = {
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    databaseURL: process.env.FIREBASE_DATABASE_URL
+    databaseURL: process.env.FIREBASE_DATABASE_URL // Ensure this is the full https://... url
 };
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const db = getDatabase(app);
-const groq = new Groq({ apiKey: process.env.EASYBET_API_KEY });
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY }); // Use a clear name for the key
 
 export default async function handler(req, res) {
+    // CORS Headers
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
     if (req.method === 'OPTIONS') return res.status(200).end();
-    if (req.method !== 'POST') return res.status(405).send('Use POST');
+    if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
     try {
         const { teams, groupLetter } = req.body;
@@ -26,17 +27,17 @@ export default async function handler(req, res) {
             messages: [
                 { 
                     role: "system", 
-                    content: `You are a professional UEFA-style league scheduler. 
+                    content: `You are a professional UEFA league scheduler. 
                     Structure: 3 Matchdays (MD), 2 matches per MD.
-                    Timing Rules:
-                    - MD1: Tomorrow at 18:00 and 21:00 CAT.
-                    - MD2: The following day at 18:00 and 21:00 CAT.
-                    - MD3: Two days from now at 18:00 and 21:00 CAT.
-                    Return ONLY a JSON object: {"fixtures": [{hUid, aUid, startTime (ISO string), matchday: 1}]}` 
+                    Rules:
+                    - MD1: Tomorrow 18:00 and 21:00.
+                    - MD2: Day after 18:00 and 21:00.
+                    - MD3: Two days after 18:00 and 21:00.
+                    Return ONLY this JSON format: {"fixtures": [{"hUid": "string", "aUid": "string", "startTime": "ISO_STRING", "matchday": 1}]}` 
                 },
                 { 
                     role: "user", 
-                    content: `Schedule 6 matches for Group ${groupLetter} using: ${JSON.stringify(teams)}` 
+                    content: `Schedule 6 matches for Group ${groupLetter} using these UIDs: ${JSON.stringify(teams)}` 
                 }
             ],
             model: "llama-3.3-70b-versatile",
@@ -44,14 +45,14 @@ export default async function handler(req, res) {
         });
 
         const responseData = JSON.parse(completion.choices[0].message.content);
-        const fixtures = responseData.fixtures;
+        
+        // SAVE TO THE SAME PATH THE LIVE APP USES
+        await set(ref(db, `DLSVALUE/UCL_DATA/groups/Group ${groupLetter}/fixtures`), responseData.fixtures);
 
-        // Save to Firebase
-        await set(ref(db, `UCL_DATA/groups/Group ${groupLetter}/fixtures`), fixtures);
-
-        return res.status(200).json({ success: true, message: "Schedule Separated!" });
+        return res.status(200).json({ success: true, fixtures: responseData.fixtures });
 
     } catch (error) {
+        console.error("Groq/Firebase Error:", error);
         return res.status(500).json({ error: error.message });
     }
 }
