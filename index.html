@@ -108,6 +108,8 @@ input, textarea {
 #network-shield {
     animation: pulse-red 2s infinite;
 }
+.win { background: rgba(16, 185, 129, 0.15) !important; border-color: #10b981 !important; color: #10b981; }
+.loss { background: rgba(239, 68, 68, 0.1) !important; border-color: rgba(239, 68, 68, 0.2) !important; color: #777; }
 
     </style>
 </head>
@@ -362,11 +364,7 @@ input, textarea {
                 <span class="h-[1px] flex-1 bg-blue-500/20"></span>
             </div>
             <div id="qf-slots" class="grid grid-cols-1 gap-3">
-                <div class="bracket-match">TBD</div>
-                <div class="bracket-match">TBD</div>
-                <div class="bracket-match">TBD</div>
-                <div class="bracket-match">TBD</div>
-            </div>
+                </div>
         </section>
 
         <section class="space-y-4">
@@ -376,9 +374,7 @@ input, textarea {
                 <span class="h-[1px] flex-1 bg-emerald-500/20"></span>
             </div>
             <div id="sf-slots" class="grid grid-cols-1 gap-3">
-                <div class="bracket-match">TBD</div>
-                <div class="bracket-match">TBD</div>
-            </div>
+                </div>
         </section>
 
         <section class="space-y-4">
@@ -387,14 +383,12 @@ input, textarea {
                 <h4 class="text-[11px] font-black text-orange-400 uppercase tracking-[0.2em]">Grand Final (+$5.50)</h4>
                 <span class="h-[2px] flex-1 bg-gradient-to-l from-transparent to-orange-500/50"></span>
             </div>
-            <div class="relative group">
-                <div class="absolute -inset-1 bg-gradient-to-r from-orange-500 to-yellow-500 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
-                <div class="relative bracket-match border-orange-500/30 h-28 flex flex-col justify-center items-center bg-orange-500/5">
-                    <span class="text-white text-xs font-black tracking-widest mb-1">CHAMPIONSHIP</span>
-                    <span class="text-[10px] text-yellow-500 font-bold">$2.50 RUNNER UP vs $5.50 WINNER</span>
+            <div id="final-slots" class="relative group min-h-[140px]">
                 </div>
-            </div>
         </section>
+
+    </div>
+</div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
@@ -412,11 +406,35 @@ input, textarea {
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // --- GLOBAL UI FUNCTIONS ---
-    const toggleScroll = (lock) => {
-        if (lock) document.body.classList.add('lock-scroll');
-        else document.body.classList.remove('lock-scroll');
+    // --- COUNTDOWN ENGINE ---
+    const getCountdown = (timeStr) => {
+        if (!timeStr || timeStr === 'TBA') return null;
+        try {
+            const [datePart, timePart] = timeStr.split(' @ ');
+            const [day, month] = datePart.split('/');
+            const targetDate = new Date(2026, month - 1, day, ...timePart.split(':'));
+            const now = new Date();
+            const diff = targetDate - now;
+
+            if (diff <= 0) return "● LIVE";
+
+            const h = Math.floor(diff / 36e5);
+            const m = Math.floor((diff % 36e5) / 6e4);
+            const s = Math.floor((diff % 6e4) / 1000);
+            return `${h}h ${m}m ${s}s`;
+        } catch (e) { return timeStr; }
     };
+
+    // Auto-refresh timers every second
+    setInterval(() => {
+        document.querySelectorAll('[data-time]').forEach(el => {
+            const cd = getCountdown(el.getAttribute('data-time'));
+            if (cd) el.innerText = cd;
+        });
+    }, 1000);
+
+    // --- UI HELPERS ---
+    const toggleScroll = (lock) => document.body.classList.toggle('lock-scroll', lock);
 
     window.toggleModal = () => {
         const m = document.getElementById('ucl-modal');
@@ -430,110 +448,102 @@ input, textarea {
         toggleScroll(b.classList.contains('active-modal'));
     };
 
-    // Cancel Feature: Clears LocalStorage and removes from Firebase
-    window.cancelRegistration = async () => {
-        const pending = JSON.parse(localStorage.getItem('ucl_pending_reg'));
-        if (!pending) return;
-
-        if (confirm("Cancel your registration? Your spot will be released.")) {
-            const snapshot = await get(ref(db, 'ucl/participants'));
-            if (snapshot.exists()) {
-                const entries = Object.entries(snapshot.val());
-                const userEntry = entries.find(([id, data]) => data.key === pending.key);
-                if (userEntry) {
-                    await remove(ref(db, `ucl/participants/${userEntry[0]}`));
-                }
-            }
-            localStorage.removeItem('ucl_pending_reg');
-            location.reload(); // Refresh to reset UI
-        }
+    window.toggleRules = () => {
+        const r = document.getElementById('rules-modal');
+        r.classList.toggle('active-modal');
+        toggleScroll(r.classList.contains('active-modal'));
     };
 
-    window.previewLogo = (input) => {
-        if (input.files && input.files[0]) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                document.getElementById('logo-preview').innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover">`;
-            };
-            reader.readAsDataURL(input.files[0]);
-        }
-    };
-
-    // --- MAIN REAL-TIME LISTENER ---
+    // --- THE MAIN REAL-TIME ENGINE ---
     onValue(ref(db, 'ucl'), (snapshot) => {
         const data = snapshot.val() || {};
-        const participantsList = data.participants ? Object.values(data.participants) : [];
-        const paidPlayers = participantsList.filter(p => p.paid === true);
-        const paidCount = paidPlayers.length;
+        const participants = data.participants ? Object.values(data.participants) : [];
+        const bracket = data.bracket || {};
+        const paidPlayers = participants.filter(p => p.paid === true);
         
-        document.getElementById('user-count-header').innerText = `${paidCount}/16 PLAYERS PAID`;
+        document.getElementById('user-count-header').innerText = `${paidPlayers.length}/16 PLAYERS PAID`;
         document.getElementById('season-dates').innerText = `SEASON: ${data.startDate || 'TBA'} - ${data.endDate || 'TBA'}`;
 
+        updateEntryButton(paidPlayers.length, participants);
+
+        renderBracketRound('r16-slots', bracket.r16, 8, 'R16');
+        renderBracketRound('qf-slots', bracket.qf, 4, 'QF');
+        renderBracketRound('sf-slots', bracket.sf, 2, 'SF');
+        renderBracketRound('final-slots', bracket.final, 1, 'FINAL');
+    });
+
+    function renderBracketRound(containerId, roundData, matchCount, label) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        container.innerHTML = '';
+
+        for (let i = 1; i <= matchCount; i++) {
+            const m = (roundData && roundData[`m${i}`]) || { p1: "TBD", p2: "TBD", s1: 0, s2: 0, winner: null, time: "TBA" };
+            
+            // FIX: Robust check for winner to prevent "undefined" and false "Loss" states
+            const hasWinner = m.winner && m.winner !== "" && m.winner !== "null" && m.winner !== "TBD";
+            const p1Status = hasWinner ? (m.winner === m.p1 ? 'win' : 'loss') : '';
+            const p2Status = hasWinner ? (m.winner === m.p2 ? 'win' : 'loss') : '';
+            
+            // BORDER LOGIC: Yellow if match has teams but no winner yet
+            const hasTeams = m.p1 !== "TBD" && m.p2 !== "TBD";
+            const borderClass = (!hasWinner && hasTeams) ? 'border-yellow-500/40 shadow-[0_0_10px_rgba(234,179,8,0.05)]' : 'border-white/5';
+
+            const html = `
+                <div class="mb-6">
+                    <div class="flex justify-between items-center mb-1.5 px-2">
+                        <span class="text-[7px] font-black text-neutral-500 uppercase tracking-widest">${label} MATCH ${i}</span>
+                        <span data-time="${m.time}" class="text-[7px] font-black ${hasWinner ? 'text-cyan-400' : 'text-yellow-500'} uppercase tracking-widest">
+                            ${hasWinner ? '● FINISHED' : getCountdown(m.time) || m.time}
+                        </span>
+                    </div>
+                    <div class="space-y-1">
+                        <div class="bracket-match ${borderClass} ${p1Status} flex justify-between items-center px-4 min-h-[44px]">
+                            <span class="flex items-center gap-2 text-[11px] font-bold uppercase tracking-tight">
+                                ${m.p1} 
+                                ${p1Status === 'win' ? '<b class="text-[8px] text-emerald-400 ml-1">WINNER</b>' : ''}
+                                ${p1Status === 'loss' ? '<b class="text-[8px] text-red-500/60 ml-1">ELIMINATED</b>' : ''}
+                            </span>
+                            <span class="font-mono font-black text-cyan-400">${m.s1 || 0}</span>
+                        </div>
+                        <div class="bracket-match ${borderClass} ${p2Status} flex justify-between items-center px-4 min-h-[44px]">
+                            <span class="flex items-center gap-2 text-[11px] font-bold uppercase tracking-tight">
+                                ${m.p2}
+                                ${p2Status === 'win' ? '<b class="text-[8px] text-emerald-400 ml-1">WINNER</b>' : ''}
+                                ${p2Status === 'loss' ? '<b class="text-[8px] text-red-500/60 ml-1">ELIMINATED</b>' : ''}
+                            </span>
+                            <span class="font-mono font-black text-cyan-400">${m.s2 || 0}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', html);
+        }
+    }
+
+    function updateEntryButton(paidCount, allParticipants) {
         const enterBtn = document.getElementById('enter-btn');
         const pendingReg = JSON.parse(localStorage.getItem('ucl_pending_reg'));
-
-        // Check if the pending registration is actually still in the database
-        const stillInDB = participantsList.some(p => p.key === (pendingReg?.key));
+        const stillInDB = allParticipants.some(p => p.key === (pendingReg?.key));
 
         if (paidCount >= 16) {
             enterBtn.innerText = "SEASON FULL";
             enterBtn.disabled = true;
             enterBtn.className = "w-full bg-neutral-800 text-neutral-500 py-4 rounded-2xl font-black uppercase";
-        } 
-        else if (pendingReg && stillInDB) {
-            // Awaiting Payment State
-            enterBtn.innerHTML = `
-                <div class="flex flex-col leading-tight">
-                    <span>AWAITING PAYMENT</span>
-                    <span class="text-[9px] opacity-70">TAP TO WHATSAPP • HOLD TO CANCEL</span>
-                </div>
-            `;
+        } else if (pendingReg && stillInDB) {
+            enterBtn.innerHTML = `<div class="flex flex-col leading-tight"><span>AWAITING PAYMENT</span><span class="text-[9px] opacity-70">TAP TO WHATSAPP • HOLD TO CANCEL</span></div>`;
             enterBtn.className = "w-full bg-yellow-400 text-black py-4 rounded-2xl font-black uppercase shadow-lg shadow-yellow-400/20 transition-all active:scale-95";
-            
-            // Single tap to WhatsApp
-            enterBtn.onclick = () => {
-                const msg = encodeURIComponent(`I'm awaiting verification for Team: ${pendingReg.teamName}\nKey: ${pendingReg.key}`);
-                window.location.href = `https://wa.me/27846737224?text=${msg}`;
-            };
-
-            // Simple "Hold/Double Tap" to cancel (Better for mobile)
-            enterBtn.oncontextmenu = (e) => {
-                e.preventDefault();
-                window.cancelRegistration();
-            };
-        } 
-        else {
-            // Default: Enter Season
+            enterBtn.onclick = () => window.location.href = `https://wa.me/27846737224?text=${encodeURIComponent("I'm awaiting verification for Team: "+pendingReg.teamName+"\nKey: "+pendingReg.key)}`;
+            enterBtn.oncontextmenu = (e) => { e.preventDefault(); window.cancelRegistration(); };
+        } else {
             enterBtn.innerText = `ENTER SEASON (${16 - paidCount} SPOTS LEFT)`;
             enterBtn.className = "w-full bg-white text-black py-4 rounded-2xl font-black uppercase tracking-tight hover:bg-cyan-400 transition-all active:scale-95";
             enterBtn.disabled = false;
             enterBtn.onclick = () => window.toggleModal();
-            if(!stillInDB) localStorage.removeItem('ucl_pending_reg');
         }
+    }
 
-        // --- ROUND OF 16 BRACKET LOGIC ---
-        const r16Container = document.getElementById('r16-slots');
-        if (r16Container) {
-            r16Container.innerHTML = ''; 
-            for (let i = 0; i < 16; i++) {
-                const player = paidPlayers[i];
-                const teamDisplay = player ? player.teamName : "WAITING FOR SEED...";
-                const isPaidClass = player ? "paid" : "";
-                const slotHtml = `
-                    <div class="bracket-match ${isPaidClass} flex items-center justify-center gap-2 transition-all duration-500">
-                        ${player ? '<span class="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]"></span>' : ''}
-                        <span>${teamDisplay}</span>
-                    </div>
-                `;
-                r16Container.insertAdjacentHTML('beforeend', slotHtml);
-                if (i % 2 !== 0 && i < 15) {
-                    r16Container.insertAdjacentHTML('beforeend', `<div class="h-4 flex items-center justify-center"><div class="w-8 h-[1px] bg-white/5"></div></div>`);
-                }
-            }
-        }
-    });
-
-    // --- REGISTRATION SUBMISSION ---
+    // --- REGISTRATION LOGIC ---
     document.getElementById('registration-form').onsubmit = async (e) => {
         e.preventDefault();
         const teamName = document.getElementById('team-name').value;
@@ -542,8 +552,9 @@ input, textarea {
 
         const snapshot = await get(child(ref(db), `ucl/participants`));
         if (snapshot.exists()) {
-            const isTaken = Object.values(snapshot.val()).some(p => p.teamName.toLowerCase() === teamName.toLowerCase());
-            if (isTaken) { alert("TEAM NAME ALREADY TAKEN!"); return; }
+            if (Object.values(snapshot.val()).some(p => p.teamName.toLowerCase() === teamName.toLowerCase())) {
+                alert("TEAM NAME TAKEN!"); return;
+            }
         }
 
         const uniqueKey = 'UCL-' + Math.random().toString(36).substr(2, 6).toUpperCase();
@@ -555,54 +566,25 @@ input, textarea {
 
         document.getElementById('login-key-field').value = uniqueKey;
         document.getElementById('key-container').classList.remove('hidden');
-
         setTimeout(() => {
-            const msg = encodeURIComponent(`I want to join the UCL! ⚽\nTeam: ${teamName}\nKey: ${uniqueKey}`);
-            window.location.href = `https://wa.me/27846737224?text=${msg}`;
+            window.location.href = `https://wa.me/27846737224?text=${encodeURIComponent("I want to join the UCL! ⚽\nTeam: "+teamName+"\nKey: "+uniqueKey)}`;
         }, 2000);
     };
-    window.toggleRules = () => {
-    const r = document.getElementById('rules-modal');
-    r.classList.toggle('active-modal'); // Reusing your bracket modal class
-    toggleScroll(r.classList.contains('active-modal'));
-};
-// --- NETWORK SPEED AUTO-DETECT ---
-const checkConnection = async () => {
-    const shield = document.getElementById('network-shield');
-    
-    // 1. Check basic Navigator speed (if available)
-    if (navigator.connection) {
-        if (navigator.connection.effectiveType === '2g' || navigator.connection.saveData) {
-            shield.style.display = 'flex';
-            return;
-        }
-    }
 
-    // 2. Real-world Latency Test
-    const startTime = new Date().getTime();
-    try {
-        // We fetch a small image or the Firebase config to test response time
-        await fetch("https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js", { mode: 'no-cors', cache: 'no-store' });
-        const endTime = new Date().getTime();
-        const duration = endTime - startTime;
-
-        // If it takes more than 1.5 seconds to load a tiny script, the lag will be bad
-        if (duration > 1500) { 
-            shield.style.display = 'flex';
-        } else {
-            shield.style.display = 'none';
-        }
-    } catch (error) {
-        console.log("Offline or blocked.");
-        shield.style.display = 'flex';
-    }
-};
-
-// Run check on load and every 10 seconds to detect drops
-window.addEventListener('load', checkConnection);
-setInterval(checkConnection, 10000);
-
+    // --- NETWORK DETECTION ---
+    const checkConnection = async () => {
+        const shield = document.getElementById('network-shield');
+        const startTime = new Date().getTime();
+        try {
+            await fetch("https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js", { mode: 'no-cors', cache: 'no-store' });
+            if ((new Date().getTime() - startTime) > 1500) shield.style.display = 'flex';
+            else shield.style.display = 'none';
+        } catch (e) { shield.style.display = 'flex'; }
+    };
+    window.addEventListener('load', checkConnection);
+    setInterval(checkConnection, 10000);
 </script>
+
 
     </div>
 </div>
