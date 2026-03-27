@@ -2,41 +2,38 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DLS26 | Pro Scheduler</title>
+    <title>DLS26 | Season 24 Controller</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background: #050505; color: #fff; font-family: 'Inter', sans-serif; }
         .glass { background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(20px); border: 1px solid #1a1a1a; }
-        .btn-green { background: #00ff88; color: #000; font-weight: 900; transition: 0.3s; }
-        .btn-green:hover { transform: scale(1.02); box-shadow: 0 0 20px rgba(0,255,136,0.4); }
+        .btn-ready { background: #00ff88; color: #000; font-weight: 900; }
+        .btn-locked { background: #111; color: #333; cursor: not-allowed; }
     </style>
 </head>
 <body class="p-6">
 
-    <div class="max-w-xl mx-auto glass p-10 rounded-[3rem] border-t border-white/5 text-center">
-        <h1 class="text-3xl font-black italic uppercase tracking-tighter mb-2">PRO <span class="text-[#00ff88]">SCHEDULER</span></h1>
-        <p class="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.3em] mb-10">Manual Logic • Zero AI Errors</p>
-
-        <div class="space-y-6">
-            <div class="bg-black p-6 rounded-2xl border border-zinc-900 text-left">
-                <label class="text-[10px] font-black uppercase text-zinc-600 mb-2 block">Starting Kickoff Time</label>
-                <input type="time" id="start-time" value="18:00" class="w-full bg-zinc-900 border border-zinc-800 p-4 rounded-xl text-[#00ff88] font-bold outline-none">
-            </div>
-
-            <button id="auto-gen" class="btn-green w-full py-6 rounded-3xl text-xs uppercase italic">Generate & Sync Matchday</button>
-            
-            <button id="clear-all" class="w-full py-3 text-[9px] text-zinc-600 uppercase font-black hover:text-red-500 transition-colors">Wipe All Fixtures</button>
+    <div class="max-w-2xl mx-auto glass p-10 rounded-[3rem] border-t border-white/5 text-center">
+        <h1 class="text-3xl font-black italic uppercase tracking-tighter mb-2">SEASON <span class="text-[#00ff88]">24</span></h1>
+        <div id="registration-status" class="inline-block px-4 py-1 bg-zinc-900 rounded-full text-[10px] font-bold uppercase tracking-widest mb-10 text-zinc-500">
+            Checking Spots...
         </div>
 
-        <div id="status" class="mt-8 p-4 bg-zinc-950 rounded-2xl font-mono text-[10px] text-zinc-500 min-h-[60px] flex items-center justify-center">
-            System Ready.
+        <div class="space-y-4">
+            <div id="launch-zone">
+                </div>
+            
+            <button id="clear-season" class="w-full py-3 text-[9px] text-zinc-700 uppercase font-black hover:text-red-500 transition-colors">Emergency Reset</button>
+        </div>
+
+        <div id="log" class="mt-8 p-6 bg-black rounded-2xl font-mono text-[10px] text-zinc-500 text-left h-40 overflow-y-auto border border-zinc-900">
+            > System Standby.
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
-        import { getDatabase, ref, get, push, remove } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+        import { getDatabase, ref, onValue, get, push, remove, set } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
@@ -47,69 +44,107 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        document.getElementById('auto-gen').onclick = async () => {
-            const status = document.getElementById('status');
-            status.innerText = "Fetching teams...";
-
-            try {
-                // 1. Get Teams
-                const snap = await get(ref(db, 'users/players'));
-                const players = snap.val();
-                if (!players) throw new Error("Add teams to 'users/players' first!");
-
-                const teamList = Object.values(players);
-                
-                // Shuffle teams for randomness
-                teamList.sort(() => Math.random() - 0.5);
-
-                // 2. Setup Timing
-                const startTimeStr = document.getElementById('start-time').value;
-                const [hours, minutes] = startTimeStr.split(':');
-                let kickoff = new Date();
-                kickoff.setHours(hours, minutes, 0, 0);
-
-                status.innerText = "Pairing teams...";
-                const fixturesRef = ref(db, 'fixtures');
-
-                // 3. Pair them (Step 2 means i vs i+1)
-                for (let i = 0; i < teamList.length; i += 2) {
-                    if (teamList[i+1]) { // Ensure there's a pair
-                        const home = teamList[i];
-                        const away = teamList[i+1];
-
-                        const matchTime = kickoff.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-                        await push(fixturesRef, {
-                            homeName: home.team,
-                            homeLogo: home.logo || "",
-                            homeScore: 0,
-                            awayName: away.team,
-                            awayLogo: away.logo || "",
-                            awayScore: 0,
-                            date: new Date().toLocaleDateString(),
-                            time: matchTime,
-                            ended: false
-                        });
-
-                        // Add 15 minutes for the next match
-                        kickoff.setMinutes(kickoff.getMinutes() + 15);
-                    }
-                }
-
-                status.innerText = "SUCCESS: Matchday Sync Complete!";
-                status.classList.add('text-[#00ff88]');
-
-            } catch (err) {
-                status.innerText = "ERROR: " + err.message;
-                status.classList.add('text-red-500');
-            }
+        const log = (msg) => {
+            const el = document.getElementById('log');
+            el.innerHTML += `<div>> ${msg}</div>`;
+            el.scrollTop = el.scrollHeight;
         };
 
-        document.getElementById('clear-all').onclick = async () => {
-            if (confirm("Delete all fixtures?")) {
-                await remove(ref(db, 'fixtures'));
-                document.getElementById('status').innerText = "Database Wiped.";
+        // 1. MONITOR REGISTRATION
+        onValue(ref(db, 'users/players'), (snap) => {
+            const players = snap.val() || {};
+            const count = Object.keys(players).length;
+            const statusEl = document.getElementById('registration-status');
+            const zone = document.getElementById('launch-zone');
+
+            if (count < 24) {
+                statusEl.innerHTML = `<span class="text-yellow-500">${count}/24 SPOTS FILLED</span>`;
+                zone.innerHTML = `<button class="btn-locked w-full py-6 rounded-3xl text-xs uppercase italic font-black">Season Locked (Need ${24-count} more)</button>`;
+            } else {
+                statusEl.innerHTML = `<span class="text-[#00ff88]">24/24 SPOTS FULL - READY TO START</span>`;
+                zone.innerHTML = `<button id="start-season" class="btn-ready w-full py-6 rounded-3xl text-xs uppercase italic font-black animate-pulse">START 7-DAY SEASON</button>`;
+                
+                document.getElementById('start-season').onclick = () => generateSeason(players);
             }
+        });
+
+        async function generateSeason(players) {
+            log("Initializing Season Algorithm...");
+            const teamIds = Object.keys(players);
+            const fixturesRef = ref(db, 'fixtures');
+            
+            // Wipe old season
+            await remove(fixturesRef);
+
+            // Setup Calendar
+            let startDate = new Date();
+            // Move to next Sunday
+            startDate.setDate(startDate.getDate() + (7 - startDate.getDay()) % 7);
+            startDate.setHours(18, 0, 0, 0);
+
+            // Every team plays 6 matches. 
+            // We use a simple rotation for 6 rounds.
+            for (let round = 0; round < 6; round++) {
+                let matchDay = new Date(startDate);
+                matchDay.setDate(startDate.getDate() + round); // One round per day
+
+                log(`Scheduling Round ${round + 1}: ${matchDay.toLocaleDateString()}`);
+
+                // Simple pairing: Team i plays Team (i + round + 1) % 24
+                // To avoid double counting, we use a set
+                let pairedToday = new Set();
+
+                for (let i = 0; i < 24; i++) {
+                    if (pairedToday.has(i)) continue;
+
+                    let homeIdx = i;
+                    let awayIdx = (i + round + 1) % 24;
+
+                    if (pairedToday.has(awayIdx)) {
+                        // Finding next available if collision
+                        awayIdx = (awayIdx + 1) % 24;
+                        while(pairedToday.has(awayIdx) || awayIdx === homeIdx) {
+                            awayIdx = (awayIdx + 1) % 24;
+                        }
+                    }
+
+                    const home = players[teamIds[homeIdx]];
+                    const away = players[teamIds[awayIdx]];
+
+                    await push(fixturesRef, {
+                        homeName: home.team,
+                        homeLogo: home.logo || "",
+                        awayName: away.team,
+                        awayLogo: away.logo || "",
+                        homeScore: 0,
+                        awayScore: 0,
+                        kickOff: matchDay.toISOString(),
+                        dayLabel: matchDay.toLocaleDateString('en-US', {weekday: 'long'}),
+                        ended: false,
+                        round: round + 1
+                    });
+
+                    pairedToday.add(homeIdx);
+                    pairedToday.add(awayIdx);
+                }
+            }
+
+            // Schedule Winner Announcement
+            let winDate = new Date(startDate);
+            winDate.setDate(startDate.getDate() + 7); // The Monday
+            log(`Winner Announcement Scheduled: ${winDate.toLocaleDateString()}`);
+            
+            await set(ref(db, 'season_meta'), {
+                status: "ACTIVE",
+                startDate: startDate.toISOString(),
+                endDate: winDate.toISOString()
+            });
+
+            log("SEASON LIVE: 72 matches generated (6 per team).");
+        }
+
+        document.getElementById('clear-season').onclick = () => {
+            if(confirm("Wipe everything?")) remove(ref(db, 'fixtures'));
         };
     </script>
 </body>
