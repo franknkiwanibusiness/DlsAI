@@ -48,6 +48,108 @@
         @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
         #fixtures-section { display: none; width: 100%; min-height: 100vh; background: #000; position: fixed; top: 0; left: 0; z-index: 200; overflow-y: auto; padding: 2rem; }
+/* FIXTURES SECTION SCROLL & STICKY HEADER */
+#fixtures-section {
+    display: none; 
+    width: 100%; 
+    height: 100vh; 
+    background: #000; 
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    z/* FIXTURES SECTION SCROLL FIX */
+#fixtures-section {
+    display: none; 
+    width: 100%; 
+    height: 100vh; /* Fixed height for the viewport */
+    background: #000; 
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    z-index: 200; 
+    overflow-y: scroll; /* Force vertical scrollbar */
+    -webkit-overflow-scrolling: touch; /* Smooth scroll for iOS */
+    padding: 0; /* Remove padding here to keep header sticky */
+}
+
+/* Make the Fixtures Header Sticky so it doesn't scroll away */
+#fixtures-section .max-w-4xl {
+    padding: 2rem;
+    min-height: 101%; /* Ensures scrolling is always possible */
+}
+
+#fixtures-section .flex.justify-between {
+    position: sticky;
+    top: 0;
+    background: #000;
+    z-index: 210;
+    padding-top: 1rem;
+    padding-bottom: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+/* Custom Scrollbar for the Match Center (Sleek Look) */
+#fixtures-section::-webkit-scrollbar {
+    width: 4px;
+}
+
+#fixtures-section::-webkit-scrollbar-track {
+    background: #000;
+}
+
+#fixtures-section::-webkit-scrollbar-thumb {
+    background: #222;
+    border-radius: 10px;
+}
+
+/* Added to prevent the background table from shifting when modal opens */
+body.modal-open {
+    overflow: hidden;
+    height: 100vh;
+}
+#open-fixtures { 
+    /* Layout & Sizing (Replacing inline classes) */
+    padding: 0.5rem 1.5rem; 
+    border-radius: 0.75rem; 
+    font-size: 9px; 
+    font-weight: 900; 
+    text-transform: uppercase;
+    color: #fff;
+    cursor: pointer;
+
+    /* Positioning & Special Effects */
+    position: relative; 
+    background: #000; 
+    border: 2px solid #fff; /* Crisp White Edge */
+    background-clip: padding-box; 
+    overflow: hidden;
+    z-index: 1;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+#open-fixtures::after {
+    content: ''; 
+    position: absolute; 
+    top: -50%; 
+    left: -50%; 
+    width: 200%; 
+    height: 200%;
+    /* Rainbow background behind the black/white frame */
+    background: conic-gradient(#ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
+    animation: rotate 3s linear infinite; 
+    z-index: -1;
+}
+
+#open-fixtures:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
+}
+
+@keyframes rotate { 
+    from { transform: rotate(0deg); } 
+    to { transform: rotate(360deg); } 
+}
+
     </style>
 </head>
 <body>
@@ -65,7 +167,17 @@
     <main class="p-4 md:p-10">
         <div class="max-w-4xl mx-auto mb-2 flex items-center justify-between bg-zinc-950 border border-zinc-900 p-5 rounded-t-[1.5rem]">
             <span id="slot-counter" class="text-xl font-black italic text-white uppercase tracking-tighter">MANAGERS: --/24</span>
-            <button id="open-fixtures" class="px-6 py-2 rounded-xl text-[9px] font-black uppercase text-white">Fixtures</button>
+        <button id="open-fixtures" 
+    class="px-6 py-2 rounded-xl text-[9px] font-black uppercase text-white relative overflow-hidden" 
+    style="
+        background: #000; 
+        border: 2px solid #fff; 
+        background-clip: padding-box; 
+        z-index: 1;
+    ">
+    Fixtures
+</button>
+
         </div>
 
         <div class="max-w-4xl mx-auto mb-6 flex items-center justify-around bg-zinc-900/30 p-3 rounded-b-[1.5rem] border-x border-b border-zinc-900 overflow-x-auto whitespace-nowrap gap-4">
@@ -130,8 +242,7 @@
             <button onclick="closeModals()" class="w-full text-zinc-600 text-[10px] font-bold uppercase mt-4">Cancel</button>
         </div>
     </div>
-
-    <div id="fixtures-section">
+   <div id="fixtures-section">
         <div class="max-w-4xl mx-auto">
             <div class="flex justify-between items-center mb-10 border-b border-zinc-900 pb-6">
                 <h2 class="text-3xl font-black italic uppercase">Match Center</h2>
@@ -140,164 +251,216 @@
             <div id="fixtures-content" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
         </div>
     </div>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+    import { getDatabase, ref, onValue, set, get, remove } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
-        import { getDatabase, ref, onValue, set, get, remove } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+    const firebaseConfig = {
+        apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
+        authDomain: "itzhoyoo-f9f7e.firebaseapp.com",
+        databaseURL: "https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com",
+        projectId: "itzhoyoo-f9f7e",
+        storageBucket: "itzhoyoo-f9f7e.filestorage.app",
+        appId: "1:1094792075584:web:d49e9c3f899d3cd31082a5"
+    };
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
-            authDomain: "itzhoyoo-f9f7e.firebaseapp.com",
-            databaseURL: "https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com",
-            projectId: "itzhoyoo-f9f7e",
-            storageBucket: "itzhoyoo-f9f7e.filestorage.app",
-            appId: "1:1094792075584:web:d49e9c3f899d3cd31082a5"
-        };
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    let currentManagerCount = 0;
+    let globalPlayers = {};
+    let fixtureInterval = null;
 
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        let currentManagerCount = 0;
-        let globalPlayers = {};
+    const lockScroll = () => document.body.classList.add('modal-open');
+    const unlockScroll = () => document.body.classList.remove('modal-open');
 
-        const lockScroll = () => document.body.classList.add('modal-open');
-        const unlockScroll = () => document.body.classList.remove('modal-open');
+    // SKELETON
+    const tBody = document.getElementById('table-body');
+    tBody.innerHTML = Array(12).fill(`<tr><td class="p-5"><div class="h-4 w-4 skeleton mx-auto"></div></td><td class="p-5 flex gap-3"><div class="h-8 w-8 skeleton rounded"></div><div class="h-4 w-32 skeleton rounded"></div></td><td class="p-5"><div class="h-4 w-4 skeleton mx-auto"></div></td><td class="p-5"><div class="h-4 w-4 skeleton mx-auto"></div></td><td class="p-5 sticky-pts"><div class="h-6 w-8 skeleton mx-auto"></div></td></tr>`).join('');
 
-        // SKELETON
-        const tBody = document.getElementById('table-body');
-        tBody.innerHTML = Array(12).fill(`<tr><td class="p-5"><div class="h-4 w-4 skeleton mx-auto"></div></td><td class="p-5 flex gap-3"><div class="h-8 w-8 skeleton rounded"></div><div class="h-4 w-32 skeleton rounded"></div></td><td class="p-5"><div class="h-4 w-4 skeleton mx-auto"></div></td><td class="p-5"><div class="h-4 w-4 skeleton mx-auto"></div></td><td class="p-5 sticky-pts"><div class="h-6 w-8 skeleton mx-auto"></div></td></tr>`).join('');
+    // LEAGUE TABLE RENDER
+    onValue(ref(db, 'users/players'), (snap) => {
+        const data = snap.val() || {};
+        globalPlayers = data;
+        const sorted = Object.entries(data).sort(([,a], [,b]) => (b.pts - a.pts) || (b.gd - a.gd));
+        currentManagerCount = Object.keys(data).length;
+        const myId = localStorage.getItem('dls_uid');
+        
+        let html = '';
+        for(let i=0; i<24; i++) {
+            const p = sorted[i]?.[1];
+            const pos = i + 1;
+            let zone = pos <= 16 ? 'zone-ucl' : (pos <= 21 ? 'zone-safe' : 'zone-relegation');
+            let rowClass = `${zone} border-b border-zinc-900/40 cursor-pointer transition-all hover:bg-zinc-900/50`;
+            if(pos === 1) rowClass += ' rank-1';
+            if(p && p.id === myId) rowClass += ' is-me';
 
-        // DATA RENDER
-        onValue(ref(db, 'users/players'), (snap) => {
-            const data = snap.val() || {};
-            globalPlayers = data;
-            const sorted = Object.entries(data).sort(([,a], [,b]) => (b.pts - a.pts) || (b.gd - a.gd));
-            currentManagerCount = Object.keys(data).length;
-            const myId = localStorage.getItem('dls_uid');
-            
-            let html = '';
-            for(let i=0; i<24; i++) {
-                const p = sorted[i]?.[1];
-                const pos = i + 1;
-                let zone = pos <= 16 ? 'zone-ucl' : (pos <= 21 ? 'zone-safe' : 'zone-relegation');
-                let rowClass = `${zone} border-b border-zinc-900/40 cursor-pointer transition-all hover:bg-zinc-900/50`;
-                if(pos === 1) rowClass += ' rank-1';
-                if(p && p.id === myId) rowClass += ' is-me';
-
-                if(p) {
-                    html += `<tr onclick="window.viewManager('${p.id}')" class="${rowClass}">
-                        <td class="p-5 font-black text-zinc-800 text-center">${pos}</td>
-                        <td class="p-5 flex items-center gap-3 font-bold text-xs uppercase">
-                            <img src="${p.logo}" class="w-7 h-7 rounded-lg object-cover">
-                            <span class="flex flex-col">
-                                <span>${p.team} ${pos===1?'👑':''}</span>
-                                ${p.id === myId ? '<span class="text-[8px] text-blue-400 font-black tracking-widest mt-0.5">&lt;YOU&gt;</span>' : ''}
-                            </span>
-                        </td>
-                        <td class="p-5 text-center text-zinc-500 font-bold">${p.p || 0}</td>
-                        <td class="p-5 text-center text-zinc-400 font-bold">${p.gd || 0}</td>
-                        <td class="p-5 text-center font-black text-[#00ff88] text-lg sticky-pts">${p.pts}</td>
-                    </tr>`;
-                } else {
-                    html += `<tr class="${zone} border-b border-zinc-900/10"><td class="p-5 text-center text-zinc-900 font-black">${pos}</td><td class="p-5 text-[10px] text-zinc-800 uppercase italic">Empty Slot</td><td colspan="2"></td><td class="sticky-pts text-zinc-900 text-center">0</td></tr>`;
-                }
+            if(p) {
+                html += `<tr onclick="window.viewManager('${p.id}')" class="${rowClass}">
+                    <td class="p-5 font-black text-zinc-800 text-center">${pos}</td>
+                    <td class="p-5 flex items-center gap-3 font-bold text-xs uppercase">
+                        <img src="${p.logo}" class="w-7 h-7 rounded-lg object-cover">
+                        <span class="flex flex-col">
+                            <span>${p.team} ${pos===1?'👑':''}</span>
+                            ${p.id === myId ? '<span class="text-[8px] text-blue-400 font-black tracking-widest mt-0.5">&lt;YOU&gt;</span>' : ''}
+                        </span>
+                    </td>
+                    <td class="p-5 text-center text-zinc-500 font-bold">${p.p || 0}</td>
+                    <td class="p-5 text-center text-zinc-400 font-bold">${p.gd || 0}</td>
+                    <td class="p-5 text-center font-black text-[#00ff88] text-lg sticky-pts">${p.pts}</td>
+                </tr>`;
+            } else {
+                html += `<tr class="${zone} border-b border-zinc-900/10"><td class="p-5 text-center text-zinc-900 font-black">${pos}</td><td class="p-5 text-[10px] text-zinc-800 uppercase italic">Empty Slot</td><td colspan="2"></td><td class="sticky-pts text-zinc-900 text-center">0</td></tr>`;
             }
-            tBody.innerHTML = html;
-            document.getElementById('slot-counter').innerText = `MANAGERS: ${currentManagerCount}/24`;
-            if(myId) document.getElementById('nav-btn-text').innerText = "Profile";
-        });
-
-        // VIEW MANAGER PROFILE
-        window.viewManager = (id) => {
-            const p = globalPlayers[id];
-            if(!p) return;
-            document.getElementById('view-logo').src = p.logo;
-            document.getElementById('view-team').innerText = p.team;
-            document.getElementById('view-stats').innerText = `PTS: ${p.pts} | GD: ${p.gd} | PLAYED: ${p.p}`;
-            document.getElementById('view-wa').href = `https://wa.me/${p.wa}`;
-            document.getElementById('modal-view').classList.remove('hidden');
-            lockScroll();
-        };
-
-        // JOIN / PROFILE ACTION
-        document.getElementById('btn-main-action').onclick = async () => {
-            const myId = localStorage.getItem('dls_uid');
-            if (!myId && currentManagerCount >= 24) {
-                document.getElementById('modal-full').classList.remove('hidden');
-                lockScroll(); return;
-            }
-            if (myId) {
-                document.getElementById('btn-delete').classList.remove('hidden');
-                const s = await get(ref(db, `users/players/${myId}`));
-                const d = s.val();
-                if (d) {
-                    document.getElementById('reg-team').value = d.team;
-                    document.getElementById('reg-email').value = d.email;
-                    document.getElementById('reg-wa').value = d.wa;
-                    document.getElementById('preview').src = d.logo;
-                }
-            }
-            document.getElementById('modal-reg').classList.remove('hidden');
-            lockScroll();
-        };
-
-        document.getElementById('btn-submit').onclick = async () => {
-            const uid = localStorage.getItem('dls_uid') || `u_${Date.now()}`;
-            const existing = (await get(ref(db, `users/players/${uid}`))).val() || {};
-            await set(ref(db, `users/players/${uid}`), {
-                id: uid, team: document.getElementById('reg-team').value.toUpperCase(),
-                email: document.getElementById('reg-email').value, pass: document.getElementById('reg-pass').value,
-                wa: document.getElementById('reg-wa').value, logo: document.getElementById('preview').src,
-                pts: existing.pts || 0, p: existing.p || 0, gd: existing.gd || 0
-            });
-            localStorage.setItem('dls_uid', uid);
-            document.getElementById('modal-reg').classList.add('hidden');
-            document.getElementById('modal-congrats').classList.remove('hidden');
-        };
-
-        // UI HELPERS
-        window.closeModals = () => { 
-            document.querySelectorAll('[id^="modal-"]').forEach(m => m.classList.add('hidden')); 
-            unlockScroll(); 
         }
-        window.closeFixtures = () => { document.getElementById('fixtures-section').style.display = 'none'; unlockScroll(); }
-        document.getElementById('open-fixtures').onclick = () => { document.getElementById('fixtures-section').style.display = 'block'; lockScroll(); }
+        tBody.innerHTML = html;
+        document.getElementById('slot-counter').innerText = `MANAGERS: ${currentManagerCount}/24`;
+        if(myId) document.getElementById('nav-btn-text').innerText = "Profile";
+    });
 
-        document.getElementById('btn-delete').onclick = async () => {
-            if(confirm("Permanently delete team?")) {
-                await remove(ref(db, `users/players/${localStorage.getItem('dls_uid')}`));
-                localStorage.removeItem('dls_uid');
-                location.reload();
+    // VIEW MANAGER PROFILE
+    window.viewManager = (id) => {
+        const p = globalPlayers[id];
+        if(!p) return;
+        document.getElementById('view-logo').src = p.logo;
+        document.getElementById('view-team').innerText = p.team;
+        document.getElementById('view-stats').innerText = `PTS: ${p.pts} | GD: ${p.gd} | PLAYED: ${p.p}`;
+        document.getElementById('view-wa').href = `https://wa.me/${p.wa}`;
+        document.getElementById('modal-view').classList.remove('hidden');
+        lockScroll();
+    };
+
+    // ACTION BUTTON (JOIN/PROFILE)
+    document.getElementById('btn-main-action').onclick = async () => {
+        const myId = localStorage.getItem('dls_uid');
+        if (!myId && currentManagerCount >= 24) {
+            document.getElementById('modal-full').classList.remove('hidden');
+            lockScroll(); return;
+        }
+        if (myId) {
+            document.getElementById('btn-delete').classList.remove('hidden');
+            const s = await get(ref(db, `users/players/${myId}`));
+            const d = s.val();
+            if (d) {
+                document.getElementById('reg-team').value = d.team;
+                document.getElementById('reg-email').value = d.email;
+                document.getElementById('reg-wa').value = d.wa;
+                document.getElementById('preview').src = d.logo;
             }
-        };
+        }
+        document.getElementById('modal-reg').classList.remove('hidden');
+        lockScroll();
+    };
 
-        document.getElementById('upload').onchange = function() {
-            const reader = new FileReader();
-            reader.onload = (e) => document.getElementById('preview').src = e.target.result;
-            reader.readAsDataURL(this.files[0]);
-        };
+    document.getElementById('btn-submit').onclick = async () => {
+        const uid = localStorage.getItem('dls_uid') || `u_${Date.now()}`;
+        const existing = (await get(ref(db, `users/players/${uid}`))).val() || {};
+        await set(ref(db, `users/players/${uid}`), {
+            id: uid, team: document.getElementById('reg-team').value.toUpperCase(),
+            email: document.getElementById('reg-email').value, pass: document.getElementById('reg-pass').value,
+            wa: document.getElementById('reg-wa').value, logo: document.getElementById('preview').src,
+            pts: existing.pts || 0, p: existing.p || 0, gd: existing.gd || 0
+        });
+        localStorage.setItem('dls_uid', uid);
+        document.getElementById('modal-reg').classList.add('hidden');
+        document.getElementById('modal-congrats').classList.remove('hidden');
+    };
 
-        onValue(ref(db, 'fixtures'), (snap) => {
-            const data = snap.val() || {};
-            let h = '';
-            Object.values(data).forEach(f => {
-                h += `<div class="bg-zinc-950 p-6 rounded-3xl border border-zinc-900 flex justify-between items-center">
-                    <div class="text-center w-20"><img src="${f.homeLogo}" class="w-10 h-10 mx-auto mb-1"><div class="text-[8px] font-black uppercase text-zinc-400">${f.homeName}</div></div>
-                    <div class="text-2xl font-black italic">${f.homeScore} - ${f.awayScore}</div>
-                    <div class="text-center w-20"><img src="${f.awayLogo}" class="w-10 h-10 mx-auto mb-1"><div class="text-[8px] font-black uppercase text-zinc-400">${f.awayName}</div></div>
+    // UI HELPERS
+    window.closeModals = () => { 
+        document.querySelectorAll('[id^="modal-"]').forEach(m => m.classList.add('hidden')); 
+        unlockScroll(); 
+    }
+    window.closeFixtures = () => { document.getElementById('fixtures-section').style.display = 'none'; unlockScroll(); }
+    document.getElementById('open-fixtures').onclick = () => { document.getElementById('fixtures-section').style.display = 'block'; lockScroll(); }
+
+    document.getElementById('btn-delete').onclick = async () => {
+        if(confirm("Permanently delete team?")) {
+            await remove(ref(db, `users/players/${localStorage.getItem('dls_uid')}`));
+            localStorage.removeItem('dls_uid');
+            location.reload();
+        }
+    };
+
+    document.getElementById('upload').onchange = function() {
+        const reader = new FileReader();
+        reader.onload = (e) => document.getElementById('preview').src = e.target.result;
+        reader.readAsDataURL(this.files[0]);
+    };
+
+    // --- ENHANCED FIXTURES LOGIC (15 MINUTE RULE) ---
+    onValue(ref(db, 'fixtures'), (snap) => {
+        const data = snap.val() || {};
+        const container = document.getElementById('fixtures-content');
+        
+        const refreshMatchStatus = () => {
+            let html = '';
+            const now = Date.now();
+            const matches = Object.values(data).sort((a,b) => new Date(a.kickOffTime) - new Date(b.kickOffTime));
+
+            matches.forEach(f => {
+                const kickOff = new Date(f.kickOffTime).getTime();
+                const endOfLive = kickOff + (15 * 60 * 1000); // Kickoff + 15 Minutes
+                const diff = kickOff - now;
+                let statusBadge = '';
+
+                // If explicitly ended by admin OR 15 minutes have passed
+                if (f.ended || now > endOfLive) {
+                    statusBadge = `<span class="bg-red-600/20 text-red-500 border border-red-600/40 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter">Full Time</span>`;
+                } else if (now >= kickOff && now <= endOfLive) {
+                    // Calculating minutes played for that 15 min window (DLS Style)
+                    const minsPlayed = Math.floor(((now - kickOff) / (15 * 60 * 1000)) * 90);
+                    statusBadge = `<div class="flex flex-col items-center">
+                        <span class="bg-green-500 text-black px-3 py-0.5 rounded-full text-[8px] font-black animate-pulse uppercase">LIVE</span>
+                        <span class="text-[10px] font-black italic text-green-400 mt-1">${minsPlayed}'</span>
+                    </div>`;
+                } else {
+                    // YELLOW - UPCOMING COUNTDOWN
+                    const hours = Math.floor(diff / 3600000);
+                    const mins = Math.floor((diff % 3600000) / 60000);
+                    const secs = Math.floor((diff % 60000) / 1000);
+                    let countdownStr = hours > 0 ? `${hours}H ${mins}M` : `${mins}:${secs < 10 ? '0'+secs : secs}`;
+                    
+                    statusBadge = `<div class="flex flex-col items-center">
+                        <span class="text-yellow-400 font-black italic text-sm tracking-tighter uppercase animate-pulse">${countdownStr}</span>
+                        <span class="text-[7px] text-zinc-600 font-bold uppercase">To Kickoff</span>
+                    </div>`;
+                }
+
+                html += `
+                <div class="bg-zinc-950 p-6 rounded-[2.5rem] border border-zinc-900 flex justify-between items-center transition-all hover:border-zinc-700">
+                    <div class="text-center w-24">
+                        <img src="${f.homeLogo}" class="w-12 h-12 mx-auto mb-2 object-cover rounded-xl shadow-lg">
+                        <div class="text-[9px] font-black uppercase text-zinc-400 leading-tight">${f.homeName}</div>
+                    </div>
+                    <div class="flex flex-col items-center gap-2">
+                        <div class="text-3xl font-black italic text-white tracking-tighter">${f.homeScore} <span class="text-zinc-800">-</span> ${f.awayScore}</div>
+                        ${statusBadge}
+                    </div>
+                    <div class="text-center w-24">
+                        <img src="${f.awayLogo}" class="w-12 h-12 mx-auto mb-2 object-cover rounded-xl shadow-lg">
+                        <div class="text-[9px] font-black uppercase text-zinc-400 leading-tight">${f.awayName}</div>
+                    </div>
                 </div>`;
             });
-            document.getElementById('fixtures-content').innerHTML = h || '<div class="col-span-2 text-center py-20 text-zinc-800 font-black">NO MATCHES LIVE</div>';
-        });
+            container.innerHTML = html || '<div class="col-span-full text-center py-20 text-zinc-800 font-black italic">NO FIXTURES SCHEDULED</div>';
+        };
 
-        onValue(ref(db, 'settings/season_end'), (snap) => {
-            const target = new Date(snap.val() || "April 8, 2026").getTime();
-            setInterval(() => {
-                const diff = target - Date.now();
-                if(diff <= 0) { document.getElementById('timer').innerText = "SEASON ENDED"; return; }
-                const d = Math.floor(diff/86400000), h = Math.floor((diff%86400000)/3600000), m = Math.floor((diff%3600000)/60000), s = Math.floor((diff%60000)/1000);
-                document.getElementById('timer').innerText = `ENDS: ${d}D ${h}H ${m}M ${s}S`;
-            }, 1000);
-        });
-    </script>
+        if (fixtureInterval) clearInterval(fixtureInterval);
+        fixtureInterval = setInterval(refreshMatchStatus, 1000);
+        refreshMatchStatus();
+    });
+
+    // SEASON TIMER
+    onValue(ref(db, 'settings/season_end'), (snap) => {
+        const target = new Date(snap.val() || "April 8, 2026").getTime();
+        setInterval(() => {
+            const diff = target - Date.now();
+            if(diff <= 0) { document.getElementById('timer').innerText = "SEASON ENDED"; return; }
+            const d = Math.floor(diff/86400000), h = Math.floor((diff%86400000)/3600000), m = Math.floor((diff%3600000)/60000), s = Math.floor((diff%60000)/1000);
+            document.getElementById('timer').innerText = `ENDS: ${d}D ${h}H ${m}M ${s}S`;
+        }, 1000);
+    });
+</script>
+
 </body>
 </html>
