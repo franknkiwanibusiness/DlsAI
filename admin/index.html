@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DLS26 | Master AI Admin</title>
+    <title>DLS26 | Ultimate AI Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background: #050505; color: #fff; font-family: 'Inter', sans-serif; }
         .glass { background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(20px); border: 1px solid #1a1a1a; }
         .cmd-input { background: #000; border: 1px solid #222; color: #00ff88; font-family: monospace; }
-        .btn-glow { background: #00ff88; color: #000; transition: all 0.3s; }
+        .btn-glow { background: #00ff88; color: #000; transition: all 0.3s; cursor: pointer; }
         .btn-glow:hover { box-shadow: 0 0 20px rgba(0, 255, 136, 0.4); transform: translateY(-1px); }
+        .btn-finish { background: #fbbf24; color: #000; font-size: 9px; font-weight: 900; padding: 4px 8px; border-radius: 6px; }
         input[type="number"]::-webkit-inner-spin-button { display: none; }
     </style>
 </head>
@@ -23,22 +24,22 @@
                 <h1 class="text-2xl font-black italic uppercase tracking-tighter mb-6">DLS <span class="text-[#00ff88]">CORE</span></h1>
                 
                 <div class="space-y-4">
-                    <textarea id="ai-prompt" placeholder="Command: 'Generate 12 fixtures for today'" 
+                    <textarea id="ai-prompt" placeholder="Command: 'Generate 12 fixtures'" 
                         class="cmd-input w-full h-32 p-5 rounded-2xl text-xs focus:outline-none focus:border-[#00ff88] resize-none"></textarea>
                     
                     <button id="run-ai" class="btn-glow w-full py-5 rounded-2xl text-[11px] font-black uppercase italic">Run AI Generation</button>
                     
                     <div class="grid grid-cols-2 gap-2">
                         <button id="clear-fix" class="bg-red-500/10 border border-red-500/20 text-red-500 py-3 rounded-xl text-[9px] font-black uppercase hover:bg-red-500/20">Clear Fixtures</button>
-                        <button id="reset-stats" class="bg-zinc-900 border border-zinc-800 text-zinc-500 py-3 rounded-xl text-[9px] font-black uppercase hover:bg-zinc-800">Reset Stats</button>
+                        <button id="reset-stats" class="bg-zinc-900 border border-zinc-800 text-zinc-500 py-3 rounded-xl text-[9px] font-black uppercase hover:bg-zinc-800">Reset Standings</button>
                     </div>
                 </div>
             </div>
 
             <div class="glass p-6 rounded-[2rem] h-64 flex flex-col">
                 <h3 class="text-[10px] font-black text-zinc-600 uppercase mb-4 tracking-widest">System Output</h3>
-                <div id="log-box" class="flex-1 overflow-y-auto font-mono text-[9px] text-zinc-500 space-y-1 pr-2">
-                    <div>> System initialized...</div>
+                <div id="log-box" class="flex-1 overflow-y-auto font-mono text-[9px] text-zinc-500 space-y-1">
+                    <div>> System Online...</div>
                 </div>
             </div>
         </div>
@@ -50,7 +51,7 @@
                     <h2 class="text-sm font-black italic uppercase tracking-wider">Active Fixtures</h2>
                     <span id="fix-count" class="text-[10px] text-zinc-600 font-bold">0 MATCHES</span>
                 </div>
-                <div id="fixtures-list" class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[350px] overflow-y-auto pr-2">
+                <div id="fixtures-list" class="grid grid-cols-1 gap-3 max-h-[350px] overflow-y-auto pr-2">
                     </div>
             </div>
 
@@ -65,8 +66,7 @@
                             <th class="p-5 text-center">PTS</th>
                         </tr>
                     </thead>
-                    <tbody id="table-body">
-                        </tbody>
+                    <tbody id="table-body"></tbody>
                 </table>
             </div>
 
@@ -75,12 +75,10 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
-        import { getDatabase, ref, onValue, set, get, push, remove, update } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+        import { getDatabase, ref, onValue, set, get, push, remove, update, increment } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
 
-        // FIREBASE CONFIG (itzhoyoo-f9f7e)
         const firebaseConfig = {
             apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
-            authDomain: "itzhoyoo-f9f7e.firebaseapp.com",
             databaseURL: "https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com",
             projectId: "itzhoyoo-f9f7e",
         };
@@ -99,14 +97,14 @@
             const players = snap.val() || {};
             const sorted = Object.values(players).sort((a,b) => (b.pts || 0) - (a.pts || 0) || (b.gd || 0) - (a.gd || 0));
             document.getElementById('table-body').innerHTML = sorted.map((p, i) => `
-                <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
+                <tr class="border-b border-white/5">
                     <td class="p-5 font-black italic text-zinc-800">#${String(i+1).padStart(2, '0')}</td>
                     <td class="p-5 flex items-center gap-3">
-                        <img src="${p.logo}" class="w-6 h-6 rounded shadow-lg">
+                        <img src="${p.logo}" class="w-6 h-6 rounded">
                         <span class="text-[11px] font-black uppercase text-zinc-200">${p.team}</span>
                     </td>
-                    <td class="p-5 text-center text-zinc-500 font-bold">${p.p || 0}</td>
-                    <td class="p-5 text-center text-zinc-500 font-bold">${p.gd || 0}</td>
+                    <td class="p-5 text-center text-zinc-500">${p.p || 0}</td>
+                    <td class="p-5 text-center text-zinc-500">${p.gd || 0}</td>
                     <td class="p-5 text-center text-[#00ff88] font-black">${p.pts || 0}</td>
                 </tr>
             `).join('');
@@ -119,95 +117,107 @@
             document.getElementById('fix-count').innerText = `${entries.length} MATCHES`;
             
             list.innerHTML = entries.map(([id, f]) => `
-                <div class="bg-black p-4 rounded-2xl border border-white/5 flex justify-between items-center group hover:border-[#00ff88]/30 transition-all">
-                    <div class="text-[9px] font-black text-zinc-500 uppercase w-20 truncate">${f.homeName}</div>
-                    <div class="flex items-center gap-2 bg-zinc-900 p-1 px-2 rounded-lg">
-                        <input type="number" value="${f.homeScore}" onchange="updateScore('${id}', 'homeScore', this.value)" class="w-6 bg-transparent text-center font-black text-[#00ff88] text-xs outline-none">
+                <div class="bg-black p-4 rounded-2xl border border-white/5 flex justify-between items-center ${f.ended ? 'opacity-40 grayscale' : ''}">
+                    <div class="text-[9px] font-black text-zinc-400 uppercase w-24 truncate">${f.homeName}</div>
+                    <div class="flex items-center gap-2 bg-zinc-900 p-1 px-3 rounded-lg">
+                        <input type="number" value="${f.homeScore}" onchange="updateScore('${id}', 'homeScore', this.value)" class="w-6 bg-transparent text-center font-black text-[#00ff88] text-xs">
                         <span class="text-zinc-700 text-[10px]">:</span>
-                        <input type="number" value="${f.awayScore}" onchange="updateScore('${id}', 'awayScore', this.value)" class="w-6 bg-transparent text-center font-black text-[#00ff88] text-xs outline-none">
+                        <input type="number" value="${f.awayScore}" onchange="updateScore('${id}', 'awayScore', this.value)" class="w-6 bg-transparent text-center font-black text-[#00ff88] text-xs">
                     </div>
-                    <div class="text-[9px] font-black text-zinc-500 uppercase w-20 truncate text-right">${f.awayName}</div>
+                    <div class="text-[9px] font-black text-zinc-400 uppercase w-24 truncate text-right">${f.awayName}</div>
+                    ${!f.ended ? `<button onclick="finishMatch('${id}')" class="btn-finish ml-4">FINISH</button>` : `<span class="text-[8px] text-zinc-600 font-bold ml-4 uppercase tracking-tighter italic">FT</span>`}
                 </div>
             `).join('');
         });
 
-        // --- UPDATES ---
+        // --- CORE LOGIC ---
         window.updateScore = (id, field, val) => {
             update(ref(db, `fixtures/${id}`), { [field]: parseInt(val) });
-            log(`Score updated for match ${id.substring(0,5)}...`, "text-blue-400");
         };
 
-        // --- AI EXECUTION (WITH FIX FOR UNDEFINED ERROR) ---
+        window.finishMatch = async (id) => {
+            const snap = await get(ref(db, `fixtures/${id}`));
+            const f = snap.val();
+            if (f.ended) return;
+
+            log(`Processing: ${f.homeName} vs ${f.awayName}...`, "text-blue-400");
+
+            // Calculate Results
+            let hPts = 0, aPts = 0;
+            if (f.homeScore > f.awayScore) hPts = 3;
+            else if (f.homeScore < f.awayScore) aPts = 3;
+            else { hPts = 1; aPts = 1; }
+
+            // Find Player IDs to update (assuming team name matches)
+            const pSnap = await get(ref(db, 'users/players'));
+            const players = pSnap.val();
+            const hId = Object.keys(players).find(k => players[k].team === f.homeName);
+            const aId = Object.keys(players).find(k => players[k].team === f.awayName);
+
+            if (hId && aId) {
+                // Update Home Team
+                await update(ref(db, `users/players/${hId}`), {
+                    pts: increment(hPts),
+                    p: increment(1),
+                    gd: increment(f.homeScore - f.awayScore)
+                });
+                // Update Away Team
+                await update(ref(db, `users/players/${aId}`), {
+                    pts: increment(aPts),
+                    p: increment(1),
+                    gd: increment(f.awayScore - f.homeScore)
+                });
+                // Mark Match Ended
+                await update(ref(db, `fixtures/${id}`), { ended: true });
+                log("Standings updated successfully.", "text-green-500");
+            }
+        };
+
         document.getElementById('run-ai').onclick = async () => {
-            log("Fetching Vercel Proxy Key...", "text-yellow-500");
+            log("Fetching Vercel Key...", "text-yellow-500");
             try {
                 const keyRes = await fetch('/api/get-key');
-                const keyData = await keyRes.json();
-                if(!keyData.apiKey) throw new Error("Key not found in Vercel.");
+                const { apiKey } = await keyRes.json();
 
                 const snap = await get(ref(db, 'users/players'));
                 const players = snap.val();
-                if(!players) throw new Error("No teams in database.");
-
                 const teamList = Object.keys(players).map(id => ({ id, name: players[id].team }));
-                log(`Sending ${teamList.length} teams to Groq...`, "text-purple-400");
 
+                log("AI Pairing teams (Model: 3.1-Instant)...", "text-purple-400");
                 const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: "POST",
-                    headers: { "Authorization": `Bearer ${keyData.apiKey}`, "Content-Type": "application/json" },
+                    headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        model: "llama3-70b-8192",
-                        messages: [
-                            { role: "system", content: "You are a football scheduler. Pair teams into unique matches. Use every team exactly once. Return ONLY JSON: { \"fixtures\": [ { \"h\": \"id\", \"a\": \"id\" } ] }" },
-                            { role: "user", content: `Teams: ${JSON.stringify(teamList)}` }
-                        ],
+                        model: "llama-3.1-8b-instant",
+                        messages: [{ role: "system", content: "Football pairings. Return ONLY JSON: { 'fixtures': [{ 'h': 'id', 'a': 'id' }] }" },
+                                   { role: "user", content: `Teams: ${JSON.stringify(teamList)}` }],
                         response_format: { type: "json_object" }
                     })
                 });
 
                 const aiData = await groqRes.json();
-
-                // THE FIX: Check if choices exists before reading index 0
-                if (!aiData.choices || !aiData.choices[0]) {
-                    console.error("Groq Error Response:", aiData);
-                    throw new Error(aiData.error?.message || "Groq returned an empty response.");
-                }
+                if (!aiData.choices) throw new Error(aiData.error?.message || "AI Busy");
 
                 const pairings = JSON.parse(aiData.choices[0].message.content).fixtures;
-                log(`AI paired ${pairings.length} matches. Syncing...`, "text-blue-400");
-
                 for (const m of pairings) {
-                    const h = players[m.h];
-                    const a = players[m.a];
-                    if(!h || !a) continue;
-
                     await push(ref(db, 'fixtures'), {
-                        homeName: h.team, homeLogo: h.logo, homeScore: 0,
-                        awayName: a.team, awayLogo: a.logo, awayScore: 0,
-                        kickOffTime: new Date().toISOString(), ended: false
+                        homeName: players[m.h].team, homeLogo: players[m.h].logo, homeScore: 0,
+                        awayName: players[m.a].team, awayLogo: players[m.a].logo, awayScore: 0,
+                        ended: false
                     });
                 }
-                log("MATCH DAY GENERATED!", "text-green-500 font-black uppercase");
-
-            } catch (err) {
-                log(`ERROR: ${err.message}`, "text-red-500 font-bold");
-                console.error("Detailed Error:", err);
-            }
+                log("FIXTURES GENERATED!", "text-green-500 font-black");
+            } catch (err) { log("Error: " + err.message, "text-red-500"); }
         };
 
-        // --- UTILS ---
-        document.getElementById('clear-fix').onclick = () => { if(confirm("Wipe all fixtures?")) remove(ref(db, 'fixtures')); };
-        
+        document.getElementById('clear-fix').onclick = () => { if(confirm("Wipe fixtures?")) remove(ref(db, 'fixtures')); };
         document.getElementById('reset-stats').onclick = async () => {
-            if(!confirm("Reset ALL player stats (PTS/GD/P) to zero?")) return;
+            if(!confirm("Reset points/stats to 0?")) return;
             const snap = await get(ref(db, 'users/players'));
             const players = snap.val();
-            for(let id in players) {
-                update(ref(db, `users/players/${id}`), { pts: 0, gd: 0, p: 0 });
-            }
-            log("League Standings Reset to Zero.", "text-white");
+            for(let id in players) update(ref(db, `users/players/${id}`), { pts: 0, gd: 0, p: 0 });
+            log("League Reset Complete.", "text-white");
         };
-
     </script>
 </body>
 </html>
