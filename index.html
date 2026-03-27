@@ -8,148 +8,142 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         
-        body { background-color: #000; margin: 0; font-family: 'Inter', sans-serif; min-height: 100vh; color: #fff; overflow-x: hidden; }
-        body.modal-open { overflow: hidden; }
+        body { background-color: #000; margin: 0; font-family: 'Inter', sans-serif; min-height: 100vh; color: #fff; user-select: none; }
+        body.modal-open { overflow: hidden !important; }
 
-        /* --- GLASS UI & BLUR --- */
         .glass-header { background: rgba(0, 0, 0, 0.9); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
-        .nether-card { background: #050505; border: 1px solid #111; border-radius: 2.5rem; overflow: hidden; }
         
-        /* --- GLOW BUTTONS --- */
-        .glow-wrap { position: relative; padding: 2px; border-radius: 9999px; overflow: hidden; display: inline-flex; cursor: pointer; transition: 0.3s; }
-        .glow-wrap::before { content: ''; position: absolute; width: 200%; height: 200%; background: conic-gradient(#3b82f6, #00ff88, #fbbf24, #3b82f6); animation: spin 4s linear infinite; z-index: 1; top: -50%; left: -50%; }
-        .glow-inner { position: relative; background: #000; color: #fff; z-index: 10; border-radius: 9999px; pointer-events: none; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        /* STICKY POINTS */
+        .sticky-pts { 
+            position: sticky !important; right: 0 !important; 
+            background: #050505 !important; z-index: 30 !important; 
+            border-left: 1px solid #111 !important;
+            box-shadow: -10px 0 15px rgba(0,0,0,0.9);
+        }
 
-        /* --- TABLE LOGIC --- */
-        .table-wrapper { overflow-x: auto; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
-        .sticky-pts { position: sticky; right: 0; background: #050505; z-index: 20; border-left: 1px solid #111; }
-        
+        .skeleton { background: linear-gradient(90deg, #0a0a0a 25%, #1a1a1a 50%, #0a0a0a 75%); background-size: 200% 100%; animation: skeleton-pulse 1.5s infinite; }
+        @keyframes skeleton-pulse { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+        #timer { animation: pulse-timer 1s infinite; font-weight: 900; }
+        @keyframes pulse-timer { 0%, 100% { color: #fbbf24; } 50% { color: #ef4444; } }
+
+        /* CHAMPION & YOU HIGHLIGHTS */
+        .rank-1 { background: linear-gradient(90deg, rgba(251, 191, 36, 0.1) 0%, transparent 100%) !important; }
+        .is-me { background: rgba(59, 130, 246, 0.2) !important; border-y: 1px solid rgba(59, 130, 246, 0.3); }
+
+        #btn-main-action { border: 2px solid #fff; box-shadow: 0 0 10px rgba(255, 255, 255, 0.3); }
+        #open-fixtures { position: relative; background: #000; border: 2px solid transparent; background-clip: padding-box; overflow: hidden; }
+        #open-fixtures::after {
+            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: conic-gradient(#ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
+            animation: rotate 3s linear infinite; z-index: -1;
+        }
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
         .zone-ucl { border-left: 4px solid #00ff88 !important; }
         .zone-safe { border-left: 4px solid #fbbf24 !important; }
         .zone-relegation { border-left: 4px solid #ff4d4d !important; }
 
-        .my-team-row { background: rgba(6, 182, 212, 0.08) !important; border: 1px solid rgba(6, 182, 212, 0.3) !important; }
-
-        .nether-input { background: #0a0a0a; border: 1px solid #222; padding: 1rem; border-radius: 14px; width: 100%; color: #00ff88; font-weight: 700; outline: none; transition: 0.3s; }
-        .nether-input:focus { border-color: #00ff88; box-shadow: 0 0 15px rgba(0, 255, 136, 0.1); }
-
-        #toast { position: fixed; top: 20px; right: 20px; padding: 1rem 1.5rem; border-radius: 12px; font-weight: 900; font-size: 11px; text-transform: uppercase; z-index: 2000; transform: translateX(150%); transition: 0.4s; background: #00ff88; color: #000; }
-        #toast.show { transform: translateX(0); }
-
-        .pop-in { animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .pop-in { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        #fixtures-section { display: none; width: 100%; min-height: 100vh; background: #000; position: fixed; top: 0; left: 0; z-index: 200; overflow-y: auto; padding: 2rem; }
     </style>
 </head>
 <body>
 
-    <div id="toast">SYSTEM NOTIFICATION</div>
-
     <header class="glass-header sticky top-0 w-full h-20 z-50 flex items-center justify-between px-6">
         <div>
             <h1 class="text-white font-black tracking-tighter text-2xl italic uppercase">DLS26 <span class="text-zinc-700">LEAGUE 1</span></h1>
-            <p id="timer" class="text-[9px] font-mono text-red-500 font-bold uppercase mt-1 tracking-widest">CONNECTING TO SEASON...</p>
+            <p id="timer" class="text-[10px] uppercase tracking-widest">CONNECTING...</p>
         </div>
-        <div id="btn-main-action" class="glow-wrap">
-            <button id="nav-btn-text" class="glow-inner px-6 py-2 text-[10px] font-black uppercase tracking-widest">Join League</button>
-        </div>
+        <button id="btn-main-action" class="rounded-full px-6 py-2">
+            <span id="nav-btn-text" class="text-[10px] font-black uppercase tracking-widest text-white">Join League</span>
+        </button>
     </header>
 
     <main class="p-4 md:p-10">
-        <div class="max-w-4xl mx-auto mb-6 flex items-center justify-between bg-zinc-950 border border-zinc-900 p-5 rounded-[1.5rem] shadow-xl">
-            <div class="flex flex-col md:flex-row md:items-center gap-4">
-                <span id="slot-counter" class="text-xl font-black italic text-white uppercase tracking-tighter">Syncing...</span>
-                <button id="btn-fixtures" class="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest text-zinc-400 transition-all active:scale-95">
-                    View Fixtures
-                </button>
-            </div>
-            <div class="flex gap-2">
-                <div class="px-2 py-1 bg-green-950/30 text-[#00ff88] text-[8px] font-black border border-green-900/50 rounded uppercase">UCL</div>
-                <div class="px-2 py-1 bg-red-950/30 text-[#ff4d4d] text-[8px] font-black border border-red-900/50 rounded uppercase">REL</div>
-            </div>
+        <div class="max-w-4xl mx-auto mb-2 flex items-center justify-between bg-zinc-950 border border-zinc-900 p-5 rounded-t-[1.5rem]">
+            <span id="slot-counter" class="text-xl font-black italic text-white uppercase tracking-tighter">MANAGERS: --/24</span>
+            <button id="open-fixtures" class="px-6 py-2 rounded-xl text-[9px] font-black uppercase text-white">Fixtures</button>
         </div>
 
-        <div id="table-scroll-container" class="max-w-4xl mx-auto nether-card shadow-2xl table-wrapper">
-            <table class="w-full text-left border-collapse min-w-[550px]">
-                <thead class="bg-black text-zinc-600 text-[10px] font-black uppercase border-b border-zinc-900">
-                    <tr>
-                        <th class="p-5 w-16 text-center">POS</th>
-                        <th class="p-5">MANAGER / TEAM</th>
-                        <th class="p-5 text-center w-24">P</th>
-                        <th class="p-5 text-center w-20">GD</th>
-                        <th class="p-5 text-center w-24 sticky-pts bg-black text-white">PTS</th>
-                    </tr>
-                </thead>
-                <tbody id="table-body">
-                    </tbody>
-            </table>
+        <div class="max-w-4xl mx-auto mb-6 flex items-center justify-around bg-zinc-900/30 p-3 rounded-b-[1.5rem] border-x border-b border-zinc-900 overflow-x-auto whitespace-nowrap gap-4">
+            <div class="flex items-center gap-1.5 text-[8px] font-black uppercase italic text-[#00ff88]"><div class="w-1.5 h-1.5 rounded-full bg-[#00ff88]"></div>UCL</div>
+            <div class="flex items-center gap-1.5 text-[8px] font-black uppercase italic text-[#fbbf24]"><div class="w-1.5 h-1.5 rounded-full bg-[#fbbf24]"></div>Safe</div>
+            <div class="flex items-center gap-1.5 text-[8px] font-black uppercase italic text-[#ff4d4d]"><div class="w-1.5 h-1.5 rounded-full bg-[#ff4d4d]"></div>Relegate</div>
+        </div>
+
+        <div class="max-w-4xl mx-auto bg-[#050505] border border-zinc-900 rounded-[2.5rem] overflow-hidden shadow-2xl">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse min-w-[500px]">
+                    <thead class="bg-black text-zinc-600 text-[10px] font-black uppercase border-b border-zinc-900">
+                        <tr><th class="p-5 w-16 text-center">#</th><th class="p-5">TEAM</th><th class="p-5 text-center w-16">P</th><th class="p-5 text-center w-16">GD</th><th class="p-5 text-center w-20 sticky-pts text-white">PTS</th></tr>
+                    </thead>
+                    <tbody id="table-body"></tbody>
+                </table>
+            </div>
         </div>
     </main>
 
-    <div id="modal-reg" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 bg-black/95 backdrop-blur-xl">
-        <div class="w-full max-w-md bg-[#080808] border border-zinc-800 rounded-[3rem] p-10 space-y-6 pop-in">
-            <div class="text-center">
-                <h2 id="modal-title" class="text-xl font-black italic uppercase">Register Team</h2>
-                <p class="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Fill your details below</p>
+    <div id="modal-view" class="fixed inset-0 z-[150] hidden flex items-center justify-center p-4 bg-black/95 backdrop-blur-xl">
+        <div class="w-full max-w-md bg-[#080808] border border-zinc-800 rounded-[3rem] p-8 text-center pop-in">
+            <img id="view-logo" src="" class="w-24 h-24 rounded-3xl mx-auto mb-4 border-2 border-zinc-800 object-cover">
+            <h2 id="view-team" class="text-2xl font-black italic uppercase text-white leading-tight"></h2>
+            <p id="view-stats" class="text-zinc-500 text-[10px] font-bold uppercase mb-8 tracking-widest"></p>
+            <div class="grid grid-cols-1 gap-3">
+                <a id="view-wa" href="" class="bg-[#00ff88] text-black p-4 rounded-2xl text-[10px] font-black uppercase italic">Contact on WhatsApp</a>
+                <button onclick="closeModals()" class="text-zinc-500 p-4 text-[10px] font-black uppercase">Close Profile</button>
             </div>
-            <div class="flex flex-col items-center">
-                <div class="relative cursor-pointer group" onclick="document.getElementById('upload').click()">
-                    <img id="preview" src="https://dls26.net/wp-content/uploads/2024/12/DLS-26-Hack-768x432.jpg" class="w-24 h-24 rounded-2xl border-2 border-zinc-900 object-cover shadow-2xl group-hover:border-[#00ff88] transition">
-                    <input type="file" id="upload" class="hidden" accept="image/*">
-                </div>
-            </div>
-            <div class="space-y-3">
-                <input type="text" id="reg-team" placeholder="TEAM NAME" class="nether-input">
-                <input type="tel" id="reg-wa" placeholder="WHATSAPP (+27...)" class="nether-input">
-                <input type="email" id="reg-email" placeholder="EMAIL ADDRESS" class="nether-input">
-            </div>
-            <button id="btn-submit" class="w-full bg-[#00ff88] text-black font-black py-4 rounded-xl text-[10px] uppercase tracking-widest active:scale-95 transition">Confirm Entry</button>
-            <button id="close-reg" class="w-full text-zinc-600 text-[10px] font-bold uppercase tracking-widest">Back to Table</button>
         </div>
     </div>
 
-    <div id="modal-profile" class="fixed inset-0 z-[150] hidden flex items-center justify-center p-4 bg-black/95 backdrop-blur-2xl">
-        <div class="w-full max-w-sm bg-[#080808] border border-zinc-800 rounded-[3rem] overflow-hidden p-8 text-center space-y-6 pop-in">
-            <img id="prof-img" src="" class="w-28 h-28 mx-auto rounded-[2.5rem] border-4 border-zinc-900 shadow-2xl object-cover">
-            <h2 id="prof-name" class="text-2xl font-black italic uppercase text-white tracking-tighter">---</h2>
-            <div class="grid grid-cols-3 gap-2 py-5 border-y border-zinc-900">
-                <div><p class="text-[8px] text-zinc-600 font-black uppercase">PLAYED</p><p id="prof-p" class="text-white font-bold text-lg">0</p></div>
-                <div><p class="text-[8px] text-zinc-600 font-black uppercase">G/DIFF</p><p id="prof-gd" class="text-white font-bold text-lg">0</p></div>
-                <div><p class="text-[8px] text-[#00ff88] font-black uppercase">POINTS</p><p id="prof-pts" class="text-[#00ff88] font-black text-2xl">0</p></div>
+    <div id="modal-full" class="fixed inset-0 z-[400] hidden flex items-center justify-center p-4 bg-black/95 backdrop-blur-3xl">
+        <div class="w-full max-w-sm bg-red-600 text-white rounded-[3rem] p-10 text-center pop-in shadow-[0_0_50px_rgba(220,38,38,0.5)]">
+            <h2 class="text-3xl font-black italic uppercase leading-tight">LEAGUE FULL</h2>
+            <button onclick="closeModals()" class="mt-8 w-full bg-black text-white font-black py-4 rounded-xl text-[10px] uppercase">Got it</button>
+        </div>
+    </div>
+
+    <div id="modal-congrats" class="fixed inset-0 z-[300] hidden flex items-center justify-center p-4 bg-black/95 backdrop-blur-3xl">
+        <div class="w-full max-w-sm bg-[#00ff88] text-black rounded-[3rem] p-10 text-center pop-in">
+            <h2 class="text-3xl font-black italic uppercase leading-tight">WELCOME!</h2>
+            <button onclick="location.reload()" class="mt-8 w-full bg-black text-white font-black py-4 rounded-xl text-[10px] uppercase">Enter League</button>
+        </div>
+    </div>
+
+    <div id="modal-reg" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 bg-black/95 backdrop-blur-xl">
+        <div class="w-full max-w-md bg-[#080808] border border-zinc-800 rounded-[3rem] p-8 space-y-4 text-center pop-in">
+            <h2 class="text-xl font-black italic uppercase">Profile</h2>
+            <div class="relative cursor-pointer mx-auto w-20" onclick="document.getElementById('upload').click()">
+                <img id="preview" src="https://dls26.net/wp-content/uploads/2024/12/DLS-26-Hack-768x432.jpg" class="w-20 h-20 rounded-2xl border-2 border-zinc-800 object-cover">
+                <input type="file" id="upload" class="hidden" accept="image/*">
             </div>
             <div class="space-y-2">
-                <a id="prof-wa-link" href="#" target="_blank" class="block w-full bg-[#25D366] text-black font-black py-4 rounded-2xl text-[10px] uppercase shadow-lg">Chat on WhatsApp</a>
-                <button id="btn-copy-wa" class="w-full text-zinc-500 text-[9px] font-black uppercase tracking-widest">Copy Mobile Number</button>
+                <input type="text" id="reg-team" placeholder="TEAM NAME" class="bg-zinc-950 border border-zinc-900 p-3 w-full rounded-xl text-white outline-none uppercase font-bold">
+                <input type="email" id="reg-email" placeholder="EMAIL" class="bg-zinc-950 border border-zinc-900 p-3 w-full rounded-xl text-white outline-none">
+                <input type="password" id="reg-pass" placeholder="PASSWORD" class="bg-zinc-950 border border-zinc-900 p-3 w-full rounded-xl text-white outline-none">
+                <input type="tel" id="reg-wa" placeholder="WHATSAPP NUMBER" class="bg-zinc-950 border border-zinc-900 p-3 w-full rounded-xl text-white outline-none">
             </div>
-            <button id="close-prof" class="w-full text-zinc-700 text-[10px] font-bold uppercase">Close Profile</button>
+            <button id="btn-submit" class="w-full bg-[#00ff88] text-black font-black py-4 rounded-xl text-[10px] uppercase italic">Save & Sync</button>
+            <button id="btn-delete" class="hidden w-full bg-red-950/20 text-red-500 border border-red-900/30 font-black py-4 rounded-xl text-[10px] uppercase mt-2">Delete Team</button>
+            <button onclick="closeModals()" class="w-full text-zinc-600 text-[10px] font-bold uppercase mt-4">Cancel</button>
         </div>
     </div>
 
-    <div id="modal-congrats" class="fixed inset-0 z-[200] hidden flex items-center justify-center p-4 bg-black/95 backdrop-blur-3xl">
-        <div class="max-w-xs w-full bg-[#00ff88] p-10 rounded-[3rem] text-black text-center shadow-[0_0_80px_rgba(0,255,136,0.3)] pop-in">
-            <div class="text-6xl mb-4">🏆</div>
-            <h2 class="font-black text-3xl italic uppercase leading-none mb-3">Welcome Manager!</h2>
-            <p class="text-[10px] font-bold uppercase opacity-70 mb-8 tracking-widest leading-relaxed">Your team is registered for Season 1. Good luck in League 1!</p>
-            <button id="btn-congrats-close" class="w-full bg-black text-white font-black py-4 rounded-2xl text-[10px] uppercase tracking-widest shadow-xl">Start Playing</button>
-        </div>
-    </div>
-
-    <div id="fixtures-popup" class="fixed inset-0 z-[180] hidden flex items-center justify-center p-4 bg-black/95 backdrop-blur-3xl">
-        <div class="w-full max-w-2xl bg-[#080808] border border-zinc-800 rounded-[3rem] p-10 relative pop-in">
-            <button id="close-fixtures" class="absolute top-6 right-8 text-zinc-600 hover:text-white font-black text-[10px] uppercase">Close</button>
-            <div class="text-center mb-8">
-                <h2 class="text-2xl font-black italic uppercase text-white">Season 1 Fixtures</h2>
-                <div class="h-1 w-12 bg-[#00ff88] mx-auto mt-2 rounded-full"></div>
+    <div id="fixtures-section">
+        <div class="max-w-4xl mx-auto">
+            <div class="flex justify-between items-center mb-10 border-b border-zinc-900 pb-6">
+                <h2 class="text-3xl font-black italic uppercase">Match Center</h2>
+                <button onclick="closeFixtures()" class="text-zinc-500 font-black text-[10px] uppercase tracking-widest">Back</button>
             </div>
-            <div id="fixtures-content" class="min-h-[300px] flex items-center justify-center border border-zinc-900 rounded-[2rem] bg-zinc-950/50">
-                <p class="text-zinc-800 font-black italic uppercase text-xs">Fixture list is currently being drafted</p>
-            </div>
+            <div id="fixtures-content" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
-        import { getDatabase, ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+        import { getDatabase, ref, onValue, set, get, remove } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
@@ -162,185 +156,148 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
-        const IMGUR_ID = "891e5bb4aa94282";
+        let currentManagerCount = 0;
+        let globalPlayers = {};
 
-        const toggleScroll = (lock) => document.body.classList.toggle('modal-open', lock);
-        const notify = (msg) => {
-            const t = document.getElementById('toast');
-            t.innerText = msg; t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 3000);
-        };
+        const lockScroll = () => document.body.classList.add('modal-open');
+        const unlockScroll = () => document.body.classList.remove('modal-open');
 
-        // --- NAVIGATION ACTIONS ---
-        document.getElementById('btn-main-action').onclick = () => {
-            const saved = localStorage.getItem('dls_my_team');
-            if(saved) {
-                const u = JSON.parse(saved);
-                document.getElementById('reg-team').value = u.team;
-                document.getElementById('reg-wa').value = u.wa;
-                document.getElementById('reg-email').value = u.email;
-                document.getElementById('preview').src = u.logo;
-                document.getElementById('modal-title').innerText = "Update Profile";
-            }
-            document.getElementById('modal-reg').classList.remove('hidden');
-            toggleScroll(true);
-        };
+        // SKELETON
+        const tBody = document.getElementById('table-body');
+        tBody.innerHTML = Array(12).fill(`<tr><td class="p-5"><div class="h-4 w-4 skeleton mx-auto"></div></td><td class="p-5 flex gap-3"><div class="h-8 w-8 skeleton rounded"></div><div class="h-4 w-32 skeleton rounded"></div></td><td class="p-5"><div class="h-4 w-4 skeleton mx-auto"></div></td><td class="p-5"><div class="h-4 w-4 skeleton mx-auto"></div></td><td class="p-5 sticky-pts"><div class="h-6 w-8 skeleton mx-auto"></div></td></tr>`).join('');
 
-        document.getElementById('close-reg').onclick = () => {
-            document.getElementById('modal-reg').classList.add('hidden');
-            toggleScroll(false);
-        };
-
-        document.getElementById('btn-fixtures').onclick = () => {
-            document.getElementById('fixtures-popup').classList.remove('hidden');
-            toggleScroll(true);
-        };
-
-        document.getElementById('close-fixtures').onclick = () => {
-            document.getElementById('fixtures-popup').classList.add('hidden');
-            toggleScroll(false);
-        };
-
-        document.getElementById('close-prof').onclick = () => {
-            document.getElementById('modal-profile').classList.add('hidden');
-            toggleScroll(false);
-        };
-
-        // --- IMAGE UPLOAD LOGIC ---
-        document.getElementById('upload').onchange = async (e) => {
-            const file = e.target.files[0];
-            if(!file) return;
-            notify("UPLOADING LOGO...");
-            const formData = new FormData();
-            formData.append('image', file);
-            const res = await fetch('https://api.imgur.com/3/image', {
-                method: 'POST',
-                headers: { Authorization: `Client-ID ${IMGUR_ID}` },
-                body: formData
-            });
-            const data = await res.json();
-            if(data.success) {
-                document.getElementById('preview').src = data.data.link;
-                notify("LOGO UPDATED");
-            }
-        };
-
-        // --- SUBMIT TEAM ---
-        document.getElementById('btn-submit').onclick = async () => {
-            const team = document.getElementById('reg-team').value.trim();
-            let wa = document.getElementById('reg-wa').value.trim();
-            const email = document.getElementById('reg-email').value.trim();
-            const logo = document.getElementById('preview').src;
-
-            if(!team || !wa) return alert("Team Name & WhatsApp are mandatory.");
-            if(!wa.startsWith('+')) wa = '+' + wa;
-
-            const saved = localStorage.getItem('dls_my_team');
-            const isNew = !saved;
-            const uid = saved ? JSON.parse(saved).id : `u_${Date.now()}`;
-            
-            // Preserve stats
-            let stats = { pts: 0, p: 0, gd: 0 };
-            if (!isNew) {
-                const snap = await get(ref(db, `users/players/${uid}`));
-                if (snap.exists()) stats = { pts: snap.val().pts, p: snap.val().p, gd: snap.val().gd };
-            }
-
-            const userData = { id: uid, team, wa, email, logo, ...stats };
-            await set(ref(db, `users/players/${uid}`), userData);
-            localStorage.setItem('dls_my_team', JSON.stringify(userData));
-            
-            document.getElementById('modal-reg').classList.add('hidden');
-            if(isNew) {
-                document.getElementById('modal-congrats').classList.remove('hidden');
-            } else {
-                notify("PROFILE UPDATED!");
-                setTimeout(() => location.reload(), 1000);
-            }
-        };
-
-        document.getElementById('btn-congrats-close').onclick = () => location.reload();
-
-        // --- LIVE DATA: TABLE & TIMER ---
+        // DATA RENDER
         onValue(ref(db, 'users/players'), (snap) => {
             const data = snap.val() || {};
+            globalPlayers = data;
             const sorted = Object.entries(data).sort(([,a], [,b]) => (b.pts - a.pts) || (b.gd - a.gd));
-            const myId = localStorage.getItem('dls_my_team') ? JSON.parse(localStorage.getItem('dls_my_team')).id : null;
+            currentManagerCount = Object.keys(data).length;
+            const myId = localStorage.getItem('dls_uid');
             
             let html = '';
             for(let i=0; i<24; i++) {
-                const pos = i + 1;
                 const p = sorted[i]?.[1];
+                const pos = i + 1;
                 let zone = pos <= 16 ? 'zone-ucl' : (pos <= 21 ? 'zone-safe' : 'zone-relegation');
-                let isMe = p && p.id === myId;
+                let rowClass = `${zone} border-b border-zinc-900/40 cursor-pointer transition-all hover:bg-zinc-900/50`;
+                if(pos === 1) rowClass += ' rank-1';
+                if(p && p.id === myId) rowClass += ' is-me';
 
                 if(p) {
-                    html += `<tr class="${zone} border-b border-zinc-900/40 ${isMe ? 'my-team-row' : ''} cursor-pointer" 
-                             onclick="openProfile('${p.team}', '${p.logo}', '${p.wa}', '${p.pts}', '${p.p}', '${p.gd}')">
-                        <td class="p-5 font-black text-zinc-800 italic text-center">${pos}</td>
-                        <td class="p-5 flex items-center gap-3 font-bold text-xs uppercase text-white">
-                            <img src="${p.logo}" class="w-7 h-7 rounded-lg object-cover"> 
-                            ${p.team} ${isMe ? '<span class="text-cyan-400 font-black ml-2 text-[8px]">&lt;YOU&gt;</span>' : ''}
+                    html += `<tr onclick="window.viewManager('${p.id}')" class="${rowClass}">
+                        <td class="p-5 font-black text-zinc-800 text-center">${pos}</td>
+                        <td class="p-5 flex items-center gap-3 font-bold text-xs uppercase">
+                            <img src="${p.logo}" class="w-7 h-7 rounded-lg object-cover">
+                            <span class="flex flex-col">
+                                <span>${p.team} ${pos===1?'👑':''}</span>
+                                ${p.id === myId ? '<span class="text-[8px] text-blue-400 font-black tracking-widest mt-0.5">&lt;YOU&gt;</span>' : ''}
+                            </span>
                         </td>
                         <td class="p-5 text-center text-zinc-500 font-bold">${p.p || 0}</td>
                         <td class="p-5 text-center text-zinc-400 font-bold">${p.gd || 0}</td>
                         <td class="p-5 text-center font-black text-[#00ff88] text-lg sticky-pts">${p.pts}</td>
                     </tr>`;
                 } else {
-                    html += `<tr class="${zone} border-b border-zinc-900/20">
-                        <td class="p-5 font-black text-zinc-900 text-center">${pos}</td>
-                        <td class="p-5 text-[9px] text-yellow-500/50 font-black uppercase italic tracking-widest">Available Slot</td>
-                        <td class="p-5 text-center text-zinc-950">-</td>
-                        <td class="p-5 text-center text-zinc-950">-</td>
-                        <td class="p-5 text-center text-zinc-950 sticky-pts">-</td>
-                    </tr>`;
+                    html += `<tr class="${zone} border-b border-zinc-900/10"><td class="p-5 text-center text-zinc-900 font-black">${pos}</td><td class="p-5 text-[10px] text-zinc-800 uppercase italic">Empty Slot</td><td colspan="2"></td><td class="sticky-pts text-zinc-900 text-center">0</td></tr>`;
                 }
             }
-            document.getElementById('table-body').innerHTML = html;
-            document.getElementById('slot-counter').innerText = `MANAGERS: ${sorted.length}/24`;
-
-            // Scroll Tease
-            const scroller = document.getElementById('table-scroll-container');
-            setTimeout(() => {
-                scroller.scrollTo({ left: 70, behavior: 'smooth' });
-                setTimeout(() => scroller.scrollTo({ left: 0, behavior: 'smooth' }), 600);
-            }, 1500);
+            tBody.innerHTML = html;
+            document.getElementById('slot-counter').innerText = `MANAGERS: ${currentManagerCount}/24`;
+            if(myId) document.getElementById('nav-btn-text').innerText = "Profile";
         });
 
-        // --- TIMER: FIREBASE SYNC ---
-        onValue(ref(db, 'settings/season_end'), (snap) => {
-            const end = snap.val() || "April 8, 2026 00:00:00";
-            const endTime = new Date(end).getTime();
-            
-            setInterval(() => {
-                const diff = endTime - Date.now();
-                if(diff < 0) return document.getElementById('timer').innerText = "SEASON COMPLETE";
-                const d = Math.floor(diff / 86400000);
-                const h = Math.floor((diff % 86400000) / 3600000);
-                const m = Math.floor((diff % 3600000) / 60000);
-                const s = Math.floor((diff % 60000) / 1000);
-                document.getElementById('timer').innerText = `SEASON ENDS IN: ${d}D ${h}H ${m}M ${s}S`;
-            }, 1000);
-        });
-
-        // --- PROFILE WINDOW ---
-        window.openProfile = (team, logo, wa, pts, p, gd) => {
-            document.getElementById('prof-name').innerText = team;
-            document.getElementById('prof-img').src = logo;
-            document.getElementById('prof-pts').innerText = pts;
-            document.getElementById('prof-p').innerText = p;
-            document.getElementById('prof-gd').innerText = gd;
-            const waNum = wa.replace(/\+/g, '');
-            document.getElementById('prof-wa-link').href = `https://wa.me/${waNum}`;
-            document.getElementById('btn-copy-wa').onclick = () => {
-                navigator.clipboard.writeText(wa);
-                notify("NUMBER COPIED");
-            };
-            document.getElementById('modal-profile').classList.remove('hidden');
-            toggleScroll(true);
+        // VIEW MANAGER PROFILE
+        window.viewManager = (id) => {
+            const p = globalPlayers[id];
+            if(!p) return;
+            document.getElementById('view-logo').src = p.logo;
+            document.getElementById('view-team').innerText = p.team;
+            document.getElementById('view-stats').innerText = `PTS: ${p.pts} | GD: ${p.gd} | PLAYED: ${p.p}`;
+            document.getElementById('view-wa').href = `https://wa.me/${p.wa}`;
+            document.getElementById('modal-view').classList.remove('hidden');
+            lockScroll();
         };
 
-        if(localStorage.getItem('dls_my_team')) document.getElementById('nav-btn-text').innerText = "Edit My Team";
+        // JOIN / PROFILE ACTION
+        document.getElementById('btn-main-action').onclick = async () => {
+            const myId = localStorage.getItem('dls_uid');
+            if (!myId && currentManagerCount >= 24) {
+                document.getElementById('modal-full').classList.remove('hidden');
+                lockScroll(); return;
+            }
+            if (myId) {
+                document.getElementById('btn-delete').classList.remove('hidden');
+                const s = await get(ref(db, `users/players/${myId}`));
+                const d = s.val();
+                if (d) {
+                    document.getElementById('reg-team').value = d.team;
+                    document.getElementById('reg-email').value = d.email;
+                    document.getElementById('reg-wa').value = d.wa;
+                    document.getElementById('preview').src = d.logo;
+                }
+            }
+            document.getElementById('modal-reg').classList.remove('hidden');
+            lockScroll();
+        };
+
+        document.getElementById('btn-submit').onclick = async () => {
+            const uid = localStorage.getItem('dls_uid') || `u_${Date.now()}`;
+            const existing = (await get(ref(db, `users/players/${uid}`))).val() || {};
+            await set(ref(db, `users/players/${uid}`), {
+                id: uid, team: document.getElementById('reg-team').value.toUpperCase(),
+                email: document.getElementById('reg-email').value, pass: document.getElementById('reg-pass').value,
+                wa: document.getElementById('reg-wa').value, logo: document.getElementById('preview').src,
+                pts: existing.pts || 0, p: existing.p || 0, gd: existing.gd || 0
+            });
+            localStorage.setItem('dls_uid', uid);
+            document.getElementById('modal-reg').classList.add('hidden');
+            document.getElementById('modal-congrats').classList.remove('hidden');
+        };
+
+        // UI HELPERS
+        window.closeModals = () => { 
+            document.querySelectorAll('[id^="modal-"]').forEach(m => m.classList.add('hidden')); 
+            unlockScroll(); 
+        }
+        window.closeFixtures = () => { document.getElementById('fixtures-section').style.display = 'none'; unlockScroll(); }
+        document.getElementById('open-fixtures').onclick = () => { document.getElementById('fixtures-section').style.display = 'block'; lockScroll(); }
+
+        document.getElementById('btn-delete').onclick = async () => {
+            if(confirm("Permanently delete team?")) {
+                await remove(ref(db, `users/players/${localStorage.getItem('dls_uid')}`));
+                localStorage.removeItem('dls_uid');
+                location.reload();
+            }
+        };
+
+        document.getElementById('upload').onchange = function() {
+            const reader = new FileReader();
+            reader.onload = (e) => document.getElementById('preview').src = e.target.result;
+            reader.readAsDataURL(this.files[0]);
+        };
+
+        onValue(ref(db, 'fixtures'), (snap) => {
+            const data = snap.val() || {};
+            let h = '';
+            Object.values(data).forEach(f => {
+                h += `<div class="bg-zinc-950 p-6 rounded-3xl border border-zinc-900 flex justify-between items-center">
+                    <div class="text-center w-20"><img src="${f.homeLogo}" class="w-10 h-10 mx-auto mb-1"><div class="text-[8px] font-black uppercase text-zinc-400">${f.homeName}</div></div>
+                    <div class="text-2xl font-black italic">${f.homeScore} - ${f.awayScore}</div>
+                    <div class="text-center w-20"><img src="${f.awayLogo}" class="w-10 h-10 mx-auto mb-1"><div class="text-[8px] font-black uppercase text-zinc-400">${f.awayName}</div></div>
+                </div>`;
+            });
+            document.getElementById('fixtures-content').innerHTML = h || '<div class="col-span-2 text-center py-20 text-zinc-800 font-black">NO MATCHES LIVE</div>';
+        });
+
+        onValue(ref(db, 'settings/season_end'), (snap) => {
+            const target = new Date(snap.val() || "April 8, 2026").getTime();
+            setInterval(() => {
+                const diff = target - Date.now();
+                if(diff <= 0) { document.getElementById('timer').innerText = "SEASON ENDED"; return; }
+                const d = Math.floor(diff/86400000), h = Math.floor((diff%86400000)/3600000), m = Math.floor((diff%3600000)/60000), s = Math.floor((diff%60000)/1000);
+                document.getElementById('timer').innerText = `ENDS: ${d}D ${h}H ${m}M ${s}S`;
+            }, 1000);
+        });
     </script>
 </body>
 </html>
