@@ -149,6 +149,46 @@ body.modal-open {
     from { transform: rotate(0deg); } 
     to { transform: rotate(360deg); } 
 }
+/* EMPTY SLOT STYLING */
+tr.zone-safe .text-zinc-800.italic {
+    color: #fbbf24 !important; /* Yellow text */
+    opacity: 0.8;
+}
+
+tr.zone-safe:has(.italic) {
+    background: linear-gradient(90deg, rgba(251, 191, 36, 0.05) 0%, transparent 100%);
+}
+
+/* Ensure the number in the # column is also visible */
+tr.zone-safe:has(.italic) td:first-child {
+    color: #fbbf24 !important;
+    opacity: 0.5;
+}
+/* EMPTY SLOT HIGHLIGHTING */
+tr:has(.italic:contains("Empty Slot")), 
+tr:has(td:empty),
+.is-empty-slot {
+    background: rgba(251, 191, 36, 0.02) !important;
+}
+
+/* Target the 'Empty Slot' text specifically */
+tr td.text-zinc-800.italic {
+    color: #fbbf24 !important; /* DLS Yellow */
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    opacity: 0.6;
+    animation: pulse-empty 2s infinite;
+}
+
+/* Optional: Make the position number yellow too */
+tr td.text-zinc-900.font-black {
+    color: rgba(251, 191, 36, 0.3) !important;
+}
+
+@keyframes pulse-empty {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 0.8; }
+}
 
     </style>
 </head>
@@ -273,7 +313,7 @@ body.modal-open {
     const lockScroll = () => document.body.classList.add('modal-open');
     const unlockScroll = () => document.body.classList.remove('modal-open');
 
-    // SKELETON
+    // SKELETON LOADER
     const tBody = document.getElementById('table-body');
     tBody.innerHTML = Array(12).fill(`<tr><td class="p-5"><div class="h-4 w-4 skeleton mx-auto"></div></td><td class="p-5 flex gap-3"><div class="h-8 w-8 skeleton rounded"></div><div class="h-4 w-32 skeleton rounded"></div></td><td class="p-5"><div class="h-4 w-4 skeleton mx-auto"></div></td><td class="p-5"><div class="h-4 w-4 skeleton mx-auto"></div></td><td class="p-5 sticky-pts"><div class="h-6 w-8 skeleton mx-auto"></div></td></tr>`).join('');
 
@@ -290,11 +330,12 @@ body.modal-open {
             const p = sorted[i]?.[1];
             const pos = i + 1;
             let zone = pos <= 16 ? 'zone-ucl' : (pos <= 21 ? 'zone-safe' : 'zone-relegation');
-            let rowClass = `${zone} border-b border-zinc-900/40 cursor-pointer transition-all hover:bg-zinc-900/50`;
-            if(pos === 1) rowClass += ' rank-1';
-            if(p && p.id === myId) rowClass += ' is-me';
-
+            
             if(p) {
+                let rowClass = `${zone} border-b border-zinc-900/40 cursor-pointer transition-all hover:bg-zinc-900/50`;
+                if(pos === 1) rowClass += ' rank-1';
+                if(p.id === myId) rowClass += ' is-me';
+
                 html += `<tr onclick="window.viewManager('${p.id}')" class="${rowClass}">
                     <td class="p-5 font-black text-zinc-800 text-center">${pos}</td>
                     <td class="p-5 flex items-center gap-3 font-bold text-xs uppercase">
@@ -309,7 +350,12 @@ body.modal-open {
                     <td class="p-5 text-center font-black text-[#00ff88] text-lg sticky-pts">${p.pts}</td>
                 </tr>`;
             } else {
-                html += `<tr class="${zone} border-b border-zinc-900/10"><td class="p-5 text-center text-zinc-900 font-black">${pos}</td><td class="p-5 text-[10px] text-zinc-800 uppercase italic">Empty Slot</td><td colspan="2"></td><td class="sticky-pts text-zinc-900 text-center">0</td></tr>`;
+                html += `<tr class="${zone} border-b border-zinc-900/10">
+                    <td class="p-5 text-center text-zinc-900 font-black">${pos}</td>
+                    <td class="p-5 text-[10px] text-[#fbbf24] opacity-60 uppercase italic font-black tracking-widest">Empty Slot</td>
+                    <td colspan="2"></td>
+                    <td class="sticky-pts text-zinc-900 text-center font-black">0</td>
+                </tr>`;
             }
         }
         tBody.innerHTML = html;
@@ -337,49 +383,116 @@ body.modal-open {
             lockScroll(); return;
         }
         if (myId) {
-            document.getElementById('btn-delete').classList.remove('hidden');
+            const delBtn = document.getElementById('btn-delete');
+            delBtn.classList.remove('hidden');
+            delBtn.style.background = "rgba(127, 29, 29, 0.2)";
+            delBtn.style.color = "#ef4444";
+            delBtn.innerText = "Delete Team";
+
             const s = await get(ref(db, `users/players/${myId}`));
+            const l = await get(ref(db, `logins/${myId}`));
             const d = s.val();
+            const login = l.val();
             if (d) {
                 document.getElementById('reg-team').value = d.team;
-                document.getElementById('reg-email').value = d.email;
                 document.getElementById('reg-wa').value = d.wa;
                 document.getElementById('preview').src = d.logo;
+            }
+            if (login) {
+                document.getElementById('reg-email').value = login.email;
+                document.getElementById('reg-pass').value = login.pass;
             }
         }
         document.getElementById('modal-reg').classList.remove('hidden');
         lockScroll();
     };
 
+    // REQUIRED INFO & SYNC LOGIC
     document.getElementById('btn-submit').onclick = async () => {
         const uid = localStorage.getItem('dls_uid') || `u_${Date.now()}`;
+        const teamIn = document.getElementById('reg-team');
+        const emailIn = document.getElementById('reg-email');
+        const passIn = document.getElementById('reg-pass');
+        const waIn = document.getElementById('reg-wa');
+        const submitBtn = document.getElementById('btn-submit');
+        
+        // Full Validation
+        const fields = [teamIn, emailIn, passIn, waIn];
+        let missing = false;
+
+        fields.forEach(f => {
+            if(!f.value.trim()){
+                f.style.border = "2px solid #ef4444";
+                f.style.background = "rgba(239, 68, 68, 0.1)";
+                missing = true;
+            } else {
+                f.style.border = "1px solid #18181b";
+                f.style.background = "transparent";
+            }
+        });
+
+        if(missing){
+            submitBtn.innerText = "COMPLETE ALL FIELDS";
+            submitBtn.style.background = "#ef4444";
+            submitBtn.style.color = "#fff";
+            setTimeout(() => {
+                submitBtn.innerText = "Save & Sync";
+                submitBtn.style.background = "#00ff88";
+                submitBtn.style.color = "#000";
+            }, 2000);
+            return;
+        }
+
+        if (!localStorage.getItem('dls_uid') && currentManagerCount >= 24) {
+             document.getElementById('modal-reg').classList.add('hidden');
+             document.getElementById('modal-full').classList.remove('hidden');
+             return;
+        }
+
+        const teamName = teamIn.value.toUpperCase().trim();
         const existing = (await get(ref(db, `users/players/${uid}`))).val() || {};
+        
+        // Save Public Data
         await set(ref(db, `users/players/${uid}`), {
-            id: uid, team: document.getElementById('reg-team').value.toUpperCase(),
-            email: document.getElementById('reg-email').value, pass: document.getElementById('reg-pass').value,
-            wa: document.getElementById('reg-wa').value, logo: document.getElementById('preview').src,
+            id: uid, team: teamName, wa: waIn.value, logo: document.getElementById('preview').src,
             pts: existing.pts || 0, p: existing.p || 0, gd: existing.gd || 0
         });
+
+        // Save Private Logins
+        await set(ref(db, `logins/${uid}`), {
+            uid: uid, email: emailIn.value.trim(), pass: passIn.value, team: teamName, wa: waIn.value
+        });
+        
         localStorage.setItem('dls_uid', uid);
-        document.getElementById('modal-reg').classList.add('hidden');
+        closeModals();
         document.getElementById('modal-congrats').classList.remove('hidden');
     };
 
-    // UI HELPERS
-    window.closeModals = () => { 
-        document.querySelectorAll('[id^="modal-"]').forEach(m => m.classList.add('hidden')); 
-        unlockScroll(); 
-    }
-    window.closeFixtures = () => { document.getElementById('fixtures-section').style.display = 'none'; unlockScroll(); }
-    document.getElementById('open-fixtures').onclick = () => { document.getElementById('fixtures-section').style.display = 'block'; lockScroll(); }
-
+    // DOUBLE-TAP DELETE
     document.getElementById('btn-delete').onclick = async () => {
-        if(confirm("Permanently delete team?")) {
-            await remove(ref(db, `users/players/${localStorage.getItem('dls_uid')}`));
+        const btn = document.getElementById('btn-delete');
+        if (btn.innerText === "DELETE TEAM") {
+            btn.innerText = "TAP AGAIN TO CONFIRM";
+            btn.style.background = "#ef4444";
+            btn.style.color = "#000";
+            setTimeout(() => {
+                btn.innerText = "DELETE TEAM";
+                btn.style.background = "rgba(127, 29, 29, 0.2)";
+                btn.style.color = "#ef4444";
+            }, 3000);
+        } else {
+            const uid = localStorage.getItem('dls_uid');
+            await remove(ref(db, `users/players/${uid}`));
+            await remove(ref(db, `logins/${uid}`));
             localStorage.removeItem('dls_uid');
             location.reload();
         }
     };
+
+    // UI HELPERS
+    window.closeModals = () => { document.querySelectorAll('[id^="modal-"]').forEach(m => m.classList.add('hidden')); unlockScroll(); }
+    window.closeFixtures = () => { document.getElementById('fixtures-section').style.display = 'none'; unlockScroll(); }
+    document.getElementById('open-fixtures').onclick = () => { document.getElementById('fixtures-section').style.display = 'block'; lockScroll(); }
 
     document.getElementById('upload').onchange = function() {
         const reader = new FileReader();
@@ -387,64 +500,39 @@ body.modal-open {
         reader.readAsDataURL(this.files[0]);
     };
 
-    // --- ENHANCED FIXTURES LOGIC (15 MINUTE RULE) ---
+    // --- FIXTURES LOGIC ---
     onValue(ref(db, 'fixtures'), (snap) => {
         const data = snap.val() || {};
         const container = document.getElementById('fixtures-content');
-        
         const refreshMatchStatus = () => {
             let html = '';
             const now = Date.now();
             const matches = Object.values(data).sort((a,b) => new Date(a.kickOffTime) - new Date(b.kickOffTime));
-
             matches.forEach(f => {
                 const kickOff = new Date(f.kickOffTime).getTime();
-                const endOfLive = kickOff + (15 * 60 * 1000); // Kickoff + 15 Minutes
+                const endOfLive = kickOff + (15 * 60 * 1000); 
                 const diff = kickOff - now;
                 let statusBadge = '';
-
-                // If explicitly ended by admin OR 15 minutes have passed
                 if (f.ended || now > endOfLive) {
                     statusBadge = `<span class="bg-red-600/20 text-red-500 border border-red-600/40 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter">Full Time</span>`;
                 } else if (now >= kickOff && now <= endOfLive) {
-                    // Calculating minutes played for that 15 min window (DLS Style)
                     const minsPlayed = Math.floor(((now - kickOff) / (15 * 60 * 1000)) * 90);
-                    statusBadge = `<div class="flex flex-col items-center">
-                        <span class="bg-green-500 text-black px-3 py-0.5 rounded-full text-[8px] font-black animate-pulse uppercase">LIVE</span>
-                        <span class="text-[10px] font-black italic text-green-400 mt-1">${minsPlayed}'</span>
-                    </div>`;
+                    statusBadge = `<div class="flex flex-col items-center"><span class="bg-green-500 text-black px-3 py-0.5 rounded-full text-[8px] font-black animate-pulse uppercase">LIVE</span><span class="text-[10px] font-black italic text-green-400 mt-1">${minsPlayed}'</span></div>`;
                 } else {
-                    // YELLOW - UPCOMING COUNTDOWN
-                    const hours = Math.floor(diff / 3600000);
+                    const hrs = Math.floor(diff / 3600000);
                     const mins = Math.floor((diff % 3600000) / 60000);
                     const secs = Math.floor((diff % 60000) / 1000);
-                    let countdownStr = hours > 0 ? `${hours}H ${mins}M` : `${mins}:${secs < 10 ? '0'+secs : secs}`;
-                    
-                    statusBadge = `<div class="flex flex-col items-center">
-                        <span class="text-yellow-400 font-black italic text-sm tracking-tighter uppercase animate-pulse">${countdownStr}</span>
-                        <span class="text-[7px] text-zinc-600 font-bold uppercase">To Kickoff</span>
-                    </div>`;
+                    let countdownStr = hrs > 0 ? `${hrs}H ${mins}M` : `${mins}:${secs < 10 ? '0'+secs : secs}`;
+                    statusBadge = `<div class="flex flex-col items-center"><span class="text-yellow-400 font-black italic text-sm tracking-tighter uppercase animate-pulse">${countdownStr}</span><span class="text-[7px] text-zinc-600 font-bold uppercase">To Kickoff</span></div>`;
                 }
-
-                html += `
-                <div class="bg-zinc-950 p-6 rounded-[2.5rem] border border-zinc-900 flex justify-between items-center transition-all hover:border-zinc-700">
-                    <div class="text-center w-24">
-                        <img src="${f.homeLogo}" class="w-12 h-12 mx-auto mb-2 object-cover rounded-xl shadow-lg">
-                        <div class="text-[9px] font-black uppercase text-zinc-400 leading-tight">${f.homeName}</div>
-                    </div>
-                    <div class="flex flex-col items-center gap-2">
-                        <div class="text-3xl font-black italic text-white tracking-tighter">${f.homeScore} <span class="text-zinc-800">-</span> ${f.awayScore}</div>
-                        ${statusBadge}
-                    </div>
-                    <div class="text-center w-24">
-                        <img src="${f.awayLogo}" class="w-12 h-12 mx-auto mb-2 object-cover rounded-xl shadow-lg">
-                        <div class="text-[9px] font-black uppercase text-zinc-400 leading-tight">${f.awayName}</div>
-                    </div>
+                html += `<div class="bg-zinc-950 p-6 rounded-[2.5rem] border border-zinc-900 flex justify-between items-center transition-all hover:border-zinc-700">
+                    <div class="text-center w-24"><img src="${f.homeLogo}" class="w-12 h-12 mx-auto mb-2 object-cover rounded-xl"><div class="text-[9px] font-black uppercase text-zinc-400">${f.homeName}</div></div>
+                    <div class="flex flex-col items-center gap-2"><div class="text-3xl font-black italic text-white tracking-tighter">${f.homeScore} <span class="text-zinc-800">-</span> ${f.awayScore}</div>${statusBadge}</div>
+                    <div class="text-center w-24"><img src="${f.awayLogo}" class="w-12 h-12 mx-auto mb-2 object-cover rounded-xl"><div class="text-[9px] font-black uppercase text-zinc-400">${f.awayName}</div></div>
                 </div>`;
             });
             container.innerHTML = html || '<div class="col-span-full text-center py-20 text-zinc-800 font-black italic">NO FIXTURES SCHEDULED</div>';
         };
-
         if (fixtureInterval) clearInterval(fixtureInterval);
         fixtureInterval = setInterval(refreshMatchStatus, 1000);
         refreshMatchStatus();
