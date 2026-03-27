@@ -3,80 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DLS26 | Master AI Admin</title>
+    <title>DLS26 | Pro Scheduler</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background: #050505; color: #fff; font-family: 'Inter', sans-serif; }
         .glass { background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(20px); border: 1px solid #1a1a1a; }
-        .cmd-input { background: #000; border: 1px solid #222; color: #00ff88; font-family: monospace; }
-        .btn-glow { background: #00ff88; color: #000; transition: all 0.3s; cursor: pointer; }
-        .btn-glow:hover { box-shadow: 0 0 20px rgba(0, 255, 136, 0.4); transform: translateY(-1px); }
-        input[type="number"]::-webkit-inner-spin-button { display: none; }
-        .match-card { transition: all 0.3s ease; border: 1px solid #111; }
-        .match-card:hover { border-color: #333; background: #080808; }
+        .btn-green { background: #00ff88; color: #000; font-weight: 900; transition: 0.3s; }
+        .btn-green:hover { transform: scale(1.02); box-shadow: 0 0 20px rgba(0,255,136,0.4); }
     </style>
 </head>
-<body class="p-4 lg:p-8">
+<body class="p-6">
 
-    <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        <div class="lg:col-span-4 space-y-6">
-            <div class="glass p-8 rounded-[2.5rem] border-t border-white/5">
-                <h1 class="text-2xl font-black italic uppercase tracking-tighter mb-2">DLS <span class="text-[#00ff88]">CORE</span></h1>
-                <p class="text-[9px] text-zinc-600 font-bold uppercase tracking-[0.3em] mb-6">Live AI Match Controller</p>
-                
-                <div class="space-y-4">
-                    <textarea id="ai-prompt" placeholder="Try: 'Generate today's games' or 'End Madrid vs Barca 2-1'" 
-                        class="cmd-input w-full h-32 p-5 rounded-2xl text-xs focus:outline-none focus:border-[#00ff88] resize-none"></textarea>
-                    
-                    <button id="run-ai" class="btn-glow w-full py-5 rounded-2xl text-[11px] font-black uppercase italic">Execute Command</button>
-                    
-                    <div class="grid grid-cols-2 gap-2">
-                        <button id="clear-fix" class="bg-red-500/10 border border-red-500/20 text-red-500 py-3 rounded-xl text-[9px] font-black uppercase">Clear All</button>
-                        <button id="reset-stats" class="bg-zinc-900 border border-zinc-800 text-zinc-500 py-3 rounded-xl text-[9px] font-black uppercase">Reset Table</button>
-                    </div>
-                </div>
+    <div class="max-w-xl mx-auto glass p-10 rounded-[3rem] border-t border-white/5 text-center">
+        <h1 class="text-3xl font-black italic uppercase tracking-tighter mb-2">PRO <span class="text-[#00ff88]">SCHEDULER</span></h1>
+        <p class="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.3em] mb-10">Manual Logic • Zero AI Errors</p>
+
+        <div class="space-y-6">
+            <div class="bg-black p-6 rounded-2xl border border-zinc-900 text-left">
+                <label class="text-[10px] font-black uppercase text-zinc-600 mb-2 block">Starting Kickoff Time</label>
+                <input type="time" id="start-time" value="18:00" class="w-full bg-zinc-900 border border-zinc-800 p-4 rounded-xl text-[#00ff88] font-bold outline-none">
             </div>
 
-            <div class="glass p-6 rounded-[2rem] h-64 flex flex-col">
-                <h3 class="text-[10px] font-black text-zinc-600 uppercase mb-4 tracking-widest">Process Logs</h3>
-                <div id="log-box" class="flex-1 overflow-y-auto font-mono text-[9px] text-zinc-500 space-y-1 pr-2">
-                    <div>> System Online: ${new Date().toLocaleDateString()}</div>
-                </div>
-            </div>
+            <button id="auto-gen" class="btn-green w-full py-6 rounded-3xl text-xs uppercase italic">Generate & Sync Matchday</button>
+            
+            <button id="clear-all" class="w-full py-3 text-[9px] text-zinc-600 uppercase font-black hover:text-red-500 transition-colors">Wipe All Fixtures</button>
         </div>
 
-        <div class="lg:col-span-8 space-y-6">
-            
-            <div class="glass rounded-[3rem] p-8">
-                <div class="flex justify-between items-center mb-6 px-2">
-                    <h2 class="text-sm font-black italic uppercase tracking-wider">Live Matchday</h2>
-                    <span id="fix-count" class="text-[10px] text-zinc-600 font-bold">0 MATCHES</span>
-                </div>
-                <div id="fixtures-list" class="grid grid-cols-1 gap-3 max-h-[400px] overflow-y-auto pr-2">
-                    </div>
-            </div>
-
-            <div class="glass rounded-[3rem] overflow-hidden">
-                <table class="w-full text-left">
-                    <thead class="bg-black/50 text-[10px] text-zinc-600 uppercase font-black">
-                        <tr>
-                            <th class="p-5">Pos</th>
-                            <th class="p-5">Team</th>
-                            <th class="p-5 text-center">P</th>
-                            <th class="p-5 text-center">GD</th>
-                            <th class="p-5 text-center">PTS</th>
-                        </tr>
-                    </thead>
-                    <tbody id="table-body"></tbody>
-                </table>
-            </div>
+        <div id="status" class="mt-8 p-4 bg-zinc-950 rounded-2xl font-mono text-[10px] text-zinc-500 min-h-[60px] flex items-center justify-center">
+            System Ready.
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
-        import { getDatabase, ref, onValue, set, get, push, remove, update, increment } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+        import { getDatabase, ref, get, push, remove } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
@@ -87,143 +47,69 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        const log = (msg, color = "text-zinc-500") => {
-            const box = document.getElementById('log-box');
-            box.innerHTML += `<div class="${color}">> ${msg}</div>`;
-            box.scrollTop = box.scrollHeight;
-        };
+        document.getElementById('auto-gen').onclick = async () => {
+            const status = document.getElementById('status');
+            status.innerText = "Fetching teams...";
 
-        // --- 1. RENDER LOGIC ---
-        onValue(ref(db, 'users/players'), (snap) => {
-            const players = snap.val() || {};
-            const sorted = Object.values(players).sort((a,b) => (b.pts || 0) - (a.pts || 0) || (b.gd || 0) - (a.gd || 0));
-            document.getElementById('table-body').innerHTML = sorted.map((p, i) => `
-                <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
-                    <td class="p-5 font-black italic text-zinc-800">#${String(i+1).padStart(2, '0')}</td>
-                    <td class="p-5 flex items-center gap-3">
-                        <img src="${p.logo}" class="w-6 h-6 rounded shadow-lg">
-                        <span class="text-[11px] font-black uppercase text-zinc-200">${p.team}</span>
-                    </td>
-                    <td class="p-5 text-center text-zinc-500 font-bold">${p.p || 0}</td>
-                    <td class="p-5 text-center text-zinc-500 font-bold">${p.gd || 0}</td>
-                    <td class="p-5 text-center text-[#00ff88] font-black">${p.pts || 0}</td>
-                </tr>
-            `).join('');
-        });
+            try {
+                // 1. Get Teams
+                const snap = await get(ref(db, 'users/players'));
+                const players = snap.val();
+                if (!players) throw new Error("Add teams to 'users/players' first!");
 
-        onValue(ref(db, 'fixtures'), (snap) => {
-            const data = snap.val() || {};
-            const list = document.getElementById('fixtures-list');
-            const entries = Object.entries(data);
-            document.getElementById('fix-count').innerText = `${entries.length} MATCHES`;
-            
-            list.innerHTML = entries.map(([id, f]) => `
-                <div class="match-card bg-black p-5 rounded-2xl flex justify-between items-center ${f.ended ? 'opacity-30' : ''}">
-                    <div class="w-32">
-                        <div class="text-[8px] text-zinc-600 font-bold uppercase mb-1">${f.date || 'Today'}</div>
-                        <div class="text-[10px] font-black text-white uppercase truncate">${f.homeName}</div>
-                    </div>
-                    <div class="flex items-center gap-3 bg-zinc-900 px-4 py-2 rounded-xl">
-                        <input type="number" value="${f.homeScore}" onchange="updateScore('${id}', 'homeScore', this.value)" class="w-6 bg-transparent text-center font-black text-[#00ff88] outline-none">
-                        <span class="text-zinc-700 text-xs font-bold">:</span>
-                        <input type="number" value="${f.awayScore}" onchange="updateScore('${id}', 'awayScore', this.value)" class="w-6 bg-transparent text-center font-black text-[#00ff88] outline-none">
-                    </div>
-                    <div class="w-32 text-right">
-                        <div class="text-[8px] text-zinc-600 font-bold uppercase mb-1">Kickoff: 20:00</div>
-                        <div class="text-[10px] font-black text-white uppercase truncate">${f.awayName}</div>
-                    </div>
-                </div>
-            `).join('');
-        });
+                const teamList = Object.values(players);
+                
+                // Shuffle teams for randomness
+                teamList.sort(() => Math.random() - 0.5);
 
-        // --- 2. UPDATE FUNCTIONS ---
-        window.updateScore = (id, field, val) => {
-            update(ref(db, `fixtures/${id}`), { [field]: parseInt(val) });
-        };
+                // 2. Setup Timing
+                const startTimeStr = document.getElementById('start-time').value;
+                const [hours, minutes] = startTimeStr.split(':');
+                let kickoff = new Date();
+                kickoff.setHours(hours, minutes, 0, 0);
 
-        window.finishMatch = async (id) => {
-            const fSnap = await get(ref(db, `fixtures/${id}`));
-            const f = fSnap.val();
-            if (!f || f.ended) return;
+                status.innerText = "Pairing teams...";
+                const fixturesRef = ref(db, 'fixtures');
 
-            let hP = 0, aP = 0;
-            if (f.homeScore > f.awayScore) hP = 3;
-            else if (f.homeScore < f.awayScore) aP = 3;
-            else { hP = 1; aP = 1; }
+                // 3. Pair them (Step 2 means i vs i+1)
+                for (let i = 0; i < teamList.length; i += 2) {
+                    if (teamList[i+1]) { // Ensure there's a pair
+                        const home = teamList[i];
+                        const away = teamList[i+1];
 
-            const pSnap = await get(ref(db, 'users/players'));
-            const players = pSnap.val();
-            const hId = Object.keys(players).find(k => players[k].team === f.homeName);
-            const aId = Object.keys(players).find(k => players[k].team === f.awayName);
+                        const matchTime = kickoff.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-            if (hId && aId) {
-                await update(ref(db, `users/players/${hId}`), { pts: increment(hP), p: increment(1), gd: increment(f.homeScore - f.awayScore) });
-                await update(ref(db, `users/players/${aId}`), { pts: increment(aP), p: increment(1), gd: increment(f.awayScore - f.homeScore) });
-                await update(ref(db, `fixtures/${id}`), { ended: true });
-                log(`Match Finished: ${f.homeName} ${f.homeScore}-${f.awayScore} ${f.awayName}`, "text-green-500");
+                        await push(fixturesRef, {
+                            homeName: home.team,
+                            homeLogo: home.logo || "",
+                            homeScore: 0,
+                            awayName: away.team,
+                            awayLogo: away.logo || "",
+                            awayScore: 0,
+                            date: new Date().toLocaleDateString(),
+                            time: matchTime,
+                            ended: false
+                        });
+
+                        // Add 15 minutes for the next match
+                        kickoff.setMinutes(kickoff.getMinutes() + 15);
+                    }
+                }
+
+                status.innerText = "SUCCESS: Matchday Sync Complete!";
+                status.classList.add('text-[#00ff88]');
+
+            } catch (err) {
+                status.innerText = "ERROR: " + err.message;
+                status.classList.add('text-red-500');
             }
         };
 
-        // --- 3. SMART AI CONTROLLER ---
-        document.getElementById('run-ai').onclick = async () => {
-            const prompt = document.getElementById('ai-prompt').value;
-            if (!prompt) return;
-            log("AI Analyzing Command...", "text-yellow-500");
-
-            try {
-                const keyRes = await fetch('/api/get-key');
-                const { apiKey } = await keyRes.json();
-
-                const pSnap = await get(ref(db, 'users/players'));
-                const fSnap = await get(ref(db, 'fixtures'));
-                const players = pSnap.val() || {};
-                const fixtures = fSnap.val() || {};
-
-                const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-                    method: "POST",
-                    headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        model: "llama-3.1-8b-instant",
-                        messages: [
-                            { role: "system", content: `You are a DLS controller. Current Fixtures: ${JSON.stringify(fixtures)}. 
-                            Rules: 
-                            1. If generating: Return {"action":"gen","data":[{"h":"id","a":"id"}]}
-                            2. If updating score: Return {"action":"score","id":"matchId","hS":X,"aS":Y}
-                            3. If ending/finishing: Return {"action":"finish","id":"matchId","hS":X,"aS":Y}
-                            Only return JSON.` },
-                            { role: "user", content: `Command: ${prompt}. Players List: ${JSON.stringify(players)}` }
-                        ],
-                        response_format: { type: "json_object" }
-                    })
-                });
-
-                const aiData = await res.json();
-                const result = JSON.parse(aiData.choices[0].message.content);
-
-                if (result.action === "gen") {
-                    for (const m of result.data) {
-                        await push(ref(db, 'fixtures'), {
-                            homeName: players[m.h].team, homeLogo: players[m.h].logo, homeScore: 0,
-                            awayName: players[m.a].team, awayLogo: players[m.a].logo, awayScore: 0,
-                            date: new Date().toLocaleDateString(), ended: false
-                        });
-                    }
-                    log("Full Matchday Generated.", "text-green-500");
-                } else if (result.action === "score" || result.action === "finish") {
-                    await update(ref(db, `fixtures/${result.id}`), { homeScore: result.hS, awayScore: result.aS });
-                    if (result.action === "finish") await window.finishMatch(result.id);
-                    log(`AI Update: Success.`, "text-blue-400");
-                }
-            } catch (err) { log("Error: " + err.message, "text-red-500"); }
-        };
-
-        // --- UTILS ---
-        document.getElementById('clear-fix').onclick = () => { if(confirm("Wipe fixtures?")) remove(ref(db, 'fixtures')); };
-        document.getElementById('reset-stats').onclick = async () => {
-            const snap = await get(ref(db, 'users/players'));
-            const players = snap.val();
-            for(let id in players) update(ref(db, `users/players/${id}`), { pts: 0, gd: 0, p: 0 });
-            log("League Standings Reset.", "text-white");
+        document.getElementById('clear-all').onclick = async () => {
+            if (confirm("Delete all fixtures?")) {
+                await remove(ref(db, 'fixtures'));
+                document.getElementById('status').innerText = "Database Wiped.";
+            }
         };
     </script>
 </body>
