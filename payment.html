@@ -32,9 +32,7 @@
             overflow: hidden;
         }
 
-        .gold-glow {
-            box-shadow: 0 0 30px rgba(191, 149, 63, 0.15);
-        }
+        .gold-glow { box-shadow: 0 0 30px rgba(191, 149, 63, 0.15); }
 
         .gold-text {
             background: linear-gradient(to bottom, #fcf6ba 0%, #bf953f 50%, #8a6d3b 100%);
@@ -43,24 +41,18 @@
         }
 
         .status-dot {
-            width: 8px;
-            height: 8px;
-            background: #4ade80;
-            border-radius: 50%;
+            width: 8px; height: 8px;
+            background: #4ade80; border-radius: 50%;
             box-shadow: 0 0 10px #4ade80;
             animation: pulse 2s infinite;
         }
 
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.4; }
-            100% { opacity: 1; }
-        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
         .method-btn {
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .method-btn:hover {
@@ -70,6 +62,12 @@
         }
 
         .method-btn:active { transform: scale(0.98); }
+        
+        .nigeria-badge {
+            background: linear-gradient(90deg, #008751 0%, #ffffff 50%, #008751 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
     </style>
 </head>
 <body>
@@ -86,20 +84,21 @@
         </div>
 
         <div class="bg-black/40 rounded-2xl p-6 border border-white/5 space-y-4">
-            <div class="flex justify-between items-center border-b border-white/5 pb-4">
+            <div class="flex justify-between items-start border-b border-white/5 pb-4">
                 <div>
                     <p class="text-[8px] font-black text-white/20 uppercase tracking-widest">Transaction ID</p>
-                    <p id="display-txn" class="text-xs font-mono text-cyan-400 font-bold tracking-tighter">UCL-INT-0000</p>
+                    <p id="display-txn" class="text-xs font-mono text-cyan-400 font-bold tracking-tighter italic">UCL-INT-0000</p>
                 </div>
                 <div class="text-right">
-                    <p class="text-[8px] font-black text-white/20 uppercase tracking-widest">Pool Fee</p>
+                    <p class="text-[8px] font-black text-white/20 uppercase tracking-widest">Global Fee</p>
                     <p class="text-xl font-black text-white">$4.99</p>
+                    <p id="ngn-price" class="text-[10px] font-bold text-emerald-400 mt-0.5">≈ ₦0.00</p>
                 </div>
             </div>
             
             <div class="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest">
                 <span class="text-white/30">Pool Status</span>
-                <span class="text-emerald-400">Guaranteed</span>
+                <span class="text-emerald-400">Guaranteed Entry</span>
             </div>
         </div>
 
@@ -115,8 +114,14 @@
                 <span class="text-[10px] font-black tracking-widest">CRYPTO PAY</span>
             </button>
 
+            <button onclick="handlePayment('Paystack')" class="method-btn w-full py-4 rounded-2xl flex items-center justify-center gap-3 border-emerald-500/20">
+                <div class="flex items-center gap-2">
+                    <span class="text-[10px] font-black tracking-widest nigeria-badge uppercase">Nigeria Direct</span>
+                </div>
+            </button>
+
             <button onclick="handlePayment('Manual')" class="method-btn w-full py-4 rounded-2xl flex items-center justify-center gap-3">
-                <span class="text-[10px] font-black tracking-widest text-white/60">OTHER / CARD HELP</span>
+                <span class="text-[10px] font-black tracking-widest text-white/60 uppercase">Other Region / Help</span>
             </button>
         </div>
 
@@ -132,28 +137,30 @@
     </div>
 
     <script>
+        const NGN_EXCHANGE_RATE = 1600; // Manual set for NGN conversion
+        const USD_PRICE = 4.99;
+
         // --- SECURE DECODER ---
         window.addEventListener('load', () => {
             const hash = window.location.hash;
             
-            // Redirect if link is tampered with
             if (!hash || !hash.includes('session_')) {
-                alert("Invalid Security Session.");
                 window.location.href = "index.html";
                 return;
             }
 
             try {
-                // Decode the Session Hash
                 const rawToken = hash.replace('#session_', '');
                 const decodedData = atob(rawToken);
                 const [txn, name, time] = decodedData.split('|');
 
-                // Fill UI
                 document.getElementById('display-txn').innerText = txn;
                 document.getElementById('display-mgr').innerText = `Manager: ${name}`;
 
-                // Optional: Expire session if older than 30 mins
+                // Calculate and show NGN price
+                const ngnTotal = Math.ceil(USD_PRICE * NGN_EXCHANGE_RATE);
+                document.getElementById('ngn-price').innerText = `≈ ₦${ngnTotal.toLocaleString()}`;
+
                 const thirtyMins = 30 * 60 * 1000;
                 if (Date.now() - parseInt(time) > thirtyMins) {
                     alert("Payment Session Expired.");
@@ -161,7 +168,6 @@
                 }
 
             } catch (e) {
-                console.error("Hash Error:", e);
                 window.location.href = "index.html";
             }
         });
@@ -170,28 +176,24 @@
         function handlePayment(method) {
             const txn = document.getElementById('display-txn').innerText;
             const mgr = document.getElementById('display-mgr').innerText;
-            
-            // Replace with your real links
             let targetUrl = "";
             
             if (method === 'PayPal') {
-                targetUrl = `https://paypal.me/YOUR_ID/4.99`; 
+                targetUrl = `https://paypal.me/YOUR_USER/${USD_PRICE}`; 
             } else if (method === 'Binance') {
                 targetUrl = `YOUR_BINANCE_PAY_LINK`;
+            } else if (method === 'Paystack') {
+                targetUrl = `https://paystack.com/pay/YOUR_CUSTOM_LINK`;
             } else {
-                // Manual/Card Bridge to WhatsApp
-                const msg = encodeURIComponent(`👋 SECURE BRIDGE\nOrder: ${txn}\n${mgr}\nI need to pay via Credit Card/Other.`);
+                const msg = encodeURIComponent(`👋 SECURE BRIDGE\nOrder: ${txn}\n${mgr}\nI am in a different region and need to pay.`);
                 targetUrl = `https://wa.me/YOUR_PHONE?text=${msg}`;
             }
 
-            // Simple visual feedback before redirect
             const card = document.querySelector('.payment-card');
             card.style.opacity = "0.5";
             card.style.pointerEvents = "none";
             
-            setTimeout(() => {
-                window.location.href = targetUrl;
-            }, 500);
+            setTimeout(() => { window.location.href = targetUrl; }, 500);
         }
     </script>
 
