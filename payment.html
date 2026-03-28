@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>UCL Secure Checkout | DLS26</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body {
+            background: radial-gradient(circle at top, #0a1628 0%, #050505 100%);
+            min-height: 100vh;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .payment-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-radius: 32px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 400px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .gold-glow {
+            box-shadow: 0 0 30px rgba(191, 149, 63, 0.15);
+        }
+
+        .gold-text {
+            background: linear-gradient(to bottom, #fcf6ba 0%, #bf953f 50%, #8a6d3b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #4ade80;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #4ade80;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.4; }
+            100% { opacity: 1; }
+        }
+
+        .method-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.3s ease;
+        }
+
+        .method-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .method-btn:active { transform: scale(0.98); }
+    </style>
+</head>
+<body>
+
+    <div class="payment-card gold-glow p-8 space-y-8">
+        
+        <div class="text-center space-y-2">
+            <div class="flex items-center justify-center gap-2 mb-4">
+                <div class="status-dot"></div>
+                <span class="text-[9px] font-black uppercase tracking-[0.3em] text-emerald-400">Secure Session Verified</span>
+            </div>
+            <h1 class="text-3xl font-black italic uppercase tracking-tighter">Complete <span class="gold-text">Entry</span></h1>
+            <p id="display-mgr" class="text-[10px] text-white/40 font-bold uppercase tracking-widest pt-1">Manager: --</p>
+        </div>
+
+        <div class="bg-black/40 rounded-2xl p-6 border border-white/5 space-y-4">
+            <div class="flex justify-between items-center border-b border-white/5 pb-4">
+                <div>
+                    <p class="text-[8px] font-black text-white/20 uppercase tracking-widest">Transaction ID</p>
+                    <p id="display-txn" class="text-xs font-mono text-cyan-400 font-bold tracking-tighter">UCL-INT-0000</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-[8px] font-black text-white/20 uppercase tracking-widest">Pool Fee</p>
+                    <p class="text-xl font-black text-white">$4.99</p>
+                </div>
+            </div>
+            
+            <div class="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest">
+                <span class="text-white/30">Pool Status</span>
+                <span class="text-emerald-400">Guaranteed</span>
+            </div>
+        </div>
+
+        <div class="space-y-3">
+            <p class="text-[9px] font-black text-white/20 uppercase tracking-[0.4em] text-center pb-2">Global Checkout</p>
+            
+            <button onclick="handlePayment('PayPal')" class="method-btn w-full py-4 rounded-2xl flex items-center justify-center gap-3">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" class="h-4 brightness-0 invert" alt="PayPal">
+            </button>
+
+            <button onclick="handlePayment('Binance')" class="method-btn w-full py-4 rounded-2xl flex items-center justify-center gap-3">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/e/e8/Binance_Logo.svg" class="h-5" alt="Binance">
+                <span class="text-[10px] font-black tracking-widest">CRYPTO PAY</span>
+            </button>
+
+            <button onclick="handlePayment('Manual')" class="method-btn w-full py-4 rounded-2xl flex items-center justify-center gap-3">
+                <span class="text-[10px] font-black tracking-widest text-white/60">OTHER / CARD HELP</span>
+            </button>
+        </div>
+
+        <div class="text-center">
+            <p class="text-[8px] text-white/20 font-medium px-4">
+                Payment data is encrypted and secure. Verified managers are added to the official 16-player bracket instantly after confirmation.
+            </p>
+            <button onclick="history.back()" class="mt-6 text-[8px] font-black text-white/10 hover:text-white/40 uppercase tracking-widest transition-colors">
+                « Return to Registration
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        // --- SECURE DECODER ---
+        window.addEventListener('load', () => {
+            const hash = window.location.hash;
+            
+            // Redirect if link is tampered with
+            if (!hash || !hash.includes('session_')) {
+                alert("Invalid Security Session.");
+                window.location.href = "index.html";
+                return;
+            }
+
+            try {
+                // Decode the Session Hash
+                const rawToken = hash.replace('#session_', '');
+                const decodedData = atob(rawToken);
+                const [txn, name, time] = decodedData.split('|');
+
+                // Fill UI
+                document.getElementById('display-txn').innerText = txn;
+                document.getElementById('display-mgr').innerText = `Manager: ${name}`;
+
+                // Optional: Expire session if older than 30 mins
+                const thirtyMins = 30 * 60 * 1000;
+                if (Date.now() - parseInt(time) > thirtyMins) {
+                    alert("Payment Session Expired.");
+                    window.location.href = "index.html";
+                }
+
+            } catch (e) {
+                console.error("Hash Error:", e);
+                window.location.href = "index.html";
+            }
+        });
+
+        // --- GATEWAY HANDLER ---
+        function handlePayment(method) {
+            const txn = document.getElementById('display-txn').innerText;
+            const mgr = document.getElementById('display-mgr').innerText;
+            
+            // Replace with your real links
+            let targetUrl = "";
+            
+            if (method === 'PayPal') {
+                targetUrl = `https://paypal.me/YOUR_ID/4.99`; 
+            } else if (method === 'Binance') {
+                targetUrl = `YOUR_BINANCE_PAY_LINK`;
+            } else {
+                // Manual/Card Bridge to WhatsApp
+                const msg = encodeURIComponent(`👋 SECURE BRIDGE\nOrder: ${txn}\n${mgr}\nI need to pay via Credit Card/Other.`);
+                targetUrl = `https://wa.me/YOUR_PHONE?text=${msg}`;
+            }
+
+            // Simple visual feedback before redirect
+            const card = document.querySelector('.payment-card');
+            card.style.opacity = "0.5";
+            card.style.pointerEvents = "none";
+            
+            setTimeout(() => {
+                window.location.href = targetUrl;
+            }, 500);
+        }
+    </script>
+
+</body>
+</html>
