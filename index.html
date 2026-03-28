@@ -236,7 +236,6 @@
 
     </main>
 <script type="module">
-    // 1. FIREBASE SETUP
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
     import { getDatabase, ref, onValue, push, set } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
 
@@ -254,160 +253,120 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // --- 2. IMAGE SKELETON HANDLER (GLOBAL FIX) ---
+    // --- 1. SKELETON & CACHE FIX ---
     window.removeSkeleton = function(img) {
         const container = document.getElementById('hero-container');
         if (container) {
             container.classList.remove('skeleton');
-            img.classList.remove('opacity-0');
-            img.classList.add('opacity-100');
+            img.classList.replace('opacity-0', 'opacity-100');
+        }
+    };
+    const heroImg = document.querySelector('#hero-container img');
+    if (heroImg && heroImg.complete) window.removeSkeleton(heroImg);
+
+    // --- 2. GLOBAL AUTO-LOGIN ---
+    window.addEventListener('DOMContentLoaded', () => {
+        const saved = localStorage.getItem('dls_ucl_player');
+        if (saved) {
+            const data = JSON.parse(saved);
+            document.getElementById('mgrName').value = data.name;
+            document.getElementById('mgrPhone').value = data.phone;
+            document.getElementById('mgrTeam').value = data.team;
+            document.getElementById('mainEnterBtn').innerText = "RESUME CHECKOUT";
+        }
+    });
+
+    // --- 3. LIVE WORLDWIDE PLAYER COUNT ---
+    onValue(ref(db, 'tournaments/ucl_s1/players'), (snap) => {
+        const count = snap.size || 0;
+        document.getElementById('playerCount').innerText = `${count}/16`;
+        if (count >= 16) {
+            const btn = document.getElementById('mainEnterBtn');
+            btn.innerText = "POOL FULL";
+            btn.classList.add('opacity-50', 'pointer-events-none');
+        }
+    });
+
+    // --- 4. SECURE WORLDWIDE CHECKOUT ---
+    document.getElementById('registrationForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        
+        // Premium Animation
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `
+            <div class="flex flex-col items-center">
+                <span class="text-[9px] font-black animate-pulse">SECURING GLOBAL GATEWAY...</span>
+                <div class="w-32 h-0.5 bg-white/10 mt-1 overflow-hidden">
+                    <div class="h-full bg-cyan-400 animate-[loading_1.5s_linear]"></div>
+                </div>
+            </div>
+        `;
+
+        const txID = "UCL-INT-" + Math.random().toString(36).substr(2, 7).toUpperCase();
+        const pData = {
+            name: document.getElementById('mgrName').value,
+            phone: document.getElementById('mgrPhone').value,
+            team: document.getElementById('mgrTeam').value,
+            txID: txID,
+            status: "UNVERIFIED",
+            region: "WORLDWIDE",
+            timestamp: Date.now()
+        };
+
+        try {
+            await set(push(ref(db, 'tournaments/ucl_s1/players')), pData);
+            localStorage.setItem('dls_ucl_player', JSON.stringify(pData));
+
+            // Worldwide Redirect
+            const msg = encodeURIComponent(
+                `🌍 DLS26 WORLDWIDE UCL ENTRY\n` +
+                `--------------------------\n` +
+                `ORDER ID: ${txID}\n` +
+                `MANAGER: ${pData.name}\n` +
+                `TEAM: ${pData.team}\n` +
+                `POOL ENTRY: $4.99 USD\n` +
+                `--------------------------\n` +
+                `Please send me the Payment Link (PayPal/Binance/Card).`
+            );
+
+            setTimeout(() => { 
+                window.location.href = `https://wa.me/YOUR_PHONE?text=${msg}`; 
+            }, 1600);
+        } catch (e) {
+            alert("Connection error. Check your internet.");
+            submitBtn.innerText = "CONFIRM & PAY";
+            submitBtn.disabled = false;
         }
     };
 
-    // Force check for cached images immediately
-    const heroImg = document.querySelector('#hero-container img');
-    if (heroImg && heroImg.complete) {
-        window.removeSkeleton(heroImg);
-    }
-
-    // --- 3. LOCAL STORAGE & AUTO-LOGIN CHECK ---
-    window.addEventListener('DOMContentLoaded', () => {
-        const savedPlayer = localStorage.getItem('dls_ucl_player');
-        if (savedPlayer) {
-            const data = JSON.parse(savedPlayer);
-            if(document.getElementById('mgrName')) document.getElementById('mgrName').value = data.name;
-            if(document.getElementById('mgrPhone')) document.getElementById('mgrPhone').value = data.phone;
-            if(document.getElementById('mgrTeam')) document.getElementById('mgrTeam').value = data.team;
-            
-            const enterBtn = document.getElementById('mainEnterBtn');
-            if(enterBtn) enterBtn.innerText = "FINISH PAYMENT";
-        }
-    });
-
-    // --- 4. LIVE PLAYER COUNT ---
-    const playerRef = ref(db, 'tournaments/ucl_s1/players');
-    onValue(playerRef, (snapshot) => {
-        const count = snapshot.size || 0;
-        const countEl = document.getElementById('playerCount');
-        const btnEl = document.getElementById('mainEnterBtn');
-        
-        if(countEl) countEl.innerText = `${count}/16`;
-        
-        if (count >= 16 && btnEl) {
-            btnEl.innerText = "FULL";
-            btnEl.disabled = true;
-            btnEl.classList.add('opacity-50', 'pointer-events-none');
-        }
-    });
-
-    // --- 5. SECURE REGISTRATION & REDIRECT ---
-    const regForm = document.getElementById('registrationForm');
-    if(regForm) {
-        regForm.onsubmit = async (e) => {
-            e.preventDefault();
-            const submitBtn = e.target.querySelector('button[type="submit"]');
-            submitBtn.innerHTML = `<span class="animate-pulse tracking-widest text-[8px]">SECURING CONNECTION...</span>`;
-            submitBtn.disabled = true;
-
-            const managerName = document.getElementById('mgrName').value;
-            const teamName = document.getElementById('mgrTeam').value;
-            const txID = "UCL-" + Math.random().toString(36).substr(2, 9).toUpperCase();
-
-            const playerData = {
-                name: managerName,
-                phone: document.getElementById('mgrPhone').value,
-                team: teamName,
-                status: "PENDING_VERIFICATION",
-                transactionID: txID,
-                timestamp: Date.now()
-            };
-
-            try {
-                const newPlayerRef = push(ref(db, 'tournaments/ucl_s1/players'));
-                await set(newPlayerRef, playerData);
-                localStorage.setItem('dls_ucl_player', JSON.stringify(playerData));
-
-                const secureBridgeUrl = `https://wa.me/27123456789?text=` + encodeURIComponent(
-                    `🔒 SECURE PAYMENT GATEWAY\n` +
-                    `--------------------------\n` +
-                    `ID: ${txID}\n` +
-                    `MANAGER: ${managerName}\n` +
-                    `TEAM: ${teamName}\n` +
-                    `STATUS: PENDING\n` +
-                    `--------------------------\n` +
-                    `Please verify my entry for the $50 Pool.`
-                );
-
-                setTimeout(() => { window.location.href = secureBridgeUrl; }, 1000);
-            } catch (error) {
-                alert("Connection error. Try again.");
-                submitBtn.innerText = "CONFIRM & PAY";
-                submitBtn.disabled = false;
-            }
-        };
-    }
-
-    // --- 6. POPUP CONTROLS ---
+    // --- 5. UI CONTROLS & TIMERS ---
     const overlay = document.getElementById('reg-overlay');
     const sheet = document.getElementById('reg-sheet');
-    const mainBtn = document.getElementById('mainEnterBtn');
+    window.openReg = () => { overlay.classList.remove('opacity-0', 'pointer-events-none'); sheet.classList.remove('translate-y-full'); };
+    window.closeReg = () => { overlay.classList.add('opacity-0', 'pointer-events-none'); sheet.classList.add('translate-y-full'); };
+    document.getElementById('mainEnterBtn').onclick = window.openReg;
 
-    window.openReg = () => {
-        overlay.classList.remove('opacity-0', 'pointer-events-none');
-        sheet.classList.remove('translate-y-full');
-    };
-    window.closeReg = () => {
-        overlay.classList.add('opacity-0', 'pointer-events-none');
-        sheet.classList.add('translate-y-full');
-    };
-    if(mainBtn) mainBtn.onclick = window.openReg;
-
-    // --- 7. UCL STAR COLOR CYCLE ---
-    const star = document.getElementById('ucl-star');
-    const colors = ['#22d3ee', '#ffffff', '#ec4899', '#a855f7', '#fbbf24', '#10b981', '#60a5fa']; 
-    let colorIndex = 0;
+    // Star/Scroll/Countdown
     setInterval(() => {
-        if(star) {
-            star.style.color = colors[colorIndex];
-            colorIndex = (colorIndex + 1) % colors.length;
-        }
-    }, 800);
+        const star = document.getElementById('ucl-star');
+        const colors = ['#22d3ee', '#ffffff', '#ec4899', '#fbbf24'];
+        star.style.color = colors[Math.floor(Math.random() * colors.length)];
+    }, 1000);
 
-    // --- 8. PRIZE AUTO-SCROLL ---
-    const scrollContainer = document.getElementById('prize-scroll');
-    function autoScrollPrizes() {
-        if (!scrollContainer) return;
-        if (scrollContainer.scrollLeft + scrollContainer.offsetWidth >= scrollContainer.scrollWidth - 10) {
-            scrollContainer.scrollTo({ left: 0, behavior: 'smooth' });
-        } else {
-            scrollContainer.scrollBy({ left: 236, behavior: 'smooth' });
-        }
-    }
-    let scrollInterval = setInterval(autoScrollPrizes, 4000);
-    if(scrollContainer) {
-        scrollContainer.addEventListener('touchstart', () => clearInterval(scrollInterval));
-    }
+    const scroll = document.getElementById('prize-scroll');
+    setInterval(() => {
+        if(scroll.scrollLeft + scroll.offsetWidth >= scroll.scrollWidth - 10) scroll.scrollTo({left:0, behavior:'smooth'});
+        else scroll.scrollBy({left:236, behavior:'smooth'});
+    }, 4000);
 
-    // --- 9. COUNTDOWN TIMER ---
-    function updateCountdown() {
-        const countdownEl = document.getElementById('countdown');
-        if (!countdownEl) return;
-        const now = new Date();
-        const nextMonday = new Date();
-        nextMonday.setDate(now.getDate() + (1 + 7 - now.getDay()) % 7);
-        nextMonday.setHours(0, 0, 0, 0);
-        const diff = nextMonday - now;
-        if (diff <= 0) {
-            countdownEl.innerText = "CLOSED";
-            return;
-        }
-        const h = Math.floor(diff / (1000 * 60 * 60));
-        const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const s = Math.floor((diff % (1000 * 60)) / 1000);
-        countdownEl.innerText = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    function clock() {
+        const diff = new Date(new Date().setDate(new Date().getDate() + (1 + 7 - new Date().getDay()) % 7)).setHours(0,0,0,0) - new Date();
+        if (diff <= 0) { document.getElementById('countdown').innerText = "CLOSED"; return; }
+        const h = Math.floor(diff/36e5), m = Math.floor((diff%36e5)/6e4), s = Math.floor((diff%6e4)/1e3);
+        document.getElementById('countdown').innerText = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
     }
-    setInterval(updateCountdown, 1000);
-    updateCountdown();
+    setInterval(clock, 1000); clock();
 </script>
 
 </body>
