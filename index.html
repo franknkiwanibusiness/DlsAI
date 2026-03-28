@@ -263,7 +263,7 @@ input, textarea {
 
             document.body.style.overflow = 'hidden';
 
-            // Fake progress to keep it moving until real data hits
+            // 1. Fake progress (Stops at 92% until real data hits)
             const progressTimer = setInterval(() => {
                 if (currentLoad < 92) {
                     currentLoad += Math.floor(Math.random() * 4) + 1;
@@ -271,27 +271,40 @@ input, textarea {
                 }
             }, 150);
 
+            // 2. Real Data Trigger
             window.onUclDataLoaded = function() {
                 if (uclIsReady || uclIsClosed) return;
                 
                 uclIsReady = true;
                 clearInterval(progressTimer);
                 
-                // Complete the load
+                // Jump to 100%
                 percDisplay.innerText = "100%";
                 
                 setTimeout(() => {
-                    // Swap percentage for Tap Prompt
+                    // Hide Percentage
                     percDisplay.style.opacity = "0";
+                    
                     setTimeout(() => {
                         percDisplay.style.display = "none";
+                        // Show Tap Prompt
                         tapPrompt.style.opacity = "1";
                         tapPrompt.style.animation = "uclBlink 1.5s infinite";
+
+                        // --- NEW AUTO-CLOSE LOGIC ---
+                        // Only starts AFTER the tap prompt is visible
+                        setTimeout(() => {
+                            if (!uclIsClosed) {
+                                window.closeUclLoader();
+                            }
+                        }, 3000); // 3 Seconds after tap prompt appears
                     }, 300);
                 }, 600);
             };
 
+            // 3. Manual or Auto Close
             window.closeUclLoader = function() {
+                // Now requires data to be ready before it can be closed
                 if (uclIsReady && !uclIsClosed) {
                     uclIsClosed = true;
                     uclLoader.classList.add('ucl-hidden');
@@ -299,10 +312,12 @@ input, textarea {
                 }
             };
 
-            // Safety Fallback (10s)
-            setTimeout(() => { if (!uclIsReady) onUclDataLoaded(); }, 10000);
+            // Safety Fallback (15s) - Increased to give real data time
+            setTimeout(() => { if (!uclIsReady) onUclDataLoaded(); }, 15000);
         })();
     </script>
+
+
 </section>
 
 </section>
