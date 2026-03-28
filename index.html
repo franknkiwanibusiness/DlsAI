@@ -269,9 +269,9 @@
         const saved = localStorage.getItem('dls_ucl_player');
         if (saved) {
             const data = JSON.parse(saved);
-            document.getElementById('mgrName').value = data.name;
-            document.getElementById('mgrPhone').value = data.phone;
-            document.getElementById('mgrTeam').value = data.team;
+            if(document.getElementById('mgrName')) document.getElementById('mgrName').value = data.name;
+            if(document.getElementById('mgrPhone')) document.getElementById('mgrPhone').value = data.phone;
+            if(document.getElementById('mgrTeam')) document.getElementById('mgrTeam').value = data.team;
             document.getElementById('mainEnterBtn').innerText = "RESUME CHECKOUT";
         }
     });
@@ -287,30 +287,35 @@
         }
     });
 
-    // --- 4. SECURE WORLDWIDE CHECKOUT ---
+    // --- 4. SECURE WORLDWIDE CHECKOUT (HASH REDIRECT) ---
     document.getElementById('registrationForm').onsubmit = async (e) => {
         e.preventDefault();
         const submitBtn = e.target.querySelector('button[type="submit"]');
         
-        // Premium Animation
         submitBtn.disabled = true;
         submitBtn.innerHTML = `
             <div class="flex flex-col items-center">
-                <span class="text-[9px] font-black animate-pulse">SECURING GLOBAL GATEWAY...</span>
+                <span class="text-[9px] font-black animate-pulse uppercase">Generating Secure Session...</span>
                 <div class="w-32 h-0.5 bg-white/10 mt-1 overflow-hidden">
                     <div class="h-full bg-cyan-400 animate-[loading_1.5s_linear]"></div>
                 </div>
             </div>
         `;
 
+        const mgrName = document.getElementById('mgrName').value;
+        const mgrTeam = document.getElementById('mgrTeam').value;
         const txID = "UCL-INT-" + Math.random().toString(36).substr(2, 7).toUpperCase();
+        
+        // Create the Secure Hash Token (Base64)
+        const secureToken = btoa(`${txID}|${mgrName}|${Date.now()}`);
+
         const pData = {
-            name: document.getElementById('mgrName').value,
+            name: mgrName,
             phone: document.getElementById('mgrPhone').value,
-            team: document.getElementById('mgrTeam').value,
+            team: mgrTeam,
             txID: txID,
             status: "UNVERIFIED",
-            region: "WORLDWIDE",
+            sessionHash: secureToken,
             timestamp: Date.now()
         };
 
@@ -318,20 +323,9 @@
             await set(push(ref(db, 'tournaments/ucl_s1/players')), pData);
             localStorage.setItem('dls_ucl_player', JSON.stringify(pData));
 
-            // Worldwide Redirect
-            const msg = encodeURIComponent(
-                `🌍 DLS26 WORLDWIDE UCL ENTRY\n` +
-                `--------------------------\n` +
-                `ORDER ID: ${txID}\n` +
-                `MANAGER: ${pData.name}\n` +
-                `TEAM: ${pData.team}\n` +
-                `POOL ENTRY: $4.99 USD\n` +
-                `--------------------------\n` +
-                `Please send me the Payment Link (PayPal/Binance/Card).`
-            );
-
+            // REDIRECT TO /PAYMENT WITH SECURE HASH
             setTimeout(() => { 
-                window.location.href = `https://wa.me/YOUR_PHONE?text=${msg}`; 
+                window.location.href = `./payment.html#session_${secureToken}`; 
             }, 1600);
         } catch (e) {
             alert("Connection error. Check your internet.");
@@ -343,28 +337,37 @@
     // --- 5. UI CONTROLS & TIMERS ---
     const overlay = document.getElementById('reg-overlay');
     const sheet = document.getElementById('reg-sheet');
-    window.openReg = () => { overlay.classList.remove('opacity-0', 'pointer-events-none'); sheet.classList.remove('translate-y-full'); };
-    window.closeReg = () => { overlay.classList.add('opacity-0', 'pointer-events-none'); sheet.classList.add('translate-y-full'); };
+    window.openReg = () => { 
+        overlay.classList.remove('opacity-0', 'pointer-events-none'); 
+        sheet.classList.remove('translate-y-full'); 
+    };
+    window.closeReg = () => { 
+        overlay.classList.add('opacity-0', 'pointer-events-none'); 
+        sheet.classList.add('translate-y-full'); 
+    };
     document.getElementById('mainEnterBtn').onclick = window.openReg;
 
     // Star/Scroll/Countdown
     setInterval(() => {
         const star = document.getElementById('ucl-star');
         const colors = ['#22d3ee', '#ffffff', '#ec4899', '#fbbf24'];
-        star.style.color = colors[Math.floor(Math.random() * colors.length)];
+        if(star) star.style.color = colors[Math.floor(Math.random() * colors.length)];
     }, 1000);
 
     const scroll = document.getElementById('prize-scroll');
     setInterval(() => {
+        if(!scroll) return;
         if(scroll.scrollLeft + scroll.offsetWidth >= scroll.scrollWidth - 10) scroll.scrollTo({left:0, behavior:'smooth'});
         else scroll.scrollBy({left:236, behavior:'smooth'});
     }, 4000);
 
     function clock() {
+        const timer = document.getElementById('countdown');
+        if(!timer) return;
         const diff = new Date(new Date().setDate(new Date().getDate() + (1 + 7 - new Date().getDay()) % 7)).setHours(0,0,0,0) - new Date();
-        if (diff <= 0) { document.getElementById('countdown').innerText = "CLOSED"; return; }
+        if (diff <= 0) { timer.innerText = "CLOSED"; return; }
         const h = Math.floor(diff/36e5), m = Math.floor((diff%36e5)/6e4), s = Math.floor((diff%6e4)/1e3);
-        document.getElementById('countdown').innerText = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+        timer.innerText = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
     }
     setInterval(clock, 1000); clock();
 </script>
