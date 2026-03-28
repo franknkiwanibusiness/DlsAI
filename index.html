@@ -345,20 +345,21 @@ input, textarea {
     <h3 class="text-xl font-black text-white" id="countdown">--:--:--</h3>
     
     <p id="timer-subtext" class="text-[8px] text-white/40 font-bold uppercase">Time Remaining</p>
+
   </div>
         </div>
         
-        <div class="text-center py-2">
-            <h2 class="gold-text text-4xl font-black uppercase tracking-tighter">
-                $50 PRIZE POOL
-            </h2>
-            <div class="mt-4 flex flex-col items-center gap-1">
-                <p class="text-[10px] font-black text-white/40 uppercase tracking-[0.4em]">
-                    Entries Still Open
-                </p>
-                <div class="w-8 h-[2px] bg-cyan-400 rounded-full mt-2"></div>
-            </div>
-        </div>
+     <div class="text-center py-2">
+    <h2 id="display-prize-pool" class="gold-text text-4xl font-black uppercase tracking-tighter">
+        $ PRIZE POOL
+    </h2>
+    <div class="mt-4 flex flex-col items-center gap-1">
+        <p id="entry-status-text" class="text-[10px] font-black text-white/40 uppercase tracking-[0.4em]">
+            FETCHING STATUS...
+        </p>
+        <div id="status-accent-bar" class="w-8 h-[2px] bg-cyan-400 rounded-full mt-2"></div>
+    </div>
+</div>
 
         <section class="space-y-4 pt-4 overflow-hidden">
             <div class="px-2 flex justify-between items-end">
@@ -719,57 +720,87 @@ input, textarea {
             submitBtn.disabled = false;
         }
     };
-
     // --- 5. DYNAMIC TOURNAMENT STATUS (TIMER & PRIZE) ---
     function syncTournamentStatus() {
-    const timerDisplay = document.getElementById('countdown');
-    const timerLabel = document.getElementById('timer-label');
-    const timerSubtext = document.getElementById('timer-subtext');
-    const enterBtn = document.getElementById('mainEnterBtn');
-
-    onValue(ref(db, 'tournaments/ucl_s1/config'), (snap) => {
-        const config = snap.val() || {};
+        const timerDisplay = document.getElementById('countdown');
+        const timerLabel = document.getElementById('timer-label');
+        const enterBtn = document.getElementById('mainEnterBtn');
         
-        if (window.uclInterval) clearInterval(window.uclInterval);
+        // Dynamic Prize & Status Elements
+        const prizeDisplay = document.getElementById('display-prize-pool');
+        const entryStatusText = document.getElementById('entry-status-text');
+        const accentBar = document.getElementById('status-accent-bar');
 
-        window.uclInterval = setInterval(() => {
-            const now = new Date().getTime();
+        onValue(ref(db, 'tournaments/ucl_s1/config'), (snap) => {
+            const config = snap.val() || {};
             
-            // Logic: Pick Reg deadline if under 16 players, otherwise use End deadline
-            let target = (currentPlayerCount < 16) ? config.regDeadline : config.endDeadline;
-            
-            if (!target) {
-                timerDisplay.innerText = "TBA";
-                return;
+            // Sync Prize Pool from DB
+            if (prizeDisplay) {
+                const amount = config.prizepool || "50";
+                prizeDisplay.innerText = `$${amount} PRIZE POOL`;
             }
 
-            const diff = target - now;
+            if (window.uclInterval) clearInterval(window.uclInterval);
 
-            if (diff <= 0) {
-                timerDisplay.innerText = "CLOSED";
-                timerLabel.innerText = "SEASON STATUS";
-                timerLabel.className = "text-[8px] font-bold text-red-500 uppercase tracking-widest mb-1";
-                return;
-            }
+            window.uclInterval = setInterval(() => {
+                const now = new Date().getTime();
+                
+                // Logic: Pick Reg deadline if under 16 players, otherwise use End deadline
+                let target = (currentPlayerCount < 16) ? config.regDeadline : config.endDeadline;
+                
+                if (!target) {
+                    timerDisplay.innerText = "TBA";
+                    if (entryStatusText) entryStatusText.innerText = "WAITING FOR DATA";
+                    return;
+                }
 
-            // Update UI based on phase
-            if (currentPlayerCount < 16) {
-                timerLabel.innerText = "REGISTRATION ENDS";
-                timerLabel.className = "text-[8px] font-bold text-cyan-400 uppercase tracking-widest mb-1";
-                timerDisplay.className = "text-xl font-black text-white";
-            } else {
-                timerLabel.innerText = "SEASON ENDS IN";
-                timerLabel.className = "text-[8px] font-bold text-pink-500 uppercase tracking-widest mb-1";
-                timerDisplay.className = "text-xl font-black text-pink-400";
-            }
+                const diff = target - now;
 
-            const h = Math.floor(diff / 36e5);
-            const m = Math.floor((diff % 36e5) / 6e4);
-            const s = Math.floor((diff % 6e4) / 1000);
-            timerDisplay.innerText = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-        }, 1000);
-    });
-}
+                // --- CASE: TOURNAMENT CLOSED OR FULL ---
+                if (diff <= 0 || currentPlayerCount >= 16) {
+                    timerDisplay.innerText = "CLOSED";
+                    timerLabel.innerText = "SEASON STATUS";
+                    timerLabel.className = "text-[8px] font-bold text-red-500 uppercase tracking-widest mb-1";
+                    
+                    if (entryStatusText) {
+                        entryStatusText.innerText = "ENTRIES CLOSED";
+                        entryStatusText.className = "text-[10px] font-black text-red-500/60 uppercase tracking-[0.4em]";
+                    }
+                    if (accentBar) accentBar.className = "w-8 h-[2px] bg-red-500 rounded-full mt-2";
+                    
+                    // If full but time remains, stop the countdown interval
+                    if (currentPlayerCount >= 16 && diff > 0) {
+                        timerDisplay.innerText = "LOCKED";
+                    }
+                    return;
+                }
+
+                // --- CASE: ENTRIES OPEN ---
+                if (currentPlayerCount < 16) {
+                    timerLabel.innerText = "REGISTRATION ENDS";
+                    timerLabel.className = "text-[8px] font-bold text-cyan-400 uppercase tracking-widest mb-1";
+                    timerDisplay.className = "text-xl font-black text-white";
+                    
+                    if (entryStatusText) {
+                        entryStatusText.innerText = "ENTRIES STILL OPEN";
+                        entryStatusText.className = "text-[10px] font-black text-white/40 uppercase tracking-[0.4em]";
+                    }
+                    if (accentBar) accentBar.className = "w-8 h-[2px] bg-cyan-400 rounded-full mt-2";
+                } 
+                // --- CASE: IN-PROGRESS (Registration over, but season not ended) ---
+                else {
+                    timerLabel.innerText = "SEASON ENDS IN";
+                    timerLabel.className = "text-[8px] font-bold text-pink-500 uppercase tracking-widest mb-1";
+                    timerDisplay.className = "text-xl font-black text-pink-400";
+                }
+
+                const h = Math.floor(diff / 36e5);
+                const m = Math.floor((diff % 36e5) / 6e4);
+                const s = Math.floor((diff % 6e4) / 1000);
+                timerDisplay.innerText = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+            }, 1000);
+        });
+    }
 
 
     // --- 6. UI & NAVIGATION CONTROLS ---
