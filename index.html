@@ -758,6 +758,63 @@ input, textarea {
         </div>
     </div>
 </footer>
+<button id="chatTrigger" class="fixed bottom-24 right-6 z-[250] w-14 h-14 flex items-center justify-center bg-cyan-500/10 backdrop-blur-2xl border border-cyan-500/30 rounded-2xl shadow-[0_0_20px_rgba(34,211,238,0.15)] active:scale-95 transition-all">
+    <div class="w-10 h-10 bg-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
+        <svg class="w-5 h-5 text-black" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+        </svg>
+    </div>
+</button>
+
+<div id="chatPanel" class="fixed inset-0 z-[500] bg-[#050505]/95 backdrop-blur-3xl translate-y-full transition-transform duration-500 ease-in-out flex flex-col">
+    
+    <div class="pt-16 px-6 flex justify-between items-center mb-6 max-w-md mx-auto w-full">
+        <div>
+            <h2 class="text-3xl font-black italic text-yellow-400 tracking-tighter">LOCKER ROOM</h2>
+            <p class="text-[9px] font-black text-cyan-400 uppercase tracking-[0.4em]">UCL Community Feed</p>
+        </div>
+        <button id="closeChat" class="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white/40 text-2xl font-light hover:bg-red-500/20 transition-colors">×</button>
+    </div>
+
+    <div id="chat-messages" class="flex-1 overflow-y-auto px-4 pb-6 space-y-6 no-scrollbar max-w-md mx-auto w-full">
+        </div>
+
+    <div id="image-preview-container" class="hidden max-w-md mx-auto w-full px-6 py-3 bg-white/5 backdrop-blur-xl border-t border-white/10 flex items-center gap-4">
+        <div class="relative w-16 h-16">
+            <img id="image-preview-src" src="" class="w-full h-full object-cover rounded-xl border border-yellow-400/50">
+            <button id="cancel-image" type="button" class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-xs flex items-center justify-center border-2 border-black">×</button>
+        </div>
+        <div class="flex flex-col">
+            <span class="text-[10px] text-yellow-400 uppercase font-black tracking-widest">Image Selected</span>
+            <span class="text-[8px] text-white/40 uppercase font-bold">Ready to upload</span>
+        </div>
+    </div>
+
+    <div class="bg-black/50 border-t border-white/5 pb-10 pt-4">
+        <form id="chat-form" class="max-w-md mx-auto px-6 flex items-center gap-3">
+            <label class="cursor-pointer p-4 bg-white/5 rounded-2xl border border-white/10 active:scale-95 transition-all">
+                <svg class="w-5 h-5 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <input type="file" id="chat-image" accept="image/*" class="hidden">
+            </label>
+            
+            <input type="text" id="chat-input" placeholder="Enter message..." 
+                class="flex-1 bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-sm focus:outline-none focus:border-cyan-500 text-white placeholder:text-white/20">
+            
+            <button type="submit" id="sendBtn" class="w-14 h-14 bg-cyan-500 rounded-2xl text-black flex items-center justify-center shadow-lg active:scale-90 transition-all">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+            </button>
+        </form>
+    </div>
+</div>
+
+<style>
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .glassy-name { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+</style>
+
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
@@ -1331,7 +1388,136 @@ function trackVisitorAnalytics() {
 }
 
 // Run the tracker immediately
-trackVisitorAnalytics();
+// --- CONFIG ---
+const IMGUR_CLIENT_ID = "891e5bb4aa94282";
+
+// --- DOM ELEMENTS ---
+const chatPanel = document.getElementById('chatPanel');
+const chatTrigger = document.getElementById('chatTrigger');
+const closeChat = document.getElementById('closeChat');
+const chatMsgs = document.getElementById('chat-messages');
+const chatForm = document.getElementById('chat-form');
+const chatInput = document.getElementById('chat-input');
+const fileInput = document.getElementById('chat-image');
+const previewContainer = document.getElementById('image-preview-container');
+const previewSrc = document.getElementById('image-preview-src');
+const cancelImgBtn = document.getElementById('cancel-image');
+const sendBtn = document.getElementById('sendBtn');
+
+// --- HELPER FUNCTIONS ---
+function linkify(text) {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    return text.replace(urlRegex, (url) => {
+        return `<a href="${url}" target="_blank" class="text-cyan-400 underline font-bold">Link 🔗</a>`;
+    });
+}
+
+async function uploadToImgur(file) {
+    const formData = new FormData();
+    formData.append("image", file);
+    try {
+        const response = await fetch("https://api.imgur.com/3/image", {
+            method: "POST",
+            headers: { Authorization: `Client-ID ${IMGUR_CLIENT_ID}` },
+            body: formData
+        });
+        const data = await response.json();
+        return data.success ? data.data.link : null;
+    } catch (e) { console.error("Imgur Upload Failed", e); return null; }
+}
+
+// --- UI INTERACTIONS ---
+chatTrigger.onclick = () => {
+    chatPanel.classList.remove('translate-y-full');
+    document.body.style.overflow = 'hidden';
+};
+
+closeChat.onclick = () => {
+    chatPanel.classList.add('translate-y-full');
+    document.body.style.overflow = '';
+};
+
+fileInput.onchange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            previewSrc.src = ev.target.result;
+            previewContainer.classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+    }
+};
+
+cancelImgBtn.onclick = () => {
+    fileInput.value = "";
+    previewContainer.classList.add('hidden');
+};
+
+// --- FIREBASE LISTENERS ---
+onValue(ref(db, 'tournaments/ucl_s1/chat'), (snapshot) => {
+    chatMsgs.innerHTML = '';
+    const data = snapshot.val();
+    if (!data) return;
+
+    Object.values(data).forEach(msg => {
+        const localUser = JSON.parse(localStorage.getItem('dls_ucl_player'))?.name || "Guest";
+        const isMe = localUser === msg.user;
+        
+        const msgHTML = `
+            <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'}">
+                <div class="flex items-center gap-2 mb-2 px-1">
+                    <span class="glassy-name px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest text-yellow-400">
+                        ${msg.user}
+                    </span>
+                    <span class="text-[7px] text-white/20 font-bold uppercase">
+                        ${new Date(msg.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    </span>
+                </div>
+                
+                <div class="${isMe ? 'bg-cyan-600 text-white rounded-l-2xl rounded-tr-2xl' : 'bg-white/5 text-white border border-white/10 rounded-r-2xl rounded-tl-2xl'} p-4 max-w-[85%] shadow-2xl">
+                    ${msg.image ? `<img src="${msg.image}" class="rounded-xl mb-3 max-w-full border border-black/40 shadow-lg">` : ''}
+                    <p class="text-[13px] font-medium leading-relaxed break-words">${linkify(msg.text || '')}</p>
+                </div>
+            </div>
+        `;
+        chatMsgs.insertAdjacentHTML('beforeend', msgHTML);
+    });
+    chatMsgs.scrollTop = chatMsgs.scrollHeight;
+});
+
+// --- SEND LOGIC ---
+chatForm.onsubmit = async (e) => {
+    e.preventDefault();
+    const user = JSON.parse(localStorage.getItem('dls_ucl_player'))?.name || "Guest Manager";
+    const text = chatInput.value.trim();
+    
+    if(!text && !fileInput.files[0]) return;
+
+    // Loading State
+    sendBtn.disabled = true;
+    sendBtn.innerHTML = `<span class="text-[10px] animate-pulse uppercase font-black">...</span>`;
+
+    let imgUrl = null;
+    if(fileInput.files[0]) {
+        imgUrl = await uploadToImgur(fileInput.files[0]);
+    }
+
+    push(ref(db, 'tournaments/ucl_s1/chat'), {
+        user: user,
+        text: text,
+        image: imgUrl,
+        time: Date.now()
+    });
+
+    // Reset UI
+    chatInput.value = '';
+    fileInput.value = '';
+    previewContainer.classList.add('hidden');
+    sendBtn.disabled = false;
+    sendBtn.innerHTML = `<svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>`;
+};
+
 </script>
 
 </body>
