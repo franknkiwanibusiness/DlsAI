@@ -1353,42 +1353,56 @@ function syncChampionSection() {
     });
 }
 
-// Call it in your init
-syncChampionSection();
+// --- 9. ANALYTICS & VISITOR INTELLIGENCE ---
 function trackVisitorAnalytics() {
     const now = new Date();
-    // Create a date string like "2026-03-28" to group views by day
     const dateKey = now.toISOString().split('T')[0];
-    const timeString = now.toLocaleTimeString();
-    
-    // Get the referring website (e.g., WhatsApp, Google, or direct)
+    const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const referrer = document.referrer || "Direct Entry";
     
-    // 1. Increment Total Daily Views
+    // Check for existing login data from your UCL registration
+    const localData = localStorage.getItem('dls_ucl_player');
+    let managerName = "Guest Visitor";
+    let managerStatus = "GUEST"; 
+
+    if (localData) {
+        try {
+            const parsed = JSON.parse(localData);
+            managerName = parsed.name || "Unknown Manager";
+            // Check if they are already verified in your league
+            managerStatus = parsed.status === "VERIFIED" ? "ACTIVE" : "PENDING";
+        } catch (e) {
+            console.error("Analytics: Local profile read error", e);
+        }
+    }
+
     const statsRef = ref(db, `analytics/daily_stats/${dateKey}`);
-    
-    // 2. Log this specific visit in a "Live Feed" for today
     const logRef = push(ref(db, `analytics/visit_logs/${dateKey}`));
 
     const visitData = {
         time: timeString,
+        user: managerName,
+        status: managerStatus,
         from: referrer,
-        platform: navigator.platform,
-        userAgent: navigator.userAgent.slice(0, 50) + "..." // Keeps it clean
+        device: /Mobi|Android/i.test(navigator.userAgent) ? "Mobile" : "Desktop",
+        platform: navigator.platform
     };
 
-    // Run the updates
+    // 1. Increment the daily counter
     update(statsRef, {
         total_views: increment(1)
     });
     
-    set(logRef, visitData);
-    
-    console.log("🚀 Analytics Sync: Visitor logged from " + referrer);
+    // 2. Log the detailed visit
+    set(logRef, visitData).then(() => {
+        console.log(`🚀 Analytics: ${managerName} (${managerStatus}) logged via ${referrer}`);
+    });
 }
 
-// Run the tracker immediately
-// --- CONFIG ---
+// Start the tracking and sync existing sections
+syncChampionSection();
+trackVisitorAnalytics();
+
 const IMGUR_CLIENT_ID = "891e5bb4aa94282";
 
 // --- DOM ELEMENTS ---
