@@ -34,6 +34,77 @@
             SYSTEM ONLINE • WAITING FOR UPDATE • NEXUS CLOUD LIVE
         </div>
     </div>
+<div id="nexus-boot-gate" class="fixed inset-0 z-[100] bg-[#050505] flex items-center justify-center p-6">
+    <div id="boot-terminal" class="w-full max-w-xs font-mono text-[10px] text-cyan-500/60 uppercase">
+        <div id="boot-log" class="space-y-1"></div>
+        <div class="w-full h-[1px] bg-white/5 mt-4 overflow-hidden">
+            <div id="boot-bar" class="w-0 h-full bg-cyan-500 shadow-[0_0_15px_#22d3ee] transition-all duration-300"></div>
+        </div>
+    </div>
+
+    <div id="auth-form" class="hidden glass p-10 rounded-[40px] w-full max-w-sm text-center border border-white/5">
+        <div class="w-16 h-16 bg-cyan-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-cyan-500/20">
+            <svg class="w-8 h-8 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+        </div>
+        <h2 class="text-lg font-black uppercase italic tracking-[0.3em] mb-2 text-white">Identity Check</h2>
+        <input type="password" id="nexus-key" placeholder="••••" class="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 mb-6 text-white text-center outline-none focus:border-cyan-500 tracking-[1em] font-black">
+        <button id="btn-unlock" class="w-full bg-cyan-500 text-black font-black py-4 rounded-2xl text-[10px] uppercase tracking-widest">Authorize</button>
+    </div>
+</div>
+<script>
+    (function() {
+        const PASS = "DLS2026";
+        const gate = document.getElementById('nexus-boot-gate');
+        const log = document.getElementById('boot-log');
+        const bar = document.getElementById('boot-bar');
+        const form = document.getElementById('auth-form');
+        const term = document.getElementById('boot-terminal');
+
+        // Check if this device is already verified
+        if (localStorage.getItem('nexus_verified') === 'true') {
+            gate.style.display = 'none';
+            return;
+        }
+
+        // Run the boot sequence
+        const lines = [
+            "Connecting to Nexus Node...",
+            "Decrypting UCL_S1 Assets...",
+            "Loading Admin Interface...",
+            "System Lock Detected."
+        ];
+
+        let step = 0;
+        const interval = setInterval(() => {
+            if (step < lines.length) {
+                const p = document.createElement('p');
+                p.textContent = "> " + lines[step];
+                log.appendChild(p);
+                step++;
+                bar.style.width = (step / lines.length) * 100 + "%";
+            } else {
+                clearInterval(interval);
+                setTimeout(() => {
+                    term.classList.add('hidden');
+                    form.classList.remove('hidden');
+                }, 500);
+            }
+        }, 600);
+
+        // Unlock Logic
+        document.getElementById('btn-unlock').onclick = function() {
+            const input = document.getElementById('nexus-key').value;
+            if (input === PASS) {
+                localStorage.setItem('nexus_verified', 'true');
+                gate.style.opacity = '0';
+                setTimeout(() => gate.remove(), 500);
+            } else {
+                alert("ACCESS DENIED");
+                document.getElementById('nexus-key').value = '';
+            }
+        };
+    })();
+</script>
 
     <header class="sticky top-0 z-50 glass px-5 py-4 flex justify-between items-center border-b border-white/5">
         <div>
