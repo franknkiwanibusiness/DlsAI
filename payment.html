@@ -3,165 +3,184 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>UCL Secure Checkout</title>
+    <title>UCL Secure Payment</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
     
     <style>
-        :root { --ios-blue: #007AFF; --ios-bg: #000000; }
+        :root { --apple-blue: #007AFF; }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
         
         body {
-            background: var(--ios-bg);
-            background-image: radial-gradient(circle at 50% -20%, #1c1c1e 0%, #000000 100%);
+            background: #000;
+            color: #fff;
             min-height: 100vh;
-            color: #ffffff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            overflow-x: hidden;
+        }
+
+        .bg-glow {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(circle at 50% -20%, #1c1c1e 0%, #000 80%);
+            z-index: -1;
+        }
+
+        .header-content {
+            padding: 60px 24px 30px;
+            text-align: center;
+        }
+
+        .payment-sheet {
+            background: rgba(28, 28, 30, 0.8);
+            backdrop-filter: blur(40px) saturate(200%);
+            -webkit-backdrop-filter: blur(40px) saturate(200%);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 40px 40px 0 0;
+            min-height: 75vh;
+            padding: 40px 24px;
+            box-shadow: 0 -20px 40px rgba(0,0,0,0.5);
+        }
+
+        .method-tile {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
             padding: 20px;
-        }
-
-        .ios-card {
-            background: rgba(28, 28, 30, 0.6);
-            backdrop-filter: blur(30px) saturate(180%);
-            -webkit-backdrop-filter: blur(30px) saturate(180%);
-            border: 0.5px solid rgba(255, 255, 255, 0.1);
-            border-radius: 38px;
-            width: 100%;
-            max-width: 390px;
-            padding: 32px 24px;
-            box-shadow: 0 30px 60px rgba(0,0,0,0.6);
-        }
-
-        .method-row {
-            background: rgba(255, 255, 255, 0.04);
-            border-radius: 20px;
-            padding: 16px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            transition: all 0.2s ease;
-            border: 0.5px solid rgba(255, 255, 255, 0.05);
-            margin-bottom: 12px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-bottom: 16px;
         }
 
-        .method-row:active {
-            transform: scale(0.97);
-            background: rgba(255, 255, 255, 0.08);
+        .method-tile:active {
+            transform: scale(0.96);
+            background: rgba(255, 255, 255, 0.1);
         }
 
-        .gold-glow {
-            background: linear-gradient(135deg, #fcf6ba 0%, #bf953f 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .ios-badge {
-            font-size: 9px;
-            font-weight: 800;
-            padding: 4px 10px;
-            border-radius: 20px;
-            background: var(--ios-blue);
-            letter-spacing: 0.5px;
+        .price-badge {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 16px;
+            border-radius: 100px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         #toast {
-            position: fixed; top: 40px; left: 50%;
-            transform: translateX(-50%) translateY(-100px);
-            background: rgba(255, 255, 255, 0.95); color: #000;
-            padding: 12px 24px; border-radius: 24px;
-            font-size: 13px; font-weight: 600; z-index: 9999;
-            transition: 0.6s cubic-bezier(0.23, 1, 0.32, 1);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            position: fixed; top: 50px; left: 50%;
+            transform: translateX(-50%) translateY(-150px);
+            background: rgba(255, 255, 255, 0.95);
+            color: #000; padding: 14px 28px;
+            border-radius: 30px; font-weight: 700;
+            font-size: 14px; z-index: 9999;
+            transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         #toast.show { transform: translateX(-50%) translateY(0); }
+        
+        .gold-text {
+            background: linear-gradient(180deg, #FFD700 0%, #B8860B 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
     </style>
 </head>
 <body>
 
-    <div id="toast">Processing...</div>
+    <div class="bg-glow"></div>
+    <div id="toast">Connecting...</div>
 
-    <div class="ios-card space-y-8">
-        
-        <div class="text-center space-y-1">
-            <p class="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em]">Secure Checkout</p>
-            <h1 class="text-3xl font-extrabold tracking-tight">Complete <span class="gold-glow">Entry</span></h1>
-            <div class="flex items-center justify-center gap-2 pt-2">
-                <span class="ios-badge">SESSION ACTIVE</span>
-            </div>
+    <div class="header-content">
+        <p class="text-[11px] font-black uppercase tracking-[0.4em] text-blue-500 mb-2">Secure Checkout</p>
+        <h1 class="text-4xl font-black italic tracking-tighter mb-4">UCL <span class="gold-text">DLS26</span></h1>
+        <div class="inline-flex items-center gap-2 price-badge">
+            <span class="text-sm font-bold text-white/80">ENTRY FEE:</span>
+            <span class="text-lg font-black text-white">$4.99</span>
         </div>
+    </div>
 
-        <div class="bg-white/[0.03] rounded-[24px] p-5 border border-white/[0.05]">
-            <div class="flex justify-between items-end">
-                <div class="space-y-1">
-                    <p class="text-[9px] font-bold text-white/20 uppercase tracking-widest">Transaction ID</p>
-                    <p id="display-txn" class="text-sm font-mono text-blue-400 font-semibold tracking-tighter">UCL-SEC-000</p>
+    <div class="payment-sheet">
+        <div class="max-w-md mx-auto">
+            
+            <div class="flex justify-between items-center mb-10 px-2">
+                <div>
+                    <h2 class="text-xs font-bold text-white/30 uppercase tracking-widest text-[8px]">Transaction Ref</h2>
+                    <p id="display-txn" class="text-sm font-mono font-bold text-blue-400">UCL-SEC-SYNC</p>
                 </div>
                 <div class="text-right">
-                    <p class="text-2xl font-extrabold text-white">$4.99</p>
-                    <p class="text-[10px] font-medium text-white/40">Worldwide Entry Fee</p>
+                    <h2 class="text-xs font-bold text-white/30 uppercase tracking-widest text-[8px]">Protection</h2>
+                    <div class="flex items-center gap-2 justify-end">
+                        <div class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
+                        <p class="text-[10px] font-black text-emerald-500 uppercase">SSL SECURE</p>
+                    </div>
                 </div>
             </div>
+
+            <div class="space-y-4">
+                <h3 class="text-[10px] font-black text-white/20 uppercase tracking-[0.2em] ml-2">Verified Methods</h3>
+
+                <button onclick="handlePayment('PayPal')" class="method-tile w-full group">
+                    <div class="flex items-center gap-5">
+                        <div class="w-14 h-14 bg-white/5 rounded-[22px] flex items-center justify-center border border-white/5 overflow-hidden">
+                            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQE1mdXoQle08x2KyKBgE_j63P9m8NLy68tGiM1ezkC3w&s=10" class="w-10 h-10 object-contain" alt="PayPal">
+                        </div>
+                        <div class="text-left">
+                            <p class="text-base font-bold text-white">PayPal Checkout</p>
+                            <p class="text-[11px] text-white/40 font-medium tracking-tight">Worldwide Fast Entry</p>
+                        </div>
+                    </div>
+                    <svg class="w-5 h-5 text-white/10 group-active:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"></path></svg>
+                </button>
+
+                <button onclick="handlePayment('Korapay')" class="method-tile w-full group">
+                    <div class="flex items-center gap-5">
+                        <div class="w-14 h-14 bg-white/5 rounded-[22px] flex items-center justify-center border border-white/5 overflow-hidden">
+                            <img src="https://merchant.korapay.com/assets/kSmall-BEdf5WX4.png" class="w-10 h-10 object-contain" alt="Korapay">
+                        </div>
+                        <div class="text-left">
+                            <p class="text-base font-bold text-white">Card & Global Bank</p>
+                            <p class="text-[11px] text-blue-400 font-medium tracking-tight">Debit, Credit & Transfer</p>
+                        </div>
+                    </div>
+                    <svg class="w-5 h-5 text-white/10 group-active:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"></path></svg>
+                </button>
+
+                <div class="py-4"></div>
+                <h3 class="text-[10px] font-black text-white/20 uppercase tracking-[0.2em] ml-2">Manual Payment</h3>
+
+                <button onclick="handlePayment('Manual')" class="method-tile w-full group border-emerald-500/10">
+                    <div class="flex items-center gap-5">
+                        <div class="w-14 h-14 bg-emerald-500/10 rounded-[22px] flex items-center justify-center border border-emerald-500/10">
+                            <svg class="w-6 h-6 text-emerald-400" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.148-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.72.938 3.659 1.435 5.628 1.435h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                        </div>
+                        <div class="text-left">
+                            <p class="text-base font-bold text-white">Manual Request</p>
+                            <p class="text-[11px] text-emerald-400 font-medium tracking-tight">Direct WhatsApp Support</p>
+                        </div>
+                    </div>
+                    <span class="text-[9px] font-black text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-3 py-1 rounded-full">Chat</span>
+                </button>
+            </div>
+
+            <div class="mt-12 text-center">
+                <p class="text-[8px] text-white/20 font-medium tracking-[0.4em] uppercase">Secure Global Checkout</p>
+            </div>
         </div>
-
-        <div class="space-y-2">
-            <p class="text-[10px] font-bold text-white/20 uppercase tracking-[0.1em] ml-2 mb-3">Global Payment Methods</p>
-            
-            <button onclick="handlePayment('PayPal')" class="method-row w-full group">
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center">
-                        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQE1mdXoQle08x2KyKBgE_j63P9m8NLy68tGiM1ezkC3w&s=10" class="w-8 h-8 object-contain" alt="PayPal">
-                    </div>
-                    <div class="text-left">
-                        <p class="text-[14px] font-bold text-white">PayPal</p>
-                        <p class="text-[10px] text-white/40 font-medium">Fast & Secure Checkout</p>
-                    </div>
-                </div>
-                <span class="text-white/20 group-active:text-white">→</span>
-            </button>
-
-            <button onclick="handlePayment('Korapay')" class="method-row w-full group border-blue-500/20">
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center">
-                        <img src="https://merchant.korapay.com/assets/kSmall-BEdf5WX4.png" class="w-8 h-8 object-contain" alt="Korapay">
-                    </div>
-                    <div class="text-left">
-                        <p class="text-[14px] font-bold text-white">Global Card Payment</p>
-                        <p class="text-[10px] text-blue-400/60 font-medium">Debit, Credit, & Bank Transfer</p>
-                    </div>
-                </div>
-                <span class="text-white/20 group-active:text-white">→</span>
-            </button>
-
-            <p class="text-[10px] font-bold text-white/20 uppercase tracking-[0.1em] ml-2 mt-6 mb-3">Support & Manual</p>
-            
-            <button onclick="handlePayment('Manual')" class="method-row w-full group border-emerald-500/10">
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center">
-                        <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
-                    </div>
-                    <div class="text-left">
-                        <p class="text-[14px] font-bold text-white">Manual Payment</p>
-                        <p class="text-[10px] text-emerald-400/60 font-medium">Request WhatsApp details</p>
-                    </div>
-                </div>
-                <span class="text-white/20 group-active:text-white">→</span>
-            </button>
-        </div>
-
-        <p class="text-center text-[10px] text-white/20 font-medium tracking-tight">
-            Encrypted by dlsvalue.site Security Protocol
-        </p>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
         import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
 
+        // Verified Config itzhoyoo-f9f7e
         const firebaseConfig = {
-            // PASTE YOUR FIREBASE CONFIG HERE
+            apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
+            authDomain: "itzhoyoo-f9f7e.firebaseapp.com",
+            databaseURL: "https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com",
+            projectId: "itzhoyoo-f9f7e",
+            storageBucket: "itzhoyoo-f9f7e.filestorage.app",
+            messagingSenderId: "1094792075584",
+            appId: "1:1094792075584:web:d49e9c3f899d3cd31082a5",
+            measurementId: "G-LLT6F9WRKH"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -170,7 +189,7 @@
         const CONFIG = {
             paypal: "https://paypal.me/farainkiwani456/4.99",
             whatsapp: "27846737224",
-            korapay: "#" // Link to be added later
+            korapay: "#" // Replace with your link when review is done
         };
 
         window.showToast = (text) => {
@@ -183,41 +202,39 @@
         window.handlePayment = async (method) => {
             const txn = document.getElementById('display-txn').innerText;
             
-            // Auto-track the click in Firebase
+            // TRACKING: Log the click to itzhoyoo-f9f7e
             try {
-                await set(ref(db, `tournaments/ucl_s1/clicks/${txn}`), {
+                await set(ref(db, `tournaments/ucl_s1/checkout_clicks/${txn}`), {
                     method: method,
+                    amount: "$4.99",
                     timestamp: new Date().toISOString()
                 });
-            } catch(e) { console.error("Tracking Error"); }
+            } catch(e) { console.error("Firebase Tracking Error"); }
 
             if (method === 'PayPal') {
-                window.showToast("Opening PayPal...");
+                window.showToast("Redirecting to PayPal...");
                 setTimeout(() => window.location.href = CONFIG.paypal, 1200);
             } 
             else if (method === 'Korapay') {
-                window.showToast("Account Under Review");
-                // When you get your link, update CONFIG.korapay and use:
-                // window.location.href = CONFIG.korapay;
+                window.showToast("Merchant Under Review");
+                // If you have the link: window.location.href = CONFIG.korapay;
             } 
             else if (method === 'Manual') {
-                window.showToast("Opening WhatsApp...");
-                const msg = encodeURIComponent(`👋 *MANUAL PAYMENT REQUEST*\n\nTransaction ID: ${txn}\nAmount: $4.99\n\nI would like to request manual payment details.`);
+                window.showToast("Opening Support Chat...");
+                const msg = encodeURIComponent(`👋 *MANUAL PAYMENT REQUEST*\n\nTransaction ID: ${txn}\nEntry Amount: $4.99\n\nI would like to request manual payment details.`);
                 window.location.href = `https://wa.me/${CONFIG.whatsapp}?text=${msg}`;
             }
         };
 
-        // Decoder for the URL Hash
+        // Sync Transaction ID from URL
         window.addEventListener('load', () => {
             const hash = window.location.hash;
             if (hash.includes('session_')) {
                 try {
                     const raw = atob(hash.replace('#session_', ''));
                     const [txn] = raw.split('|');
-                    document.getElementById('display-txn').innerText = txn || "UCL-REF-ERR";
-                } catch(e) {
-                    window.showToast("Session Error");
-                }
+                    document.getElementById('display-txn').innerText = txn || "UCL-SYNC-ERR";
+                } catch(e) { window.showToast("Session Error"); }
             }
         });
     </script>
