@@ -2,241 +2,262 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>UCL Secure Payment</title>
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Celo Premium Checkout</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
-    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root { --apple-blue: #007AFF; }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
-        
         body {
-            background: #000;
-            color: #fff;
-            min-height: 100vh;
-            overflow-x: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            background-color: #000000;
+            color: #FFFFFF;
         }
-
-        .bg-glow {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: radial-gradient(circle at 50% -20%, #1c1c1e 0%, #000 80%);
-            z-index: -1;
+        .ios-blur-dark {
+            background: rgba(20, 20, 22, 0.95);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            z-index: 40;
         }
-
-        .header-content {
-            padding: 60px 24px 30px;
-            text-align: center;
-        }
-
-        .payment-sheet {
-            background: rgba(28, 28, 30, 0.8);
-            backdrop-filter: blur(40px) saturate(200%);
-            -webkit-backdrop-filter: blur(40px) saturate(200%);
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 40px 40px 0 0;
-            min-height: 75vh;
-            padding: 40px 24px;
-            box-shadow: 0 -20px 40px rgba(0,0,0,0.5);
-        }
-
-        .method-tile {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 24px;
-            padding: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            margin-bottom: 16px;
-        }
-
-        .method-tile:active {
-            transform: scale(0.96);
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .price-badge {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 8px 16px;
-            border-radius: 100px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
         #toast {
-            position: fixed; top: 50px; left: 50%;
-            transform: translateX(-50%) translateY(-150px);
-            background: rgba(255, 255, 255, 0.95);
-            color: #000; padding: 14px 28px;
-            border-radius: 30px; font-weight: 700;
-            font-size: 14px; z-index: 9999;
-            transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: fixed;
+            bottom: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+            z-index: 100;
         }
-        #toast.show { transform: translateX(-50%) translateY(0); }
+        #toast.show { bottom: 140px; }
+
+        #actionSheet, #cautionModal {
+            transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.1, 0.7, 0.1, 1);
+        }
+        #actionSheet.open, #cautionModal.open { transform: translateY(0); }
         
-        .gold-text {
-            background: linear-gradient(180deg, #FFD700 0%, #B8860B 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        .step-line {
+            width: 2px;
+            background: linear-gradient(to bottom, #30D158 0%, rgba(48, 209, 88, 0.1) 100%);
+        }
+
+        /* Fix for long addresses on mobile */
+        .break-address {
+            word-break: break-all;
+            line-height: 1.4;
         }
     </style>
 </head>
-<body>
+<body class="antialiased overflow-x-hidden">
 
-    <div class="bg-glow"></div>
-    <div id="toast">Connecting...</div>
+    <div class="h-14"></div>
 
-    <div class="header-content">
-        <p class="text-[11px] font-black uppercase tracking-[0.4em] text-blue-500 mb-2">Secure Checkout</p>
-        <h1 class="text-4xl font-black italic tracking-tighter mb-4">UCL <span class="gold-text">DLS26</span></h1>
-        <div class="inline-flex items-center gap-2 price-badge">
-            <span class="text-sm font-bold text-white/80">ENTRY FEE:</span>
-            <span class="text-lg font-black text-white">$4.99</span>
+    <header class="px-6 flex justify-between items-center mb-8">
+        <button class="text-[#0A84FF] text-lg font-medium flex items-center gap-1 active:opacity-30">
+            <i class="fa-solid fa-chevron-left"></i>
+            <span>Back</span>
+        </button>
+        <h1 class="text-lg font-bold tracking-tight">Checkout</h1>
+        <div class="w-10"></div> 
+    </header>
+
+    <main class="px-6 pb-80">
+        <div class="text-center mb-10">
+            <p class="text-gray-500 text-[11px] font-bold tracking-[0.2em] uppercase">Amount to Send</p>
+            <h2 class="text-6xl font-extrabold tracking-tight mt-2 mb-4">$5.00</h2>
+            <div class="inline-flex items-center px-4 py-1.5 bg-[#30D158]/10 rounded-full text-[10px] font-black uppercase tracking-widest text-[#30D158] border border-[#30D158]/20">
+                Network: CELO
+            </div>
         </div>
-    </div>
 
-    <div class="payment-sheet">
-        <div class="max-w-md mx-auto">
-            
-            <div class="flex justify-between items-center mb-10 px-2">
+        <div class="mb-8 bg-red-500/10 border border-red-500/30 p-4 rounded-2xl flex items-start gap-3">
+            <i class="fa-solid fa-triangle-exclamation text-red-500 mt-1"></i>
+            <p class="text-xs text-red-500 font-bold leading-relaxed">
+                Using unsupported tokens or networks will lead to <span class="underline">loss of funds</span>.
+            </p>
+        </div>
+
+        <div class="relative">
+            <div class="absolute left-[17px] top-2 bottom-10 step-line opacity-20"></div>
+
+            <div class="relative flex gap-6 mb-12">
+                <div class="z-10 w-9 h-9 shrink-0 rounded-full bg-[#30D158] flex items-center justify-center font-bold text-black text-sm">1</div>
                 <div>
-                    <h2 class="text-xs font-bold text-white/30 uppercase tracking-widest text-[8px]">Transaction Ref</h2>
-                    <p id="display-txn" class="text-sm font-mono font-bold text-blue-400">UCL-SEC-SYNC</p>
+                    <h3 class="font-bold text-lg">Switch Network</h3>
+                    <p class="text-sm text-gray-500 mt-1">Ensure your wallet is on the <span class="text-white font-semibold">Celo Network</span>.</p>
                 </div>
-                <div class="text-right">
-                    <h2 class="text-xs font-bold text-white/30 uppercase tracking-widest text-[8px]">Protection</h2>
-                    <div class="flex items-center gap-2 justify-end">
-                        <div class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
-                        <p class="text-[10px] font-black text-emerald-500 uppercase">SSL SECURE</p>
+            </div>
+
+            <div class="relative flex gap-6 mb-12">
+                <div class="z-10 w-9 h-9 shrink-0 rounded-full bg-[#30D158] flex items-center justify-center font-bold text-black text-sm">2</div>
+                <div class="w-full">
+                    <h3 class="font-bold text-lg mb-4">Choose Stablecoin</h3>
+                    <div class="grid grid-cols-1 gap-3">
+                        <label class="block">
+                            <input type="radio" name="token" value="USDT" class="peer hidden" checked>
+                            <div class="flex items-center justify-between p-4 bg-[#1C1C1E] border-2 border-transparent rounded-2xl peer-checked:border-[#0A84FF] peer-checked:bg-[#0A84FF]/10 transition-all">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-[#26A17B] rounded-full flex items-center justify-center"><i class="fa-solid fa-t text-sm"></i></div>
+                                    <span class="font-bold">USDT</span>
+                                </div>
+                                <i class="fa-solid fa-circle-check text-[#0A84FF] opacity-0 peer-checked:opacity-100"></i>
+                            </div>
+                        </label>
+                        <label class="block">
+                            <input type="radio" name="token" value="USDC" class="peer hidden">
+                            <div class="flex items-center justify-between p-4 bg-[#1C1C1E] border-2 border-transparent rounded-2xl peer-checked:border-[#0A84FF] peer-checked:bg-[#0A84FF]/10 transition-all">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-[#2775CA] rounded-full flex items-center justify-center"><i class="fa-solid fa-dollar-sign text-sm"></i></div>
+                                    <span class="font-bold">USDC</span>
+                                </div>
+                                <i class="fa-solid fa-circle-check text-[#0A84FF] opacity-0 peer-checked:opacity-100"></i>
+                            </div>
+                        </label>
+                        <label class="block">
+                            <input type="radio" name="token" value="USDm" class="peer hidden">
+                            <div class="flex items-center justify-between p-4 bg-[#1C1C1E] border-2 border-transparent rounded-2xl peer-checked:border-[#0A84FF] peer-checked:bg-[#0A84FF]/10 transition-all">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-[#35D07F] rounded-full flex items-center justify-center text-black font-bold">M</div>
+                                    <span class="font-bold">USDm</span>
+                                </div>
+                                <i class="fa-solid fa-circle-check text-[#0A84FF] opacity-0 peer-checked:opacity-100"></i>
+                            </div>
+                        </label>
+                    </div>
+                    <div class="mt-4 flex items-center gap-2 text-red-400">
+                        <i class="fa-solid fa-circle-xmark text-xs"></i>
+                        <span class="text-[11px] font-bold uppercase tracking-tighter">The CELO token is not supported</span>
                     </div>
                 </div>
             </div>
 
-            <div class="space-y-4">
-                <h3 class="text-[10px] font-black text-white/20 uppercase tracking-[0.2em] ml-2">Verified Methods</h3>
-
-                <button onclick="handlePayment('PayPal')" class="method-tile w-full group">
-                    <div class="flex items-center gap-5">
-                        <div class="w-14 h-14 bg-white/5 rounded-[22px] flex items-center justify-center border border-white/5 overflow-hidden">
-                            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQE1mdXoQle08x2KyKBgE_j63P9m8NLy68tGiM1ezkC3w&s=10" class="w-10 h-10 object-contain" alt="PayPal">
-                        </div>
-                        <div class="text-left">
-                            <p class="text-base font-bold text-white">PayPal Checkout</p>
-                            <p class="text-[11px] text-white/40 font-medium tracking-tight">Worldwide Fast Entry</p>
-                        </div>
+            <div class="relative flex gap-6">
+                <div class="z-10 w-9 h-9 shrink-0 rounded-full bg-[#30D158] flex items-center justify-center font-bold text-black text-sm">3</div>
+                <div class="w-full min-w-0">
+                    <h3 class="font-bold text-lg">Transfer Funds</h3>
+                    <p class="text-sm text-gray-500 mt-1 mb-4">Copy the address below and paste it into your wallet app.</p>
+                    
+                    <div onclick="copyAddress()" class="bg-[#1C1C1E] p-4 rounded-2xl border border-white/5 active:bg-[#2C2C2E] transition-all flex items-start justify-between gap-3">
+                        <span class="text-[14px] font-mono text-[#0A84FF] break-address">0x91297C31FcCef14111512a25049D168A3d5F43F6</span>
+                        <i class="fa-regular fa-copy text-[#0A84FF] text-xl shrink-0 mt-1"></i>
                     </div>
-                    <svg class="w-5 h-5 text-white/10 group-active:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"></path></svg>
-                </button>
+                </div>
+            </div>
+        </div>
+    </main>
 
-                <button onclick="handlePayment('Korapay')" class="method-tile w-full group">
-                    <div class="flex items-center gap-5">
-                        <div class="w-14 h-14 bg-white/5 rounded-[22px] flex items-center justify-center border border-white/5 overflow-hidden">
-                            <img src="https://merchant.korapay.com/assets/kSmall-BEdf5WX4.png" class="w-10 h-10 object-contain" alt="Korapay">
-                        </div>
-                        <div class="text-left">
-                            <p class="text-base font-bold text-white">Card & Global Bank</p>
-                            <p class="text-[11px] text-blue-400 font-medium tracking-tight">Debit, Credit & Transfer</p>
-                        </div>
-                    </div>
-                    <svg class="w-5 h-5 text-white/10 group-active:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"></path></svg>
-                </button>
+    <div id="toast" class="bg-[#1C1C1E] px-6 py-3 rounded-full border border-white/10 shadow-2xl flex items-center gap-3">
+        <i class="fa-solid fa-check-circle text-[#30D158]"></i>
+        <span class="text-sm font-bold">Address Copied</span>
+    </div>
 
-                <div class="py-4"></div>
-                <h3 class="text-[10px] font-black text-white/20 uppercase tracking-[0.2em] ml-2">Manual Payment</h3>
+    <div class="fixed bottom-0 left-0 right-0 p-6 pb-10 ios-blur-dark border-t border-white/5">
+        <div class="max-w-md mx-auto">
+            <button onclick="openActionSheet()" class="w-full bg-[#0A84FF] text-white rounded-2xl py-4 font-bold text-lg shadow-xl active:scale-[0.96] transition-all">
+                Confirm & Pay $5.00
+            </button>
+            <div class="mt-6 flex justify-center"><div class="w-32 h-1.5 bg-white/20 rounded-full"></div></div>
+        </div>
+    </div>
 
-                <button onclick="handlePayment('Manual')" class="method-tile w-full group border-emerald-500/10">
-                    <div class="flex items-center gap-5">
-                        <div class="w-14 h-14 bg-emerald-500/10 rounded-[22px] flex items-center justify-center border border-emerald-500/10">
-                            <svg class="w-6 h-6 text-emerald-400" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.148-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.72.938 3.659 1.435 5.628 1.435h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
-                        </div>
-                        <div class="text-left">
-                            <p class="text-base font-bold text-white">Manual Request</p>
-                            <p class="text-[11px] text-emerald-400 font-medium tracking-tight">Direct WhatsApp Support</p>
-                        </div>
-                    </div>
-                    <span class="text-[9px] font-black text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-3 py-1 rounded-full">Chat</span>
-                </button>
+    <div id="overlay" class="fixed inset-0 bg-black/60 z-50 opacity-0 pointer-events-none transition-opacity duration-300" onclick="closeAll()"></div>
+    
+    <div id="actionSheet" class="fixed bottom-0 left-0 right-0 z-[60] px-4 pb-10">
+        <div class="max-w-md mx-auto">
+            <div class="bg-[#1C1C1E]/90 backdrop-blur-xl rounded-2xl overflow-hidden mb-3">
+                <div class="px-4 py-3 text-center border-b border-white/5">
+                    <p class="text-[13px] text-gray-500 font-medium">Choose payment provider</p>
+                </div>
+                <button onclick="showCaution('binance')" class="w-full py-4 text-[#0A84FF] text-xl font-medium border-b border-white/5 active:bg-white/10">Binance</button>
+                <button onclick="showCaution('trust')" class="w-full py-4 text-[#0A84FF] text-xl font-medium border-b border-white/5 active:bg-white/10">Trust Wallet</button>
+                <button onclick="showCaution('metamask')" class="w-full py-4 text-[#0A84FF] text-xl font-medium border-b border-white/5 active:bg-white/10">MetaMask</button>
+                <button onclick="showCaution('other')" class="w-full py-4 text-[#0A84FF] text-xl font-medium active:bg-white/10">Choose Other...</button>
+            </div>
+            <button onclick="closeActionSheet()" class="w-full bg-white text-black py-4 rounded-2xl text-xl font-bold active:opacity-70">Cancel</button>
+        </div>
+    </div>
+
+    <div id="cautionModal" class="fixed bottom-0 left-0 right-0 z-[70] px-4 pb-10">
+        <div class="max-w-md mx-auto bg-[#1C1C1E] rounded-3xl p-6 border border-white/10 shadow-2xl">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fa-solid fa-circle-exclamation text-red-500 text-3xl"></i>
+                </div>
+                <h2 class="text-xl font-bold mb-2 text-red-500">Important Caution</h2>
+                <p class="text-sm text-gray-400">The native CELO token is <span class="font-bold text-white underline">NOT SUPPORTED</span>. Only send USDT, USDC, or USDm on the Celo Network.</p>
             </div>
 
-            <div class="mt-12 text-center">
-                <p class="text-[8px] text-white/20 font-medium tracking-[0.4em] uppercase">Secure Global Checkout</p>
+            <div class="bg-black/40 p-4 rounded-2xl mb-6 border border-white/5">
+                <p class="text-[10px] text-gray-500 font-bold uppercase mb-2">Target Wallet Address</p>
+                <div class="flex items-start justify-between gap-3">
+                    <span class="text-xs font-mono text-white break-address">0x91297C31FcCef14111512a25049D168A3d5F43F6</span>
+                    <button onclick="copyAddress()" class="shrink-0 bg-[#0A84FF] text-white px-3 py-1.5 rounded-xl text-[10px] font-bold">
+                        Copy
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-3">
+                <button onclick="finalRedirect()" class="w-full bg-[#30D158] text-black py-4 rounded-2xl font-bold text-lg active:opacity-80">
+                    I Have Copied & I'm Ready
+                </button>
+                <button onclick="closeCaution()" class="w-full py-2 text-gray-500 font-bold">Go Back</button>
             </div>
         </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
-        import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+    <script>
+        const wallet = "0x91297C31FcCef14111512a25049D168A3d5F43F6";
+        let selectedPlatform = '';
 
-        // Verified Config itzhoyoo-f9f7e
-        const firebaseConfig = {
-            apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
-            authDomain: "itzhoyoo-f9f7e.firebaseapp.com",
-            databaseURL: "https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com",
-            projectId: "itzhoyoo-f9f7e",
-            storageBucket: "itzhoyoo-f9f7e.filestorage.app",
-            messagingSenderId: "1094792075584",
-            appId: "1:1094792075584:web:d49e9c3f899d3cd31082a5",
-            measurementId: "G-LLT6F9WRKH"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-
-        const CONFIG = {
-            paypal: "https://paypal.me/farainkiwani456/4.99",
-            whatsapp: "27846737224",
-            korapay: "#" // Replace with your link when review is done
-        };
-
-        window.showToast = (text) => {
+        function copyAddress() {
+            navigator.clipboard.writeText(wallet);
             const toast = document.getElementById('toast');
-            toast.innerText = text;
             toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 3000);
-        };
+            if(window.navigator.vibrate) window.navigator.vibrate(40);
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        }
 
-        window.handlePayment = async (method) => {
-            const txn = document.getElementById('display-txn').innerText;
-            
-            // TRACKING: Log the click to itzhoyoo-f9f7e
-            try {
-                await set(ref(db, `tournaments/ucl_s1/checkout_clicks/${txn}`), {
-                    method: method,
-                    amount: "$4.99",
-                    timestamp: new Date().toISOString()
-                });
-            } catch(e) { console.error("Firebase Tracking Error"); }
+        function openActionSheet() {
+            document.getElementById('overlay').classList.remove('pointer-events-none', 'opacity-0');
+            document.getElementById('actionSheet').classList.add('open');
+        }
 
-            if (method === 'PayPal') {
-                window.showToast("Redirecting to PayPal...");
-                setTimeout(() => window.location.href = CONFIG.paypal, 1200);
-            } 
-            else if (method === 'Korapay') {
-                window.showToast("Merchant Under Review");
-                // If you have the link: window.location.href = CONFIG.korapay;
-            } 
-            else if (method === 'Manual') {
-                window.showToast("Opening Support Chat...");
-                const msg = encodeURIComponent(`👋 *MANUAL PAYMENT REQUEST*\n\nTransaction ID: ${txn}\nEntry Amount: $4.99\n\nI would like to request manual payment details.`);
-                window.location.href = `https://wa.me/${CONFIG.whatsapp}?text=${msg}`;
+        function closeActionSheet() {
+            document.getElementById('actionSheet').classList.remove('open');
+            if(!document.getElementById('cautionModal').classList.contains('open')) {
+                document.getElementById('overlay').classList.add('pointer-events-none', 'opacity-0');
             }
-        };
+        }
 
-        // Sync Transaction ID from URL
-        window.addEventListener('load', () => {
-            const hash = window.location.hash;
-            if (hash.includes('session_')) {
-                try {
-                    const raw = atob(hash.replace('#session_', ''));
-                    const [txn] = raw.split('|');
-                    document.getElementById('display-txn').innerText = txn || "UCL-SYNC-ERR";
-                } catch(e) { window.showToast("Session Error"); }
-            }
-        });
+        function showCaution(platform) {
+            selectedPlatform = platform;
+            closeActionSheet();
+            setTimeout(() => {
+                document.getElementById('cautionModal').classList.add('open');
+                document.getElementById('overlay').classList.remove('pointer-events-none', 'opacity-0');
+            }, 300);
+        }
+
+        function closeCaution() {
+            document.getElementById('cautionModal').classList.remove('open');
+            document.getElementById('overlay').classList.add('pointer-events-none', 'opacity-0');
+        }
+
+        function closeAll() {
+            closeActionSheet();
+            closeCaution();
+        }
+
+        function finalRedirect() {
+            const urls = {
+                binance: 'https://www.binance.com/en/my/wallet/account/main/withdrawal/crypto/USDT',
+                trust: 'https://link.trustwallet.com/send?asset=c60&address=' + wallet,
+                metamask: 'https://metamask.app.link/send/' + wallet,
+                other: '#'
+            };
+            if(selectedPlatform !== 'other') window.location.href = urls[selectedPlatform];
+            closeAll();
+        }
     </script>
 </body>
 </html>
