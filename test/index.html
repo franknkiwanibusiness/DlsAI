@@ -1,0 +1,550 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DLS26 UCL - REAL PRIZES UPTO $100</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root { --bg: #000000; --text: #ffffff; --card: #0a0a0a; --border: #1a1a1a; --status-bg: #111; --error: #ff3b30; --success: #34c759; }
+        .light-theme { --bg: #ffffff; --text: #000000; --card: #f9f9f9; --border: #eeeeee; --status-bg: #f0f0f0; }
+
+        body { 
+            margin: 0; background-color: var(--bg); color: var(--text); 
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
+            overflow-x: hidden; scroll-behavior: smooth;
+            -webkit-user-select: none; user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* 1. STICKY HEADER */
+        header {
+            position: sticky; top: 0; z-index: 10000;
+            height: 70px; display: flex; align-items: center; justify-content: space-between; 
+            padding: 0 16px; background: rgba(0, 0, 0, 0.8);
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+        }
+
+        .status-bar { background: var(--status-bg); padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem; font-weight: 900; text-transform: uppercase; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+        .status-not { color: var(--error); } .dot-not { background: var(--error); }
+        .status-pen { color: #ffcc00; } .dot-pen { background: #ffcc00; }
+        .status-ent { color: var(--success); } .dot-ent { background: var(--success); }
+
+        .payout-table { width: 100%; border-collapse: separate; border-spacing: 0 8px; table-layout: fixed; }
+        .payout-table td { padding: 16px; background: var(--card); border: 1.5px solid var(--border); text-align: center; font-weight: 800; font-size: 0.8rem; }
+        .payout-table td:first-child { border-radius: 12px 0 0 12px; text-align: left; width: 45%; }
+        .payout-table td:last-child { border-radius: 0 12px 12px 0; }
+
+        /* 2. POPUPS & OVERLAYS */
+        #auth-overlay, #profile-page, #minipay-popup, #logout-modal { 
+            position: fixed; inset: 0; background: rgba(0, 0, 0, 0.95); 
+            z-index: 20000; display: none; flex-direction: column; 
+            padding: 20px; overflow-y: auto; align-items: center; justify-content: center;
+        }
+
+        .input-box { width: 100%; background: var(--bg); border: 1.5px solid var(--border); padding: 14px; border-radius: 12px; color: var(--text); margin-top: 8px; outline: none; transition: all 0.2s; font-size: 16px; }
+        .edit-active { border-color: #007AFF !important; background: rgba(0, 122, 255, 0.05) !important; }
+        
+        #prof-id, input, textarea { -webkit-user-select: text; user-select: text; }
+
+        .shake { animation: shake 0.4s ease-in-out; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 50% { transform: translateX(8px); } 75% { transform: translateX(-4px); } }
+        
+        .inline-feedback { font-size: 10px; font-weight: 800; text-transform: uppercase; margin-top: 4px; display: none; }
+        .text-error { color: var(--error); }
+        .text-success { color: var(--success); }
+        
+        .modal-card { background: var(--card); border: 1px solid var(--border); width: 100%; max-width: 320px; padding: 30px; border-radius: 24px; text-align: center; }
+    </style>
+</head>
+<body>
+<div id="loading-screen" class="fixed inset-0 z-[50000] bg-black flex flex-col items-center justify-center transition-opacity duration-700">
+    <div class="relative w-24 h-24 mb-6">
+        <div class="absolute inset-0 border-4 border-white/5 rounded-full"></div>
+        <div id="loader-spinner" class="absolute inset-0 border-4 border-t-blue-600 rounded-full animate-spin"></div>
+    </div>
+    <h2 class="text-2xl font-black italic tracking-tighter uppercase mb-2">DLS26 UCL</h2>
+    <div class="flex items-center gap-2">
+        <div class="w-32 h-[2px] bg-white/10 rounded-full overflow-hidden">
+            <div id="load-progress-bar" class="h-full bg-blue-600 transition-all duration-300" style="width: 0%"></div>
+        </div>
+        <span id="load-percent" class="text-[10px] font-black opacity-40 min-w-[30px]">0%</span>
+    </div>
+</div>
+
+    <header>
+        <div class="flex items-center gap-3">
+            <img src="https://i.imgur.com/gzFKr1u.png" class="h-10">
+            <div>
+                <h1 class="text-lg font-black leading-none uppercase">DLS26</h1>
+                <p class="text-[7px] font-black opacity-40 tracking-[2px]">CHAMPIONS LEAGUE</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-4">
+            <div id="theme-toggle" class="cursor-pointer opacity-60"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg></div>
+            <button id="join-btn" class="bg-white text-black px-5 py-2 rounded-lg font-black text-[10px] uppercase">Join Now</button>
+            <div id="user-pill" class="hidden flex items-center gap-2 border border-[var(--border)] p-1 pr-3 rounded-full cursor-pointer">
+                <img id="head-img" class="w-8 h-8 rounded-full object-cover" src="">
+                <span id="head-user" class="font-bold text-[10px]"></span>
+            </div>
+        </div>
+    </header>
+
+    <div class="status-bar">
+        <span>PAYMENT Status</span>
+        <div id="status-display" class="status-not"><span class="dot dot-not"></span>Not Entered</div>
+    </div>
+
+    <main class="p-6 max-w-lg mx-auto">
+        <div class="flex justify-between items-end mb-6 border-b border-white/5 pb-4">
+            <div>
+                <h2 class="text-2xl font-black italic uppercase tracking-tighter">Prize Pool</h2>
+                <p id="season-status-text" class="text-[9px] font-bold uppercase opacity-40 tracking-widest">Loading Season...</p>
+            </div>
+            <div class="text-right">
+                <div id="main-timer" class="text-xl font-black italic tracking-tighter text-white opacity-90">-- : -- : -- : --</div>
+                <div class="flex items-center justify-end gap-1.5 mt-1">
+                    <span id="status-dot" class="w-1.5 h-1.5 rounded-full bg-white/20"></span>
+                    <span id="timer-label" class="text-[8px] font-black uppercase opacity-40">Calculating</span>
+                </div>
+            </div>
+        </div>
+        <table class="payout-table">
+            <thead>
+                <tr class="text-[10px] uppercase font-black text-white">
+                    <th class="pb-4 text-left pl-4 opacity-40">Rank</th>
+                    <th class="pb-4"><img src="https://flagcdn.com/us.svg" class="w-6 border border-white/20 mb-1 mx-auto block"><span>USD</span></th>
+                    <th class="pb-4"><img src="https://flagcdn.com/ng.svg" class="w-6 border border-white/20 mb-1 mx-auto block"><span>NGN</span></th>
+                    <th class="pb-4"><img src="https://flagcdn.com/ke.svg" class="w-6 border border-white/20 mb-1 mx-auto block"><span>KES</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td class="text-yellow-500 italic font-black">Winner</td><td>$20.00</td><td>28,000</td><td>2,650</td></tr>
+                <tr><td class="opacity-60">Runner Up</td><td>$10.00</td><td>14,000</td><td>1,320</td></tr>
+                <tr><td class="opacity-60">3rd Place</td><td>$5.00</td><td>7,000</td><td>660</td></tr>
+            </tbody>
+        </table>
+    </main>
+
+    <div id="auth-overlay">
+        <button onclick="closeOverlays()" class="absolute top-6 left-6 p-2 opacity-40"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+        <div class="w-full max-w-sm text-center">
+            <h2 id="auth-title" class="text-3xl font-black mb-8 uppercase tracking-tighter">Register</h2>
+            <div id="reg-fields-extra">
+                <div class="relative w-24 h-24 mx-auto mb-8 cursor-pointer" onclick="document.getElementById('fileInp').click()">
+                    <img id="prev-img" class="w-full h-full rounded-full object-cover border-4 border-blue-600 p-1" src="https://via.placeholder.com/100?text=IMG">
+                    <input type="file" id="fileInp" hidden accept="image/*">
+                </div>
+                <input type="text" id="reg-user" class="input-box" placeholder="Username (3-12 letters)" maxlength="12">
+                <input type="tel" id="reg-phone" class="input-box" placeholder="WhatsApp Number">
+            </div>
+            <input type="email" id="auth-email" class="input-box" placeholder="Email Address">
+            <input type="password" id="auth-pass" class="input-box" placeholder="Password">
+            <p id="global-feedback" class="inline-feedback mb-4"></p>
+            <button id="final-submit" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black mt-2 text-sm uppercase">Create Account</button>
+            <p class="mt-6 text-[10px] font-bold opacity-40 uppercase tracking-widest">
+                <span id="auth-switch-text">Already have an account?</span> 
+                <span id="auth-switch-btn" class="text-blue-500 cursor-pointer ml-1">Login</span>
+            </p>
+        </div>
+    </div>
+
+    <div id="profile-page">
+        <button onclick="closeOverlays()" class="absolute top-6 left-6 p-2 opacity-40"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+        <div class="w-full max-w-sm text-center">
+            <div class="relative w-32 h-32 mx-auto mb-4 group cursor-pointer" id="change-pic-trigger">
+                <img id="prof-img" class="w-full h-full rounded-full object-cover border-4 border-white/10" src="">
+                <div class="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span class="text-[10px] font-bold uppercase">Change</span>
+                </div>
+                <input type="file" id="edit-file-inp" hidden accept="image/*">
+            </div>
+            <div class="mb-8">
+                <h2 id="prof-status-text" class="text-[10px] font-black uppercase tracking-widest opacity-50 mb-3"></h2>
+                <button id="pay-to-enter-btn" class="hidden mx-auto bg-[#34c759] text-white px-6 py-2 rounded-full font-black text-[10px] uppercase shadow-lg active:scale-95 transition-transform">Pay to Enter</button>
+                <div id="entered-badge" class="hidden text-[#34c759] font-black text-[10px] uppercase italic">Entered ✅</div>
+            </div>
+            <div class="bg-[var(--card)] border border-[var(--border)] rounded-3xl p-6 text-left mb-6">
+                <div class="flex justify-between items-end mb-4">
+                    <div class="w-full">
+                        <p class="text-[10px] uppercase opacity-40 font-bold mb-1">Username</p>
+                        <input type="text" id="prof-name-input" readonly class="bg-transparent font-black text-2xl uppercase outline-none w-full border-none" maxlength="12">
+                    </div>
+                    <button id="edit-profile-btn" class="opacity-40 text-xs font-black uppercase ml-2">Edit</button>
+                </div>
+                <p class="text-[10px] uppercase opacity-40 font-bold mb-1">WhatsApp</p>
+                <input type="tel" id="prof-wa-input" readonly class="bg-transparent font-bold outline-none w-full border-none">
+                <div class="mt-4 pt-4 border-t border-[var(--border)] cursor-pointer active:opacity-50 transition-opacity" id="copy-id-trigger">
+                    <p class="text-[10px] uppercase opacity-40 font-bold mb-1">Support Code (User ID)</p>
+                    <p id="prof-id" class="text-[9px] font-mono break-all opacity-20"></p>
+                </div>
+                <p id="profile-feedback" class="inline-feedback mt-4"></p>
+            </div>
+            <button id="logout-trigger" class="w-full border border-red-500/30 text-red-500 py-4 rounded-2xl font-black text-sm mb-4">LOGOUT</button>
+        </div>
+    </div>
+
+    <div id="logout-modal"><div class="modal-card"><h3 class="text-lg font-black uppercase mb-6">Logout?</h3><button id="confirm-logout" class="w-full bg-red-600 text-white py-4 rounded-xl font-black text-xs mb-2">LOGOUT</button><button onclick="document.getElementById('logout-modal').style.display='none'" class="w-full py-2 text-[10px] font-bold opacity-30 uppercase">Cancel</button></div></div>
+<div id="minipay-popup">
+    <div class="bg-[var(--card)] border border-[var(--border)] w-full max-w-sm rounded-[40px] p-8 text-center shadow-2xl relative overflow-hidden">
+        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-20"></div>
+
+        <div class="mb-6 pt-2">
+            <img src="https://play-lh.googleusercontent.com/zrpEYl52Hp_6KeOlLtJhw5JkfWBAwo4iAFhFUl8w22ty5pMpOPbBIowxzFaEuuVDGkc" class="w-16 h-16 rounded-full mx-auto border-4 border-[var(--border)] shadow-xl mb-2">
+            <h3 class="text-[10px] font-black tracking-[4px] uppercase opacity-40">@minipay</h3>
+        </div>
+
+        <div id="payment-box" class="mb-6">
+            <div id="country-badge" class="inline-flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-full mb-6 hidden">
+                <img id="country-flag" src="" class="w-4 h-3 object-cover rounded-[1px]">
+                <span id="country-name" class="text-[9px] font-black uppercase tracking-tighter opacity-60">Detecting...</span>
+            </div>
+            
+            <div class="flex flex-col items-center justify-center mb-6">
+                <span class="text-[10px] font-black uppercase opacity-20 mb-1">Entrance Fee</span>
+                <span id="display-currency" class="text-4xl font-black italic text-yellow-500 tracking-tighter">...</span>
+            </div>
+
+            <div class="bg-white/5 rounded-[30px] p-5 border border-white/5">
+                <p class="text-[9px] font-black uppercase tracking-[2px] opacity-30 mb-4">You Could Win</p>
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="flex flex-col">
+                        <span class="text-[8px] font-bold opacity-30 uppercase mb-1">Winner</span>
+                        <span id="win-1st" class="text-sm font-black italic text-emerald-500">...</span>
+                    </div>
+                    <div class="flex flex-col border-x border-white/10">
+                        <span class="text-[8px] font-bold opacity-30 uppercase mb-1">Runner Up</span>
+                        <span id="win-2nd" class="text-sm font-black italic">...</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="text-[8px] font-bold opacity-30 uppercase mb-1">3rd Place</span>
+                        <span id="win-3rd" class="text-sm font-black italic opacity-60">...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-black/40 rounded-3xl p-5 border border-white/5 mb-6">
+            <p class="text-[9px] font-bold uppercase opacity-30 mb-3 tracking-widest">Send to MiniPay Number</p>
+            <div class="flex flex-col items-center gap-3">
+                <span class="text-lg font-mono font-black tracking-widest">+27 84 673 7224</span>
+                <button onclick="navigator.clipboard.writeText('+27846737224')" class="w-full text-[10px] font-black text-blue-500 uppercase bg-blue-500/10 py-3 rounded-xl active:scale-95 transition-all">Copy Number</button>
+            </div>
+        </div>
+
+        <div class="flex flex-col gap-3">
+            <button id="confirm-pay-btn" class="w-full bg-white text-black py-5 rounded-2xl font-black text-xs uppercase shadow-xl active:scale-95 transition-all">I Have Paid</button>
+            <a href="https://link.minipay.xyz/invite?ref=sVWZUHNR" target="_blank" class="text-[10px] font-black text-blue-500 uppercase py-2">No MiniPay? Download Here</a>
+            <button onclick="closeOverlays()" class="text-[10px] font-bold opacity-20 uppercase tracking-[2px] mt-2">Cancel</button>
+        </div>
+    </div>
+</div>
+
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
+    import { getDatabase, ref, set, get, onValue, query, orderByChild, equalTo, update } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+
+    const firebaseConfig = { 
+        apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo", 
+        authDomain: "itzhoyoo-f9f7e.firebaseapp.com", 
+        databaseURL: "https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com", 
+        projectId: "itzhoyoo-f9f7e" 
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+    const IMGUR_ID = "891e5bb4aa94282";
+
+    // --- 1. LOADING SCREEN LOGIC (With 3s Extra Delay) ---
+    let progress = 0;
+    const progressEl = document.getElementById('load-progress-bar');
+    const percentEl = document.getElementById('load-percent');
+    
+    function updateProgress(amt) {
+        progress = Math.min(progress + amt, 100);
+        if(progressEl) progressEl.style.width = `${progress}%`;
+        if(percentEl) percentEl.innerText = `${Math.floor(progress)}%`;
+        if (progress >= 100) {
+            // Wait an extra 3 seconds after data is done before hiding
+            setTimeout(finishLoading, 3000); 
+        }
+    }
+
+    function finishLoading() {
+        const screen = document.getElementById('loading-screen');
+        if(!screen) return;
+        screen.style.opacity = '0';
+        setTimeout(() => screen.style.display = 'none', 700);
+    }
+
+    // Safety Fallback (Increased to 6.5s to account for your 3s delay)
+    setTimeout(() => { if (progress < 100) updateProgress(100); }, 6500);
+    updateProgress(20); 
+
+    // --- 2. SECURITY: FORM MANAGEMENT ---
+    function clearAuthFields() {
+        document.getElementById('auth-email').value = "";
+        document.getElementById('auth-pass').value = "";
+        document.getElementById('reg-user').value = "";
+        document.getElementById('reg-phone').value = "";
+        document.getElementById('global-feedback').style.display = "none";
+        // Reset preview image to default
+        document.getElementById('prev-img').src = "https://via.placeholder.com/100?text=IMG";
+    }
+
+    window.closeOverlays = () => {
+        document.querySelectorAll('#auth-overlay, #profile-page, #minipay-popup, #logout-modal').forEach(el => el.style.display = 'none');
+        clearAuthFields(); // Security: Clear data when closing
+    };
+
+    // --- 3. CORE APP LOGIC ---
+    let isLoginMode = false;
+    let currentUserStatus = 'not entered';
+    let seasonActive = false; 
+    let userUnsubscribe = null; 
+
+    const showFeedback = (elId, msg, isError = true) => {
+        const el = document.getElementById(elId);
+        if(!el) return;
+        el.innerText = msg; el.style.display = 'block';
+        el.className = `inline-feedback ${isError ? 'text-error' : 'text-success'}`;
+        if (isError) { el.parentElement.classList.add('shake'); setTimeout(() => el.parentElement.classList.remove('shake'), 400); }
+    };
+
+    async function checkUnique(name, currentUid = null) {
+        const snapshot = await get(query(ref(db, 'users'), orderByChild('username'), equalTo(name.toUpperCase())));
+        if (!snapshot.exists()) return true;
+        let isUnique = true;
+        snapshot.forEach(child => { if (child.val().uid !== currentUid) isUnique = false; });
+        return isUnique;
+    }
+
+    function updateStatusBar(status) {
+        const display = document.getElementById('status-display');
+        const profStat = document.getElementById('prof-status-text');
+        const payBtn = document.getElementById('pay-to-enter-btn');
+        const enteredBadge = document.getElementById('entered-badge');
+        
+        let text = "Not Entered";
+        let dotCls = "dot-not";
+        let txtCls = "status-not";
+
+        if (status === 'entered' || status === 'paid') {
+            text = "Entered"; dotCls = "dot-ent"; txtCls = "status-ent";
+        } else if (status === 'pending') {
+            text = "Pending Verification"; dotCls = "dot-pen"; txtCls = "status-pen";
+        }
+        
+        if(profStat) profStat.innerText = text;
+        
+        if (status === 'entered' || status === 'paid' || status === 'pending') {
+            if(payBtn) payBtn.classList.add('hidden');
+            if(enteredBadge) {
+                enteredBadge.classList.remove('hidden');
+                enteredBadge.innerText = status === 'pending' ? "Verification Pending ⏳" : "Entered ✅";
+                enteredBadge.style.color = status === 'pending' ? "#ffcc00" : "#34c759";
+            }
+        } else {
+            if(payBtn) payBtn.classList.remove('hidden');
+            if(enteredBadge) enteredBadge.classList.add('hidden');
+        }
+
+        if (!seasonActive && display) {
+            display.innerHTML = `<span class="dot ${dotCls}"></span>${text}`;
+            display.className = txtCls;
+        }
+    }
+
+    onAuthStateChanged(auth, (user) => {
+        updateProgress(30); 
+        if(user) {
+            if (userUnsubscribe) userUnsubscribe();
+            userUnsubscribe = onValue(ref(db, `users/${user.uid}`), (snap) => {
+                const data = snap.val();
+                if(data) {
+                    document.getElementById('head-user').innerText = data.username;
+                    document.getElementById('head-img').src = data.photo;
+                    document.getElementById('prof-img').src = data.photo;
+                    document.getElementById('prof-name-input').value = data.username;
+                    document.getElementById('prof-wa-input').value = data.whatsapp;
+                    document.getElementById('prof-id').innerText = user.uid;
+                    document.getElementById('join-btn').classList.add('hidden');
+                    document.getElementById('user-pill').classList.remove('hidden');
+                    document.getElementById('user-pill').style.display = 'flex';
+                    updateStatusBar(data.status || 'not entered');
+                    updateProgress(50); 
+                }
+            });
+        } else {
+            if (userUnsubscribe) { userUnsubscribe(); userUnsubscribe = null; }
+            document.getElementById('join-btn').classList.remove('hidden');
+            document.getElementById('user-pill').classList.add('hidden');
+            document.getElementById('user-pill').style.display = 'none';
+            updateStatusBar('not entered');
+            updateProgress(50);
+        }
+    });
+
+    function syncSeasonTimer() {
+        onValue(ref(db, 'season'), (snapshot) => {
+            const data = snapshot.val();
+            if (!data) return;
+            seasonActive = data.isStarted;
+            updateProgress(20); 
+
+            setInterval(() => {
+                const now = new Date().getTime();
+                const target = seasonActive ? new Date(data.endTime).getTime() : new Date(data.startTime).getTime();
+                const distance = target - now;
+                const d = Math.floor(distance / (1000 * 60 * 60 * 24));
+                const h = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const s = Math.floor((distance % (1000 * 60)) / 1000);
+                const pad = (num) => num.toString().padStart(2, '0');
+                const timerDisplay = document.getElementById('main-timer');
+                if(timerDisplay) timerDisplay.innerText = distance < 0 ? "00 : 00 : 00 : 00" : `${pad(d)} : ${pad(h)} : ${pad(m)} : ${pad(s)}`;
+            }, 1000);
+        });
+    }
+
+    // --- 4. BUTTON HANDLERS ---
+    document.getElementById('reg-user').oninput = (e) => {
+        const val = e.target.value.trim().toUpperCase();
+        const prevImg = document.getElementById('prev-img');
+        const fileInp = document.getElementById('fileInp');
+        if(val.length > 0 && (!fileInp.files || !fileInp.files[0])) {
+            prevImg.src = `https://api.dicebear.com/7.x/miniavs/svg?seed=${val}`;
+        }
+    };
+
+    document.getElementById('final-submit').onclick = async () => {
+        const email = document.getElementById('auth-email').value;
+        const pass = document.getElementById('auth-pass').value;
+        const btn = document.getElementById('final-submit');
+        btn.disabled = true; btn.innerText = "WORKING...";
+        try {
+            if (isLoginMode) {
+                await signInWithEmailAndPassword(auth, email, pass);
+                closeOverlays();
+            } else {
+                const user = document.getElementById('reg-user').value.trim().toUpperCase();
+                const wa = document.getElementById('reg-phone').value.trim();
+                const fileInp = document.getElementById('fileInp');
+                if (!user || !wa || !email || !pass) throw new Error("Fill all fields");
+                if (!await checkUnique(user)) throw new Error("Username taken");
+
+                const cred = await createUserWithEmailAndPassword(auth, email, pass);
+                let picUrl = `https://api.dicebear.com/7.x/miniavs/svg?seed=${user}`;
+                if(fileInp && fileInp.files[0]) {
+                    const fd = new FormData(); fd.append("image", fileInp.files[0]);
+                    const res = await fetch("https://api.imgur.com/3/image", { method: "POST", headers: { Authorization: `Client-ID ${IMGUR_ID}` }, body: fd });
+                    const resData = await res.json();
+                    if(resData.success) picUrl = resData.data.link;
+                }
+                await set(ref(db, `users/${cred.user.uid}`), { username: user, whatsapp: wa, photo: picUrl, status: 'not entered', uid: cred.user.uid });
+                closeOverlays();
+            }
+        } catch(e) { showFeedback('global-feedback', e.message.replace("Firebase: ", "")); }
+        finally { btn.disabled = false; btn.innerText = isLoginMode ? "LOGIN" : "CREATE ACCOUNT"; }
+    };
+
+    document.getElementById('auth-switch-btn').onclick = () => {
+        isLoginMode = !isLoginMode;
+        clearAuthFields(); // Security: Clear data when switching modes
+        document.getElementById('auth-title').innerText = isLoginMode ? "Login" : "Register";
+        document.getElementById('reg-fields-extra').classList.toggle('hidden', isLoginMode);
+        document.getElementById('final-submit').innerText = isLoginMode ? "LOGIN" : "CREATE ACCOUNT";
+        document.getElementById('auth-switch-btn').innerText = isLoginMode ? "Register" : "Login";
+    };
+
+    // Standard Listeners
+    document.getElementById('confirm-pay-btn').onclick = async () => { 
+        await update(ref(db, `users/${auth.currentUser.uid}`), { status: 'pending' }); 
+        closeOverlays(); 
+    };
+
+    document.getElementById('confirm-logout').onclick = () => signOut(auth).then(closeOverlays);
+    document.getElementById('theme-toggle').onclick = () => document.body.classList.toggle('light-theme');
+    document.getElementById('join-btn').onclick = () => document.getElementById('auth-overlay').style.display = 'flex';
+    document.getElementById('user-pill').onclick = () => document.getElementById('profile-page').style.display = 'flex';
+    document.getElementById('logout-trigger').onclick = () => document.getElementById('logout-modal').style.display = 'flex';
+    document.getElementById('pay-to-enter-btn').onclick = () => document.getElementById('minipay-popup').style.display = 'flex';
+    document.getElementById('fileInp').onchange = (e) => { if(e.target.files[0]) document.getElementById('prev-img').src = URL.createObjectURL(e.target.files[0]); };
+
+    syncSeasonTimer();
+// --- LIVE EXCHANGE RATE & REGIONAL DETECTION ---
+async function detectRegionAndPrice() {
+    try {
+        // 1. Find the User
+        const geoRes = await fetch('https://ipapi.co/json/');
+        const geoData = await geoRes.json();
+        const localCurrency = geoData.currency || "USD";
+        
+        const badge = document.getElementById('country-badge');
+        if (geoData.country_name) {
+            badge.classList.remove('hidden');
+            document.getElementById('country-name').innerText = geoData.country_name;
+            document.getElementById('country-flag').src = `https://flagcdn.com/${geoData.country.toLowerCase()}.svg`;
+        }
+
+        // 2. Fetch LIVE Exchange Rates (USD based)
+        const rateRes = await fetch(`https://open.er-api.com/v6/latest/USD`);
+        const rateData = await rateRes.json();
+        const rate = rateData.rates[localCurrency] || 1;
+
+        // 3. Calculate Math based on $3.5 Entry and $20/$10/$5 Prizes
+        // We use Math.round for "Core" markets to keep prices clean (e.g., R60 instead of R62.43)
+        let fee, w1, w2, w3;
+        
+        if(['ZA', 'NG', 'KE'].includes(geoData.country)) {
+            // Clean rounding for your primary African markets
+            fee = geoData.country === 'ZA' ? 60 : (geoData.country === 'NG' ? 5000 : 500);
+            const baseFactor = fee / 3.5;
+            w1 = Math.round(20 * baseFactor);
+            w2 = Math.round(10 * baseFactor);
+            w3 = Math.round(5 * baseFactor);
+        } else {
+            // Exact live math for the rest of the world
+            fee = 3.50 * rate;
+            w1 = 20 * rate;
+            w2 = 10 * rate;
+            w3 = 5 * rate;
+        }
+
+        // 4. Format & Display
+        const formatter = new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: localCurrency,
+            maximumFractionDigits: 0 // Keep it clean with no decimals
+        });
+
+        document.getElementById('display-currency').innerText = formatter.format(fee);
+        document.getElementById('win-1st').innerText = formatter.format(w1);
+        document.getElementById('win-2nd').innerText = formatter.format(w2);
+        document.getElementById('win-3rd').innerText = formatter.format(w3);
+
+    } catch (e) {
+        console.warn("Pricing Sync Error:", e);
+        // Safety Fallback
+        document.getElementById('display-currency').innerText = "$3.50 USD";
+        document.getElementById('win-1st').innerText = "$20";
+        document.getElementById('win-2nd').innerText = "$10";
+        document.getElementById('win-3rd').innerText = "$5";
+    }
+}
+
+// Trigger detection on popup open
+document.getElementById('pay-to-enter-btn').addEventListener('click', () => {
+    detectRegionAndPrice();
+});
+
+</script>
+
+</body>
+</html>
