@@ -3,64 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DLS26 UCL | Notification Hub</title>
+    <title>UCL | Notification Debugger</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .glass {
-            background: rgba(15, 23, 42, 0.8);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 24px;
-        }
-        @keyframes zoom-in {
-            from { opacity: 0; transform: scale(0.9); }
-            to { opacity: 1; transform: scale(1); }
-        }
-        .animate-zoom { animation: zoom-in 0.4s ease-out forwards; }
+        .glass { background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; }
+        .log-entry { font-family: monospace; font-size: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); padding: 4px 0; }
     </style>
 </head>
-<body class="bg-[#020617] text-white font-sans min-h-screen flex items-center justify-center p-6">
+<body class="bg-[#020617] text-white p-4 min-h-screen flex flex-col items-center">
 
-    <div class="glass p-8 w-full max-w-md text-center border-blue-500/20">
-        <h1 class="text-3xl font-black italic uppercase tracking-tighter mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">
-            DLS26 UCL HUB
-        </h1>
-        <p class="text-[10px] uppercase tracking-[3px] opacity-40 mb-8 font-bold">Tournament Control Center</p>
-        
-        <div class="space-y-4">
-            <div class="p-4 bg-white/5 rounded-2xl border border-white/10 text-left">
-                <p class="text-[9px] uppercase opacity-50 font-bold mb-1">Status</p>
-                <p class="text-xs font-bold uppercase">Awaiting Match Updates...</p>
+    <div class="glass p-6 w-full max-w-md mb-4 mt-10">
+        <h1 class="text-xl font-black italic text-blue-500 mb-2 uppercase">System Diagnostics</h1>
+        <div id="status-checks" class="space-y-2 mb-6">
+            <div class="flex justify-between text-xs uppercase font-bold">
+                <span>Firebase Init:</span> <span id="check-firebase" class="text-gray-500">Checking...</span>
             </div>
-            <p class="text-[9px] opacity-30 uppercase">The notification prompt will appear in <span id="timer">10</span>s</p>
+            <div class="flex justify-between text-xs uppercase font-bold">
+                <span>Service Worker:</span> <span id="check-sw" class="text-gray-500">Checking...</span>
+            </div>
+            <div class="flex justify-between text-xs uppercase font-bold">
+                <span>Notification Permission:</span> <span id="check-perm" class="text-gray-500">Checking...</span>
+            </div>
         </div>
+        
+        <button onclick="handleNotifActivation()" class="w-full bg-blue-600 hover:bg-blue-500 py-4 rounded-xl font-black uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-blue-600/20">
+            Manual Trigger Test
+        </button>
     </div>
 
-    <div id="notif-popup" class="fixed inset-0 hidden bg-black/95 backdrop-blur-xl flex items-center justify-center p-6" style="z-index: 100000;">
-        <div class="glass border-blue-500/50 border-2 p-10 w-full max-w-sm text-center shadow-[0_0_100px_rgba(37,99,235,0.4)] animate-zoom">
-            
-            <div class="relative w-24 h-24 mx-auto mb-8">
-                <div class="absolute inset-0 bg-blue-600/30 rounded-full animate-ping"></div>
-                <div class="relative w-24 h-24 bg-blue-600/40 rounded-full flex items-center justify-center border border-blue-400/50">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                </div>
+    <div class="glass p-4 w-full max-w-md h-64 overflow-y-auto bg-black/50">
+        <h2 class="text-[10px] font-black uppercase opacity-40 mb-2 tracking-[2px]">System Logs</h2>
+        <div id="debug-logs" class="flex flex-col-reverse">
             </div>
-            
-            <h2 class="text-3xl font-black italic uppercase tracking-tighter text-white mb-3 leading-none">Don't Miss<br>A Goal</h2>
-            <p class="text-[11px] opacity-60 font-black uppercase tracking-[2px] mb-10 leading-relaxed">
-                Get push alerts for <br> 
-                <span class="text-blue-400">Kick-offs</span> & <span class="text-emerald-400">Winning Payouts</span>
-            </p>
+    </div>
 
-            <div class="flex flex-col gap-4">
-                <button onclick="handleNotifActivation()" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-[4px] active:scale-95 transition-all shadow-xl shadow-blue-600/40">
-                    OK, ENABLE
-                </button>
-                <button onclick="closeNotifPopup()" class="text-[10px] font-black uppercase tracking-[3px] opacity-40 hover:opacity-100 transition-all text-white py-2">
-                    Maybe Later
-                </button>
-            </div>
+    <div id="notif-popup" class="fixed inset-0 hidden bg-black/95 flex items-center justify-center p-6" style="z-index: 100000;">
+        <div class="glass border-blue-500/50 border-2 p-8 w-full max-w-sm text-center shadow-2xl">
+            <h2 class="text-2xl font-black italic uppercase text-white mb-4">UCL MATCH PINGS</h2>
+            <button onclick="handleNotifActivation()" class="w-full bg-blue-600 p-4 rounded-xl font-black uppercase mb-3">Enable Now</button>
+            <button onclick="closeNotifPopup()" class="text-[10px] uppercase opacity-40">Dismiss</button>
         </div>
     </div>
 
@@ -68,71 +49,113 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
         import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-messaging.js";
         import { getDatabase, ref, update } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
-        import { getAuth } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
 
-        // Your Exact Firebase Config
+        const log = (msg, color = "text-gray-400") => {
+            const div = document.createElement('div');
+            div.className = `log-entry ${color}`;
+            div.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            document.getElementById('debug-logs').appendChild(div);
+        };
+
+        const updateCheck = (id, text, color) => {
+            const el = document.getElementById(id);
+            el.innerText = text;
+            el.className = color;
+        };
+
+        // --- FIREBASE CONFIG ---
         const firebaseConfig = {
             apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
             authDomain: "itzhoyoo-f9f7e.firebaseapp.com",
             databaseURL: "https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com",
             projectId: "itzhoyoo-f9f7e",
-            storageBucket: "itzhoyoo-f9f7e.firebasestorage.app",
             messagingSenderId: "1055745142104",
             appId: "1:1055745142104:web:8651c6b16e108871408db0"
         };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        const auth = getAuth(app);
-        const messaging = getMessaging(app);
+        let app, db, auth, messaging;
 
-        // --- 1. POPUP TIMER LOGIC ---
-        let timeLeft = 10;
-        const timerElement = document.getElementById('timer');
+        try {
+            app = initializeApp(firebaseConfig);
+            db = getDatabase(app);
+            auth = getAuth(app);
+            messaging = getMessaging(app);
+            log("Firebase initialized successfully.", "text-emerald-400");
+            updateCheck('check-firebase', 'READY', 'text-emerald-400');
+        } catch (e) {
+            log("Firebase Error: " + e.message, "text-red-500");
+            updateCheck('check-firebase', 'FAILED', 'text-red-500');
+        }
 
-        const countdown = setInterval(() => {
-            timeLeft--;
-            if(timerElement) timerElement.innerText = timeLeft;
-            if(timeLeft <= 0) clearInterval(countdown);
-        }, 1000);
-
+        // --- 10 SECOND TIMER ---
         setTimeout(() => {
-            const popup = document.getElementById('notif-popup');
-            if (popup) popup.style.display = 'flex';
+            log("10 Second Timer Finished. Attempting to show popup...");
+            const p = document.getElementById('notif-popup');
+            if (p) {
+                p.style.display = 'flex';
+                log("Popup displayed.", "text-blue-400");
+            }
         }, 10000);
 
-        // --- 2. NOTIFICATION ACTIVATION ---
+        // --- MAIN ACTIVATION ---
         window.handleNotifActivation = async () => {
+            log("Starting activation process...");
+            
             try {
+                // 1. Check Permission
                 const permission = await Notification.requestPermission();
+                updateCheck('check-perm', permission.toUpperCase(), permission === 'granted' ? 'text-emerald-400' : 'text-red-400');
+                log("Permission status: " + permission);
+
+                if (permission !== 'granted') {
+                    log("User blocked notifications.", "text-red-500");
+                    return;
+                }
+
+                // 2. Register Service Worker (MANUAL PATH)
+                // We try both the root and the subfolder just in case
+                const swPath = window.location.pathname.includes('/testnot/') ? '/testnot/firebase-messaging-sw.js' : '/firebase-messaging-sw.js';
+                log("Attempting to find worker at: " + swPath);
                 
-                if (permission === 'granted') {
+                const reg = await navigator.serviceWorker.register(swPath).catch(err => {
+                    log("Worker Registration Failed: " + err.message, "text-red-500");
+                    updateCheck('check-sw', 'NOT FOUND', 'text-red-500');
+                });
+
+                if (reg) {
+                    log("Service Worker Registered!", "text-emerald-400");
+                    updateCheck('check-sw', 'ACTIVE', 'text-emerald-400');
+                    
+                    // 3. Get Token
                     const token = await getToken(messaging, { 
-                        vapidKey: 'BMTBoZaETNkmPu3gl42TbHyU9CH6tRTS9_TBGB2-oor3nSvt5WhJyk1PcmOiOLIt5z5xRterBfR2xlY2Ubyq1Do' 
+                        vapidKey: 'BMTBoZaETNkmPu3gl42TbHyU9CH6tRTS9_TBGB2-oor3nSvt5WhJyk1PcmOiOLIt5z5xRterBfR2xlY2Ubyq1Do',
+                        serviceWorkerRegistration: reg
                     });
 
-                    if (token && auth.currentUser) {
-                        await update(ref(db, `users/${auth.currentUser.uid}`), {
-                            fcmToken: token,
-                            notificationsEnabled: true
-                        });
-                        console.log("Success: Token saved to Player Profile.");
-                    } else if (!auth.currentUser) {
-                        alert("Please login to your account first!");
+                    if (token) {
+                        log("Token Generated: " + token.substring(0, 15) + "...", "text-emerald-400");
+                        
+                        // 4. Save to DB
+                        if (auth.currentUser) {
+                            await update(ref(db, `users/players/${auth.currentUser.uid}`), { fcmToken: token });
+                            log("SUCCESS: Token saved to Database!", "text-blue-400");
+                        } else {
+                            log("WARNING: User not logged in. Token not saved to DB.", "text-yellow-500");
+                        }
                     }
                 }
             } catch (err) {
-                console.error("Push Error:", err);
-            } finally {
-                window.closeNotifPopup();
+                log("CRITICAL ERROR: " + err.message, "text-red-500");
             }
         };
 
-        // --- 3. UI CONTROLS ---
-        window.closeNotifPopup = () => {
-            const popup = document.getElementById('notif-popup');
-            if (popup) popup.style.display = 'none';
-        };
+        window.closeNotifPopup = () => { document.getElementById('notif-popup').style.display = 'none'; };
+        
+        onAuthStateChanged(auth, (user) => {
+            if (user) log("User detected: " + user.uid);
+            else log("No user logged in.", "text-yellow-500");
+        });
     </script>
 </body>
 </html>
