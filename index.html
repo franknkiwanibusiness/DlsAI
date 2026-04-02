@@ -156,6 +156,47 @@
     backdrop-filter: blur(20px);
     border-radius: 28px;
 }
+/* Base Button Style */
+.round-btn {
+    flex: 1;
+    padding: 0.75rem 0.5rem;
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border-radius: 0.75rem;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+    color: white;
+    opacity: 0.4; /* Dimmed by default */
+}
+
+/* Active State - Applied via JavaScript */
+.round-btn.active {
+    background: rgba(37, 99, 235, 0.2); /* Light Blue Tint */
+    border-color: #3b82f6;            /* Solid Blue Border */
+    color: #60a5fa;                   /* Bright Blue Text */
+    opacity: 1;                       /* Fully Visible */
+}
+
+/* Glass Card Style */
+.glass {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 1.25rem;
+}
+
+/* Simple Fade-in Animation */
+.animate-in {
+    animation: fadeIn 0.5s ease forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
 
 </style>
 
@@ -536,7 +577,7 @@
     #entrants-list, 
     #section-support, 
     #section-chat, 
-    #section-fixtures, 
+    #fixtures-section, 
     #section-prizes {
         scroll-margin-top: 100px;
     }
@@ -577,7 +618,7 @@ window.handleMenuClick = (action) => {
         'TABLE': 'entrants-list',    // Targets your existing <tbody> ID
         'SUPPORT': 'section-support', 
         'CHAT': 'section-chat',
-        'FIXTURES': 'section-fixtures',
+        'FIXTURES': 'fixtures-section',
         'PRIZES': 'section-prizes'
     };
 
@@ -678,6 +719,18 @@ window.handleMenuClick = (action) => {
         </div>
     </div>
 </div>
+
+<section id="fixtures-section" class="max-w-4xl mx-auto p-4">
+    <div class="flex justify-between gap-2 mb-8 bg-black/20 p-2 rounded-2xl border border-white/5">
+        <button onclick="switchRound('r16', 8)" class="round-btn active" id="btn-r16">R16</button>
+        <button onclick="switchRound('quarters', 4)" class="round-btn" id="btn-quarters">QF</button>
+        <button onclick="switchRound('semis', 2)" class="round-btn" id="btn-semis">SF</button>
+        <button onclick="switchRound('final', 1)" class="round-btn" id="btn-final">Final</button>
+    </div>
+
+    <div id="fixtures-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        </div>
+</section>
 
 
 <script type="module">
@@ -1415,16 +1468,15 @@ window.loadFixtures = () => {
         });
     });
 };
-// --- NETWORK MONITOR STATE ---
+// --- CALIBRATED FOR 4MBPS (1.5MBPS THRESHOLD) ---
 let slowWarningDismissed = false;
 
-// Helpers to lock/unlock the UI
 const lockScroll = () => document.body.classList.add('no-scroll');
 const unlockScroll = () => {
-    // Only unlock if BOTH screens are hidden
     const CRITICAL = document.getElementById('crit-offline');
     const SLOW = document.getElementById('warn-slow');
-    if (CRITICAL.classList.contains('hidden') && SLOW.classList.contains('hidden')) {
+    // Safety check: only unlock if both are hidden
+    if (CRITICAL?.classList.contains('hidden') && SLOW?.classList.contains('hidden')) {
         document.body.classList.remove('no-scroll');
     }
 };
@@ -1432,26 +1484,24 @@ const unlockScroll = () => {
 async function monitorNetworkHealth() {
     const CRITICAL = document.getElementById('crit-offline');
     const SLOW = document.getElementById('warn-slow');
-
     if (!CRITICAL || !SLOW) return;
 
-    // 1. SYSTEM OFFLINE CHECK
+    // 1. HARD OFFLINE CHECK
     if (!navigator.onLine) {
-        CRITICAL.classList.replace('hidden', 'flex');
-        SLOW.classList.replace('flex', 'hidden');
+        CRITICAL.classList.remove('hidden');
+        CRITICAL.classList.add('flex');
+        SLOW.classList.add('hidden');
         lockScroll();
         return;
     }
 
-    // 2. SPEED TEST (Optimized for 0.44 Mbps)
+    // 2. SPEED TEST (Tuned for 4 Mbps)
     try {
         const startTime = Date.now();
         const controller = new AbortController();
-        
-        // Timeout set to 10s to give slow Cape Town WiFi a chance to respond
-        const timeoutId = setTimeout(() => controller.abort(), 10000); 
+        // At 4Mbps, if a tiny pixel takes 4s, the connection is failing
+        const timeoutId = setTimeout(() => controller.abort(), 4000); 
 
-        // Fetching a tiny 1x1 pixel to test speed
         await fetch('https://upload.wikimedia.org/wikipedia/commons/c/ca/1x1.png?p=' + startTime, { 
             mode: 'no-cors', 
             cache: 'no-store',
@@ -1462,54 +1512,150 @@ async function monitorNetworkHealth() {
         const duration = Date.now() - startTime;
         const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
 
-        // Logic: If ping > 2.5s OR Reported Mbps < 8 (1MB/s), it's slow.
-        let isSlow = (conn && conn.downlink < 8) || duration > 2500;
+        /**
+         * 1.5 Mbps THRESHOLD:
+         * - conn.downlink < 1.5: Browser thinks speed is low.
+         * - duration > 1500: Latency is too high for a 4Mbps line.
+         */
+        let isSlow = (conn && conn.downlink < 1.5) || duration > 1500;
 
         if (isSlow && !slowWarningDismissed) {
-            CRITICAL.classList.replace('flex', 'hidden');
-            SLOW.classList.replace('hidden', 'flex');
+            CRITICAL.classList.add('hidden');
+            SLOW.classList.remove('hidden');
+            SLOW.classList.add('flex');
             lockScroll();
         } else {
-            // Speed is acceptable or warning was dismissed
-            CRITICAL.classList.replace('flex', 'hidden');
-            if (isSlow && slowWarningDismissed) {
-                SLOW.classList.replace('flex', 'hidden');
-            } else if (!isSlow) {
-                SLOW.classList.replace('flex', 'hidden');
-            }
+            // Speed is Good/4Mbps
+            CRITICAL.classList.add('hidden');
+            SLOW.classList.add('hidden');
             unlockScroll();
         }
     } catch (e) {
-        // Fetch failed = Truly Offline or Critical Timeout
-        CRITICAL.classList.replace('hidden', 'flex');
-        SLOW.classList.replace('flex', 'hidden');
+        // Fetch failed = Dead WiFi or Critical Timeout
+        CRITICAL.classList.remove('hidden');
+        CRITICAL.classList.add('flex');
         lockScroll();
     }
 }
 
-// --- PUBLIC BUTTON FUNCTIONS ---
+// --- BUTTON LOGIC ---
 window.dismissSlowWarning = () => {
     slowWarningDismissed = true;
     const SLOW = document.getElementById('warn-slow');
-    SLOW.classList.replace('flex', 'hidden');
+    SLOW.classList.add('hidden');
     unlockScroll();
 };
 
-// --- START ENGINE ---
-// Initial check on load
+// --- ENGINE TRIGGERS ---
 monitorNetworkHealth();
+// Check every 6 seconds (better for your faster 4Mbps connection)
+setInterval(monitorNetworkHealth, 6000);
 
-// Check every 10 seconds (don't spam it on slow 0.44Mbps connections)
-setInterval(monitorNetworkHealth, 10000);
-
-// Instant response to system events
 window.addEventListener('offline', () => {
-    document.getElementById('crit-offline').classList.replace('hidden', 'flex');
+    document.getElementById('crit-offline').classList.remove('hidden');
+    document.getElementById('crit-offline').classList.add('flex');
     lockScroll();
 });
 
 window.addEventListener('online', monitorNetworkHealth);
+// --- GLOBAL STATE ---
+let stopPreviousListener = null;
 
+/**
+ * Switch between tournament rounds
+ * Linked to the HTML buttons via onclick="switchRound(...)"
+ */
+window.switchRound = (round, count) => {
+    // 1. UI: Manage Active Button Classes
+    document.querySelectorAll('.round-btn').forEach(btn => {
+        btn.classList.remove('active', 'bg-blue-600/20', 'border-blue-500', 'text-blue-400');
+        btn.classList.add('opacity-40');
+    });
+    
+    const activeBtn = document.getElementById(`btn-${round}`);
+    if (activeBtn) {
+        activeBtn.classList.add('active', 'bg-blue-600/20', 'border-blue-500', 'text-blue-400');
+        activeBtn.classList.remove('opacity-40');
+    }
+
+    // 2. STOP the previous Firebase listener to prevent data overlapping
+    if (typeof stopPreviousListener === 'function') {
+        stopPreviousListener(); 
+    }
+
+    // 3. START the new real-time listener
+    const list = document.getElementById('fixtures-list');
+    const roundRef = ref(db, `fixtures/${round}`);
+
+    // Store the unsubscribe function returned by onValue
+    stopPreviousListener = onValue(roundRef, (snap) => {
+        list.innerHTML = ""; // Clear the list for the fresh round
+        
+        const data = snap.val() || {};
+        const matches = Object.entries(data);
+
+        // 4. Render Actual Data from Firebase
+        matches.forEach(([id, m]) => {
+            list.appendChild(createMatchCard(id, m));
+        });
+
+        // 5. Render Placeholders for remaining empty slots
+        const remaining = count - matches.length;
+        if (remaining > 0) {
+            for (let i = 0; i < remaining; i++) {
+                list.appendChild(createPlaceholder());
+            }
+        }
+    });
+};
+
+/**
+ * Generates the HTML for a match card
+ */
+function createMatchCard(id, m) {
+    const div = document.createElement('div');
+    div.className = `glass p-5 border-l-4 ${m.status === 'done' ? 'border-emerald-500' : 'border-blue-600'} animate-in fade-in duration-500`;
+    div.innerHTML = `
+        <div class="flex justify-between items-center mb-4">
+            <span class="text-[9px] font-black uppercase text-blue-400 tracking-widest">${m.leg || 'Match'}</span>
+            <span class="text-[8px] opacity-30 font-black uppercase tracking-tighter">ID: ${id.slice(-4)}</span>
+        </div>
+        <div class="grid grid-cols-3 gap-2 items-center">
+            <div class="text-center space-y-2">
+                <img src="${m.photoA}" class="w-10 h-10 rounded-full mx-auto border border-white/10 shadow-lg">
+                <p class="text-[9px] font-black uppercase truncate px-1">${m.teamA}</p>
+            </div>
+            <div class="text-center">
+                <div class="text-lg font-black italic tracking-tighter">${m.score || '0:0'}</div>
+                <div class="text-[8px] opacity-40 font-bold uppercase mt-1">AGG ${m.aggA || 0}:${m.aggB || 0}</div>
+            </div>
+            <div class="text-center space-y-2">
+                <img src="${m.photoB}" class="w-10 h-10 rounded-full mx-auto border border-white/10 shadow-lg">
+                <p class="text-[9px] font-black uppercase truncate px-1">${m.teamB}</p>
+            </div>
+        </div>
+    `;
+    return div;
+}
+
+/**
+ * Generates an empty slot placeholder
+ */
+function createPlaceholder() {
+    const div = document.createElement('div');
+    div.className = "border-2 border-dashed border-white/5 rounded-2xl p-8 flex flex-col items-center justify-center opacity-20 grayscale transition-all duration-500";
+    div.innerHTML = `
+        <div class="w-10 h-10 rounded-full bg-white/10 mb-2"></div>
+        <div class="text-[8px] font-black uppercase tracking-widest text-center leading-tight">Waiting for<br>Fixture</div>
+    `;
+    return div;
+}
+
+// --- INITIALIZE ---
+// Wait for page to load then trigger initial round
+document.addEventListener('DOMContentLoaded', () => {
+    switchRound('r16', 8);
+});
 
 </script>
 
