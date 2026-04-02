@@ -3,18 +3,20 @@ importScripts('https://www.gstatic.com/firebasejs/11.4.0/firebase-messaging-comp
 
 firebase.initializeApp({
     apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
+    authDomain: "itzhoyoo-f9f7e.firebaseapp.com",
+    databaseURL: "https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com",
     projectId: "itzhoyoo-f9f7e",
-    messagingSenderId: "774136582531", 
-    appId: "1:774136582531:web:..." 
+    messagingSenderId: "1055745142104" // Replace this with your actual Sender ID from Firebase Settings
 });
 
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-    const title = payload.notification.title;
-    const options = {
-        body: payload.notification.body,
-        icon: 'https://i.imgur.com/gzFKr1u.png', // Your UCL Logo
-    };
-    self.registration.showNotification(title, options);
+  const notificationTitle = payload.notification.title;
+  const notificationOptions = {
+    body: payload.notification.body,
+    icon: 'https://i.imgur.com/gzFKr1u.png' // Your DLS26 Logo
+  };
+
+  self.registration.showNotification(notificationTitle, notificationOptions);
 });
