@@ -1,7 +1,6 @@
 importScripts('https://www.gstatic.com/firebasejs/11.4.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/11.4.0/firebase-messaging-compat.js');
 
-// 🚨 Use your EXACT Firebase Config here
 firebase.initializeApp({
     apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
     authDomain: "itzhoyoo-f9f7e.firebaseapp.com",
@@ -14,13 +13,11 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// This handles the notification when the app is closed/in background
 messaging.onBackgroundMessage((payload) => {
-  console.log('[firebase-messaging-sw.js] Background message received ', payload);
-  const notificationTitle = payload.notification.title;
+  const notificationTitle = payload.notification.title || "DLS26 UCL Update";
   const notificationOptions = {
-    body: payload.notification.body,
-    icon: '/firebase-logo.png' // or your tournament logo URL
+    body: payload.notification.body || "Check the tournament lobby!",
+    icon: 'https://i.imgur.com/gzFKr1u.png'
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);
