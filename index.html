@@ -197,6 +197,61 @@
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
+/* Spinner & Skeleton Styles */
+.chat-loader { width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.skeleton { background: linear-gradient(90deg, #161616 25%, #222 50%, #161616 75%); background-size: 200% 100%; animation: skeleton-move 1.5s infinite; border-radius: 12px; }
+@keyframes skeleton-move { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+/* Admin Glow */
+.admin-glow { box-shadow: 0 0 20px rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.5) !important; }
+#banned-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.9);
+    backdrop-filter: blur(15px); z-index: 9999;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px; font-family: sans-serif;
+}
+.ban-card {
+    background: #111; border: 1px solid #ff4444; border-radius: 20px;
+    padding: 30px; max-width: 400px; width: 100%; text-align: center;
+    box-shadow: 0 0 40px rgba(255, 68, 68, 0.2);
+}
+.appeal-area { display: none; margin-top: 20px; text-align: left; }
+.appeal-input {
+    width: 100%; background: #1a1a1a; border: 1px solid #333;
+    border-radius: 10px; color: white; padding: 10px; font-size: 13px;
+    resize: none; margin-bottom: 5px;
+}
+/* Skeleton Animation */
+.skeleton {
+    background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+}
+
+@keyframes skeleton-loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Hide content when loading */
+.loading-hide { opacity: 0; pointer-events: none; }
+.loading-show { opacity: 1; transition: opacity 0.3s ease; }
+.ai-glow {
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
+    animation: ai-pulse 3s infinite ease-in-out;
+}
+
+@keyframes ai-pulse {
+    0%, 100% { border-color: rgba(96, 165, 250, 0.2); }
+    50% { border-color: rgba(96, 165, 250, 0.6); }
+}
+
+.mention-btn {
+    background: linear-gradient(45deg, #1e3a8a, #3b82f6);
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+}
 
 </style>
 
@@ -411,9 +466,38 @@
         </div>
     </div>
 
-    <div id="profile-page">
-        <button onclick="closeOverlays()" class="absolute top-6 left-6 p-2 opacity-40"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
-        <div class="w-full max-w-sm text-center">
+<div id="banned-overlay" class="hidden" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); backdrop-filter: blur(15px); z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
+    <div class="ban-card animate-in fade-in zoom-in duration-300" style="background: #111; border: 1px solid #ff4444; border-radius: 25px; padding: 30px; max-width: 400px; width: 100%; text-align: center; box-shadow: 0 0 50px rgba(255, 68, 68, 0.2);">
+        <div id="ban-icon" class="text-5xl mb-4">⛔</div>
+        <h1 id="ban-title" class="text-red-500 font-black text-2xl uppercase tracking-tighter">Access Revoked</h1>
+        <p id="ban-reason" class="text-gray-400 text-sm my-4 italic">Checking status...</p>
+        
+        <div id="ban-actions" class="flex flex-col gap-3">
+            <button onclick="showAppeal()" class="bg-white text-black font-black py-4 rounded-2xl text-[10px] uppercase tracking-widest active:scale-95 transition-transform">Appeal Decision</button>
+            <button onclick="handleManualLogout()" class="bg-red-600/10 text-red-500 border border-red-500/20 py-4 rounded-2xl font-black text-[10px] uppercase">Logout</button>
+        </div>
+
+        <div id="termination-actions" class="hidden flex flex-col gap-3">
+            <button onclick="handleManualLogout()" class="bg-red-600 text-white font-black py-4 rounded-2xl text-[10px] uppercase tracking-widest active:scale-95 transition-transform">Logout & Start Fresh</button>
+            <p class="text-[9px] text-white/20 uppercase font-black mt-2">Your data was wiped. Create a new team to rejoin.</p>
+        </div>
+
+        <div id="appeal-ui" class="appeal-area" style="display: none; margin-top: 20px; text-align: left;">
+            <label class="text-[9px] font-black text-gray-500 uppercase mb-2 block tracking-widest">Statement (20-1000 chars)</label>
+            <textarea id="appeal-text" class="appeal-input" rows="5" placeholder="Explain your side..." style="width: 100%; background: #1a1a1a; border: 1px solid #333; border-radius: 15px; color: white; padding: 12px; font-size: 13px; resize: none; margin-bottom: 5px;"></textarea>
+            <p id="char-count" class="text-[9px] text-gray-600 mb-4 text-right">0/1000</p>
+            <button onclick="submitAppeal()" id="submit-appeal-btn" class="w-full bg-blue-600 text-white font-black py-4 rounded-2xl text-[10px] uppercase">Send Appeal</button>
+        </div>
+    </div>
+</div>
+
+<div id="profile-page" class="hidden fixed inset-0 bg-[var(--bg)] z-[500] overflow-y-auto p-6">
+    <button onclick="closeOverlays()" class="absolute top-6 left-6 p-2 opacity-40 active:scale-75 transition-transform">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+    </button>
+    
+    <div class="w-full max-w-sm text-center mx-auto pt-8">
+        <div id="profile-header-skeleton" class="inline-block rounded-full">
             <div class="relative w-32 h-32 mx-auto mb-4 group cursor-pointer" id="change-pic-trigger">
                 <img id="prof-img" class="w-full h-full rounded-full object-cover border-4 border-white/10" src="">
                 <div class="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -421,61 +505,56 @@
                 </div>
                 <input type="file" id="edit-file-inp" hidden accept="image/*">
             </div>
-            <div class="mb-8">
-                <h2 id="prof-status-text" class="text-[10px] font-black uppercase tracking-widest opacity-50 mb-3"></h2>
-                <button id="pay-to-enter-btn" class="hidden mx-auto bg-[#34c759] text-white px-6 py-2 rounded-full font-black text-[10px] uppercase shadow-lg active:scale-95 transition-transform">Pay to Enter</button>
-                <div id="entered-badge" class="hidden text-[#34c759] font-black text-[10px] uppercase italic">Entered ✅</div>
-            </div>
-            <div class="bg-[var(--card)] border border-[var(--border)] rounded-3xl p-6 text-left mb-6">
-                <div class="flex justify-between items-end mb-4">
-                    <div class="w-full">
-                        <p class="text-[10px] uppercase opacity-40 font-bold mb-1">Username</p>
-                        <input type="text" id="prof-name-input" readonly class="bg-transparent font-black text-2xl uppercase outline-none w-full border-none" maxlength="12">
-                    </div>
-                    <button id="edit-profile-btn" class="opacity-40 text-xs font-black uppercase ml-2">Edit</button>
-                </div>
-                <p class="text-[10px] uppercase opacity-40 font-bold mb-1">WhatsApp</p>
-                <input type="tel" id="prof-wa-input" readonly class="bg-transparent font-bold outline-none w-full border-none">
-                <div class="mt-4 pt-4 border-t border-[var(--border)] cursor-pointer active:opacity-50 transition-opacity" id="copy-id-trigger">
-                    <p class="text-[10px] uppercase opacity-40 font-bold mb-1">Support Code (User ID)</p>
-                    <p id="prof-id" class="text-[9px] font-mono break-all opacity-20"></p>
-                </div>
-                <p id="profile-feedback" class="inline-feedback mt-4"></p>
-            </div>
-            <button id="logout-trigger" class="w-full border border-red-500/30 text-red-500 py-4 rounded-2xl font-black text-sm mb-4">LOGOUT</button>
         </div>
-    <div class="mt-6 pt-6 border-t border-white/10">
-    <h3 class="text-[10px] font-black uppercase text-blue-500 tracking-widest mb-4">Alert Settings</h3>
-    
-    <div class="glass p-4 flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.02] shadow-xl">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-blue-600/10 flex items-center justify-center text-blue-500 border border-blue-500/20">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                </svg>
+
+        <div class="mb-8">
+            <h2 id="prof-status-text" class="text-[10px] font-black uppercase tracking-widest opacity-50 mb-3"></h2>
+            <button id="pay-to-enter-btn" class="hidden mx-auto bg-[#34c759] text-white px-6 py-2 rounded-full font-black text-[10px] uppercase shadow-lg active:scale-95 transition-transform">Pay to Enter</button>
+            <div id="entered-badge" class="hidden text-[#34c759] font-black text-[10px] uppercase italic">Entered ✅</div>
+        </div>
+
+        <div id="profile-card-skeleton" class="bg-[var(--card)] border border-[var(--border)] rounded-3xl p-6 text-left mb-6">
+            <div class="flex justify-between items-end mb-4">
+                <div class="w-full">
+                    <p class="text-[10px] uppercase opacity-40 font-bold mb-1">Username</p>
+                    <input type="text" id="prof-name-input" readonly class="bg-transparent font-black text-2xl uppercase outline-none w-full border-none" maxlength="12">
+                </div>
+                <button id="edit-profile-btn" class="opacity-40 text-xs font-black uppercase ml-2">Edit</button>
             </div>
             
-            <div>
-                <p class="text-[11px] font-black uppercase tracking-tight text-white/90">Push Notifications</p>
-                <p id="notif-status-sub" class="text-[8px] font-black uppercase opacity-40">Disabled</p>
+            <p class="text-[10px] uppercase opacity-40 font-bold mb-1">WhatsApp</p>
+            <input type="tel" id="prof-wa-input" readonly class="bg-transparent font-bold outline-none w-full border-none">
+            
+            <div class="mt-4 pt-4 border-t border-[var(--border)] cursor-pointer active:opacity-50 transition-opacity" id="copy-id-trigger">
+                <p class="text-[10px] uppercase opacity-40 font-bold mb-1">Support Code (User ID)</p>
+                <p id="prof-id" class="text-[9px] font-mono break-all opacity-20"></p>
             </div>
+            <p id="profile-feedback" class="inline-feedback mt-4"></p>
         </div>
-        
-        <button id="notif-toggle-btn" onclick="window.handleNotifToggle()" 
-            class="bg-white/5 border border-white/10 px-5 py-2.5 rounded-xl text-[9px] font-black uppercase active:scale-95 transition-all hover:bg-white/10">
-            Enable
-        </button>
+
+        <button id="logout-trigger" class="w-full border border-red-500/30 text-red-500 py-4 rounded-2xl font-black text-sm mb-4">LOGOUT</button>
     </div>
 
-    <p class="text-[8px] text-center mt-4 uppercase font-black tracking-widest">
-        <span class="bg-yellow-400 text-black px-2 py-0.5 rounded-sm">
-            Get alerted for Match Results & Tournament Updates
-        </span>
-    </p>
+    <div class="mt-6 pt-6 border-t border-white/10 max-w-sm mx-auto">
+        <h3 class="text-[10px] font-black uppercase text-blue-500 tracking-widest mb-4">Alert Settings</h3>
+        <div class="glass p-4 flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.02] shadow-xl">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-blue-600/10 flex items-center justify-center text-blue-500 border border-blue-500/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-[11px] font-black uppercase tracking-tight text-white/90">Push Notifications</p>
+                    <p id="notif-status-sub" class="text-[8px] font-black uppercase opacity-40">Disabled</p>
+                </div>
+            </div>
+            <button id="notif-toggle-btn" onclick="window.handleNotifToggle()" class="bg-white/5 border border-white/10 px-5 py-2.5 rounded-xl text-[9px] font-black uppercase active:scale-95 transition-all hover:bg-white/10">Enable</button>
+        </div>
+        <p class="text-[8px] text-center mt-4 uppercase font-black tracking-widest"><span class="bg-yellow-400 text-black px-2 py-0.5 rounded-sm">Get alerted for Results & Updates</span></p>
+    </div>
 </div>
-
-    </div>
 
     <div id="logout-modal"><div class="modal-card"><h3 class="text-lg font-black uppercase mb-6">Logout?</h3><button id="confirm-logout" class="w-full bg-red-600 text-white py-4 rounded-xl font-black text-xs mb-2">LOGOUT</button><button onclick="document.getElementById('logout-modal').style.display='none'" class="w-full py-2 text-[10px] font-bold opacity-30 uppercase">Cancel</button></div></div>
 
@@ -776,29 +855,37 @@ window.handleMenuClick = (action) => {
         </div>
     </div>
 </div>
-<div id="section-chat" class="mt-8 px-4">
-    <div class="bg-black/40 backdrop-blur-xl border-2 border-white/10 rounded-3xl overflow-hidden flex flex-col h-[500px]">
+<div id="section-chat" class="mt-8 px-2 sm:px-4">
+    <div class="bg-black/40 backdrop-blur-xl border-2 border-white/10 rounded-[30px] sm:rounded-[35px] overflow-hidden flex flex-col h-[500px] shadow-2xl">
         
-        <div class="p-4 border-bottom border-white/5 bg-white/5 flex justify-between items-center">
-            <h3 class="font-black italic text-white uppercase tracking-widest text-sm">UCL Live Chat</h3>
-            <span id="online-count" class="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded-full border border-emerald-500/30">LIVE</span>
+        <div class="p-3 sm:p-4 border-b border-white/5 bg-white/5 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                <h3 class="font-black italic text-white uppercase tracking-widest text-[10px] sm:text-[11px]">UCL Live Chat</h3>
+            </div>
+            <span id="online-count" class="text-[7px] sm:text-[8px] font-black bg-emerald-500/10 text-emerald-400 px-2 sm:px-3 py-1 rounded-full border border-emerald-500/20 uppercase tracking-tighter">Live Now</span>
         </div>
 
-        <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col">
-            <div class="text-center text-white/20 text-[10px] uppercase tracking-tighter py-10">Loading messages...</div>
+        <div id="chat-messages" class="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 flex flex-col scroll-smooth">
+            <div class="text-center text-white/20 text-[10px] uppercase tracking-tighter py-10 italic">Securing Channel...</div>
         </div>
 
-        <div class="p-3 bg-black/60 border-t border-white/10">
-            <div class="flex items-center gap-2 bg-white/5 p-2 rounded-2xl border border-white/10">
-                <label class="cursor-pointer p-2 hover:bg-white/10 rounded-xl transition-all">
+        <div class="p-2 sm:p-4 bg-black/60 border-t border-white/10">
+            <div class="flex items-center gap-2 bg-white/5 p-1.5 rounded-2xl border border-white/10 focus-within:border-blue-500/50 transition-all">
+                
+                <label class="flex-shrink-0 cursor-pointer p-2 hover:bg-white/10 rounded-xl transition-all active:scale-90">
                     <input type="file" id="chat-img-input" class="hidden" accept="image/*" onchange="handleChatImage(this)">
-                    <svg class="w-5 h-5 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    <svg class="w-5 h-5 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
                 </label>
                 
-                <input type="text" id="chat-input" placeholder="Say something..." class="flex-1 bg-transparent border-none text-white text-sm focus:outline-none placeholder:text-white/20">
+                <input type="text" id="chat-input" placeholder="Message..." class="min-w-0 flex-1 bg-transparent border-none text-white text-[14px] focus:outline-none placeholder:text-white/10 px-1">
                 
-                <button onclick="sendChatMessage()" class="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-xl transition-all">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                <button onclick="sendChatMessage()" class="flex-shrink-0 bg-blue-600 hover:bg-blue-500 text-white p-2.5 rounded-xl shadow-[0_0_10px_rgba(37,99,235,0.3)] transition-all active:scale-95">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                    </svg>
                 </button>
             </div>
         </div>
@@ -1009,53 +1096,125 @@ const VAPID_KEY = "BMTBoZaETNkmPu3gl42TbHyU9CH6tRTS9_TBGB2-oor3nSvt5WhJyk1PcmOiO
 
     onAuthStateChanged(auth, (user) => {
     dataLoaded.auth = true; 
+    
+    // UI References
+    const headSkeleton = document.getElementById('profile-header-skeleton');
+    const cardSkeleton = document.getElementById('profile-card-skeleton');
+    const banOverlay = document.getElementById('banned-overlay');
+    const banReasonText = document.getElementById('ban-reason');
+    const banTitle = document.getElementById('ban-title');
+    const banActions = document.getElementById('ban-actions');
+    const termActions = document.getElementById('termination-actions');
+
     if(user) {
-        document.getElementById('join-btn').classList.add('hidden');
+        document.getElementById('join-btn')?.classList.add('hidden');
         
+        // 1. START SKELETON SHIMMER
+        headSkeleton?.classList.add('skeleton');
+        cardSkeleton?.classList.add('skeleton');
+
         if (userUnsubscribe) userUnsubscribe();
         
-        // Listen for real-time data from the user's database node
+        // 2. REAL-TIME DATA LISTENER
         userUnsubscribe = onValue(ref(db, `users/${user.uid}`), (snap) => {
             const data = snap.val();
-            if(data) {
-                // 1. UPDATE SUPPORT CARD WITH USERNAME
-                const supportIdEl = document.getElementById('user-id-display');
-                if (supportIdEl) {
-                    supportIdEl.innerText = data.username || "NO USERNAME";
+            
+            // --- SECURITY LOCKDOWN CHECK ---
+            
+            // A. CHECK IF ELIMINATED (Account Deleted from DB)
+            if (!snap.exists()) {
+                banOverlay.style.display = 'flex';
+                banOverlay.classList.remove('hidden');
+                banTitle.innerText = "ACCOUNT ELIMINATED";
+                banTitle.style.color = "#fbbf24"; // Warning Orange
+                banReasonText.innerText = "This account was deleted. You have been removed from the league. You must create a new team to rejoin.";
+                
+                banActions.classList.add('hidden'); // Hide Appeal
+                termActions.classList.remove('hidden'); // Show "Logout & Start Fresh"
+                return; 
+            }
+
+            // B. CHECK IF BANNED (Account exists but status is banned)
+            if (data && data.status === 'banned') {
+                banOverlay.style.display = 'flex';
+                banOverlay.classList.remove('hidden');
+                banTitle.innerText = "ACCESS REVOKED";
+                banTitle.style.color = "#ef4444"; // Danger Red
+                
+                if (data.banReason === 'chat_abuse') {
+                    banReasonText.innerText = "You have been banned for community chat abuse. Toxic behavior is not tolerated.";
+                } else if (data.banReason === 'cheating') {
+                    banReasonText.innerText = "Access denied: Attempted cheating or scamming detected.";
+                } else {
+                    banReasonText.innerText = "Your account has been suspended for violating league terms.";
                 }
 
-                // 2. UPDATE HEADER & PROFILE
-                document.getElementById('head-user').innerText = data.username;
-                document.getElementById('head-img').src = data.photo;
-                document.getElementById('prof-img').src = data.photo;
-                document.getElementById('prof-name-input').value = data.username;
-                document.getElementById('prof-wa-input').value = data.whatsapp;
+                banActions.classList.remove('hidden'); // Show Appeal
+                termActions.classList.add('hidden');
+                return; 
+            }
+
+            // --- 3. ACTIVE USER STATE (Not Banned or Deleted) ---
+            banOverlay.style.display = 'none';
+            banOverlay.classList.add('hidden');
+
+            if(data) {
+                // STOP SKELETONS
+                headSkeleton?.classList.remove('skeleton');
+                cardSkeleton?.classList.remove('skeleton');
+
+                // UPDATE UI (IDs Preserved)
+                const username = data.username || "Anonymous";
+                const photoURL = data.photo || `https://ui-avatars.com/api/?name=${username}&background=random`;
+
+                document.getElementById('head-user').innerText = username;
+                document.getElementById('head-img').src = photoURL;
+                document.getElementById('prof-img').src = photoURL;
                 
-                // Keep the actual UID in the technical support field on the profile page
+                // Update inputs only if not currently editing
+                if(document.activeElement !== document.getElementById('prof-name-input')) {
+                    document.getElementById('prof-name-input').value = username;
+                }
+                if(document.activeElement !== document.getElementById('prof-wa-input')) {
+                    document.getElementById('prof-wa-input').value = data.whatsapp || "";
+                }
+                
                 document.getElementById('prof-id').innerText = user.uid;
 
                 const pill = document.getElementById('user-pill'); 
-                pill.classList.remove('hidden'); 
-                pill.style.display = 'flex';
+                if(pill) {
+                    pill.classList.remove('hidden'); 
+                    pill.style.display = 'flex';
+                }
                 
                 updateStatusBar(data.status || 'not entered');
             }
         });
     } else {
+        // --- LOGGED OUT / GUEST STATE ---
         if (userUnsubscribe) { userUnsubscribe(); userUnsubscribe = null; }
-        document.getElementById('join-btn').classList.remove('hidden');
+        document.getElementById('join-btn')?.classList.remove('hidden');
         
-        const pill = document.getElementById('user-pill'); 
-        pill.classList.add('hidden'); 
-        pill.style.display = 'none';
+        // Reset Overlays & Skeletons
+        headSkeleton?.classList.remove('skeleton');
+        cardSkeleton?.classList.remove('skeleton');
+        banOverlay.style.display = 'none';
+        banOverlay?.classList.add('hidden');
 
-        // Clear the Support ID when logged out
+        const pill = document.getElementById('user-pill'); 
+        if(pill) {
+            pill.classList.add('hidden'); 
+            pill.style.display = 'none';
+        }
+
         const supportIdEl = document.getElementById('user-id-display');
         if (supportIdEl) supportIdEl.innerText = "NOT LOGGED IN";
         
         updateStatusBar('not entered');
     }
 });
+
+
     function syncSeasonTimer() {
         onValue(ref(db, 'season'), (snapshot) => {
             const data = snapshot.val();
@@ -1365,113 +1524,136 @@ window.handleProofUpload = async function(input) {
         uploadBtn.disabled = false;
     }
 };
+// --- CONFIG & INITIAL STATE ---
+const chatContainer = document.getElementById('chat-messages');
+
+// Initial Loading UI
+chatContainer.innerHTML = `<div class="flex flex-col items-center justify-center py-10 opacity-50"><div class="chat-loader mb-2"></div><p class="text-[8px] font-black uppercase tracking-widest text-white">Securing Channel...</p></div>`;
+
 // 1. LOAD MESSAGES IN REAL-TIME
 const chatRef = ref(db, 'group_chat');
 onValue(query(chatRef, orderByChild('timestamp')), (snapshot) => {
-    const container = document.getElementById('chat-messages');
-    container.innerHTML = ''; // Clear for fresh load
+    chatContainer.innerHTML = ''; 
     
+    if (!snapshot.exists()) {
+        chatContainer.innerHTML = `<div class="text-center py-10 opacity-20 text-[10px] font-black uppercase text-white">No messages yet. Start the hype.</div>`;
+        return;
+    }
+
     snapshot.forEach((child) => {
         const msg = child.val();
         const isMe = auth.currentUser && auth.currentUser.uid === msg.uid;
+        const isAdmin = msg.uid === "admin" || msg.username === "ADMIN";
         
+        // WhatsApp link logic (if phone starts with +, create wa.me link)
+        const hasWhatsApp = msg.phone && msg.phone.startsWith('+');
+        const waLink = hasWhatsApp ? `https://wa.me/${msg.phone.replace(/\s+/g, '')}` : null;
+
+        // Alignment
+        const containerCls = isAdmin ? 'w-full items-center my-4' : (isMe ? 'items-end self-end' : 'items-start self-start');
+        let bubbleCls = isMe ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white/10 text-white/90 rounded-tl-none';
+        if (isAdmin) bubbleCls = 'bg-red-950/40 text-center w-[90%] border-red-500/30';
+
         const msgHTML = `
-            <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[85%] ${isMe ? 'self-end' : 'self-start'}">
-                <div class="flex items-center gap-2 mb-1">
-                    ${!isMe ? `<img src="${msg.photo}" class="w-4 h-4 rounded-full border border-white/20">` : ''}
-                    <span class="text-[9px] font-bold text-white/40 uppercase">${msg.username}</span>
+            <div class="flex flex-col ${containerCls} max-w-[85%] mb-3 transition-all animate-in fade-in slide-in-from-bottom-2">
+                
+                <div class="flex items-center gap-2 mb-1 px-1">
+                    ${(!isMe && msg.photo) ? `<img src="${msg.photo}" class="w-4 h-4 rounded-full border border-white/10">` : ''}
+                    <span class="text-[9px] font-black text-white/40 uppercase tracking-widest">${msg.username || 'Anonymous'}</span>
                     <span class="text-[8px] text-white/20">${new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                    
+                    ${waLink && !isMe ? `
+                        <a href="${waLink}" target="_blank" class="bg-emerald-500/20 p-1 rounded-md border border-emerald-500/30 active:scale-90 transition-all">
+                             <svg class="w-2.5 h-2.5 text-emerald-400" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.72.94 3.675 1.439 5.662 1.439h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                        </a>
+                    ` : ''}
                 </div>
-                <div class="${isMe ? 'bg-blue-600 text-white rounded-2xl rounded-tr-none' : 'bg-white/10 text-white/90 rounded-2xl rounded-tl-none'} px-3 py-2 text-sm shadow-xl border border-white/5">
-                    ${msg.image ? `<img src="${msg.image}" class="rounded-lg mb-2 max-w-full border border-black/20">` : ''}
-                    ${msg.text ? `<p class="leading-relaxed">${msg.text}</p>` : ''}
+
+                <div class="${bubbleCls} px-3 py-2 text-sm shadow-xl border border-white/5 rounded-2xl relative">
+                    ${msg.image ? `<img src="${msg.image}" class="rounded-lg w-full mb-1 border border-black/20" loading="lazy">` : ''}
+                    <p class="leading-relaxed ${isAdmin ? 'font-black italic text-red-100' : ''}">${msg.text}</p>
                 </div>
             </div>
         `;
-        container.innerHTML += msgHTML;
+        chatContainer.insertAdjacentHTML('beforeend', msgHTML);
     });
-    
-    // Auto-scroll to bottom
-    container.scrollTop = container.scrollHeight;
+    chatContainer.scrollTop = chatContainer.scrollHeight;
 });
 
-// 2. SEND MESSAGE FUNCTION
+// 2. SEND MESSAGE FUNCTION (Handles Guest & User)
 window.sendChatMessage = async () => {
     const input = document.getElementById('chat-input');
     const text = input.value.trim();
     if (!text) return;
 
-    let senderData = {
+    let payload = {
+        text: text,
+        timestamp: Date.now(),
+        uid: "guest",
         username: "Anonymous Player",
-        photo: "https://ui-avatars.com/api/?name=A&background=random",
-        uid: "guest"
+        photo: "https://ui-avatars.com/api/?name=?&background=333&color=fff"
     };
 
-    // If logged in, fetch real data
+    // If user is logged in, use their real data
     if (auth.currentUser) {
         const userSnap = await get(ref(db, `users/${auth.currentUser.uid}`));
         const data = userSnap.val();
         if (data) {
-            senderData = {
+            if (data.status === 'banned') { alert("Banned."); return; }
+            payload = {
+                text: text,
+                timestamp: Date.now(),
+                uid: auth.currentUser.uid,
                 username: data.username,
-                photo: data.photo || "https://ui-avatars.com/api/?name=" + data.username,
-                uid: auth.currentUser.uid
+                photo: data.photo,
+                phone: data.phone || null // Grab phone for WhatsApp button
             };
         }
     }
 
-    await push(ref(db, 'group_chat'), {
-        ...senderData,
-        text: text,
-        timestamp: Date.now()
-    });
-
-    input.value = ''; // Clear input
+    await push(ref(db, 'group_chat'), payload);
+    input.value = '';
 };
 
-// 3. SEND IMAGE IN CHAT
+// 3. IMAGE HANDLER (Logged-in Only)
 window.handleChatImage = async (input) => {
-    if (!input.files || !input.files[0]) return;
-    
-    const file = input.files[0];
+    if (!auth.currentUser) {
+        alert("Login to send images!");
+        input.value = '';
+        return;
+    }
+
+    if (!input.files?.[0]) return;
     const btn = input.parentElement;
-    btn.style.opacity = "0.3"; // Visual loading state
+    const original = btn.innerHTML;
+    btn.innerHTML = `<div class="chat-loader" style="width:12px; height:12px;"></div>`;
 
     try {
         const formData = new FormData();
-        formData.append("image", file);
+        formData.append("image", input.files[0]);
         const res = await fetch("https://api.imgur.com/3/image", {
             method: "POST",
             headers: { Authorization: `Client-ID ${IMGUR_ID}` },
             body: formData
         });
-        const imgData = await res.json();
-        if (!imgData.success) throw new Error("Imgur failed");
-
-        let senderData = { username: "Anonymous", photo: "https://ui-avatars.com/api/?name=A", uid: "guest" };
-        if (auth.currentUser) {
-            const userSnap = await get(ref(db, `users/${auth.currentUser.uid}`));
-            const data = userSnap.val();
-            senderData = { username: data.username, photo: data.photo, uid: auth.currentUser.uid };
-        }
+        const img = await res.json();
+        
+        const userSnap = await get(ref(db, `users/${auth.currentUser.uid}`));
+        const data = userSnap.val();
 
         await push(ref(db, 'group_chat'), {
-            ...senderData,
-            image: imgData.data.link,
+            username: data.username,
+            photo: data.photo,
+            uid: auth.currentUser.uid,
+            phone: data.phone || null,
+            image: img.data.link,
             timestamp: Date.now()
         });
-        
-    } catch (e) {
-        alert("Image upload failed");
-    } finally {
-        btn.style.opacity = "1";
-    }
+    } catch (e) { alert("Upload failed"); } 
+    finally { btn.innerHTML = original; }
 };
 
-// Allow "Enter" key to send
-document.getElementById('chat-input')?.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') window.sendChatMessage();
-});
+document.getElementById('chat-input')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') window.sendChatMessage(); });
 
 // --- SUPREME COMMAND FIXTURES ENGINE ---
 window.loadFixtures = () => {
@@ -1890,7 +2072,64 @@ window.closeNotifPopup = () => {
 };
 
 window.addEventListener('load', window.checkNotifStatus);
+// Function to handle the Appeal Submission
+window.submitAppeal = async () => {
+    const textEl = document.getElementById('appeal-text');
+    const text = textEl.value.trim();
+    const btn = document.getElementById('submit-appeal-btn');
+    
+    // 1. Length Check (20 - 1000)
+    if (text.length < 20 || text.length > 1000) {
+        alert("Appeal must be between 20 and 1000 characters.");
+        return;
+    }
 
+    // 2. Anti-Link Regex (No http, https, or www)
+    const linkPattern = /(https?:\/\/[^\s]+|www\.[^\s]+)/gi;
+    if (linkPattern.test(text)) {
+        alert("Links are strictly prohibited in appeals.");
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerText = "TRANSMITTING...";
+
+    try {
+        // Send to a dedicated appeals node in Firebase
+        await push(ref(db, 'admin_appeals'), {
+            uid: auth.currentUser.uid,
+            username: document.getElementById('head-user').innerText || "Banned User",
+            statement: text,
+            timestamp: Date.now()
+        });
+        
+        alert("Appeal sent to Admin. You will now be logged out.");
+        window.handleManualLogout();
+    } catch (e) {
+        alert("System error. Try again.");
+        btn.disabled = false;
+        btn.innerText = "SEND TO ADMIN";
+    }
+};
+
+// UI Toggle for Appeal Form
+window.showAppeal = () => {
+    document.getElementById('ban-actions').classList.add('hidden');
+    document.getElementById('appeal-ui').classList.remove('hidden');
+    document.getElementById('appeal-ui').style.display = 'block';
+};
+
+// Logout Handler
+window.handleManualLogout = () => {
+    signOut(auth).then(() => {
+        window.location.reload();
+    });
+};
+
+// Character Counter for Appeal Textarea
+document.getElementById('appeal-text')?.addEventListener('input', (e) => {
+    document.getElementById('char-count').innerText = `${e.target.value.length}/1000`;
+});
 </script>
 
 </body>
