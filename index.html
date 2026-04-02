@@ -444,31 +444,6 @@
             </div>
             <button id="logout-trigger" class="w-full border border-red-500/30 text-red-500 py-4 rounded-2xl font-black text-sm mb-4">LOGOUT</button>
         </div>
-        <div class="mt-6 pt-6 border-t border-white/10">
-    <h3 class="text-[10px] font-black uppercase text-blue-500 tracking-widest mb-4">Alert Settings</h3>
-    
-    <div class="glass p-4 flex items-center justify-between rounded-2xl border border-white/5 bg-white/[0.02]">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-blue-600/10 flex items-center justify-center text-blue-500">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                </svg>
-            </div>
-            <div>
-                <p class="text-[11px] font-bold uppercase tracking-tight">Push Notifications</p>
-                <p id="notif-status-sub" class="text-[8px] opacity-40 font-bold uppercase">Disabled</p>
-            </div>
-        </div>
-        
-        <button id="notif-toggle-btn" onclick="window.handleNotifToggle()" 
-            class="bg-white/5 border border-white/10 px-4 py-2 rounded-xl text-[9px] font-black uppercase active:scale-95 transition-all">
-            Enable
-        </button>
-    </div>
-    <p class="text-[8px] text-center opacity-20 mt-3 uppercase font-bold tracking-tighter">Get alerted for Match Results & Tournament Updates</p>
-</div>
-
     </div>
 
     <div id="logout-modal"><div class="modal-card"><h3 class="text-lg font-black uppercase mb-6">Logout?</h3><button id="confirm-logout" class="w-full bg-red-600 text-white py-4 rounded-xl font-black text-xs mb-2">LOGOUT</button><button onclick="document.getElementById('logout-modal').style.display='none'" class="w-full py-2 text-[10px] font-bold opacity-30 uppercase">Cancel</button></div></div>
@@ -1770,78 +1745,68 @@ function createPlaceholder() {
 document.addEventListener('DOMContentLoaded', () => {
     switchRound('r16', 8);
 });
-// --- 11. NOTIFICATION ENGINE ---
-const VAPID_KEY = "BMTBoZaETNkmPu3gl42TbHyU9CH6tRTS9_TBGB2-oor3nSvt5WhJyk1PcmOiOLIt5z5xRterBfR2xlY2Ubyq1Do";
+const messaging = getMessaging(app);
 
-window.handleNotifToggle = async () => {
-    const btn = document.getElementById('notif-toggle-btn');
-    const statusText = document.getElementById('notif-status-sub');
+// 1. UPDATED: This now registers the worker before asking for the token
+window.requestNotifications = async () => {
+    const VAPID_KEY = 'BMTBoZaETNkmPu3gl42TbHyU9CH6tRTS9_TBGB2-oor3nSvt5WhJyk1PcmOiOLIt5z5xRterBfR2xlY2Ubyq1Do';
     
-    if (!auth.currentUser) {
-        showFeedback('profile-feedback', "Please login first!");
-        return;
-    }
-
-    btn.innerText = "WORKING...";
-    btn.disabled = true;
-
     try {
+        // Step A: Register the background worker (CRITICAL)
+        const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+        
+        // Step B: Ask for permission
         const permission = await Notification.requestPermission();
         
         if (permission === 'granted') {
-            const token = await getToken(messaging, { vapidKey: VAPID_KEY });
+            // Step C: Get token AND link it to the registration
+            const token = await getToken(messaging, { 
+                vapidKey: VAPID_KEY,
+                serviceWorkerRegistration: registration 
+            });
 
-            if (token) {
-                // Save to User's node in Database
+            if (token && auth.currentUser) {
                 await update(ref(db, `users/${auth.currentUser.uid}`), {
                     fcmToken: token,
-                    notificationsEnabled: true,
-                    lastTokenUpdate: Date.now()
+                    notificationsEnabled: true
                 });
-
-                // Also save to a global list for easier broadcasting
-                await set(ref(db, `fcm_tokens/${auth.currentUser.uid}`), {
-                    token: token,
-                    username: document.getElementById('prof-name-input').value
-                });
-
-                btn.innerText = "ACTIVE";
-                btn.classList.add('text-emerald-500', 'border-emerald-500/30', 'bg-emerald-500/5');
-                statusText.innerText = "Live Alerts Enabled ✅";
-                statusText.classList.add('text-emerald-500');
+                alert("UCL Notifications Enabled! 🏆");
+                console.log("Token saved:", token);
+            } else if (!auth.currentUser) {
+                alert("Please login first to link notifications.");
             }
         } else {
-            showFeedback('profile-feedback', "Notifications blocked by browser.");
-            btn.innerText = "BLOCKED";
+            alert("Notifications blocked. Check browser settings.");
         }
     } catch (err) {
-        console.error("FCM Error:", err);
-        btn.innerText = "ERROR";
-    } finally {
-        btn.disabled = false;
+        console.error("FCM Setup Error:", err);
+        alert("Setup Error: Make sure firebase-messaging-sw.js is in your root folder.");
     }
 };
 
-// Check if notifications are already active when profile opens
-const checkNotifPrefs = async (uid) => {
-    const snap = await get(ref(db, `users/${uid}/notificationsEnabled`));
-    if (snap.val() === true) {
-        const btn = document.getElementById('notif-toggle-btn');
-        const statusText = document.getElementById('notif-status-sub');
-        btn.innerText = "ACTIVE";
-        btn.classList.add('text-emerald-500', 'border-emerald-500/30', 'bg-emerald-500/5');
-        statusText.innerText = "Live Alerts Enabled ✅";
-        statusText.classList.add('text-emerald-500');
+// --- POPUP UI LOGIC (Keep this as is) ---
+window.checkNotifStatus = () => {
+    const hasSeen = localStorage.getItem('ucl_notif_seen');
+    if (!hasSeen) {
+        setTimeout(() => {
+            const popup = document.getElementById('notif-popup');
+            if(popup) popup.classList.remove('hidden');
+        }, 2000); 
     }
 };
 
-// Call this inside your existing onAuthStateChanged logic
-onAuthStateChanged(auth, (user) => {
-    if (user) {
-        // ... your existing code ...
-        checkNotifPrefs(user.uid);
-    }
-});
+window.handleNotifActivation = async () => {
+    localStorage.setItem('ucl_notif_seen', 'true');
+    await window.requestNotifications();
+    window.closeNotifPopup();
+};
+
+window.closeNotifPopup = () => {
+    const popup = document.getElementById('notif-popup');
+    if(popup) popup.classList.add('hidden');
+};
+
+window.addEventListener('load', window.checkNotifStatus);
 
 </script>
 
