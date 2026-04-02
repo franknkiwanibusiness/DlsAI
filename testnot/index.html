@@ -3,118 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DLS26 UCL | Alert System</title>
+    <title>Firebase Push App</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;900&display=swap');
-        body { font-family: 'Inter', sans-serif; background: #020617; color: white; }
-        .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; }
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
-    </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-center p-6">
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen">
 
-    <div class="fixed top-6 left-6 glass px-4 py-2 flex items-center gap-4 text-[10px] font-black uppercase tracking-widest">
-        <div><span id="dot-firebase" class="status-dot bg-red-500"></span> Firebase</div>
-        <div><span id="dot-perm" class="status-dot bg-red-500"></span> Notifications</div>
-    </div>
+    <div class="bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-md text-center border border-gray-700">
+        <h1 class="text-2xl font-bold mb-4">Cloud Notifications</h1>
+        <p id="status" class="text-gray-400 mb-6">Click below to allow browser alerts.</p>
+        
+        <button id="btn-permission" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-all w-full">
+            Enable Notifications
+        </button>
 
-    <div class="glass p-8 w-full max-w-sm text-center border-blue-500/30 shadow-[0_0_50px_rgba(37,99,235,0.1)]">
-        <div class="mb-6">
-            <h1 class="text-4xl font-black italic tracking-tighter uppercase leading-none text-transparent bg-clip-text bg-gradient-to-br from-blue-400 to-indigo-600">
-                UCL PUSH<br>ALERTS
-            </h1>
-            <p class="text-[10px] opacity-40 mt-2 font-bold uppercase tracking-[4px]">DLS26 Tournament Engine</p>
+        <div id="token-box" class="hidden mt-6 p-4 bg-gray-950 rounded border border-gray-700">
+            <p class="text-xs text-green-400 mb-2">Device Token Registered:</p>
+            <p id="token-display" class="text-[10px] break-all text-gray-500 font-mono"></p>
         </div>
-
-        <div id="setup-view" class="space-y-4">
-            <p class="text-xs opacity-60 px-4">Tap below to link your device to the match server. You will receive goals and payout alerts instantly.</p>
-            <button onclick="requestAccess()" class="w-full bg-blue-600 hover:bg-blue-500 py-5 rounded-2xl font-black text-xs uppercase tracking-[3px] transition-all active:scale-95 shadow-xl shadow-blue-600/30">
-                Register Device
-            </button>
-        </div>
-
-        <div id="success-view" class="hidden animate-pulse">
-            <div class="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-500/50">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
-            </div>
-            <h3 class="font-black uppercase text-emerald-400">Device Linked</h3>
-            <p class="text-[10px] opacity-50 mt-1">Check your Admin Panel for the Token</p>
-        </div>
-    </div>
-
-    <div class="mt-8 text-center">
-        <p class="text-[9px] opacity-30 uppercase mb-2">Getting Errors?</p>
-        <button onclick="location.reload()" class="text-[10px] font-bold border border-white/10 px-4 py-2 rounded-full hover:bg-white/5">Force Refresh</button>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
-        import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-messaging.js";
-        import { getDatabase, ref, update } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
-        import { getAuth } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
+        import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-messaging.js";
+        import { getDatabase, ref, push, set } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
 
-        // CONFIG
         const firebaseConfig = {
             apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
             authDomain: "itzhoyoo-f9f7e.firebaseapp.com",
             databaseURL: "https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com",
             projectId: "itzhoyoo-f9f7e",
-            messagingSenderId: "1055745142104",
-            appId: "1:1055745142104:web:8651c6b16e108871408db0"
+            storageBucket: "itzhoyoo-f9f7e.filestorage.app",
+            messagingSenderId: "1094792075584",
+            appId: "1:1094792075584:web:d49e9c3f899d3cd31082a5"
         };
 
+        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        const auth = getAuth(app);
         const messaging = getMessaging(app);
+        const db = getDatabase(app);
 
-        document.getElementById('dot-firebase').classList.replace('bg-red-500', 'bg-emerald-500');
+        const btn = document.getElementById('btn-permission');
+        const status = document.getElementById('status');
+        const tokenBox = document.getElementById('token-box');
+        const tokenDisplay = document.getElementById('token-display');
 
-        // CHECK PERMISSION STATUS ON LOAD
-        if (Notification.permission === 'granted') {
-            document.getElementById('dot-perm').classList.replace('bg-red-500', 'bg-emerald-500');
-        }
+        const VAPID_KEY = "BMTBoZaETNkmPu3gl42TbHyU9CH6tRTS9_TBGB2-oor3nSvt5WhJyk1PcmOiOLIt5z5xRterBfR2xlY2Ubyq1Do";
 
-        window.requestAccess = async () => {
-            console.log("Attempting Registration...");
-            
+        btn.addEventListener('click', async () => {
             try {
                 const permission = await Notification.requestPermission();
                 
                 if (permission === 'granted') {
-                    document.getElementById('dot-perm').classList.replace('bg-red-500', 'bg-emerald-500');
+                    status.innerText = "Requesting token...";
                     
-                    // Service Worker Registration
-                    const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+                    const token = await getToken(messaging, { vapidKey: VAPID_KEY });
                     
-                    const token = await getToken(messaging, { 
-                        vapidKey: 'BMTBoZaETNkmPu3gl42TbHyU9CH6tRTS9_TBGB2-oor3nSvt5WhJyk1PcmOiOLIt5z5xRterBfR2xlY2Ubyq1Do',
-                        serviceWorkerRegistration: reg
-                    });
-
                     if (token) {
-                        console.log("Token Acquired:", token);
-                        
-                        // Save to your DLS26 Players path
-                        if (auth.currentUser) {
-                            await update(ref(db, `users/players/${auth.currentUser.uid}`), {
-                                fcmToken: token,
-                                notificationsActive: true
-                            });
-                        }
+                        // Save token to Realtime Database
+                        const tokenRef = ref(db, 'fcm_tokens/');
+                        const newTokenRef = push(tokenRef);
+                        await set(newTokenRef, {
+                            token: token,
+                            timestamp: Date.now(),
+                            userAgent: navigator.userAgent
+                        });
 
-                        document.getElementById('setup-view').classList.add('hidden');
-                        document.getElementById('success-view').classList.remove('hidden');
+                        status.innerText = "Notifications Active!";
+                        tokenBox.classList.remove('hidden');
+                        tokenDisplay.innerText = token;
+                        btn.classList.add('hidden');
                     }
                 } else {
-                    alert("⚠️ ACCESS DENIED: Please click the Lock icon next to the URL and set Notifications to ALLOW.");
+                    status.innerText = "Permission denied. Reset browser settings to try again.";
                 }
-            } catch (err) {
-                console.error("Critical Error:", err);
-                alert("Error: " + err.message);
+            } catch (error) {
+                console.error("Error:", error);
+                status.innerText = "Setup failed. Check console.";
             }
-        };
+        });
+
+        // Handle messages when tab is active
+        onMessage(messaging, (payload) => {
+            console.log('Foreground message:', payload);
+            new Notification(payload.notification.title, {
+                body: payload.notification.body,
+                icon: payload.notification.icon || 'https://via.placeholder.com/128'
+            });
+        });
     </script>
 </body>
 </html>
