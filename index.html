@@ -1748,38 +1748,53 @@ function createPlaceholder() {
 document.addEventListener('DOMContentLoaded', () => {
     switchRound('r16', 8);
 });
-// --- 11. SUPREME NOTIFICATION ENGINE (FRANK'S PRO EDITION) ---
+// --- 11. SUPREME NOTIFICATION ENGINE (FRANK'S PRO EDITION - TOTAL OVERLAY) ---
 
-// 1. INJECT CUSTOM TOAST STYLES (No need to edit CSS file)
+// 1. INJECT CUSTOM TOAST STYLES (FORCED TO TOP)
 const style = document.createElement('style');
 style.textContent = `
     .frank-toast {
-        position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px);
-        background: rgba(20, 20, 20, 0.95); border: 2px solid #333; color: white;
-        padding: 12px 24px; border-radius: 12px; font-weight: bold; z-index: 9999;
-        display: flex; align-items: center; gap: 10px; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5); backdrop-filter: blur(10px); width: 90%; max-width: 350px;
+        position: fixed; 
+        bottom: 30px; 
+        left: 50%; 
+        transform: translateX(-50%) translateY(150px);
+        background: #0a0a0a; 
+        border: 2px solid #333; 
+        color: white;
+        padding: 16px 24px; 
+        border-radius: 16px; 
+        font-weight: 900; 
+        z-index: 999999 !important; /* TOTAL OVERRIDE OF ALL POPUPS */
+        display: flex; 
+        align-items: center; 
+        gap: 12px; 
+        transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+        box-shadow: 0 20px 50px rgba(0,0,0,1); 
+        backdrop-filter: blur(20px); 
+        width: 85%; 
+        max-width: 400px; 
+        text-transform: uppercase; 
+        letter-spacing: 1px;
+        pointer-events: none;
     }
     .frank-toast.show { transform: translateX(-50%) translateY(0); }
-    .toast-success { border-color: #10b981; color: #10b981; }
-    .toast-error { border-color: #ef4444; color: #ef4444; }
+    .toast-success { border-color: #00ff88; color: #00ff88; box-shadow: 0 0 20px rgba(0, 255, 136, 0.2); }
+    .toast-error { border-color: #ff3b3b; color: #ff3b3b; box-shadow: 0 0 20px rgba(255, 59, 59, 0.2); }
 `;
 document.head.appendChild(style);
 
-// 2. MODERN TOAST ENGINE
+// 2. MODERN TOAST ENGINE (FORCED TO BODY)
 const showToast = (msg, type = 'success') => {
     let toast = document.getElementById('frank-toast');
     if (!toast) {
         toast = document.createElement('div');
         toast.id = 'frank-toast';
         toast.className = 'frank-toast';
-        document.body.appendChild(toast);
+        document.body.appendChild(toast); // Ensures it's outside any nested containers
     }
-    
     toast.innerText = msg;
     toast.className = `frank-toast show ${type === 'error' ? 'toast-error' : 'toast-success'}`;
-    
-    setTimeout(() => { toast.classList.remove('show'); }, 4000);
+    setTimeout(() => { toast.classList.remove('show'); }, 5000);
 };
 
 const messaging = getMessaging(window.app);
@@ -1788,12 +1803,14 @@ window.requestNotifications = async () => {
     const VAPID_KEY = 'BMTBoZaETNkmPu3gl42TbHyU9CH6tRTS9_TBGB2-oor3nSvt5WhJyk1PcmOiOLIt5z5xRterBfR2xlY2Ubyq1Do';
     
     try {
-        // Step A: Register the worker as a module
-        const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
-            type: 'module'
+        // FORCE THE PATH to the root of dlsvalue.site
+        const workerPath = window.location.origin + '/firebase-messaging-sw.js';
+        
+        const registration = await navigator.serviceWorker.register(workerPath, {
+            type: 'module',
+            scope: '/'
         });
         
-        // Step B: Request Permission
         const permission = await Notification.requestPermission();
         
         if (permission === 'granted') {
@@ -1810,7 +1827,7 @@ window.requestNotifications = async () => {
                 showToast("UCL ALERTS ACTIVE! 🏆");
                 return true; 
             } else if (!auth.currentUser) {
-                showToast("PLEASE LOGIN TO SYNC", "error");
+                showToast("LOG IN TO SAVE SETTINGS", "error");
                 return false;
             }
         } else {
@@ -1818,7 +1835,7 @@ window.requestNotifications = async () => {
             return false;
         }
     } catch (err) {
-        console.error("FCM Error:", err);
+        console.error("FCM Error Detail:", err);
         showToast("WORKER FILE NOT FOUND! 📁", "error");
         return false;
     }
