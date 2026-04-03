@@ -187,9 +187,123 @@
     /* Animation for messages */
     .animate-msg { animation: slideUp 0.3s ease-out; }
     @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+/* Placeholder styling for empty/TBA teams */
+img[src*="dicebear"] {
+    filter: brightness(0.4) sepia(1) hue-rotate(240deg); /* Makes TBA images dark purple */
+}
+
+/* Glass effect for the main container */
+#fixtures-list {
+    perspective: 1000px;
+}
+
+/* Ensure the fixtures grid doesn't look cramped on mobile */
+@media (max-width: 600px) {
+    #fixtures-list {
+        grid-template-cols: 1fr;
+        gap: 20px;
+    }
+}
+/* Star Path Stroke Alignment */
+#progress-star {
+    /* The 1600 value matches your JS pathLength exactly */
+    stroke-dasharray: 1600;
+    stroke-dashoffset: 1600; 
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8));
+    transition: stroke-dashoffset 0.1s linear;
+}
+
+/* UCL Fade & Zoom Effect */
+.welcome-active {
+    opacity: 1 !important;
+    scale: 1.1 !important;
+    filter: blur(0px) !important;
+}
+
+#welcome-message {
+    filter: blur(10px);
+}
+
+/* Background Shimmer while loading */
+#loading-screen::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.05) 50%, transparent 60%);
+    background-size: 200% 200%;
+    animation: shimmer 3s infinite linear;
+    pointer-events: none;
+}
+
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
 </style>
 </head>
 <body>
+<div id="loading-screen" 
+     class="fixed inset-0 z-[50000] flex flex-col items-center justify-center transition-opacity duration-1000" 
+     style="background: url('https://i.pinimg.com/736x/f5/93/99/f59399c327ddaafc7e2851e4eb279a83.jpg') no-repeat center center; 
+            background-size: cover;
+            touch-action: none; 
+            overflow: hidden; 
+            height: 100vh; 
+            width: 100vw;">
+    
+    <div class="absolute inset-0 bg-black/40 backdrop-blur-[2px]"></div>
+
+    <div class="relative w-40 h-40 mb-10 flex items-center justify-center">
+        <div class="absolute inset-0 rounded-full animate-ping bg-white/5 border border-white/10"></div>
+        
+        <svg id="ucl-star" class="w-28 h-28 relative z-10 filter drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]" viewBox="0 0 512 512">
+            <path d="M512 198.5L343.3 173.9 256 0l-87.3 173.9L0 198.5l123.7 120.5L94.5 512l161.5-84.9 161.5 84.9-29.2-193L512 198.5z" 
+                  fill="none" 
+                  stroke="rgba(255,255,255,0.15)" 
+                  stroke-width="15"/>
+            
+            <path id="progress-star" 
+                  d="M512 198.5L343.3 173.9 256 0l-87.3 173.9L0 198.5l123.7 120.5L94.5 512l161.5-84.9 161.5 84.9-29.2-193L512 198.5z" 
+                  fill="none" 
+                  stroke="white" 
+                  stroke-width="15" 
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  style="stroke-dasharray: 1600; stroke-dashoffset: 1600; transition: stroke-dashoffset 0.1s linear;"/>
+        </svg>
+        
+        <div class="absolute inset-0 flex items-center justify-center z-20">
+            <span id="load-percent" class="text-sm font-black tracking-tighter text-white drop-shadow-md">0%</span>
+        </div>
+    </div>
+
+    <div class="relative z-10 text-center">
+        <h2 class="text-4xl font-black italic tracking-tighter uppercase text-white mb-2 drop-shadow-2xl">
+            DLS26 <span class="text-blue-400">UCL</span>
+        </h2>
+        <div class="flex items-center justify-center gap-3">
+            <div class="h-[1px] w-8 bg-gradient-to-r from-transparent to-white/40"></div>
+            <p class="text-[9px] font-black uppercase tracking-[6px] text-white/80">Tournament Hub</p>
+            <div class="h-[1px] w-8 bg-gradient-to-l from-transparent to-white/40"></div>
+        </div>
+    </div>
+    
+    <div class="absolute bottom-10 w-full px-10 opacity-20">
+        <div class="h-[2px] bg-gradient-to-r from-transparent via-white to-transparent"></div>
+    </div>
+</div>
+<canvas id="fireworks-canvas" 
+        class="fixed inset-0 z-[40000] pointer-events-none opacity-0 transition-opacity duration-500">
+</canvas>
+
+<div id="welcome-message" 
+     class="fixed inset-0 z-[41000] flex flex-col items-center justify-center pointer-events-none opacity-0 transition-all duration-1000 scale-90">
+    <h1 class="text-6xl font-black italic tracking-tighter text-white drop-shadow-[0_0_30px_rgba(132,88,179,0.8)] uppercase">
+        Welcome
+    </h1>
+    <p class="text-[10px] font-black tracking-[8px] text-blue-400 mt-2 uppercase">Champions League Season 26</p>
+</div>
 
 <div id="crit-offline" class="fixed inset-0 z-[30000] hidden bg-black/95 backdrop-blur-2xl flex items-center justify-center p-6">
     <div class="glass border-red-600 border-2 p-8 w-full max-w-sm text-center shadow-[0_0_60px_rgba(220,38,38,0.5)]">
@@ -510,7 +624,37 @@
     </div>
 </div>
 
-    <div id="logout-modal"><div class="modal-card"><h3 class="text-lg font-black uppercase mb-6">Logout?</h3><button id="confirm-logout" class="w-full bg-red-600 text-white py-4 rounded-xl font-black text-xs mb-2">LOGOUT</button><button onclick="document.getElementById('logout-modal').style.display='none'" class="w-full py-2 text-[10px] font-bold opacity-30 uppercase">Cancel</button></div></div>
+<div id="logout-modal" class="fixed inset-0 z-[600] hidden items-center justify-center p-6 bg-black/80 backdrop-blur-md">
+    <div class="bg-[#1a1a1a] border border-white/10 w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl scale-95 transition-transform duration-300 overflow-hidden relative">
+        
+        <div class="absolute -top-10 -right-10 opacity-10">
+            <svg class="w-32 h-32 fill-white" viewBox="0 0 512 512"><path d="M512 198.5L343.3 173.9 256 0l-87.3 173.9L0 198.5l123.7 120.5L94.5 512l161.5-84.9 161.5 84.9-29.2-193L512 198.5z"/></svg>
+        </div>
+
+        <h3 class="text-3xl font-black italic tracking-tighter uppercase mb-2">Sign Out?</h3>
+        <p class="text-[10px] font-bold uppercase opacity-40 mb-8 tracking-[0.2em]">Champions League Season 26</p>
+
+        <div class="space-y-3 mb-8">
+            <div class="bg-white/5 p-4 rounded-2xl border border-white/5">
+                <p class="text-[9px] font-black uppercase text-blue-400 mb-1">Will I lose my team?</p>
+                <p class="text-[10px] opacity-60 font-medium">No, your team data is safely stored on the Aura servers. Just log back in to manage them.</p>
+            </div>
+            <div class="bg-white/5 p-4 rounded-2xl border border-white/5">
+                <p class="text-[9px] font-black uppercase text-blue-400 mb-1">What about my entry fee?</p>
+                <p class="text-[10px] opacity-60 font-medium">If you have already entered, your status remains 'Entered' even while offline.</p>
+            </div>
+        </div>
+
+        <div class="flex flex-col gap-3">
+            <button id="confirm-logout" class="w-full bg-red-600 hover:bg-red-500 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-widest transition-colors shadow-[0_0_20px_rgba(220,38,38,0.3)]">
+                Confirm Logout
+            </button>
+            <button onclick="document.getElementById('logout-modal').style.display='none'" class="w-full py-4 text-[10px] font-black opacity-30 uppercase tracking-[0.3em] hover:opacity-100 transition-opacity">
+                Wait, take me back
+            </button>
+        </div>
+    </div>
+</div>
 
 
 <div id="minipay-popup" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md overflow-y-auto">
@@ -822,92 +966,142 @@ function toggleFAQ(button) {
     // If it WAS open, it's already been closed by Step 1!
 }
 </script>
-<div id="menu-trigger" onclick="toggleMenu(true)" 
-     style="position: fixed; left: 20px; bottom: 30px; z-index: 9999; background: #ffffff; border: 2.5px solid rgba(0,0,0,0.4); width: 56px; height: 56px; border-radius: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 8px 25px rgba(0,0,0,0.3); transition: transform 0.2s active:scale-90;">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8458B3" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+<div id="ucl-nav-trigger" onclick="UCL_Navigation.toggle(true)" 
+     style="position: fixed; left: 20px; bottom: 30px; z-index: 999; background: #ffffff; border: 3px solid #000000; width: 60px; height: 60px; border-radius: 22px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 8px 8px 0px rgba(0,0,0,0.2); transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#8458B3" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
 </div>
 
-<div id="footer-menu" style="position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 10000; display: none; opacity: 0; transition: opacity 0.3s ease; flex-direction: column; justify-content: flex-end;">
-    <div onclick="toggleMenu(false)" style="position: absolute; inset: 0; z-index: -1;"></div>
+<div id="ucl-nav-overlay" style="position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); z-index: 100000; display: none; opacity: 0; transition: opacity 0.3s ease; flex-direction: column; justify-content: flex-end;">
+    <div onclick="UCL_Navigation.toggle(false)" style="position: absolute; inset: 0; z-index: -1;"></div>
     
-    <div id="menu-content" style="background: rgba(20, 10, 30, 0.95); border-top: 3px solid rgba(0,0,0,0.5); border-radius: 32px 32px 0 0; padding: 25px 20px 40px 20px; transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1); position: relative; backdrop-filter: blur(20px);">
+    <div id="ucl-nav-sheet" style="background: linear-gradient(180deg, #140a1e 0%, #0a0a0a 100%); border-top: 4px solid #333; border-radius: 40px 40px 0 0; padding: 25px 20px 50px 20px; transform: translateY(100%); transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1); position: relative;">
         
-        <div style="width: 40px; height: 5px; background: rgba(255,255,255,0.1); border-radius: 10px; margin: -10px auto 20px auto;"></div>
+        <div style="width: 50px; height: 6px; background: rgba(255,255,255,0.2); border-radius: 10px; margin: -10px auto 25px auto;"></div>
 
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding: 0 10px;">
-            <span style="font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.4); letter-spacing: 3px; text-transform: uppercase;">Quick Navigation</span>
-            <button onclick="toggleMenu(false)" style="background: rgba(255,255,255,0.1); border: 2px solid rgba(0,0,0,0.3); color: white; width: 34px; height: 34px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 900;">✕</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding: 0 10px;">
+            <div style="display: flex; flex-direction: column;">
+                <span style="font-size: 10px; font-weight: 900; color: #8458B3; letter-spacing: 3px; text-transform: uppercase;">UCL Tournament</span>
+                <span style="font-size: 18px; font-weight: 900; color: white; text-transform: uppercase;">Arena Menu</span>
+            </div>
+            <button onclick="UCL_Navigation.toggle(false)" style="background: #ffffff; border: 3px solid #000; color: black; width: 40px; height: 40px; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-weight: 900; box-shadow: 4px 4px 0 rgba(0,0,0,0.5);">✕</button>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr; gap: 12px;">
-            <button onclick="handleMenuClick('TABLE')" style="background: rgba(255,255,255,0.05); border: 2.5px solid rgba(0,0,0,0.4); color: white; padding: 18px; border-radius: 20px; font-weight: 900; font-size: 12px; letter-spacing: 1px; display: flex; align-items: center; gap: 15px; width: 100%; transition: 0.2s; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);">
-                <div style="background: rgba(59, 130, 246, 0.2); padding: 8px; border-radius: 10px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="3"><path d="M3 3h18v18H3zM3 9h18M9 3v18"/></svg></div> TABLE
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <button onclick="UCL_Navigation.navigate('TABLE')" class="ucl-nav-btn">
+                <div class="ucl-icon-box" style="background: rgba(59, 130, 246, 0.2);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="3"><path d="M3 3h18v18H3zM3 9h18M9 3v18"/></svg></div>
+                TABLE
             </button>
             
-            <button onclick="handleMenuClick('SUPPORT')" style="background: rgba(255,255,255,0.05); border: 2.5px solid rgba(0,0,0,0.4); color: white; padding: 18px; border-radius: 20px; font-weight: 900; font-size: 12px; letter-spacing: 1px; display: flex; align-items: center; gap: 15px; width: 100%; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);">
-                <div style="background: rgba(16, 185, 129, 0.2); padding: 8px; border-radius: 10px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div> SUPPORT
+            <button onclick="UCL_Navigation.navigate('FIXTURES')" class="ucl-nav-btn">
+                <div class="ucl-icon-box" style="background: rgba(168, 85, 247, 0.2);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="3"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+                FIXTURES
             </button>
 
-            <button onclick="handleMenuClick('FIXTURES')" style="background: rgba(255,255,255,0.05); border: 2.5px solid rgba(0,0,0,0.4); color: white; padding: 18px; border-radius: 20px; font-weight: 900; font-size: 12px; letter-spacing: 1px; display: flex; align-items: center; gap: 15px; width: 100%; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);">
-                <div style="background: rgba(168, 85, 247, 0.2); padding: 8px; border-radius: 10px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="3"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div> FIXTURES
+            <button onclick="UCL_Navigation.navigate('PRIZES')" class="ucl-nav-btn">
+                <div class="ucl-icon-box" style="background: rgba(239, 68, 68, 0.2);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="3"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></div>
+                PRIZES
             </button>
 
-            <button onclick="handleMenuClick('PRIZES')" style="background: rgba(255,255,255,0.05); border: 2.5px solid rgba(0,0,0,0.4); color: white; padding: 18px; border-radius: 20px; font-weight: 900; font-size: 12px; letter-spacing: 1px; display: flex; align-items: center; gap: 15px; width: 100%; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);">
-                <div style="background: rgba(239, 68, 68, 0.2); padding: 8px; border-radius: 10px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="3"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></div> PRIZES
+            <button onclick="UCL_Navigation.navigate('SUPPORT')" class="ucl-nav-btn">
+                <div class="ucl-icon-box" style="background: rgba(16, 185, 129, 0.2);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+                SUPPORT
             </button>
         </div>
     </div>
 </div>
 
 <style>
-    /* Prevent cutting off sections under the sticky header */
-    #entrants-list, #section-support, #fixtures-section, #section-prizes {
-        scroll-margin-top: 90px;
+    /* Unique Namespacing for CSS */
+    .ucl-nav-btn {
+        background: rgba(255,255,255,0.03);
+        border: 2px solid rgba(255,255,255,0.1);
+        color: white;
+        padding: 20px 10px;
+        border-radius: 24px;
+        font-weight: 900;
+        font-size: 11px;
+        letter-spacing: 1px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        transition: 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
     
-    html { scroll-behavior: smooth; }
-    body { padding-bottom: 100px; } /* Space for the floating button */
+    .ucl-nav-btn:active {
+        transform: scale(0.92);
+        background: rgba(255,255,255,0.1);
+        border-color: #8458B3;
+    }
+
+    .ucl-icon-box {
+        padding: 10px;
+        border-radius: 14px;
+    }
+
+    #ucl-nav-trigger:active {
+        transform: scale(0.85);
+        box-shadow: 2px 2px 0px rgba(0,0,0,0.2);
+    }
+
+    /* Scroll Margin Fix */
+    #entrants-list, #section-support, #fixtures-section, #section-prizes {
+        scroll-margin-top: 100px;
+    }
 </style>
 
 <script>
-function toggleMenu(open) {
-    const menu = document.getElementById('footer-menu');
-    const content = document.getElementById('menu-content');
-    if (open) {
-        menu.style.display = 'flex';
-        setTimeout(() => {
-            menu.style.opacity = '1';
-            content.style.transform = 'translateY(0)';
-        }, 10);
-    } else {
-        menu.style.opacity = '0';
-        content.style.transform = 'translateY(100%)';
-        setTimeout(() => {
-            menu.style.display = 'none';
-        }, 400);
-    }
-}
+// Encapsulate everything in one unique object to prevent global conflicts
+const UCL_Navigation = {
+    toggle: function(open) {
+        const overlay = document.getElementById('ucl-nav-overlay');
+        const sheet = document.getElementById('ucl-nav-sheet');
+        
+        if (open) {
+            overlay.style.display = 'flex';
+            // Use requestAnimationFrame for smoother entry
+            window.requestAnimationFrame(() => {
+                overlay.style.opacity = '1';
+                sheet.style.transform = 'translateY(0)';
+            });
+            document.body.style.overflow = 'hidden'; // Stop background scroll
+        } else {
+            overlay.style.opacity = '0';
+            sheet.style.transform = 'translateY(100%)';
+            document.body.style.overflow = ''; 
+            setTimeout(() => {
+                overlay.style.display = 'none';
+            }, 500);
+        }
+    },
 
-window.handleMenuClick = (action) => {
-    toggleMenu(false);
-    
-    const sectionMap = {
-        'TABLE': 'entrants-list',
-        'SUPPORT': 'section-support', 
-        'FIXTURES': 'fixtures-section',
-        'PRIZES': 'section-prizes'
-    };
+    navigate: function(action) {
+        this.toggle(false);
+        
+        const sectionMap = {
+            'TABLE': 'entrants-list',
+            'SUPPORT': 'section-support', 
+            'FIXTURES': 'fixtures-section',
+            'PRIZES': 'section-prizes'
+        };
 
-    const targetId = sectionMap[action];
-    const targetElement = document.getElementById(targetId);
+        const targetId = sectionMap[action];
+        const targetElement = document.getElementById(targetId);
 
-    if (targetElement) {
-        setTimeout(() => {
-            targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 350); // Slight delay so menu finishes closing first
+        if (targetElement) {
+            // Delay to let the menu slide down first
+            setTimeout(() => {
+                targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 400); 
+        }
     }
 };
 </script>
+
 <div class="px-6 mb-12 max-w-lg mx-auto" style="margin-top: 32px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 0 4px;">
         <h2 style="font-size: 16px; font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: -0.5px; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
@@ -1032,9 +1226,8 @@ window.handleMenuClick = (action) => {
         </div>
     </div>
 </div>
-
-<section id="fixtures-section" class="max-w-4xl mx-auto p-4">
-    <div class="flex justify-between gap-2 mb-8 bg-black/20 p-2 rounded-2xl border border-white/5">
+<section id="fixtures-section" class="max-w-4xl mx-auto p-4" style="margin-bottom: 80px;">
+    <div class="flex justify-between gap-2 mb-8 bg-white/5 p-2 rounded-2xl border-2 border-black/40 backdrop-blur-xl shadow-[0_8px_0_0_rgba(0,0,0,0.3)]">
         <button onclick="switchRound('r16', 8)" class="round-btn active" id="btn-r16">R16</button>
         <button onclick="switchRound('quarters', 4)" class="round-btn" id="btn-quarters">QF</button>
         <button onclick="switchRound('semis', 2)" class="round-btn" id="btn-semis">SF</button>
@@ -1044,53 +1237,136 @@ window.handleMenuClick = (action) => {
     <div id="fixtures-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
         </div>
 </section>
-<div id="chat-fab" onclick="toggleFullChat(true)" 
-     style="position: fixed; right: 20px; bottom: 30px; z-index: 9998; background: #8458B3; border: 2.5px solid rgba(0,0,0,0.4); width: 56px; height: 56px; border-radius: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 8px 25px rgba(132, 88, 179, 0.4); transition: 0.2s active:scale-90;">
+
+<style>
+    /* NEUBRUTALIST ROUND BUTTONS */
+    .round-btn {
+        flex: 1;
+        padding: 12px 5px;
+        border-radius: 14px;
+        border: 2.5px solid rgba(0,0,0,0.8);
+        background: rgba(255,255,255,0.05);
+        color: rgba(255,255,255,0.6);
+        font-weight: 900;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        transition: 0.2s all;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .round-btn.active {
+        background: #8458B3; /* Your signature purple */
+        color: white;
+        box-shadow: 0 4px 0 0 rgba(0,0,0,0.9);
+        transform: translateY(-2px);
+    }
+
+    .round-btn:active {
+        transform: translateY(2px);
+        box-shadow: none;
+    }
+
+    /* GLASSMORPHIC FIXTURE CARDS (Apply these classes in your JS Render function) */
+    .fixture-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 2.5px solid rgba(0,0,0,0.6);
+        border-radius: 20px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+
+    .team-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: 800;
+        color: white;
+    }
+
+    .match-status {
+        font-size: 10px;
+        text-transform: uppercase;
+        background: #8458B3;
+        padding: 4px 10px;
+        border-radius: 8px;
+        width: fit-content;
+        margin: 0 auto;
+        border: 1.5px solid black;
+    }
+</style>
+
+<div id="chat-fab" onclick="window.toggleFullChat(true)" 
+     style="position: fixed; right: 20px; bottom: 30px; z-index: 9998; background: #8458B3; border: 2.5px solid rgba(0,0,0,0.4); width: 56px; height: 56px; border-radius: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 8px 25px rgba(132, 88, 179, 0.4); transition: 0.2s; -webkit-tap-highlight-color: transparent;" 
+     onmousedown="this.style.transform='scale(0.9)'" onmouseup="this.style.transform='scale(1)'">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
     <span style="position: absolute; top: -2px; right: -2px; width: 12px; height: 12px; background: #ef4444; border: 2px solid #000; border-radius: 50%;"></span>
 </div>
 
 <div id="full-chat-overlay" style="position: fixed; inset: 0; background: #0a0510; z-index: 20000; display: none; flex-direction: column; opacity: 0; transition: opacity 0.3s ease; font-family: sans-serif;">
     
-    <div style="padding: 20px; background: rgba(132, 88, 179, 0.1); border-bottom: 2.5px solid rgba(0,0,0,0.8); display: flex; justify-content: space-between; align-items: center; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);">
+    <div style="padding: 15px 20px; background: rgba(132, 88, 179, 0.1); border-bottom: 2.5px solid rgba(0,0,0,0.8); display: flex; justify-content: space-between; align-items: center; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);">
         <div style="display: flex; align-items: center; gap: 12px;">
-            <button onclick="toggleFullChat(false)" style="background: rgba(255,255,255,0.05); border: 2.5px solid rgba(0,0,0,0.4); color: white; width: 38px; height: 38px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            <button onclick="window.toggleFullChat(false)" style="background: rgba(255,255,255,0.05); border: 2.5px solid rgba(0,0,0,0.4); color: white; width: 38px; height: 38px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="15 18 9 12 15 6"></polyline></svg>
             </button>
             <div>
-                <h2 style="font-size: 13px; font-weight: 900; color: white; text-transform: uppercase; margin: 0; letter-spacing: 1px;">DLS AI Assistant</h2>
+                <h2 style="font-size: 13px; font-weight: 900; color: white; text-transform: uppercase; margin: 0; letter-spacing: 1px;">DLS GROUP CHAT</h2>
                 <div style="display: flex; align-items: center; gap: 5px;">
                     <span style="width: 6px; height: 6px; background: #10b981; border-radius: 50%; box-shadow: 0 0 8px #10b981;"></span>
-                    <p style="font-size: 9px; color: #10b981; font-weight: 800; text-transform: uppercase; margin: 0;">AI Systems Online</p>
+                    <p style="font-size: 9px; color: #10b981; font-weight: 800; text-transform: uppercase; margin: 0;">AI Online</p>
                 </div>
             </div>
         </div>
-        <a href="https://wa.me/27846737224" target="_blank" style="background: rgba(16, 185, 129, 0.2); padding: 8px 12px; border-radius: 12px; border: 2.5px solid rgba(0,0,0,0.3); text-decoration: none; display: flex; align-items: center; gap: 6px;">
-             <span style="font-size: 9px; font-weight: 900; color: #10b981; text-transform: uppercase;">Support</span>
-             <svg width="14" height="14" viewBox="0 0 24 24" fill="#10b981"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.72.94 3.675 1.439 5.662 1.439h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+
+        <a href="https://wa.me/27846737224" target="_blank" style="display: flex; align-items: center; gap: 8px; text-decoration: none; background: rgba(37, 211, 102, 0.1); padding: 6px 12px; border-radius: 12px; border: 1px solid rgba(37, 211, 102, 0.3);">
+            <div style="text-align: right; display: none; sm:block;">
+                <p style="margin: 0; font-size: 8px; font-weight: 900; color: white; text-transform: uppercase;">Customer Support</p>
+                <p style="margin: 0; font-size: 9px; font-weight: 700; color: #25d366;">+27 84 673 7224</p>
+            </div>
+            <div style="background: #25d366; color: white; width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.72.94 3.675 1.439 5.662 1.439h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+            </div>
         </a>
     </div>
 
-    <div id="popup-chat-messages" style="flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; background: radial-gradient(circle at top right, rgba(132, 88, 179, 0.05), transparent);">
-        </div>
+    <div id="popup-chat-messages" style="flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; background: radial-gradient(circle at top right, rgba(132, 88, 179, 0.05), transparent); gap: 12px;"></div>
 
-    <div style="padding: 20px 20px 40px 20px; background: rgba(0,0,0,0.6); border-top: 2.5px solid rgba(0,0,0,0.8); backdrop-filter: blur(20px);">
-        <div style="display: flex; gap: 10px; background: rgba(255,255,255,0.03); border: 2.5px solid rgba(0,0,0,0.5); border-radius: 20px; padding: 6px 6px 6px 16px; align-items: center;">
-            
-            <label style="cursor: pointer; display: flex; align-items: center; justify-content: center;">
-                <input type="file" id="chat-image-input" accept="image/*" style="display:none" onchange="handleChatImage(this)">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+    <div style="padding: 15px 15px 40px 15px; background: rgba(0,0,0,0.6); border-top: 1px solid rgba(255,255,255,0.1);">
+        <div style="display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.05); padding: 6px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
+            <label style="flex-shrink: 0; cursor: pointer; padding: 8px; border-radius: 12px;">
+                <input type="file" id="popup-chat-img-input" style="display:none" accept="image/*" onchange="window.handlePopupChatImage(this)">
+                <svg style="width: 20px; height: 20px; color: rgba(255,255,255,0.4);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
             </label>
-
-            <input type="text" id="chat-input" placeholder="Ask DLS AI anything..." 
-                   style="flex: 1; background: none; border: none; outline: none; color: white; font-size: 13px; font-weight: 600; padding: 10px 0;">
-            
-            <button onclick="sendAIChat()" style="background: #8458B3; border: 2.5px solid rgba(0,0,0,0.3); color: white; width: 42px; height: 42px; border-radius: 15px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s active:scale-90;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            <input type="text" id="popup-chat-input" placeholder="Message AI..." style="min-width: 0; flex: 1; background: transparent; border: none; color: white; outline: none; font-size: 14px;">
+            <button onclick="window.sendAIChat()" style="background: #2563eb; color: white; padding: 10px; border-radius: 12px; border: none; cursor: pointer;">
+                <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                </svg>
             </button>
         </div>
     </div>
 </div>
+
+<style>
+    .chat-msg { animation: msgIn 0.3s ease-out forwards; }
+    @keyframes msgIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .chat-loader {
+        width: 16px; height: 16px; border: 2px solid rgba(255, 255, 255, 0.2);
+        border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+</style>
 
 
 <script type="module">
@@ -1109,13 +1385,13 @@ import {
     set, 
     get, 
     onValue, 
+    off, 
     query, 
     orderByChild, 
     equalTo, 
     update, 
     push 
 } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
-
 
 // --- 1. CONFIG & INITIALIZATION ---
 const firebaseConfig = { 
@@ -1135,82 +1411,143 @@ window.db = getDatabase(window.app);
 window.messaging = getMessaging(window.app);
 
 // MAP FIREBASE UTILITIES TO WINDOW
+window.set = set; 
 window.ref = ref;
 window.push = push;
 window.get = get;
 window.onValue = onValue;
+window.off = off;           
 window.query = query;
+window.update = update;     
 window.orderByChild = orderByChild;
+window.equalTo = equalTo;   
 
-// GLOBAL POPUP TOGGLE
+// --- TOGGLE OVERLAY (WITH SCROLL LOCK) ---
 window.toggleFullChat = (show) => {
-    const el = document.getElementById('full-chat-overlay');
-    if (!el) return;
+    const overlay = document.getElementById('full-chat-overlay');
+    const container = document.getElementById('popup-chat-messages');
+    
     if (show) {
-        el.style.display = 'flex';
-        document.body.style.overflow = 'hidden';
-        setTimeout(() => el.style.opacity = '1', 20);
+        overlay.style.display = 'flex';
+        // This stops the background from moving
+        document.body.style.overflow = 'hidden'; 
+        
+        setTimeout(() => {
+            overlay.style.opacity = '1';
+            // Auto-scroll to the latest message when opened
+            if (container) container.scrollTop = container.scrollHeight;
+        }, 10);
     } else {
-        el.style.opacity = '0';
-        document.body.style.overflow = 'auto';
-        setTimeout(() => el.style.display = 'none', 300);
+        overlay.style.opacity = '0';
+        // This allows the background to scroll again
+        document.body.style.overflow = ''; 
+        
+        setTimeout(() => overlay.style.display = 'none', 300);
     }
 };
-
 
 // GLOBAL CONSTANTS
 const IMGUR_ID = "891e5bb4aa94282";
 const VAPID_KEY = "BMTBoZaETNkmPu3gl42TbHyU9CH6tRTS9_TBGB2-oor3nSvt5WhJyk1PcmOiOLIt5z5xRterBfR2xlY2Ubyq1Do";
 
-    // --- 2. GLOBAL UI STATE ---
-    let isLoginMode = false;
-    let seasonActive = false; 
-    let userUnsubscribe = null; 
-    let timerInterval = null;
-    let isEditing = false;
-    let dataLoaded = { auth: false, season: false, images: false }; 
+// --- 2. GLOBAL UI STATE ---
+let isLoginMode = false;
+let seasonActive = false; 
+let userUnsubscribe = null; 
+let timerInterval = null;
+let isEditing = false;
 
-    const wrapper = document.getElementById('footer-menu');
-    const content = document.getElementById('menu-content');
-    const starPath = document.getElementById('progress-star');
-    const percentText = document.getElementById('load-percent');
-    const pathLength = 1600; 
+// The Single Source of Truth
+window.dataLoaded = { 
+    auth: false, 
+    season: false, 
+    images: false 
+}; 
 
-    // --- 3. IMAGE PRELOADER ---
-    const bgPreload = new Image();
-    bgPreload.src = "https://i.imgur.com/0HqPbxn_d.png?maxwidth=520&shape=thumb&fidelity=high"; 
-    bgPreload.onload = () => { dataLoaded.images = true; };
+const starPath = document.getElementById('progress-star');
+const percentText = document.getElementById('load-percent');
+const pathLength = 1600;
 
-    // --- 4. SMART LOADING ENGINE ---
-    function checkDataAndFinish() {
-        if (dataLoaded.auth && dataLoaded.season && dataLoaded.images) {
-            const screen = document.getElementById('loading-screen');
-            if(screen) {
-                screen.style.opacity = '0';
-                setTimeout(() => {
-                    screen.style.display = 'none';
-                    setInterval(autoScrollRoadmap, 4000);
-                }, 800);
+// --- 3. IMAGE PRELOADER ---
+const bgPreload = new Image();
+// Using your Imgur link
+bgPreload.src = "https://i.imgur.com/0HqPbxn_d.png?maxwidth=520&shape=thumb&fidelity=high"; 
+bgPreload.onload = () => { 
+    window.dataLoaded.images = true; 
+    console.log("🎨 Images Ready");
+};
+// --- 4. THE SMART ENGINE (WITH 3s DATA VERIFICATION) ---
+window.startLoader = function() {
+    let loadProgress = 0;
+    let finishTriggered = false; 
+    let holdStartTime = null; // Tracks when we hit 100%
+
+    const interval = setInterval(() => {
+        // 1. Natural crawl to 95%
+        if (loadProgress < 95) {
+            loadProgress += Math.random() * 1.5; // Slightly slower for smoother feel
+        } 
+        
+        // 2. Sync with Firebase & Image Milestones
+        const isAppReady = window.dataLoaded.auth && 
+                           window.dataLoaded.season && 
+                           window.dataLoaded.images;
+
+        if (isAppReady && loadProgress >= 95) {
+            loadProgress = 100;
+        }
+
+        // 3. Update UI (Star & Percentage)
+        if(percentText) percentText.innerText = Math.floor(loadProgress) + "%";
+        if(starPath) {
+            starPath.style.strokeDashoffset = pathLength - (pathLength * (loadProgress / 100));
+        }
+
+        // 4. Final Exit Logic with 3-Second Hold
+        if (loadProgress >= 100 && !finishTriggered) {
+            
+            // Start the timer the moment we hit 100
+            if (!holdStartTime) {
+                holdStartTime = Date.now();
+                console.log("🏁 100% Reached. Holding for 3s to sync DOM...");
+            }
+
+            const timeElapsed = Date.now() - holdStartTime;
+
+            // Only proceed if 3000ms (3 seconds) have passed
+            if (timeElapsed >= 3000) {
+                finishTriggered = true; 
+                clearInterval(interval);
+                
+                const screen = document.getElementById('loading-screen');
+                if(screen) {
+                    // Start Fade Out
+                    screen.style.opacity = '0';
+                    
+                    setTimeout(() => {
+                        // Double Frame Guard: Ensures Profile Pic & Buttons are painted before showing
+                        requestAnimationFrame(() => {
+                            requestAnimationFrame(() => {
+                                screen.style.display = 'none';
+                                
+                                // 🔥 TRIGGER FIREWORKS & WELCOME
+                                if (typeof window.launchCelebration === 'function') {
+                                    window.launchCelebration();
+                                }
+                                
+                                // Start Roadmap Auto-scroll
+                                if (typeof autoScrollRoadmap === 'function') {
+                                    setInterval(autoScrollRoadmap, 4000);
+                                }
+                            });
+                        });
+                    }, 1000); // Wait for the opacity transition (duration-1000)
+                }
             }
         }
-    }
+    }, 60); 
+};
 
-    window.startLoader = function() {
-        let loadProgress = 0;
-        const interval = setInterval(() => {
-            if (loadProgress < 95) {
-                loadProgress += Math.random() * 2.5;
-            } else if (dataLoaded.auth && dataLoaded.season && dataLoaded.images) {
-                loadProgress = 100;
-            }
-            if(percentText) percentText.innerText = Math.floor(loadProgress) + "%";
-            if(starPath) starPath.style.strokeDashoffset = pathLength - (pathLength * (loadProgress / 100));
-            if (loadProgress >= 100) {
-                clearInterval(interval);
-                setTimeout(checkDataAndFinish, 300);
-            }
-        }, 50);
-    };
 
     function autoScrollRoadmap() {
         const slider = document.getElementById('roadmap-scroll');
@@ -1275,41 +1612,12 @@ const VAPID_KEY = "BMTBoZaETNkmPu3gl42TbHyU9CH6tRTS9_TBGB2-oor3nSvt5WhJyk1PcmOiO
         return isUnique;
     }
 
-    function updateStatusBar(status) {
-        const display = document.getElementById('status-display');
-        const profStat = document.getElementById('prof-status-text');
-        const payBtn = document.getElementById('pay-to-enter-btn');
-        const enteredBadge = document.getElementById('entered-badge');
-        let text = "Not Entered", dotCls = "dot-not", txtCls = "status-not";
 
-        if (status === 'entered' || status === 'paid') { 
-            text = "Entered"; dotCls = "dot-ent"; txtCls = "status-ent"; 
-        } else if (status === 'pending') { 
-            text = "Pending Verification"; dotCls = "dot-pen"; txtCls = "status-pen"; 
-        }
-        
-        if(profStat) profStat.innerText = text;
-        if (status === 'entered' || status === 'paid' || status === 'pending') {
-            payBtn?.classList.add('hidden');
-            if(enteredBadge) {
-                enteredBadge.classList.remove('hidden');
-                enteredBadge.innerText = status === 'pending' ? "Verification Pending ⏳" : "Entered ✅";
-                enteredBadge.style.color = status === 'pending' ? "#ffcc00" : "#34c759";
-            }
-        } else { 
-            payBtn?.classList.remove('hidden'); 
-            enteredBadge?.classList.add('hidden'); 
-        }
+    // --- FIREBASE AUTH OBSERVER (INTEGRATED WITH LOADER) ---
+onAuthStateChanged(window.auth, (user) => {
+    // Milestone: Firebase Auth initialized
+    window.dataLoaded.auth = true; 
 
-        if (display) {
-            display.innerHTML = `<span class="dot ${dotCls}"></span>${text}`;
-            display.className = txtCls;
-        }
-    }
-
-    onAuthStateChanged(auth, (user) => {
-    dataLoaded.auth = true; 
-    
     // UI References
     const headSkeleton = document.getElementById('profile-header-skeleton');
     const cardSkeleton = document.getElementById('profile-card-skeleton');
@@ -1319,80 +1627,101 @@ const VAPID_KEY = "BMTBoZaETNkmPu3gl42TbHyU9CH6tRTS9_TBGB2-oor3nSvt5WhJyk1PcmOiO
     const banActions = document.getElementById('ban-actions');
     const termActions = document.getElementById('termination-actions');
 
+    // Clean up old listeners before starting new ones
+    if (window.userUnsubscribe) {
+        window.userUnsubscribe();
+        window.userUnsubscribe = null;
+    }
+
     if(user) {
+        // Logged In State
         document.getElementById('join-btn')?.classList.add('hidden');
         
-        // 1. START SKELETON SHIMMER
+        // Start Shimmer Effect
         headSkeleton?.classList.add('skeleton');
         cardSkeleton?.classList.add('skeleton');
 
-        if (userUnsubscribe) userUnsubscribe();
-        
-        // 2. REAL-TIME DATA LISTENER
-        userUnsubscribe = onValue(ref(db, `users/${user.uid}`), (snap) => {
+        // Establish Real-Time Profile Listener
+        window.userUnsubscribe = onValue(ref(window.db, `users/${user.uid}`), (snap) => {
             const data = snap.val();
+
+            // --- 1. SECURITY / BAN CHECK ---
             
-            // --- SECURITY LOCKDOWN CHECK ---
-            
-            // A. CHECK IF ELIMINATED (Account Deleted from DB)
+            // A. ACCOUNT ELIMINATED (Deleted from Database)
             if (!snap.exists()) {
-                banOverlay.style.display = 'flex';
-                banOverlay.classList.remove('hidden');
-                banTitle.innerText = "ACCOUNT ELIMINATED";
-                banTitle.style.color = "#fbbf24"; // Warning Orange
-                banReasonText.innerText = "This account was deleted. You have been removed from the league. You must create a new team to rejoin.";
-                
-                banActions.classList.add('hidden'); // Hide Appeal
-                termActions.classList.remove('hidden'); // Show "Logout & Start Fresh"
-                return; 
-            }
-
-            // B. CHECK IF BANNED (Account exists but status is banned)
-            if (data && data.status === 'banned') {
-                banOverlay.style.display = 'flex';
-                banOverlay.classList.remove('hidden');
-                banTitle.innerText = "ACCESS REVOKED";
-                banTitle.style.color = "#ef4444"; // Danger Red
-                
-                if (data.banReason === 'chat_abuse') {
-                    banReasonText.innerText = "You have been banned for community chat abuse. Toxic behavior is not tolerated.";
-                } else if (data.banReason === 'cheating') {
-                    banReasonText.innerText = "Access denied: Attempted cheating or scamming detected.";
-                } else {
-                    banReasonText.innerText = "Your account has been suspended for violating league terms.";
+                if(banOverlay) {
+                    banOverlay.style.display = 'flex';
+                    banOverlay.classList.remove('hidden');
+                    if(banTitle) {
+                        banTitle.innerText = "ACCOUNT ELIMINATED";
+                        banTitle.style.color = "#fbbf24"; 
+                    }
+                    if(banReasonText) banReasonText.innerText = "This account was deleted. You have been removed from the league. You must create a new team to rejoin.";
+                    
+                    banActions?.classList.add('hidden');
+                    termActions?.classList.remove('hidden');
                 }
-
-                banActions.classList.remove('hidden'); // Show Appeal
-                termActions.classList.add('hidden');
                 return; 
             }
 
-            // --- 3. ACTIVE USER STATE (Not Banned or Deleted) ---
-            banOverlay.style.display = 'none';
-            banOverlay.classList.add('hidden');
+            // B. ACCOUNT BANNED
+            if (data && data.status === 'banned') {
+                if(banOverlay) {
+                    banOverlay.style.display = 'flex';
+                    banOverlay.classList.remove('hidden');
+                    if(banTitle) {
+                        banTitle.innerText = "ACCESS REVOKED";
+                        banTitle.style.color = "#ef4444";
+                    }
+                    
+                    if (data.banReason === 'chat_abuse') {
+                        banReasonText.innerText = "You have been banned for community chat abuse. Toxic behavior is not tolerated.";
+                    } else if (data.banReason === 'cheating') {
+                        banReasonText.innerText = "Access denied: Attempted cheating or scamming detected.";
+                    } else {
+                        banReasonText.innerText = "Your account has been suspended for violating league terms.";
+                    }
+
+                    banActions?.classList.remove('hidden');
+                    termActions?.classList.add('hidden');
+                }
+                return; 
+            }
+
+            // --- 2. ACTIVE USER UI SYNC ---
+            if(banOverlay) {
+                banOverlay.style.display = 'none';
+                banOverlay.classList.add('hidden');
+            }
 
             if(data) {
-                // STOP SKELETONS
+                // Remove Skeletons
                 headSkeleton?.classList.remove('skeleton');
                 cardSkeleton?.classList.remove('skeleton');
 
-                // UPDATE UI (IDs Preserved)
                 const username = data.username || "Anonymous";
                 const photoURL = data.photo || `https://ui-avatars.com/api/?name=${username}&background=random`;
 
-                document.getElementById('head-user').innerText = username;
-                document.getElementById('head-img').src = photoURL;
-                document.getElementById('prof-img').src = photoURL;
+                // Update Header & Profile UI
+                const headUserEl = document.getElementById('head-user');
+                const headImgEl = document.getElementById('head-img');
+                const profImgEl = document.getElementById('prof-img');
+                const profIdEl = document.getElementById('prof-id');
+                const profNameInp = document.getElementById('prof-name-input');
+                const profWaInp = document.getElementById('prof-wa-input');
+
+                if(headUserEl) headUserEl.innerText = username;
+                if(headImgEl) headImgEl.src = photoURL;
+                if(profImgEl) profImgEl.src = photoURL;
+                if(profIdEl) profIdEl.innerText = user.uid;
                 
-                // Update inputs only if not currently editing
-                if(document.activeElement !== document.getElementById('prof-name-input')) {
-                    document.getElementById('prof-name-input').value = username;
+                // Update Inputs (Only if user isn't currently typing)
+                if(profNameInp && document.activeElement !== profNameInp) {
+                    profNameInp.value = username;
                 }
-                if(document.activeElement !== document.getElementById('prof-wa-input')) {
-                    document.getElementById('prof-wa-input').value = data.whatsapp || "";
+                if(profWaInp && document.activeElement !== profWaInp) {
+                    profWaInp.value = data.whatsapp || data.phone || "";
                 }
-                
-                document.getElementById('prof-id').innerText = user.uid;
 
                 const pill = document.getElementById('user-pill'); 
                 if(pill) {
@@ -1400,19 +1729,23 @@ const VAPID_KEY = "BMTBoZaETNkmPu3gl42TbHyU9CH6tRTS9_TBGB2-oor3nSvt5WhJyk1PcmOiO
                     pill.style.display = 'flex';
                 }
                 
-                updateStatusBar(data.status || 'not entered');
+                // Sync status bar
+                if(typeof window.updateStatusBar === 'function') {
+                    window.updateStatusBar(data.status || 'not entered');
+                }
             }
         });
     } else {
-        // --- LOGGED OUT / GUEST STATE ---
-        if (userUnsubscribe) { userUnsubscribe(); userUnsubscribe = null; }
+        // --- 3. GUEST / LOGGED OUT STATE ---
         document.getElementById('join-btn')?.classList.remove('hidden');
         
-        // Reset Overlays & Skeletons
         headSkeleton?.classList.remove('skeleton');
         cardSkeleton?.classList.remove('skeleton');
-        banOverlay.style.display = 'none';
-        banOverlay?.classList.add('hidden');
+        
+        if(banOverlay) {
+            banOverlay.style.display = 'none';
+            banOverlay.classList.add('hidden');
+        }
 
         const pill = document.getElementById('user-pill'); 
         if(pill) {
@@ -1423,7 +1756,9 @@ const VAPID_KEY = "BMTBoZaETNkmPu3gl42TbHyU9CH6tRTS9_TBGB2-oor3nSvt5WhJyk1PcmOiO
         const supportIdEl = document.getElementById('user-id-display');
         if (supportIdEl) supportIdEl.innerText = "NOT LOGGED IN";
         
-        updateStatusBar('not entered');
+        if(typeof window.updateStatusBar === 'function') {
+            window.updateStatusBar('not entered');
+        }
     }
 });
 
@@ -1560,14 +1895,33 @@ const VAPID_KEY = "BMTBoZaETNkmPu3gl42TbHyU9CH6tRTS9_TBGB2-oor3nSvt5WhJyk1PcmOiO
     document.getElementById('user-pill').onclick = () => document.getElementById('profile-page').style.display = 'flex';
     document.getElementById('logout-trigger').onclick = () => document.getElementById('logout-modal').style.display = 'flex';
     document.getElementById('pay-to-enter-btn').onclick = () => { 
+      
         document.getElementById('minipay-popup').style.display = 'flex'; 
         detectRegionAndPrice();
     };
 
-    document.getElementById('confirm-pay-btn').onclick = async () => { 
-        await update(ref(db, `users/${auth.currentUser.uid}`), { status: 'pending' }); 
-        window.closeOverlays(); 
+        document.getElementById('confirm-pay-btn').onclick = async () => { 
+        try {
+            // 1. Update the database
+            await update(ref(db, `users/${auth.currentUser.uid}`), { status: 'pending' }); 
+            
+            // 2. Hide ONLY the payment popup (Don't use closeOverlays)
+            const miniPay = document.getElementById('minipay-popup');
+            if(miniPay) miniPay.style.display = 'none';
+
+            // 3. Keep the Profile Page visible
+            const profPage = document.getElementById('profile-page');
+            if(profPage) profPage.style.display = 'flex';
+
+            // 4. Force the UI to refresh immediately
+            updateStatusBar('pending');
+
+            showToast("SENT FOR VERIFICATION! 🏆");
+        } catch (e) {
+            showToast("CONNECTION ERROR", "error");
+        }
     };
+
 
       async function detectRegionAndPrice() {
         const display = document.getElementById('display-currency');
@@ -1739,17 +2093,25 @@ window.handleProofUpload = async function(input) {
 };
 // --- CONFIG & INITIAL STATE ---
 const chatContainer = document.getElementById('chat-messages');
+const popupContainer = document.getElementById('popup-chat-messages');
 
-// Initial Loading UI
-chatContainer.innerHTML = `<div class="flex flex-col items-center justify-center py-10 opacity-50"><div class="chat-loader mb-2"></div><p class="text-[8px] font-black uppercase tracking-widest text-white">Securing Channel...</p></div>`;
+// Initial Loading UI for both
+const loadingHTML = `<div class="flex flex-col items-center justify-center py-10 opacity-50"><div class="chat-loader mb-2"></div><p class="text-[8px] font-black uppercase tracking-widest text-white">Securing Channel...</p></div>`;
 
-// 1. LOAD MESSAGES IN REAL-TIME
+if (chatContainer) chatContainer.innerHTML = loadingHTML;
+if (popupContainer) popupContainer.innerHTML = loadingHTML;
+
+// 1. LOAD MESSAGES IN REAL-TIME (Dual Sync)
 const chatRef = ref(db, 'group_chat');
 onValue(query(chatRef, orderByChild('timestamp')), (snapshot) => {
-    chatContainer.innerHTML = ''; 
+    // Clear both containers
+    if (chatContainer) chatContainer.innerHTML = ''; 
+    if (popupContainer) popupContainer.innerHTML = '';
     
     if (!snapshot.exists()) {
-        chatContainer.innerHTML = `<div class="text-center py-10 opacity-20 text-[10px] font-black uppercase text-white">No messages yet. Start the hype.</div>`;
+        const noMsg = `<div class="text-center py-10 opacity-20 text-[10px] font-black uppercase text-white">No messages yet. Start the hype.</div>`;
+        if (chatContainer) chatContainer.innerHTML = noMsg;
+        if (popupContainer) popupContainer.innerHTML = noMsg;
         return;
     }
 
@@ -1758,23 +2120,21 @@ onValue(query(chatRef, orderByChild('timestamp')), (snapshot) => {
         const isMe = auth.currentUser && auth.currentUser.uid === msg.uid;
         const isAdmin = msg.uid === "admin" || msg.username === "ADMIN";
         
-        // WhatsApp link logic (if phone starts with +, create wa.me link)
+        // WhatsApp link logic
         const hasWhatsApp = msg.phone && msg.phone.startsWith('+');
         const waLink = hasWhatsApp ? `https://wa.me/${msg.phone.replace(/\s+/g, '')}` : null;
 
-        // Alignment
+        // Styling & Alignment
         const containerCls = isAdmin ? 'w-full items-center my-4' : (isMe ? 'items-end self-end' : 'items-start self-start');
         let bubbleCls = isMe ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white/10 text-white/90 rounded-tl-none';
         if (isAdmin) bubbleCls = 'bg-red-950/40 text-center w-[90%] border-red-500/30';
 
         const msgHTML = `
             <div class="flex flex-col ${containerCls} max-w-[85%] mb-3 transition-all animate-in fade-in slide-in-from-bottom-2">
-                
                 <div class="flex items-center gap-2 mb-1 px-1">
                     ${(!isMe && msg.photo) ? `<img src="${msg.photo}" class="w-4 h-4 rounded-full border border-white/10">` : ''}
                     <span class="text-[9px] font-black text-white/40 uppercase tracking-widest">${msg.username || 'Anonymous'}</span>
                     <span class="text-[8px] text-white/20">${new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                    
                     ${waLink && !isMe ? `
                         <a href="${waLink}" target="_blank" class="bg-emerald-500/20 p-1 rounded-md border border-emerald-500/30 active:scale-90 transition-all">
                              <svg class="w-2.5 h-2.5 text-emerald-400" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.72.94 3.675 1.439 5.662 1.439h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
@@ -1788,12 +2148,18 @@ onValue(query(chatRef, orderByChild('timestamp')), (snapshot) => {
                 </div>
             </div>
         `;
-        chatContainer.insertAdjacentHTML('beforeend', msgHTML);
+        
+        // Append to both
+        if (chatContainer) chatContainer.insertAdjacentHTML('beforeend', msgHTML);
+        if (popupContainer) popupContainer.innerHTML += msgHTML; // Using += ensures it works if popup is a different context
     });
-    chatContainer.scrollTop = chatContainer.scrollHeight;
+
+    // Auto-scroll both
+    if (chatContainer) chatContainer.scrollTop = chatContainer.scrollHeight;
+    if (popupContainer) popupContainer.scrollTop = popupContainer.scrollHeight;
 });
 
-// 2. SEND MESSAGE FUNCTION (Handles Guest & User)
+// 2. SEND MESSAGE FUNCTION
 window.sendChatMessage = async () => {
     const input = document.getElementById('chat-input');
     const text = input.value.trim();
@@ -1807,7 +2173,6 @@ window.sendChatMessage = async () => {
         photo: "https://ui-avatars.com/api/?name=?&background=333&color=fff"
     };
 
-    // If user is logged in, use their real data
     if (auth.currentUser) {
         const userSnap = await get(ref(db, `users/${auth.currentUser.uid}`));
         const data = userSnap.val();
@@ -1819,7 +2184,7 @@ window.sendChatMessage = async () => {
                 uid: auth.currentUser.uid,
                 username: data.username,
                 photo: data.photo,
-                phone: data.phone || null // Grab phone for WhatsApp button
+                phone: data.phone || null
             };
         }
     }
@@ -1828,7 +2193,7 @@ window.sendChatMessage = async () => {
     input.value = '';
 };
 
-// 3. IMAGE HANDLER (Logged-in Only)
+// 3. IMAGE HANDLER
 window.handleChatImage = async (input) => {
     if (!auth.currentUser) {
         alert("Login to send images!");
@@ -1866,95 +2231,11 @@ window.handleChatImage = async (input) => {
     finally { btn.innerHTML = original; }
 };
 
-document.getElementById('chat-input')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') window.sendChatMessage(); });
+// 4. ENTER KEY LISTENER
+document.getElementById('chat-input')?.addEventListener('keypress', (e) => { 
+    if (e.key === 'Enter') window.sendChatMessage(); 
+});
 
-// --- SUPREME COMMAND FIXTURES ENGINE ---
-window.loadFixtures = () => {
-    const list = document.getElementById('fixtures-list');
-    const fixturesRef = ref(db, `fixtures/${currentRound}`);
-
-    onValue(fixturesRef, (snap) => {
-        list.innerHTML = "";
-        const data = snap.val();
-        
-        if (!data) {
-            list.innerHTML = `
-                <div class="py-20 text-center opacity-20">
-                    <p class="text-[10px] uppercase font-black tracking-[4px]">No Matches in ${currentRound.toUpperCase()}</p>
-                </div>`;
-            return;
-        }
-
-        Object.entries(data).forEach(([id, m]) => {
-            const isDecider = (m.leg === "Leg 2" || m.leg === "Final");
-            // Check who wins the aggregate to enable "Advance" button
-            const canA = Number(m.aggA) > Number(m.aggB) && isDecider;
-            const canB = Number(m.aggB) > Number(m.aggA) && isDecider;
-
-            const card = document.createElement('div');
-            // Done matches get a green glow, live ones get blue
-            card.className = `glass p-5 border-l-4 transition-all ${m.status === 'done' ? 'border-emerald-500 glow-entered' : 'border-blue-600'}`;
-            
-            card.innerHTML = `
-                <div class="flex justify-between items-center mb-6">
-                    <div class="flex items-center gap-2">
-                        <span class="bg-blue-600/10 text-blue-500 text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest border border-blue-500/20">${m.leg}</span>
-                        <input type="time" value="${m.time || ''}" onchange="window.upData('${id}','time',this.value)" 
-                               class="bg-transparent text-[10px] font-bold opacity-40 outline-none">
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-[8px] opacity-30 font-black uppercase tracking-tighter">Lock Match</span>
-                        <input type="checkbox" ${m.status === 'done' ? 'checked' : ''} 
-                               onchange="window.upData('${id}','status',this.checked?'done':'live')" 
-                               class="w-5 h-5 rounded-lg accent-emerald-500 cursor-pointer">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-3 gap-2 items-start">
-                    <div class="text-center space-y-3">
-                        <div class="relative inline-block">
-                            <img src="${m.photoA}" class="w-14 h-14 rounded-full mx-auto border-2 border-white/10 shadow-lg object-cover">
-                            ${canA ? '<span class="absolute -top-1 -right-1 text-lg">👑</span>' : ''}
-                        </div>
-                        <p class="text-[10px] font-black uppercase truncate px-1">${m.teamA}</p>
-                        <div class="bg-blue-600/5 p-1 rounded-xl border border-blue-500/10">
-                            <p class="text-[7px] font-black opacity-30 uppercase mb-1">AGG</p>
-                            <select onchange="window.upData('${id}','aggA',this.value)" class="admin-input text-center text-blue-400 !p-1 !rounded-lg text-sm">${gen(m.aggA)}</select>
-                        </div>
-                        <button onclick='window.moveTeam("${id}","A",${JSON.stringify(m)})' ${!canA ? 'disabled' : ''} 
-                                class="btn-move w-full py-2 rounded-xl text-[8px] uppercase active:scale-95 transition-transform">Advance</button>
-                    </div>
-
-                    <div class="space-y-4 pt-2">
-                        <div class="flex gap-1 justify-center">
-                            <select onchange="window.upScore('${id}',0,this.value)" class="admin-input !w-12 !h-12 text-center text-lg font-black !p-0 !rounded-xl">${gen(m.score.split(':')[0])}</select>
-                            <div class="text-white opacity-20 font-black text-xl self-center">:</div>
-                            <select onchange="window.upScore('${id}',1,this.value)" class="admin-input !w-12 !h-12 text-center text-lg font-black !p-0 !rounded-xl">${gen(m.score.split(':')[1])}</select>
-                        </div>
-                        <div class="space-y-1">
-                            <p class="text-[7px] text-center font-black opacity-20 uppercase">Stage Config</p>
-                            <select onchange="window.upData('${id}','leg',this.value)" class="admin-input text-center !text-[9px] font-black uppercase !py-2">${legOpts(m.leg)}</select>
-                        </div>
-                    </div>
-
-                    <div class="text-center space-y-3">
-                        <div class="relative inline-block">
-                            <img src="${m.photoB}" class="w-14 h-14 rounded-full mx-auto border-2 border-white/10 shadow-lg object-cover">
-                            ${canB ? '<span class="absolute -top-1 -left-1 text-lg">👑</span>' : ''}
-                        </div>
-                        <p class="text-[10px] font-black uppercase truncate px-1">${m.teamB}</p>
-                        <div class="bg-blue-600/5 p-1 rounded-xl border border-blue-500/10">
-                            <p class="text-[7px] font-black opacity-30 uppercase mb-1">AGG</p>
-                            <select onchange="window.upData('${id}','aggB',this.value)" class="admin-input text-center text-blue-400 !p-1 !rounded-lg text-sm">${gen(m.aggB)}</select>
-                        </div>
-                        <button onclick='window.moveTeam("${id}","B",${JSON.stringify(m)})' ${!canB ? 'disabled' : ''} 
-                                class="btn-move w-full py-2 rounded-xl text-[8px] uppercase active:scale-95 transition-transform">Advance</button>
-                    </div>
-                </div>`;
-            list.appendChild(card);
-        });
-    });
-};
 // --- CALIBRATED FOR 4MBPS (1.5MBPS THRESHOLD) ---
 let slowWarningDismissed = false;
 
@@ -2050,10 +2331,8 @@ let stopPreviousListener = null;
 
 /**
  * Switch between tournament rounds
- * Linked to the HTML buttons via onclick="switchRound(...)"
  */
 window.switchRound = (round, count) => {
-    // 1. UI: Manage Active Button Classes
     document.querySelectorAll('.round-btn').forEach(btn => {
         btn.classList.remove('active', 'bg-blue-600/20', 'border-blue-500', 'text-blue-400');
         btn.classList.add('opacity-40');
@@ -2065,28 +2344,22 @@ window.switchRound = (round, count) => {
         activeBtn.classList.remove('opacity-40');
     }
 
-    // 2. STOP the previous Firebase listener to prevent data overlapping
     if (typeof stopPreviousListener === 'function') {
         stopPreviousListener(); 
     }
 
-    // 3. START the new real-time listener
     const list = document.getElementById('fixtures-list');
     const roundRef = ref(db, `fixtures/${round}`);
 
-    // Store the unsubscribe function returned by onValue
     stopPreviousListener = onValue(roundRef, (snap) => {
-        list.innerHTML = ""; // Clear the list for the fresh round
-        
+        list.innerHTML = ""; 
         const data = snap.val() || {};
         const matches = Object.entries(data);
 
-        // 4. Render Actual Data from Firebase
         matches.forEach(([id, m]) => {
             list.appendChild(createMatchCard(id, m));
         });
 
-        // 5. Render Placeholders for remaining empty slots
         const remaining = count - matches.length;
         if (remaining > 0) {
             for (let i = 0; i < remaining; i++) {
@@ -2097,52 +2370,112 @@ window.switchRound = (round, count) => {
 };
 
 /**
- * Generates the HTML for a match card
+ * Generates Match Card with Live Countdown & Status
  */
 function createMatchCard(id, m) {
     const div = document.createElement('div');
-    div.className = `glass p-5 border-l-4 ${m.status === 'done' ? 'border-emerald-500' : 'border-blue-600'} animate-in fade-in duration-500`;
-    div.innerHTML = `
-        <div class="flex justify-between items-center mb-4">
-            <span class="text-[9px] font-black uppercase text-blue-400 tracking-widest">${m.leg || 'Match'}</span>
-            <span class="text-[8px] opacity-30 font-black uppercase tracking-tighter">ID: ${id.slice(-4)}</span>
-        </div>
-        <div class="grid grid-cols-3 gap-2 items-center">
-            <div class="text-center space-y-2">
-                <img src="${m.photoA}" class="w-10 h-10 rounded-full mx-auto border border-white/10 shadow-lg">
-                <p class="text-[9px] font-black uppercase truncate px-1">${m.teamA}</p>
+    div.id = `card-${id}`;
+    // Supreme Dark Styling
+    div.style = "background:#0a0a0a; border:2px solid #1a1a1a; border-radius:24px; padding:20px; margin-bottom:12px; position:relative; overflow:hidden; transition:0.3s;";
+    
+    // Aggregate & Logic setup
+    const aggA = Number(m.aggA || 0);
+    const aggB = Number(m.aggB || 0);
+
+    const updateUI = () => {
+        const cardEl = document.getElementById(`card-${id}`);
+        if (!cardEl) return;
+
+        const now = new Date();
+        const [hrs, mins] = (m.time || "00:00").split(':');
+        const matchTime = new Date();
+        matchTime.setHours(parseInt(hrs), parseInt(mins), 0);
+
+        const diff = matchTime - now;
+        const elapsed = now - matchTime;
+        const tenMins = 10 * 60 * 1000;
+
+        const isDone = m.status === 'done' || elapsed > tenMins;
+        const isLive = !isDone && elapsed > 0;
+
+        // Colors & Labels
+        const statusLabel = diff > 0 ? 
+            `STARTS IN ${Math.floor(diff/60000)}:${Math.floor((diff%60000)/1000).toString().padStart(2,'0')}` : 
+            (isLive ? "LIVE NOW" : "ENDED");
+        
+        const statusColor = isLive ? "#ff4b2b" : (isDone ? "#444" : "#10b981");
+        const winA = isDone && aggA > aggB;
+        const winB = isDone && aggB > aggA;
+
+        cardEl.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <span style="background:#8458B3; color:white; font-size:8px; font-weight:900; padding:4px 10px; border-radius:8px; text-transform:uppercase;">${m.leg || 'MATCH'}</span>
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <div style="width:6px; height:6px; border-radius:50%; background:${statusColor}; ${isLive ? 'box-shadow:0 0 8px #ff4b2b;' : ''}"></div>
+                    <span style="color:${statusColor}; font-size:9px; font-weight:900; text-transform:uppercase;">${statusLabel}</span>
+                </div>
             </div>
-            <div class="text-center">
-                <div class="text-lg font-black italic tracking-tighter">${m.score || '0:0'}</div>
-                <div class="text-[8px] opacity-40 font-bold uppercase mt-1">AGG ${m.aggA || 0}:${m.aggB || 0}</div>
+
+            <div style="display:grid; grid-template-columns: 1fr 0.8fr 1fr; align-items:center; text-align:center;">
+                <div>
+                    <div style="position:relative; display:inline-block;">
+                        <img src="${m.photoA}" style="width:55px; height:55px; border-radius:50%; border:2px solid ${winA ? '#10b981' : '#222'}; filter:${isDone && aggB > aggA ? 'grayscale(1) opacity(0.3)' : 'none'};">
+                        ${winA ? '<span style="position:absolute;-top:5px;-right:5px;">👑</span>' : ''}
+                    </div>
+                    <p style="color:white; font-size:10px; font-weight:900; margin:5px 0 0; text-transform:uppercase; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${m.teamA}</p>
+                    <p style="color:${winA ? '#10b981' : (isDone && aggB > aggA ? '#ef4444' : '#8458B3')}; font-size:8px; font-weight:900; margin-top:2px;">
+                        ${isDone ? (winA ? 'PROGRESSED' : (aggA === aggB ? 'DRAW' : 'ELIMINATED')) : 'AGG: '+aggA}
+                    </p>
+                </div>
+
+                <div>
+                    <div style="background:#000; border:1px solid #222; border-radius:15px; padding:10px 0; color:white; font-size:22px; font-weight:900;">
+                        ${m.score || '0:0'}
+                    </div>
+                    <span style="font-size:7px; font-weight:900; color:rgba(255,255,255,0.1); margin-top:5px; display:block; letter-spacing:2px;">VS</span>
+                </div>
+
+                <div>
+                    <div style="position:relative; display:inline-block;">
+                        <img src="${m.photoB}" style="width:55px; height:55px; border-radius:50%; border:2px solid ${winB ? '#10b981' : '#222'}; filter:${isDone && aggA > aggB ? 'grayscale(1) opacity(0.3)' : 'none'};">
+                        ${winB ? '<span style="position:absolute;-top:5px;-left:5px;">👑</span>' : ''}
+                    </div>
+                    <p style="color:white; font-size:10px; font-weight:900; margin:5px 0 0; text-transform:uppercase; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${m.teamB}</p>
+                    <p style="color:${winB ? '#10b981' : (isDone && aggA > aggB ? '#ef4444' : '#8458B3')}; font-size:8px; font-weight:900; margin-top:2px;">
+                        ${isDone ? (winB ? 'PROGRESSED' : (aggA === aggB ? 'DRAW' : 'ELIMINATED')) : 'AGG: '+aggB}
+                    </p>
+                </div>
             </div>
-            <div class="text-center space-y-2">
-                <img src="${m.photoB}" class="w-10 h-10 rounded-full mx-auto border border-white/10 shadow-lg">
-                <p class="text-[9px] font-black uppercase truncate px-1">${m.teamB}</p>
-            </div>
-        </div>
-    `;
+        `;
+    };
+
+    // Run the timer update every second
+    const timer = setInterval(updateUI, 1000);
+    // Initial call to prevent flicker
+    setTimeout(updateUI, 0);
+
     return div;
 }
 
 /**
- * Generates an empty slot placeholder
+ * Empty slot placeholder
  */
 function createPlaceholder() {
     const div = document.createElement('div');
-    div.className = "border-2 border-dashed border-white/5 rounded-2xl p-8 flex flex-col items-center justify-center opacity-20 grayscale transition-all duration-500";
+    div.style = "background:rgba(255,255,255,0.02); border:2px dashed #1a1a1a; border-radius:24px; padding:30px; display:flex; flex-direction:column; align-items:center; margin-bottom:12px; opacity:0.4;";
     div.innerHTML = `
-        <div class="w-10 h-10 rounded-full bg-white/10 mb-2"></div>
-        <div class="text-[8px] font-black uppercase tracking-widest text-center leading-tight">Waiting for<br>Fixture</div>
+        <div style="width:35px; height:35px; border-radius:50%; background:#111; margin-bottom:8px; border:1px solid #222;"></div>
+        <span style="color:white; font-size:8px; font-weight:900; text-transform:uppercase; letter-spacing:1px; text-align:center;">WAITING FOR<br>FIXTURE</span>
     `;
     return div;
 }
 
 // --- INITIALIZE ---
-// Wait for page to load then trigger initial round
 document.addEventListener('DOMContentLoaded', () => {
     switchRound('r16', 8);
 });
+
+
 // --- 11. SUPREME NOTIFICATION ENGINE (FRANK'S PRO EDITION - TOTAL OVERLAY) ---
 
 // 1. INJECT CUSTOM TOAST STYLES (FORCED TO TOP)
@@ -2343,94 +2676,333 @@ window.handleManualLogout = () => {
 document.getElementById('appeal-text')?.addEventListener('input', (e) => {
     document.getElementById('char-count').innerText = `${e.target.value.length}/1000`;
 });
-// --- 1. TOGGLE LOGIC ---
-window.toggleFullChat = (show) => {
-    const el = document.getElementById('full-chat-overlay');
-    if (!el) return;
-    if (show) {
-        el.style.display = 'flex';
-        document.body.style.overflow = 'hidden'; 
-        setTimeout(() => el.style.opacity = '1', 20);
-    } else {
-        el.style.opacity = '0';
-        document.body.style.overflow = 'auto';
-        setTimeout(() => el.style.display = 'none', 300);
-    }
-};
-
-// --- 2. DLS AI CHAT ENGINE ---
+// --- SYNCED TEXT CHAT ENGINE ---
 window.sendAIChat = async () => {
-    const input = document.getElementById('chat-input');
-    const aiContainer = document.getElementById('popup-chat-messages');
+    const input = document.getElementById('popup-chat-input');
+    const container = document.getElementById('popup-chat-messages');
     const text = input?.value.trim();
 
-    if (!text || !aiContainer) return;
+    if (!text || !container) return;
+    
+    let payload = {
+        text: text,
+        timestamp: Date.now(),
+        uid: "guest",
+        username: "Anonymous Player",
+        photo: "https://ui-avatars.com/api/?name=?&background=333&color=fff"
+    };
 
-    // A. Add User Bubble
+    if (window.auth.currentUser) {
+        try {
+            const userSnap = await get(ref(window.db, `users/${window.auth.currentUser.uid}`));
+            const data = userSnap.val();
+            if (data) {
+                if (data.status === 'banned') { alert("Restricted."); return; }
+                payload = {
+                    text: text,
+                    timestamp: Date.now(),
+                    uid: window.auth.currentUser.uid,
+                    username: data.username,
+                    photo: data.photo,
+                    phone: data.whatsapp || data.phone || null
+                };
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    // Optimistic UI Update
     const userHTML = `
-        <div class="flex flex-col items-end self-end max-w-[85%] mb-4 animate-msg">
+        <div class="flex flex-col items-end self-end max-w-[85%] mb-4 animate-in fade-in slide-in-from-right-2">
             <span style="font-size: 9px; font-weight: 900; color: rgba(255,255,255,0.3); text-transform: uppercase; margin-bottom: 4px; padding-right: 8px;">YOU</span>
             <div style="background: #8458B3; color: white; padding: 12px 16px; font-size: 13px; font-weight: 600; border-radius: 20px 20px 0 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
                 ${text}
             </div>
-        </div>
-    `;
-    aiContainer.insertAdjacentHTML('beforeend', userHTML);
-    input.value = ''; // Clear input
-    aiContainer.scrollTop = aiContainer.scrollHeight;
-
-    // B. Add Thinking Loader
-    const loaderId = `ai-load-${Date.now()}`;
-    const loaderHTML = `
-        <div id="${loaderId}" class="flex flex-col items-start self-start mb-4 animate-msg">
-            <span style="font-size: 9px; font-weight: 900; color: #8458B3; text-transform: uppercase; margin-bottom: 4px; padding-left: 8px;">DLS AI</span>
-            <div style="background: rgba(255,255,255,0.05); border: 2px solid rgba(0,0,0,0.3); padding: 12px; border-radius: 20px 20px 20px 0;">
-                <div class="chat-loader"></div>
-            </div>
-        </div>
-    `;
-    aiContainer.insertAdjacentHTML('beforeend', loaderHTML);
-    aiContainer.scrollTop = aiContainer.scrollHeight;
+        </div>`;
+    container.insertAdjacentHTML('beforeend', userHTML);
+    input.value = ''; 
+    container.scrollTop = container.scrollHeight;
 
     try {
-        // C. Call your Vercel Serverless Function
-        const response = await fetch('/api/ai-chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: text })
+        await push(ref(window.db, 'group_chat'), payload);
+    } catch (error) { console.error("Sync Error:", error); }
+};
+
+// --- SYNCED IMAGE CHAT ENGINE ---
+window.handlePopupChatImage = async (input) => {
+    if (!window.auth.currentUser) { alert("Login first!"); input.value = ''; return; }
+    if (!input.files?.[0]) return;
+
+    const btn = input.parentElement;
+    const original = btn.innerHTML;
+    btn.innerHTML = `<div class="chat-loader" style="width:12px; height:12px; border:2px solid white; border-top-color:transparent; border-radius:50%; animation:spin 1s linear infinite;"></div>`;
+
+    try {
+        const formData = new FormData();
+        formData.append("image", input.files[0]);
+        const res = await fetch("https://api.imgur.com/3/image", {
+            method: "POST",
+            headers: { Authorization: `Client-ID ${IMGUR_ID}` },
+            body: formData
         });
-
-        const data = await response.json();
-        const aiResponse = data.response || "I'm having trouble connecting right now.";
-
-        // D. Replace Loader with AI Response
-        document.getElementById(loaderId).remove();
+        const imgData = await res.json();
         
-        const aiHTML = `
-            <div class="flex flex-col items-start self-start max-w-[85%] mb-4 animate-msg">
-                <span style="font-size: 9px; font-weight: 900; color: #8458B3; text-transform: uppercase; margin-bottom: 4px; padding-left: 8px;">DLS AI</span>
-                <div style="background: rgba(255,255,255,0.05); border: 2.5px solid rgba(0,0,0,0.5); color: rgba(255,255,255,0.9); padding: 12px 16px; font-size: 13px; font-weight: 500; border-radius: 20px 20px 20px 0; line-height: 1.5;">
-                    ${aiResponse.replace(/\n/g, '<br>')}
-                </div>
-            </div>
-        `;
-        aiContainer.insertAdjacentHTML('beforeend', aiHTML);
+        const userSnap = await get(ref(window.db, `users/${window.auth.currentUser.uid}`));
+        const data = userSnap.val();
 
-    } catch (error) {
-        console.error("AI Error:", error);
-        document.getElementById(loaderId).innerHTML = `<p style="color: #ef4444; font-size: 10px; font-weight: 800;">CONNECTION ERROR</p>`;
-    } finally {
-        aiContainer.scrollTop = aiContainer.scrollHeight;
+        await push(ref(window.db, 'group_chat'), {
+            username: data.username || "Player",
+            photo: data.photo || "",
+            uid: window.auth.currentUser.uid,
+            phone: data.whatsapp || data.phone || null,
+            image: imgData.data.link,
+            text: "",
+            timestamp: Date.now()
+        });
+    } catch (e) { alert("Upload failed"); } 
+    finally { 
+        btn.innerHTML = original; 
+        input.value = ''; 
+    }
+};
+window.launchCelebration = function() {
+    const canvas = document.getElementById('fireworks-canvas');
+    const ctx = canvas.getContext('2d');
+    const welcome = document.getElementById('welcome-message');
+    
+    // Set Canvas Size
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    canvas.style.opacity = '1';
+    if(welcome) welcome.classList.add('welcome-active');
+
+    let particles = [];
+
+    class Particle {
+        constructor(x, y, color) {
+            this.x = x;
+            this.y = y;
+            this.color = color;
+            this.velocity = {
+                x: (Math.random() - 0.5) * 8,
+                y: (Math.random() - 0.5) * 8
+            };
+            this.alpha = 1;
+            this.friction = 0.95;
+        }
+
+        draw() {
+            ctx.globalAlpha = this.alpha;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
+            ctx.fillStyle = this.color;
+            ctx.fill();
+        }
+
+        update() {
+            this.velocity.x *= this.friction;
+            this.velocity.y *= this.friction;
+            this.y += 0.2; // Gravity
+            this.x += this.velocity.x;
+            this.y += this.velocity.y;
+            this.alpha -= 0.01;
+        }
+    }
+
+    function createFirework(x, y) {
+        const colors = ['#ffffff', '#60a5fa', '#3b82f6', '#93c5fd']; // UCL Blue & White
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        for (let i = 0; i < 40; i++) {
+            particles.push(new Particle(x, y, color));
+        }
+    }
+
+    function animate() {
+        if (parseFloat(canvas.style.opacity) <= 0) return;
+        requestAnimationFrame(animate);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.1)'; // Trail effect
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        particles.forEach((p, i) => {
+            if (p.alpha > 0) {
+                p.update();
+                p.draw();
+            } else {
+                particles.splice(i, 1);
+            }
+        });
+    }
+
+    // Launch random bursts for 3 seconds
+    const interval = setInterval(() => {
+        createFirework(Math.random() * canvas.width, Math.random() * (canvas.height * 0.5));
+    }, 400);
+
+    animate();
+
+    // CLEANUP: Hide everything after 4 seconds
+    setTimeout(() => {
+        clearInterval(interval);
+        canvas.style.opacity = '0';
+        if(welcome) {
+            welcome.classList.remove('welcome-active');
+            welcome.style.opacity = '0';
+            welcome.style.transform = 'translateY(-50px) scale(1.1)';
+        }
+    }, 4000);
+};
+window.updateStatusBar = function(status) {
+    const homeStatusDisplay = document.getElementById('status-display');
+    const profStat = document.getElementById('prof-status-text');
+    const payBtn = document.getElementById('pay-to-enter-btn');
+    const enteredBadge = document.getElementById('entered-badge');
+    
+    let text = "Not Entered", dotCls = "dot-not", txtCls = "status-not";
+
+    if (status === 'entered' || status === 'paid') { 
+        text = "Entered"; dotCls = "dot-ent"; txtCls = "status-ent"; 
+    } else if (status === 'pending') { 
+        text = "Pending Verification"; dotCls = "dot-pen"; txtCls = "status-pen"; 
+    }
+    
+    if (homeStatusDisplay) {
+        homeStatusDisplay.innerHTML = `<span class="dot ${dotCls}"></span>${text}`;
+        homeStatusDisplay.className = txtCls;
+    }
+
+    if(profStat) profStat.innerText = text;
+
+    if (status === 'entered' || status === 'paid' || status === 'pending') {
+        if(payBtn) { payBtn.classList.add('hidden'); payBtn.style.display = 'none'; }
+
+        if(enteredBadge) {
+            enteredBadge.classList.remove('hidden');
+            enteredBadge.style.display = 'block';
+
+            if(status === 'pending') {
+                enteredBadge.innerHTML = `
+                    <div class="flex flex-col items-center gap-2 animate-in fade-in zoom-in-95">
+                        <span style="color: #ffcc00; font-weight: 900; font-size: 11px;">VERIFICATION PENDING ⏳</span>
+                        <button id="trigger-retention-btn" class="text-[9px] opacity-40 hover:opacity-100 uppercase font-black tracking-tighter underline">
+                            Cancel Request?
+                        </button>
+                    </div>
+                `;
+
+                // --- THE RETENTION POPUP ENGINE ---
+                document.getElementById('trigger-retention-btn').onclick = (e) => {
+                    e.stopPropagation();
+                    
+                    // Create the Modal Overlay if it doesn't exist
+                    let overlay = document.getElementById('retention-modal');
+                    if(!overlay) {
+                        overlay = document.createElement('div');
+                        overlay.id = 'retention-modal';
+                        overlay.style = "position:fixed; inset:0; background:rgba(0,0,0,0.9); backdrop-filter:blur(10px); z-index:1000000; display:flex; align-items:center; justify-content:center; padding:20px; opacity:0; transition:0.3s; pointer-events:none;";
+                        document.body.appendChild(overlay);
+                    }
+
+                    overlay.innerHTML = `
+                        <div style="background:#0a0a0a; border:3px solid #333; border-radius:32px; width:100%; max-width:350px; padding:30px; text-align:center; transform:scale(0.8); transition:0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);" id="retention-card">
+                            <div style="font-size:40px; margin-bottom:15px;">🏆</div>
+                            <h2 style="color:white; font-size:20px; font-weight:900; text-transform:uppercase; line-height:1; margin-bottom:10px;">DON'T QUIT NOW, CHAMPION!</h2>
+                            <p style="color:rgba(255,255,255,0.6); font-size:11px; font-weight:600; line-height:1.4; margin-bottom:20px;">
+                                You are one step away from joining the Elite. Legends are winning <span style="color:#10b981; font-weight:900;">$100s EVERY SEASON</span>. <br><br>
+                                If you cancel now, your spot goes to the next player on the waitlist. Is it worth losing your shot at glory?
+                            </p>
+                            
+                            <div style="display:flex; flex-direction:column; gap:12px;">
+                                <button id="stay-in-btn" style="background:#3b82f6; color:white; border:none; padding:15px; border-radius:16px; font-weight:900; text-transform:uppercase; font-size:12px; letter-spacing:1px; cursor:pointer; box-shadow:0 10px 20px rgba(59, 130, 246, 0.3);">I'M STAYING (WIN THE PRIZE)</button>
+                                <button id="confirm-quit-btn" style="background:transparent; color:rgba(255,255,255,0.2); border:none; font-size:9px; font-weight:900; text-transform:uppercase; text-decoration:underline; cursor:pointer;">No, I want to give up my chance</button>
+                            </div>
+                        </div>
+                    `;
+
+                    // Show Animation
+                    overlay.style.opacity = "1";
+                    overlay.style.pointerEvents = "auto";
+                    setTimeout(() => { document.getElementById('retention-card').style.transform = "scale(1)"; }, 10);
+
+                    // --- BUTTON LOGIC ---
+                    
+                    // Stay: Just hide the modal
+                    document.getElementById('stay-in-btn').onclick = () => {
+                        overlay.style.opacity = "0";
+                        overlay.style.pointerEvents = "none";
+                        document.getElementById('retention-card').style.transform = "scale(0.8)";
+                    };
+
+                    // Quit: Actually update Firebase
+                    document.getElementById('confirm-quit-btn').onclick = async () => {
+                        document.getElementById('confirm-quit-btn').innerText = "REMOVING...";
+                        await window.update(window.ref(window.db, `users/${window.auth.currentUser.uid}`), { 
+                            status: 'not entered' 
+                        });
+                        overlay.style.opacity = "0";
+                        overlay.style.pointerEvents = "none";
+                        showToast("YOU LEFT THE CHALLENGE", "error");
+                    };
+                };
+
+            } else {
+                enteredBadge.innerHTML = `<span style="color: #34c759; font-weight: 900; font-size:11px;">ENTERED ✅</span>`;
+            }
+        }
+    } else { 
+        if(payBtn) { payBtn.classList.remove('hidden'); payBtn.style.display = 'block'; }
+        if(enteredBadge) { enteredBadge.classList.add('hidden'); enteredBadge.style.display = 'none'; }
     }
 };
 
-// --- 3. EVENT LISTENERS ---
-document.addEventListener('keydown', (e) => {
-    // Send on Enter key if input is focused
-    if (e.key === 'Enter' && document.activeElement.id === 'chat-input') {
-        window.sendAIChat();
+// --- 1. THE TRIGGER (Opens the file picker) ---
+document.getElementById('change-pic-trigger').onclick = () => {
+    // We allow the picker to open. If they aren't in "Edit Mode", 
+    // we will trigger it for them once the file is chosen.
+    document.getElementById('edit-file-inp').click();
+};
+
+// --- 2. THE UPLOAD ENGINE ---
+document.getElementById('edit-file-inp').onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const profImg = document.getElementById('prof-img');
+    const editBtn = document.getElementById('edit-profile-btn');
+    const feedback = document.getElementById('profile-feedback');
+
+    // A. INSTANT PREVIEW (Local)
+    profImg.src = URL.createObjectURL(file);
+    profImg.style.opacity = "0.5"; // Visual cue that it's "Uploading..."
+
+    // B. AUTO-ACTIVATE EDIT MODE
+    if (!isEditing) {
+        editBtn.click(); 
     }
-});
+
+    showToast("UPLOADING TO CLOUD...", "success");
+
+    try {
+        // C. UPLOAD TO IMGUR
+        // Using your existing uploadToImgur function
+        const imgurLink = await uploadToImgur(file);
+
+        if (imgurLink) {
+            // D. SAVE TO FIREBASE IMMEDIATELY
+            const user = window.auth.currentUser;
+            await window.update(window.ref(window.db, `users/${user.uid}`), {
+                photo: imgurLink
+            });
+
+            profImg.style.opacity = "1";
+            showToast("PROFILE IMAGE SYNCED! ✅");
+        } else {
+            throw new Error("Imgur Reject");
+        }
+    } catch (err) {
+        console.error("Upload Error:", err);
+        showToast("UPLOAD FAILED. TRY AGAIN.", "error");
+        profImg.style.opacity = "1";
+    }
+};
 
 </script>
 
