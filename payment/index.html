@@ -8,7 +8,18 @@
     <style>
         * { -webkit-tap-highlight-color: transparent; user-select: none; }
         body { background: #000; color: #fff; font-family: sans-serif; overflow-x: hidden; }
-        
+        body.loading { overflow: hidden; }
+
+        /* Blur Loader Overlay */
+        #pageLoader {
+            position: fixed; inset: 0; z-index: 200;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.5s ease;
+        }
+
         .glass-card {
             background: rgba(255, 255, 255, 0.03);
             backdrop-filter: blur(25px);
@@ -28,21 +39,26 @@
             border: 3px solid rgba(255,255,255,0.1);
             border-top: 3px solid #8458B3;
             border-radius: 50%;
-            width: 20px;
-            height: 20px;
+            width: 30px; height: 30px;
             animation: spin 1s linear infinite;
         }
         @keyframes spin { 100% { transform: rotate(360deg); } }
 
         .disabled-btn {
-            background: #1a1a1a !important;
+            background: #111 !important;
             color: rgba(255,255,255,0.2) !important;
             cursor: not-allowed;
             border: 1px solid rgba(255,255,255,0.05);
+            pointer-events: none;
         }
     </style>
 </head>
-<body class="flex flex-col min-h-screen">
+<body class="flex flex-col min-h-screen loading">
+
+    <div id="pageLoader">
+        <div class="loader-ring mb-4"></div>
+        <p class="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">Securing Session...</p>
+    </div>
 
     <header class="p-6 flex items-center justify-between border-b border-white/5">
         <button onclick="history.back()" class="text-white/40 text-[10px] font-black uppercase tracking-widest">← Back</button>
@@ -55,12 +71,10 @@
     <main class="flex-grow p-5 flex flex-col items-center">
         
         <div id="paymentIdentity" class="w-full max-w-sm glass-card rounded-[2rem] p-6 mb-6 flex items-center gap-4">
-            <div id="logoContainer" class="relative w-16 h-16 bg-white/5 rounded-full animate-pulse">
-                <img id="userLogo" src="" class="w-full h-full rounded-full border-2 border-[#8458B3] object-cover hidden">
-            </div>
-            <div class="flex-grow">
-                <h2 id="userName" class="text-lg font-black italic uppercase tracking-tighter text-white/10">Loading Team...</h2>
-                <p id="userCountry" class="text-[8px] font-bold text-white/10 uppercase tracking-[0.2em]">Please Wait</p>
+            <img id="userLogo" src="" class="w-16 h-16 rounded-full border-2 border-[#8458B3] object-cover">
+            <div>
+                <h2 id="userName" class="text-lg font-black italic uppercase tracking-tighter">---</h2>
+                <p id="userCountry" class="text-[8px] font-bold text-white/30 uppercase tracking-[0.2em]">Verified Participant</p>
             </div>
         </div>
 
@@ -77,7 +91,7 @@
             <div class="space-y-3 mb-6">
                 <div class="bg-black/40 rounded-xl p-4 border border-white/5 flex justify-between items-center">
                     <div>
-                        <p class="text-[7px] uppercase text-white/30 font-black tracking-widest mb-1 text-left">Send to Number</p>
+                        <p class="text-[7px] uppercase text-white/30 font-black tracking-widest mb-1 text-left">Recipient Number</p>
                         <p id="targetPhone" class="text-base font-black text-white">+27 84 673 7224</p> 
                     </div>
                     <button onclick="copyNumber()" id="copyBtn" class="bg-[#8458B3]/20 text-[#a855f7] px-3 py-1.5 rounded-lg text-[9px] font-black uppercase">Copy</button>
@@ -85,22 +99,21 @@
 
                 <div class="bg-black/40 rounded-xl p-4 border border-white/5 flex justify-between items-center">
                     <div>
-                        <p class="text-[7px] uppercase text-white/30 font-black tracking-widest mb-1 text-left">Amount Due</p>
-                        <p id="displayAmount" class="text-lg font-black italic text-green-400 tracking-tight">Calculating...</p>
+                        <p class="text-[7px] uppercase text-white/30 font-black tracking-widest mb-1 text-left">Entry Fee</p>
+                        <p id="displayAmount" class="text-lg font-black italic text-green-400 tracking-tight">...</p>
                     </div>
                     <span class="text-[8px] font-black text-white/20 uppercase">cUSD</span>
                 </div>
             </div>
 
-            <p class="text-[8px] text-center text-white/30 mb-2 uppercase font-black tracking-tighter">Click below to unlock confirm button</p>
             <a href="https://link.minipay.xyz/invite?ref=sVWZUHNR" target="_blank" onclick="startVerificationTimer()" class="w-full py-4 bg-white text-black rounded-xl font-black uppercase tracking-widest text-[9px] flex items-center justify-center gap-2 active:scale-95 transition-all">
                 Open MiniPay App
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="3" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
             </a>
         </div>
 
-        <div class="w-full max-w-sm px-4">
-            <button id="payBtn" onclick="initiateMiniPay()" class="disabled-btn w-full py-5 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] transition-all pointer-events-none">
+        <div class="w-full max-w-sm px-4 pb-10">
+            <button id="payBtn" onclick="initiateMiniPay()" class="disabled-btn w-full py-5 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] transition-all">
                 Waiting for Transfer...
             </button>
             <p id="timerSubtext" class="text-center text-[7px] text-white/20 mt-5 px-6 font-bold uppercase tracking-widest">
@@ -109,11 +122,11 @@
         </div>
     </main>
 
-    <div id="successModal" class="fixed inset-0 z-[100] bg-black hidden flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
+    <div id="successModal" class="fixed inset-0 z-[300] bg-black hidden flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
         <div class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mb-6 shadow-[0_0_50px_rgba(34,197,94,0.3)]">
             <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
         </div>
-        <h2 class="text-2xl font-black italic uppercase tracking-tighter mb-2">Request Logged</h2>
+        <h2 class="text-2xl font-black italic uppercase tracking-tighter mb-2">Request Filed</h2>
         <p class="text-white/40 text-[10px] mb-8 uppercase tracking-widest font-bold leading-loose">Blockchain confirmation pending...<br>Check bracket in 15 mins</p>
         <button onclick="window.location.href='index.html'" class="glass-card px-12 py-4 rounded-xl text-[9px] font-black uppercase tracking-widest text-cyan-400">Back to Arena</button>
     </div>
@@ -136,36 +149,46 @@
         const deviceId = localStorage.getItem('dls_ucl_final_v9');
 
         window.copyNumber = () => {
-            const num = document.getElementById('targetPhone').innerText;
-            navigator.clipboard.writeText(num);
+            navigator.clipboard.writeText(document.getElementById('targetPhone').innerText);
             const btn = document.getElementById('copyBtn');
             btn.innerText = "DONE!";
             setTimeout(() => btn.innerText = "COPY", 2000);
         };
 
-        // Forced 30s Delay Logic
-        window.startVerificationTimer = () => {
+        const unlockButton = () => {
             const btn = document.getElementById('payBtn');
-            const subtext = document.getElementById('timerSubtext');
-            let timeLeft = 30;
+            const sub = document.getElementById('timerSubtext');
+            btn.innerText = "I Have Sent the Money";
+            btn.classList.remove('disabled-btn');
+            btn.classList.add('shimmer-btn');
+            sub.innerText = "Celo Network Verified Link";
+            sub.classList.replace('text-white/20', 'text-green-500');
+            localStorage.removeItem('pay_timer_start');
+        };
 
-            btn.innerText = `Unlock in ${timeLeft}s...`;
-            
-            const countdown = setInterval(() => {
-                timeLeft--;
-                btn.innerText = `Unlock in ${timeLeft}s...`;
-                
-                if (timeLeft <= 0) {
-                    clearInterval(countdown);
-                    btn.innerText = "I Have Sent the Money";
-                    btn.classList.remove('disabled-btn');
-                    btn.classList.add('shimmer-btn');
-                    btn.classList.remove('pointer-events-none');
-                    subtext.innerText = "Celo Network Ready for Verification";
-                    subtext.classList.replace('text-white/20', 'text-green-500');
+        window.startVerificationTimer = () => {
+            if (localStorage.getItem('pay_timer_start')) return;
+            localStorage.setItem('pay_timer_start', Date.now());
+            runCountdown();
+        };
+
+        function runCountdown() {
+            const startTime = localStorage.getItem('pay_timer_start');
+            if (!startTime) return;
+
+            const btn = document.getElementById('payBtn');
+            const timer = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                const remaining = 30 - elapsed;
+
+                if (remaining <= 0) {
+                    clearInterval(timer);
+                    unlockButton();
+                } else {
+                    btn.innerText = `Verify in ${remaining}s...`;
                 }
             }, 1000);
-        };
+        }
 
         async function loadPaymentDetails() {
             if (!deviceId) { window.location.href = 'index.html'; return; }
@@ -174,55 +197,45 @@
                 const snap = await get(child(ref(db), `users/${deviceId}`));
                 if (snap.exists()) {
                     const user = snap.val();
+                    document.getElementById('userLogo').src = user.photo || "https://via.placeholder.com/150";
+                    document.getElementById('userName').innerText = user.team || "Team X";
                     
-                    // Stop Loaders & Set Data
-                    document.getElementById('logoContainer').classList.remove('animate-pulse', 'bg-white/5');
-                    const img = document.getElementById('userLogo');
-                    img.src = user.photo || "https://via.placeholder.com/150";
-                    img.classList.remove('hidden');
-
-                    const name = document.getElementById('userName');
-                    name.innerText = user.team || "No Team";
-                    name.classList.remove('text-white/10');
-
-                    const country = document.getElementById('userCountry');
-                    country.innerText = `${user.country || 'Global'} Participant`;
-                    country.classList.remove('text-white/10');
-
-                    // Currency
                     const rateRes = await fetch(`https://open.er-api.com/v6/latest/USD`);
                     const rateData = await rateRes.json();
                     const currency = user.currency || "USD";
                     const rate = rateData.rates[currency] || 1;
-                    const amount = (3.00 * rate).toFixed(2);
-                    document.getElementById('displayAmount').innerText = `${amount} ${currency}`;
+                    document.getElementById('displayAmount').innerText = `${(3.00 * rate).toFixed(2)} ${currency}`;
+
+                    // Remove Loader & enable scroll
+                    document.getElementById('pageLoader').style.opacity = '0';
+                    setTimeout(() => {
+                        document.getElementById('pageLoader').style.display = 'none';
+                        document.body.classList.remove('loading');
+                    }, 500);
+
+                    // Check if timer was already running
+                    if (localStorage.getItem('pay_timer_start')) runCountdown();
                 } else {
                     window.location.href = 'index.html';
                 }
             } catch (e) {
-                document.getElementById('displayAmount').innerText = "$3.00 USD";
+                console.error(e);
             }
         }
 
         window.initiateMiniPay = async () => {
             const btn = document.getElementById('payBtn');
-            btn.innerHTML = `<div class="loader-ring mx-auto"></div>`;
+            btn.innerHTML = `<div class="loader-ring mx-auto" style="width:20px;height:20px;border-width:2px"></div>`;
             btn.disabled = true;
 
-            try {
-                await update(ref(db, `users/${deviceId}`), {
-                    paid: "PENDING",
-                    status: "VERIFYING...",
-                    payment_claim_time: new Date().toISOString()
-                });
+            await update(ref(db, `users/${deviceId}`), {
+                paid: "PENDING",
+                status: "CLAIMED",
+                timestamp: new Date().toISOString()
+            });
 
-                document.getElementById('successModal').classList.remove('hidden');
-                document.getElementById('successModal').classList.add('flex');
-            } catch (e) {
-                alert("Database Error.");
-                btn.innerHTML = "I Have Sent the Money";
-                btn.disabled = false;
-            }
+            document.getElementById('successModal').classList.remove('hidden');
+            document.getElementById('successModal').classList.add('flex');
         };
 
         loadPaymentDetails();
