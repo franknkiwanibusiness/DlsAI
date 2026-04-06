@@ -880,9 +880,22 @@
 </nav>
 
 <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
-    import { getDatabase, ref, set, get, child, update } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
-   import { onChildAdded, push, serverTimestamp, query, limitToLast } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+import { 
+    getDatabase, 
+    ref, 
+    set, 
+    get, 
+    child, 
+    update, 
+    onChildAdded, 
+    push, 
+    serverTimestamp, 
+    query, 
+    limitToLast, 
+    runTransaction 
+} from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+
     // --- 1. CONFIGURATION & INITIALIZATION ---
     const firebaseConfig = {
         apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
@@ -953,10 +966,31 @@
         } catch (e) { console.error("Conversion failed."); }
     }
 
-    async function checkSession() {
+    
+/**
+ * Checks for "ref" in URL on page load and saves to session.
+ * This ensures the referral is tracked even if they browse the site before joining.
+ */
+function checkReferral() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const referrerId = urlParams.get('ref');
+    if (referrerId) {
+        sessionStorage.setItem('pending_referrer', referrerId);
+    }
+}
+checkReferral();
+
+/**
+ * Updated checkSession: Fetches user data and injects the "Pro Elite" UI 
+ * components into the header and branding areas.
+ */
+async function checkSession() {
+    try {
         const snap = await get(child(ref(db), `users/${deviceId}`));
         if (snap.exists()) {
-            userData = snap.val();
+            const userData = snap.val();
+            
+            // 1. Mini Header Profile (Top Navigation)
             const userArea = document.getElementById('userArea');
             if(userArea) {
                 userArea.innerHTML = `
@@ -965,23 +999,55 @@
                         <span class="text-[10px] font-black uppercase text-white">${userData.team}</span>
                     </div>`;
             }
+
+            // 2. Large Branding Action Area (Main Dashboard)
             const brandingArea = document.getElementById('brandingActionArea');
             if (brandingArea) {
+                const isPaid = userData.paid === 'PAID';
                 brandingArea.innerHTML = `
                     <div onclick="openProfile()" class="flex items-center justify-between bg-white/10 border border-white/20 p-4 rounded-2xl cursor-pointer hover:bg-white/20 transition-all active:scale-95 group">
                         <div class="flex items-center gap-3">
-                            <img src="${userData.photo}" class="w-10 h-10 rounded-full border-2 border-cyan-400 object-cover">
+                            <img src="${userData.photo}" class="w-10 h-10 rounded-full border-2 border-cyan-400 object-cover shadow-[0_0_10px_rgba(34,211,238,0.5)]">
                             <div class="text-left">
                                 <p class="text-[10px] font-black uppercase text-white tracking-tighter leading-none">${userData.team}</p>
-                                <p class="text-[8px] font-bold uppercase text-cyan-400 tracking-widest mt-1">${userData.paid === 'PAID' ? 'Verified Entry' : 'Action Required'}</p>
+                                <p class="text-[8px] font-bold uppercase ${isPaid ? 'text-green-400' : 'text-cyan-400'} tracking-widest mt-1">
+                                    ${isPaid ? 'Verified Entry' : 'Action Required'}
+                                </p>
                             </div>
                         </div>
-                        <svg class="w-5 h-5 text-white/30 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        <svg class="w-5 h-5 text-white/30 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path d="M9 5l7 7-7 7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
                     </div>`;
             }
-            updateDynamicActionArea(userData);
+
+            // Sync other UI parts
+            if (typeof updateDynamicActionArea === "function") {
+                updateDynamicActionArea(userData);
+            }
         }
+    } catch (error) {
+        console.error("Session check failed:", error);
     }
+}
+
+/**
+ * Securely credits a user's wallet using a transaction to prevent race conditions.
+ */
+async function giveCredit(uid, amount) {
+    if (!uid) return;
+    const walletRef = ref(db, `users/${uid}/wallet`);
+    
+    try {
+        await runTransaction(walletRef, (currentBalance) => {
+            // If balance is null/undefined, treat it as 0
+            return (currentBalance || 0) + amount;
+        });
+        console.log(`Successfully credited $${amount} to ${uid}`);
+    } catch (e) {
+        console.error("Credit transaction failed:", e);
+    }
+}
 
     // --- 3. UPDATED MANAGERS & FIXTURES ENGINES ---
 async function loadManagersList() {
@@ -1260,19 +1326,58 @@ async function loadManagersList() {
 
     // --- 6. EVENT LISTENERS & START ---
     document.getElementById('regForm')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const btn = document.getElementById('submitBtn');
-        const phoneValue = document.getElementById('phoneNum').value.replace(/\s+/g, '');
-        if (phoneValue.length < 9) { btn.innerText = "TOO SHORT (MIN 9)"; setTimeout(() => btn.innerText = "Complete Registration", 2000); return; }
-        btn.innerText = "LINKING...";
-        const newUser = { team: document.getElementById('teamName').value.trim(), phone: document.getElementById('phoneNum').value.trim(), photo: document.getElementById('avatar').src, id: deviceId, status: "NOT ENTERED", paid: "UNPAID", currency: userGeo.currency, country: userGeo.name };
-        await set(ref(db, `users/${deviceId}`), newUser);
-        btn.innerText = "LINKED! ✅";
-        setTimeout(() => { window.toggleModal('register', false); checkSession(); }, 800);
-    });
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    if (btn.disabled) return; // Prevent double-clicks
 
-    document.getElementById('fileInput')?.addEventListener('change', (e) => window.uploadToImgur(e.target.files[0], 'avatar'));
-    document.getElementById('fileInput_p')?.addEventListener('change', (e) => window.uploadToImgur(e.target.files[0], 'pModalImg'));
+    btn.disabled = true;
+    btn.innerText = "Processing...";
+
+    const referrer = sessionStorage.getItem('pending_referrer');
+    
+    const newUser = { 
+        team: document.getElementById('teamName').value.trim(), 
+        phone: document.getElementById('phoneNum').value.trim(), 
+        photo: document.getElementById('avatar').src, 
+        id: deviceId, 
+        status: "NOT ENTERED", 
+        paid: "UNPAID", 
+        wallet: 0, 
+        referredBy: (referrer && referrer !== deviceId) ? referrer : null,
+        currency: userGeo.currency, 
+        country: userGeo.name,
+        joinedAt: serverTimestamp() // Helpful for tracking tournament entry order
+    };
+
+    try {
+        // 1. Create the user
+        await set(ref(db, `users/${deviceId}`), newUser);
+
+        // 2. Process Referral (Using a Transaction)
+        if (referrer && referrer !== deviceId) {
+            const referrerRef = ref(db, `users/${referrer}/wallet`);
+            await runTransaction(referrerRef, (currentWallet) => {
+                return (currentWallet || 0) + 0.05;
+            });
+            sessionStorage.removeItem('pending_referrer');
+        }
+
+        btn.innerText = "LINKED! ✅";
+        setTimeout(() => { 
+            window.toggleModal('register', false); 
+            checkSession(); 
+        }, 800);
+
+    } catch (error) {
+        console.error("Signup error:", error);
+        btn.innerText = "Error! ❌";
+        btn.disabled = false;
+    }
+});
+
+// File input listeners look good and clean
+document.getElementById('fileInput')?.addEventListener('change', (e) => window.uploadToImgur(e.target.files[0], 'avatar'));
+document.getElementById('fileInput_p')?.addEventListener('change', (e) => window.uploadToImgur(e.target.files[0], 'pModalImg'));
 
     // Start everything
     initGeo();
