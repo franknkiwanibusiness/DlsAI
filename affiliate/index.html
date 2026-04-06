@@ -17,7 +17,6 @@
         }
         @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
         
-        /* Anti-Flicker Loader */
         #master-loader {
             position: fixed; inset: 0; z-index: 9999; background: #000;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -80,7 +79,7 @@
         <div class="relative overflow-hidden bg-gradient-to-br from-zinc-900 to-black p-8 rounded-[2rem] neon-border shimmer mb-6">
             <p class="text-[9px] font-black text-zinc-500 uppercase tracking-[0.2em]">Total Earnings</p>
             <div class="flex items-baseline gap-2 mt-1">
-                <h1 id="balanceUSD" class="text-5xl font-black italic tracking-tighter">$0.00</h1>
+                <h1 id="balanceUSD" class="text-5xl font-black italic tracking-tighter">$0.000</h1>
                 <span class="text-xs font-bold text-zinc-600 uppercase">USD</span>
             </div>
             <div id="balanceLocal" class="inline-block mt-4 px-3 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded-full text-[10px] font-black text-cyan-400 uppercase">
@@ -141,6 +140,7 @@
             <button onclick="closeWithdraw()" class="w-full mt-3 text-[10px] font-black text-zinc-500 uppercase py-2">Go Back</button>
         </div>
     </div>
+
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
     import { getDatabase, ref, onValue, query, orderByChild, equalTo, set, runTransaction, update } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
@@ -164,7 +164,6 @@
     let currentBalance = 0;
     let localCurrency = 'USD';
 
-    // --- ANTI-FLICKER LOADER CONTROL ---
     function hideMasterLoader() {
         const loader = document.getElementById('master-loader');
         if (!loader) return;
@@ -175,13 +174,10 @@
         }, 500);
     }
 
-    // --- NEW GEO PROVIDER (ipapi.co) ---
     async function detectUserCountry(uid) {
         try {
-            // Using ipapi.co to avoid provider conflict with main page
             const res = await fetch('https://ipapi.co/json/');
             const data = await res.json();
-            
             if(!data.error) {
                 localCurrency = data.currency || 'USD';
                 await update(ref(db, `users/${uid}`), {
@@ -193,7 +189,6 @@
                 throw new Error("Provider Limit");
             }
         } catch (e) { 
-            console.error("Geo Detection Failed, defaulting to USD");
             updateRates('USD'); 
         }
     }
@@ -204,14 +199,15 @@
             const data = await res.json();
             const rate = data.rates[currency] || 1;
             
-            const localStr = (currentBalance * rate).toLocaleString(undefined, {
+            // Support 3-decimal precision for clicks ($0.001)
+            const localVal = (currentBalance * rate);
+            document.getElementById('balanceLocal').innerText = `≈ ${localVal.toLocaleString(undefined, {
                 style: 'currency', 
-                currency: currency
-            });
+                currency: currency,
+                minimumFractionDigits: 3,
+                maximumFractionDigits: 3
+            })}`;
             
-            document.getElementById('balanceLocal').innerText = `≈ ${localStr}`;
-            
-            // Update Tiered Payout Rates in UI
             document.getElementById('rateClick').innerText = `${(0.001 * rate).toFixed(3)} ${currency}`;
             document.getElementById('rateReferral').innerText = `${(0.05 * rate).toFixed(2)} ${currency}`;
             document.getElementById('ratePaid').innerText = `${(0.50 * rate).toFixed(2)} ${currency}`;
@@ -223,7 +219,6 @@
         }
     }
 
-    // --- NOTIFICATIONS ---
     window.notify = (msg, type = 'info') => {
         const container = document.getElementById('toast-container');
         const toast = document.createElement('div');
@@ -234,7 +229,6 @@
         setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 500); }, 4000);
     };
 
-    // --- AUTH LOGIC ---
     onAuthStateChanged(auth, (user) => {
         if (user) {
             document.getElementById('authOverlay').classList.add('hidden');
@@ -260,7 +254,6 @@
     window.handleGoogleLogin = () => signInWithPopup(auth, new GoogleAuthProvider());
     window.signOutUser = () => signOut(auth);
 
-    // --- DATA SYNC ---
     function loadData(uid) {
         document.getElementById('refLink').value = `${window.location.origin}/index.html?ref=${uid}`;
         document.getElementById('displayID').innerText = `ID: ${uid.substring(0,8)}`;
@@ -270,11 +263,13 @@
             currentBalance = d.wallet || 0;
             document.getElementById('displayTeam').innerText = d.team || "ELITE PLAYER";
             document.getElementById('displayCountry').innerText = d.country || "DETECTING...";
-            document.getElementById('balanceUSD').innerText = `$${currentBalance.toFixed(2)}`;
+            
+            // Set main USD balance to 3-decimal precision
+            document.getElementById('balanceUSD').innerText = `$${currentBalance.toFixed(3)}`;
+            
             if(d.currency) updateRates(d.currency);
         });
 
-        // Live Referrals Query
         const q = query(ref(db, 'users'), orderByChild('referredBy'), equalTo(uid));
         onValue(q, (snap) => {
             const logs = [];
@@ -293,9 +288,13 @@
             <div class="p-4 bg-white/5 border border-white/5 rounded-2xl flex justify-between items-center">
                 <div>
                     <p class="text-[10px] font-black uppercase text-white">${l.team || 'Anonymous'}</p>
-                    <p class="text-[8px] font-bold text-zinc-500 uppercase tracking-widest mt-1">${l.isPaid ? 'PAID TOURNAMENT ENTRY' : 'REGISTRATION'}</p>
+                    <p class="text-[8px] font-bold text-zinc-500 uppercase tracking-widest mt-1">
+                        ${l.isPaid ? 'PAID ENTRY' : (l.type === 'click' ? 'LINK CLICK' : 'REGISTRATION')}
+                    </p>
                 </div>
-                <p class="text-[10px] font-black text-cyan-400">+$${l.isPaid ? '0.50' : '0.05'}</p>
+                <p class="text-[10px] font-black text-cyan-400">
+                    +$${l.isPaid ? '0.50' : (l.type === 'click' ? '0.001' : '0.05')}
+                </p>
             </div>
         `).join('');
     }
@@ -337,6 +336,5 @@
         }
     };
 </script>
-
 </body>
 </html>
