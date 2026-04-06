@@ -1423,18 +1423,65 @@ async function loadManagersList() {
         img.style.opacity = "1";
     };
 
-    // --- 6. EVENT LISTENERS & START ---
-    document.getElementById('regForm')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const btn = document.getElementById('submitBtn');
-        const phoneValue = document.getElementById('phoneNum').value.replace(/\s+/g, '');
-        if (phoneValue.length < 9) { btn.innerText = "TOO SHORT (MIN 9)"; setTimeout(() => btn.innerText = "Complete Registration", 2000); return; }
-        btn.innerText = "LINKING...";
-        const newUser = { team: document.getElementById('teamName').value.trim(), phone: document.getElementById('phoneNum').value.trim(), photo: document.getElementById('avatar').src, id: deviceId, status: "NOT ENTERED", paid: "UNPAID", currency: userGeo.currency, country: userGeo.name };
+// --- 6. EVENT LISTENERS & START ---
+document.getElementById('regForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    
+    // 1. Phone Validation
+    const phoneValue = document.getElementById('phoneNum').value.replace(/\s+/g, '');
+    if (phoneValue.length < 9) { 
+        btn.innerText = "TOO SHORT (MIN 9)"; 
+        setTimeout(() => btn.innerText = "Complete Registration", 2000); 
+        return; 
+    }
+
+    btn.innerText = "LINKING...";
+
+    // 2. Capture Referral Data
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeRefID = urlParams.get('ref');
+
+    // 3. Construct User Object (Added 'referredBy')
+    const newUser = { 
+        team: document.getElementById('teamName').value.trim(), 
+        phone: document.getElementById('phoneNum').value.trim(), 
+        photo: document.getElementById('avatar').src, 
+        id: deviceId, 
+        status: "NOT ENTERED", 
+        paid: "UNPAID", 
+        currency: userGeo.currency, 
+        country: userGeo.name,
+        referredBy: activeRefID || null // Permanently links this user to the referrer
+    };
+
+    try {
+        // 4. Save to Database
         await set(ref(db, `users/${deviceId}`), newUser);
+
+        // 5. TRIGGER SIGNUP CREDIT (+0.05)
+        if (activeRefID && activeRefID !== deviceId) {
+            if (typeof window.creditReferrerOnSignup === 'function') {
+                await window.creditReferrerOnSignup(db, activeRefID);
+                console.log(`%c[SYSTEM] Signup Credit processed for Referrer: ${activeRefID}`, "color: #a855f7; font-weight: bold;");
+            }
+        }
+
         btn.innerText = "LINKED! ✅";
-        setTimeout(() => { window.toggleModal('register', false); checkSession(); }, 800);
-    });
+        
+        // 6. Cleanup & UI Refresh
+        setTimeout(() => { 
+            window.toggleModal('register', false); 
+            // Restore scroll since modal is closing
+            document.body.style.overflow = 'auto'; 
+            checkSession(); 
+        }, 800);
+
+    } catch (error) {
+        console.error("Registration failed:", error);
+        btn.innerText = "ERROR - TRY AGAIN";
+    }
+});
 
     document.getElementById('fileInput')?.addEventListener('change', (e) => window.uploadToImgur(e.target.files[0], 'avatar'));
     document.getElementById('fileInput_p')?.addEventListener('change', (e) => window.uploadToImgur(e.target.files[0], 'pModalImg'));
@@ -1682,9 +1729,12 @@ document.getElementById('chatForm').onsubmit = (e) => {
     sendChatMessage(input.value);
     input.value = '';
 };
-// --- IMPROVED REFERRAL ENGINE ---
+// --- PRO ELITE REFERRAL ENGINE (V10) ---
 const initReferralModule = (() => {
-    let listenersAttached = false; // Prevents double-attaching events
+    let listenersAttached = false;
+    const CREDIT_VISIT = 0.001;
+    const CREDIT_REG = 0.05;
+    const CREDIT_PAID = 0.50;
 
     return async (db, deviceId, userData, userGeo) => {
         const modal = document.getElementById('referModal');
@@ -1694,83 +1744,134 @@ const initReferralModule = (() => {
         const urlParams = new URLSearchParams(window.location.search);
         const refID = urlParams.get('ref');
 
-        // 1. UPDATE LOCK STATE (Blur vs Content)
+        // 1. TRACK INBOUND VISIT (+0.001)
+        if (refID && refID !== deviceId) {
+            const sessionKey = `ref_tracked_${refID}`;
+            if (!sessionStorage.getItem(sessionKey)) {
+                const statsRef = ref(db, `users/${refID}/stats`);
+                const snap = await get(statsRef);
+                const s = snap.exists() ? snap.val() : { views: 0, earned: 0 };
+                
+                await update(statsRef, {
+                    views: (s.views || 0) + 1,
+                    earned: (s.earned || 0) + CREDIT_VISIT
+                });
+                
+                sessionStorage.setItem(sessionKey, 'true');
+                console.log(`%c[REFERRAL] Visit Credit +$${CREDIT_VISIT} issued to: ${refID}`, "color: #06b6d4; font-weight: bold;");
+                
+                // Show modal to the new guest
+                window.toggleReferModal(true);
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        }
+
+        // 2. LOAD USER DATA & STATS
         if (userData) {
-            lock?.classList.add('hidden'); 
-            // Load stats from Firebase
+            lock?.classList.add('hidden');
             const statsSnap = await get(child(ref(db), `users/${deviceId}/stats`));
+            
             if (statsSnap.exists()) {
                 const s = statsSnap.val();
+                const earnedUSD = s.earned || 0;
+
+                // Update Stats UI
                 document.getElementById('ref-views').innerText = s.views || 0;
                 document.getElementById('ref-clicks').innerText = s.clicks || 0;
                 document.getElementById('ref-registers').innerText = s.registers || 0;
-                const earned = s.earned || 0;
-                document.getElementById('ref-money').innerText = `$${earned.toFixed(2)}`;
-                
+
+                // Handle Local Currency Conversion
+                try {
+                    const rateRes = await fetch(`https://open.er-api.com/v6/latest/USD`);
+                    const rateData = await rateRes.json();
+                    const rate = rateData.rates[userGeo.currency] || 1;
+                    const localEarned = earnedUSD * rate;
+                    
+                    // Show 3-decimal precision balance
+                    document.getElementById('ref-money').innerText = `${localEarned.toFixed(3)} ${userGeo.currency}`;
+                    console.log(`[BALANCE] ${earnedUSD} USD converted to ${localEarned.toFixed(3)} ${userGeo.currency}`);
+                } catch (e) {
+                    document.getElementById('ref-money').innerText = `$${earnedUSD.toFixed(3)}`;
+                }
+
+                // Withdraw Activation
                 const wBtn = document.getElementById('withdrawBtn');
-                if (earned >= 2.00 && wBtn) {
+                if (earnedUSD >= 2.00 && wBtn) {
                     wBtn.disabled = false;
-                    wBtn.className = "w-full bg-green-600 text-white font-black italic uppercase py-3 rounded-lg active:scale-95 shadow-[0_0_20px_rgba(22,163,74,0.4)]";
+                    wBtn.className = "w-full bg-green-600 text-white font-black italic uppercase py-3 rounded-lg active:scale-95 shadow-[0_0_20px_rgba(34,197,94,0.4)]";
                 }
             }
         } else {
             lock?.classList.remove('hidden');
         }
 
-        // 2. HANDLE INBOUND REFERRAL (LANDING)
-        if (refID && refID !== deviceId) {
-            // Credit the referrer
-            const statsRef = ref(db, `users/${refID}/stats`);
-            get(statsRef).then(snap => {
-                const s = snap.val() || { clicks: 0 };
-                update(statsRef, { clicks: (s.clicks || 0) + 1 });
-            });
-            // Clean URL and show the referral "pitch" to the guest
-            window.history.replaceState({}, document.title, window.location.pathname);
-            toggleReferModal(true);
-        }
-
-        // 3. ATTACH LISTENERS ONLY ONCE
+        // 3. ATTACH LISTENERS (ONCE)
         if (!listenersAttached) {
             document.getElementById('copyReferBtn')?.addEventListener('click', () => {
                 const link = `${window.location.origin}${window.location.pathname}?ref=${deviceId}`;
                 navigator.clipboard.writeText(link).then(() => {
                     const btn = document.getElementById('copyReferBtn');
-                    const oldText = btn.innerText;
-                    btn.innerText = "COPIED!";
-                    btn.classList.replace('bg-white', 'bg-green-500');
-                    btn.classList.replace('text-black', 'text-white');
+                    btn.innerText = "LINK COPIED!";
+                    btn.classList.add('bg-green-500', 'text-white');
                     setTimeout(() => {
-                        btn.innerText = oldText;
-                        btn.classList.replace('bg-green-500', 'bg-white');
-                        btn.classList.replace('text-white', 'text-black');
+                        btn.innerText = "COPY LINK";
+                        btn.classList.remove('bg-green-500', 'text-white');
                     }, 2000);
                 });
             });
 
             document.getElementById('referLoginBtn')?.addEventListener('click', () => {
-                toggleReferModal(false);
-                if(window.toggleModal) window.toggleModal('register', true);
+                window.toggleReferModal(false);
+                window.toggleModal('register', true);
             });
 
-            document.getElementById('closeReferBtn')?.addEventListener('click', () => toggleReferModal(false));
-            document.getElementById('referBackdrop')?.addEventListener('click', () => toggleReferModal(false));
+            document.getElementById('closeReferBtn')?.addEventListener('click', () => window.toggleReferModal(false));
+            document.getElementById('referBackdrop')?.addEventListener('click', () => window.toggleReferModal(false));
             
             listenersAttached = true;
         }
     };
 })();
 
-// HELPER (Kept global for menu access)
+// --- GLOBAL BRIDGE FOR REGISTRATION & PAYMENT ---
+// Call this when user finishes Registration
+window.creditReferrerOnSignup = async (db, referrerID) => {
+    if (!referrerID) return;
+    const statsRef = ref(db, `users/${referrerID}/stats`);
+    const snap = await get(statsRef);
+    const s = snap.exists() ? snap.val() : { registers: 0, earned: 0 };
+    
+    await update(statsRef, {
+        registers: (s.registers || 0) + 1,
+        earned: (s.earned || 0) + 0.05
+    });
+    console.log(`%c[REFERRAL] Signup Credit +$0.05 issued!`, "color: #a855f7; font-weight: bold;");
+};
+
+// Call this when admin marks user as PAID
+window.creditReferrerOnPayment = async (db, referrerID) => {
+    if (!referrerID) return;
+    const statsRef = ref(db, `users/${referrerID}/stats`);
+    const snap = await get(statsRef);
+    const s = snap.exists() ? snap.val() : { earned: 0 };
+    
+    await update(statsRef, {
+        earned: (s.earned || 0) + 0.50
+    });
+    console.log(`%c[REFERRAL] Verified Entry Credit +$0.50 issued!`, "color: #84cc16; font-weight: bold;");
+};
+
+// --- MODAL & SCROLL LOCK ---
 window.toggleReferModal = (show) => {
     const modal = document.getElementById('referModal');
     if(!modal) return;
+    
     if(show) {
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
+        modal.classList.replace('hidden', 'flex');
+        document.body.style.overflow = 'hidden'; // Stop scroll
     } else {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
+        modal.classList.replace('flex', 'hidden');
+        document.body.style.overflow = 'auto'; // Resume scroll
     }
 };
 
