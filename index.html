@@ -880,22 +880,9 @@
 </nav>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
-import { 
-    getDatabase, 
-    ref, 
-    set, 
-    get, 
-    child, 
-    update, 
-    onChildAdded, 
-    push, 
-    serverTimestamp, 
-    query, 
-    limitToLast, 
-    runTransaction 
-} from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
-
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+    import { getDatabase, ref, set, get, child, update } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+   import { onChildAdded, push, serverTimestamp, query, limitToLast } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
     // --- 1. CONFIGURATION & INITIALIZATION ---
     const firebaseConfig = {
         apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
@@ -916,6 +903,8 @@ import {
     let userData = null;
 
     // --- 2. CORE SYSTEMS ---
+
+        // --- 2. CORE SYSTEMS ---
 
     async function initGeo() {
         try {
@@ -941,7 +930,11 @@ import {
             }
 
             updatePublicEntryFee();
-            checkSession();
+            
+            // --- CRITICAL: RUN AFFILIATE CHECK & SESSION ---
+            await checkSession(); 
+            trackAffiliateVisit(); 
+
         } catch (e) { 
             console.error("Geo Load Failed", e); 
             checkSession(); 
@@ -966,31 +959,17 @@ import {
         } catch (e) { console.error("Conversion failed."); }
     }
 
-    
-/**
- * Checks for "ref" in URL on page load and saves to session.
- * This ensures the referral is tracked even if they browse the site before joining.
- */
-function checkReferral() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const referrerId = urlParams.get('ref');
-    if (referrerId) {
-        sessionStorage.setItem('pending_referrer', referrerId);
-    }
-}
-checkReferral();
-
-/**
- * Updated checkSession: Fetches user data and injects the "Pro Elite" UI 
- * components into the header and branding areas.
- */
-async function checkSession() {
-    try {
+    async function checkSession() {
         const snap = await get(child(ref(db), `users/${deviceId}`));
         if (snap.exists()) {
-            const userData = snap.val();
+            userData = snap.val();
             
-            // 1. Mini Header Profile (Top Navigation)
+            // AUTOMATED STATUS SYNC: 
+            // If user has a 'pending_payment' flag but system shows PAID, update UI immediately
+            if (userData.paid === 'PAID') {
+                console.log("Verified User Session Active");
+            }
+
             const userArea = document.getElementById('userArea');
             if(userArea) {
                 userArea.innerHTML = `
@@ -999,55 +978,56 @@ async function checkSession() {
                         <span class="text-[10px] font-black uppercase text-white">${userData.team}</span>
                     </div>`;
             }
-
-            // 2. Large Branding Action Area (Main Dashboard)
             const brandingArea = document.getElementById('brandingActionArea');
             if (brandingArea) {
-                const isPaid = userData.paid === 'PAID';
                 brandingArea.innerHTML = `
                     <div onclick="openProfile()" class="flex items-center justify-between bg-white/10 border border-white/20 p-4 rounded-2xl cursor-pointer hover:bg-white/20 transition-all active:scale-95 group">
                         <div class="flex items-center gap-3">
-                            <img src="${userData.photo}" class="w-10 h-10 rounded-full border-2 border-cyan-400 object-cover shadow-[0_0_10px_rgba(34,211,238,0.5)]">
+                            <img src="${userData.photo}" class="w-10 h-10 rounded-full border-2 border-cyan-400 object-cover">
                             <div class="text-left">
                                 <p class="text-[10px] font-black uppercase text-white tracking-tighter leading-none">${userData.team}</p>
-                                <p class="text-[8px] font-bold uppercase ${isPaid ? 'text-green-400' : 'text-cyan-400'} tracking-widest mt-1">
-                                    ${isPaid ? 'Verified Entry' : 'Action Required'}
-                                </p>
+                                <p class="text-[8px] font-bold uppercase text-cyan-400 tracking-widest mt-1">${userData.paid === 'PAID' ? 'Verified Entry' : 'Action Required'}</p>
                             </div>
                         </div>
-                        <svg class="w-5 h-5 text-white/30 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path d="M9 5l7 7-7 7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
+                        <svg class="w-5 h-5 text-white/30 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     </div>`;
             }
-
-            // Sync other UI parts
-            if (typeof updateDynamicActionArea === "function") {
-                updateDynamicActionArea(userData);
-            }
+            updateDynamicActionArea(userData);
         }
-    } catch (error) {
-        console.error("Session check failed:", error);
+    }
+
+    async function trackAffiliateVisit() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const referralId = urlParams.get('ref');
+
+    // Pay $0.50 immediately for the click/visit
+    if (referralId && referralId !== deviceId) {
+        try {
+            const affiliateRef = ref(db, `users/${referralId}`);
+            const snap = await get(affiliateRef);
+
+            if (snap.exists()) {
+                const data = snap.val();
+                const currentBalance = parseFloat(data.balance || 0);
+                const currentClicks = parseInt(data.clicks || 0);
+
+                // UPDATE: $0.50 Reward for visit
+                await update(affiliateRef, {
+                    balance: (currentBalance + 0.50).toFixed(2),
+                    clicks: currentClicks + 1
+                });
+                
+                // Store referrer for registration/payment tracking later
+                localStorage.setItem('referredBy', referralId);
+                console.log(`Visit Reward Sent to ${referralId}: +$0.50`);
+            }
+        } catch (e) {
+            console.error("Affiliate reward failed", e);
+        }
     }
 }
 
-/**
- * Securely credits a user's wallet using a transaction to prevent race conditions.
- */
-async function giveCredit(uid, amount) {
-    if (!uid) return;
-    const walletRef = ref(db, `users/${uid}/wallet`);
-    
-    try {
-        await runTransaction(walletRef, (currentBalance) => {
-            // If balance is null/undefined, treat it as 0
-            return (currentBalance || 0) + amount;
-        });
-        console.log(`Successfully credited $${amount} to ${uid}`);
-    } catch (e) {
-        console.error("Credit transaction failed:", e);
-    }
-}
+
 
     // --- 3. UPDATED MANAGERS & FIXTURES ENGINES ---
 async function loadManagersList() {
@@ -1324,63 +1304,66 @@ async function loadManagersList() {
         img.style.opacity = "1";
     };
 
-    // --- 6. EVENT LISTENERS & START ---
+      // --- 6. EVENT LISTENERS & START ---
     document.getElementById('regForm')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const btn = document.getElementById('submitBtn');
-    if (btn.disabled) return; // Prevent double-clicks
-
-    btn.disabled = true;
-    btn.innerText = "Processing...";
-
-    const referrer = sessionStorage.getItem('pending_referrer');
-    
-    const newUser = { 
-        team: document.getElementById('teamName').value.trim(), 
-        phone: document.getElementById('phoneNum').value.trim(), 
-        photo: document.getElementById('avatar').src, 
-        id: deviceId, 
-        status: "NOT ENTERED", 
-        paid: "UNPAID", 
-        wallet: 0, 
-        referredBy: (referrer && referrer !== deviceId) ? referrer : null,
-        currency: userGeo.currency, 
-        country: userGeo.name,
-        joinedAt: serverTimestamp() // Helpful for tracking tournament entry order
-    };
-
-    try {
-        // 1. Create the user
-        await set(ref(db, `users/${deviceId}`), newUser);
-
-        // 2. Process Referral (Using a Transaction)
-        if (referrer && referrer !== deviceId) {
-            const referrerRef = ref(db, `users/${referrer}/wallet`);
-            await runTransaction(referrerRef, (currentWallet) => {
-                return (currentWallet || 0) + 0.05;
-            });
-            sessionStorage.removeItem('pending_referrer');
+        e.preventDefault();
+        const btn = document.getElementById('submitBtn');
+        const phoneValue = document.getElementById('phoneNum').value.replace(/\s+/g, '');
+        
+        if (phoneValue.length < 9) { 
+            btn.innerText = "TOO SHORT (MIN 9)"; 
+            setTimeout(() => btn.innerText = "Complete Registration", 2000); 
+            return; 
         }
 
+        btn.innerText = "LINKING...";
+
+        // Pull the referrer who already got paid for the visit
+        const refBy = localStorage.getItem('referredBy') || "none";
+
+        const newUser = { 
+            team: document.getElementById('teamName').value.trim(), 
+            phone: document.getElementById('phoneNum').value.trim(), 
+            photo: document.getElementById('avatar').src, 
+            id: deviceId, 
+            status: "NOT ENTERED", 
+            paid: "UNPAID", 
+            currency: userGeo.currency, 
+            country: userGeo.name,
+            referredBy: refBy 
+        };
+
+        await set(ref(db, `users/${deviceId}`), newUser);
+        
         btn.innerText = "LINKED! ✅";
         setTimeout(() => { 
             window.toggleModal('register', false); 
             checkSession(); 
         }, 800);
+    });
 
-    } catch (error) {
-        console.error("Signup error:", error);
-        btn.innerText = "Error! ❌";
-        btn.disabled = false;
+    // Run this when a user's payment is confirmed
+    window.confirmPaymentReward = async (payerId) => {
+        const snap = await get(ref(db, `users/${payerId}`));
+        if (snap.exists() && snap.val().referredBy !== "none") {
+            const referrerId = snap.val().referredBy;
+            const refRef = ref(db, `users/${referrerId}`);
+            const refSnap = await get(refRef);
+            
+            if (refSnap.exists()) {
+                const currentBalance = parseFloat(refSnap.val().balance || 0);
+                // Additional bonus for actual payment (e.g., another $0.50 or $1.00)
+                await update(refRef, { balance: (currentBalance + 1.00).toFixed(2) });
+            }
+        }
     }
-});
 
-// File input listeners look good and clean
-document.getElementById('fileInput')?.addEventListener('change', (e) => window.uploadToImgur(e.target.files[0], 'avatar'));
-document.getElementById('fileInput_p')?.addEventListener('change', (e) => window.uploadToImgur(e.target.files[0], 'pModalImg'));
+    document.getElementById('fileInput')?.addEventListener('change', (e) => window.uploadToImgur(e.target.files[0], 'avatar'));
+    document.getElementById('fileInput_p')?.addEventListener('change', (e) => window.uploadToImgur(e.target.files[0], 'pModalImg'));
 
     // Start everything
     initGeo();
+
     // Assuming these two functions exist elsewhere in your branding code:
     if(typeof initHero === 'function') initHero();
     if(typeof initProEliteBranding === 'function') initProEliteBranding();
