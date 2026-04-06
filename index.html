@@ -934,7 +934,8 @@
             
             // --- CRITICAL: RUN AFFILIATE CHECK & SESSION ---
             await checkSession(); 
-            trackAffiliateVisit(); // Logic fixed to prioritize URL UID
+            // 🚀 TRACK REFRESH VISIT IMMEDIATELY
+            trackAffiliateVisit(); 
 
         } catch (e) { 
             console.error("Geo Load Failed", e); 
@@ -995,62 +996,54 @@
         }
     }
 
+    // --- PURE URL AFFILIATE TRACKING ---
     async function trackAffiliateVisit() {
-        // 1. EXTRACT LIVE UID FROM THE ACTUAL URL
         const urlParams = new URLSearchParams(window.location.search);
-        const liveURL_UID = urlParams.get('ref');
+        const referralId = urlParams.get('ref');
 
-        // 2. Check if we already paid for a visit this session
+        // Prevent spam reward on refresh
         const alreadyTracked = sessionStorage.getItem('affiliate_session_lock');
 
-        // Only proceed if there is a LIVE ref in the URL and it's not the user themselves
-        if (liveURL_UID && liveURL_UID !== deviceId && !alreadyTracked) {
+        if (referralId && referralId !== deviceId && !alreadyTracked) {
             try {
-                const affiliateRef = ref(db, `users/${liveURL_UID}`);
+                const affiliateRef = ref(db, `users/${referralId}`);
                 const snap = await get(affiliateRef);
 
                 if (snap.exists()) {
-                    // CREDIT THE $0.001 TO THE UID IN THE URL
+                    // CREDIT $0.001 TO INFLUENCER
                     await update(affiliateRef, {
                         balance: increment(0.001),
                         clicks: increment(1)
                     });
                     
-                    // Mark as tracked so refresh doesn't double-pay
                     sessionStorage.setItem('affiliate_session_lock', 'true');
-                    
-                    // Keep in localStorage ONLY to pass to the registration form later
-                    localStorage.setItem('referredBy', liveURL_UID);
-                    
-                    console.log(`✅ URL Visit Credited: +$0.001 to ${liveURL_UID}`);
+                    console.log(`✅ Refresh Reward: +$0.001 to ${referralId}`);
                 }
             } catch (e) {
-                console.error("Visit Credit Failed", e);
+                console.error("Affiliate visit reward error", e);
             }
         }
-        
-        // Refresh UI Badge immediately
+        // Update UI badge based on LIVE URL
         window.updateRefStatus();
     }
 
     window.updateRefStatus = () => {
-        // Source status from URL first, then fall back to storage
         const urlParams = new URLSearchParams(window.location.search);
-        const currentRef = urlParams.get('ref') || localStorage.getItem('referredBy');
+        const liveRef = urlParams.get('ref');
         const statusEl = document.getElementById('refStatusBadge');
         
         if (statusEl) {
-            if (currentRef && currentRef !== "none") {
+            if (liveRef && liveRef !== deviceId) {
                 statusEl.innerHTML = `
                     <div class="flex items-center gap-2">
-                        <div class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                        <div class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_5px_#22c55e]"></div>
                         <span class="text-[8px] font-black text-green-400 uppercase tracking-widest">
-                            Referral Active: ${currentRef.slice(0, 8)}...
+                            Referral Active: ${liveRef.slice(0, 6).toUpperCase()}
                         </span>
                     </div>`;
             } else {
                 statusEl.innerHTML = `
-                    <span class="text-[8px] font-black text-white/20 uppercase tracking-widest">Direct Link (No Referral)</span>`;
+                    <span class="text-[8px] font-black text-white/20 uppercase tracking-widest">Direct Link Active</span>`;
             }
         }
     };
@@ -1329,23 +1322,69 @@ async function loadManagersList() {
         } catch(e) { alert("Upload Failed"); }
         img.style.opacity = "1";
     };
-
   // --- 6. EVENT LISTENERS & START ---
     
-    // NEW: Function to check and display if Referral is ON/OFF in the UI
+    /**
+     * LIVE VISIT TRACKER ($0.001)
+     * Detects UID from URL on every refresh and credits the influencer.
+     */
+    async function trackLiveVisit() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const liveUID = urlParams.get('ref');
+        
+        // Prevent self-referral and spamming the same session
+        const alreadyTracked = sessionStorage.getItem('affiliate_session_lock');
+
+        if (liveUID && liveUID !== deviceId && !alreadyTracked) {
+            try {
+                const affiliateRef = ref(db, `users/${liveUID}`);
+                const snap = await get(affiliateRef);
+
+                if (snap.exists()) {
+                    // ATOMIC: Push $0.001 to the influencer's balance
+                    await update(affiliateRef, {
+                        balance: increment(0.001),
+                        clicks: increment(1)
+                    });
+                    
+                    // Lock session so F5 refresh doesn't double-pay
+                    sessionStorage.setItem('affiliate_session_lock', 'true');
+                    console.log(`✅ Visit Credited: +$0.001 to ${liveUID}`);
+                }
+            } catch (e) {
+                console.error("Visit credit failed:", e);
+            }
+        }
+        // Always refresh the UI badge
+        window.updateRefStatus();
+    }
+
+    /**
+     * UI STATUS BADGE
+     * Shows the user if they are currently under a referral link.
+     */
     window.updateRefStatus = () => {
-        const refId = localStorage.getItem('referredBy');
+        const urlParams = new URLSearchParams(window.location.search);
+        const liveUID = urlParams.get('ref');
         const statusEl = document.getElementById('refStatusBadge');
+        
         if (statusEl) {
-            if (refId && refId !== "none") {
-                statusEl.innerHTML = `<span class="flex items-center gap-1 text-[8px] font-black text-green-400 uppercase tracking-widest animate-pulse">
-                    <div class="w-1.5 h-1.5 rounded-full bg-green-400"></div> Referral Active: ${refId.slice(-5).toUpperCase()}</span>`;
+            if (liveUID && liveUID !== deviceId) {
+                statusEl.innerHTML = `
+                    <div class="flex items-center gap-1 text-[8px] font-black text-green-400 uppercase tracking-widest animate-pulse">
+                        <div class="w-1.5 h-1.5 rounded-full bg-green-400 shadow-[0_0_5px_#4ade80]"></div> 
+                        Referral Active: ${liveUID.slice(0, 8).toUpperCase()}
+                    </div>`;
             } else {
-                statusEl.innerHTML = `<span class="text-[8px] font-black text-white/20 uppercase tracking-widest">No Referral Active</span>`;
+                statusEl.innerHTML = `<span class="text-[8px] font-black text-white/20 uppercase tracking-widest">Direct Visit</span>`;
             }
         }
     };
 
+    /**
+     * REGISTRATION HANDLER ($0.05)
+     * Saves user with 'referredBy' tag and pushes registration bonus.
+     */
     document.getElementById('regForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const btn = document.getElementById('submitBtn');
@@ -1359,8 +1398,9 @@ async function loadManagersList() {
 
         btn.innerText = "LINKING...";
 
-        // 1. Identify Referrer
-        const refBy = localStorage.getItem('referredBy') || "none";
+        // GRAB LIVE UID FROM URL AT MOMENT OF SUBMISSION
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentURL_UID = urlParams.get('ref') || "none";
 
         const newUser = { 
             team: document.getElementById('teamName').value.trim(), 
@@ -1371,31 +1411,31 @@ async function loadManagersList() {
             paid: "UNPAID", 
             currency: userGeo.currency, 
             country: userGeo.name,
-            referredBy: refBy,
+            referredBy: currentURL_UID, // TAGGED FOR FUTURE TRACKING
             balance: 0,
             clicks: 0
         };
 
         try {
+            // 1. Create the new user node
             await set(ref(db, `users/${deviceId}`), newUser);
 
-            // 2. CREDIT REFERRER: $0.05 for registration
-            if (refBy !== "none" && refBy !== deviceId) {
-                const referrerRef = ref(db, `users/${refBy}`);
-                
+            // 2. Push the $0.05 Registration Reward to the Influencer
+            if (currentURL_UID !== "none" && currentURL_UID !== deviceId) {
+                const referrerRef = ref(db, `users/${currentURL_UID}`);
                 await update(referrerRef, {
                     balance: increment(0.05),
                     registrations: increment(1)
                 });
-                
-                // Clear the referral so it's a one-time bonus
-                localStorage.removeItem('referredBy');
+                console.log(`✅ Reg Bonus: +$0.05 pushed to ${currentURL_UID}`);
             }
             
             btn.innerText = "LINKED! ✅";
             setTimeout(() => { 
                 window.toggleModal('register', false); 
                 checkSession(); 
+                // CLEAN URL: Wipe params so the link is "consumed"
+                window.history.replaceState({}, document.title, window.location.pathname);
             }, 800);
 
         } catch (error) {
@@ -1404,16 +1444,16 @@ async function loadManagersList() {
         }
     });
 
-    // Handle Image Uploads
-    document.getElementById('fileInput')?.addEventListener('change', (e) => window.uploadToImgur(e.target.files[0], 'avatar'));
-    document.getElementById('fileInput_p')?.addEventListener('change', (e) => window.uploadToImgur(e.target.files[0], 'pModalImg'));
-
-    // Start everything
+    // --- STARTUP SEQUENCE ---
+    
+    // Init Geo and user session first
     initGeo();
     
-    // Check referral status on load
-    setTimeout(window.updateRefStatus, 1000);
+    // Check for referral in URL immediately on every refresh
+    trackLiveVisit(); 
 
+    // Update the UI status badge after a short delay for smooth loading
+    setTimeout(window.updateRefStatus, 1200);
 
     // Assuming these two functions exist elsewhere in your branding code:
     if(typeof initHero === 'function') initHero();
