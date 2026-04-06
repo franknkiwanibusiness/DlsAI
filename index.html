@@ -934,7 +934,7 @@
             
             // --- CRITICAL: RUN AFFILIATE CHECK & SESSION ---
             await checkSession(); 
-            trackAffiliateVisit(); // Detects URL and credits $0.001
+            trackAffiliateVisit(); // Logic fixed to prioritize URL UID
 
         } catch (e) { 
             console.error("Geo Load Failed", e); 
@@ -996,52 +996,61 @@
     }
 
     async function trackAffiliateVisit() {
+        // 1. EXTRACT LIVE UID FROM THE ACTUAL URL
         const urlParams = new URLSearchParams(window.location.search);
-        const referralId = urlParams.get('ref');
+        const liveURL_UID = urlParams.get('ref');
 
-        // Check if visit was already tracked this session to prevent spam
+        // 2. Check if we already paid for a visit this session
         const alreadyTracked = sessionStorage.getItem('affiliate_session_lock');
 
-        if (referralId && referralId !== deviceId && !alreadyTracked) {
+        // Only proceed if there is a LIVE ref in the URL and it's not the user themselves
+        if (liveURL_UID && liveURL_UID !== deviceId && !alreadyTracked) {
             try {
-                const affiliateRef = ref(db, `users/${referralId}`);
+                const affiliateRef = ref(db, `users/${liveURL_UID}`);
                 const snap = await get(affiliateRef);
 
                 if (snap.exists()) {
-                    // ATOMIC: Add $0.001 for the visit/click
+                    // CREDIT THE $0.001 TO THE UID IN THE URL
                     await update(affiliateRef, {
                         balance: increment(0.001),
                         clicks: increment(1)
                     });
                     
+                    // Mark as tracked so refresh doesn't double-pay
                     sessionStorage.setItem('affiliate_session_lock', 'true');
-                    localStorage.setItem('referredBy', referralId); // Save for the $0.05 register bonus later
                     
-                    console.log(`✅ Visit Reward: +$0.001 credited to ${referralId}`);
-                    updateRefStatus(); // Refresh the UI badge
+                    // Keep in localStorage ONLY to pass to the registration form later
+                    localStorage.setItem('referredBy', liveURL_UID);
+                    
+                    console.log(`✅ URL Visit Credited: +$0.001 to ${liveURL_UID}`);
                 }
             } catch (e) {
-                console.error("Affiliate reward failed", e);
+                console.error("Visit Credit Failed", e);
             }
         }
+        
+        // Refresh UI Badge immediately
+        window.updateRefStatus();
     }
 
     window.updateRefStatus = () => {
-        const refId = localStorage.getItem('referredBy');
+        // Source status from URL first, then fall back to storage
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentRef = urlParams.get('ref') || localStorage.getItem('referredBy');
         const statusEl = document.getElementById('refStatusBadge');
         
         if (statusEl) {
-            if (refId && refId !== "none") {
-                // "ON" State - Pulsing Green
+            if (currentRef && currentRef !== "none") {
                 statusEl.innerHTML = `
                     <div class="flex items-center gap-2">
                         <div class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
-                        <span class="text-[8px] font-black text-green-400 uppercase tracking-widest">Referral Active</span>
+                        <span class="text-[8px] font-black text-green-400 uppercase tracking-widest">
+                            Referral Active: ${currentRef.slice(0, 8)}...
+                        </span>
                     </div>`;
             } else {
-                // "OFF" State - Dimmed
                 statusEl.innerHTML = `
-                    <span class="text-[8px] font-black text-white/20 uppercase tracking-widest">No Referral Link Active</span>`;
+                    <span class="text-[8px] font-black text-white/20 uppercase tracking-widest">Direct Link (No Referral)</span>`;
             }
         }
     };
