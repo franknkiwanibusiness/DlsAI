@@ -6,33 +6,45 @@
     <title>Affiliate Pro | DLS UCL</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        
         body { 
-            -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;
+            -webkit-user-select: none; user-select: none;
             background: #050505; font-family: 'Inter', sans-serif; overflow-x: hidden;
             -webkit-tap-highlight-color: transparent;
         }
-        .neon-border { border: 1px solid rgba(34, 211, 238, 0.2); box-shadow: 0 0 20px rgba(34, 211, 238, 0.05); }
+
+        /* --- PRO ELITE LOADING SCREEN --- */
+        #master-loader {
+            position: fixed; inset: 0; z-index: 9999; background: #000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .loader-content { text-align: center; }
+        .loader-logo { 
+            font-size: 2.5rem; font-weight: 900; italic: true; letter-spacing: -2px; 
+            text-transform: uppercase; color: white; margin-bottom: 10px;
+        }
+        .loader-accent { color: #22d3ee; text-shadow: 0 0 15px rgba(34, 211, 238, 0.5); }
+        .loader-bar-bg { width: 180px; height: 3px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden; position: relative; }
+        .loader-bar-fill { 
+            position: absolute; width: 0%; height: 100%; background: #22d3ee; 
+            box-shadow: 0 0 10px #22d3ee; transition: width 0.3s ease; 
+        }
+
+        .neon-border { border: 1px solid rgba(34, 211, 238, 0.2); box-shadow: 0 0 30px rgba(34, 211, 238, 0.03); }
         .shimmer {
             background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.05), transparent);
             background-size: 200% 100%; animation: shimmer 3s infinite;
         }
         @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
-        
-        #master-loader {
-            position: fixed; inset: 0; z-index: 9999; background: #000;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            transition: opacity 0.5s ease, visibility 0.5s;
-        }
-        .loader-bar { width: 100px; height: 2px; background: rgba(34, 211, 238, 0.1); overflow: hidden; position: relative; margin-top: 20px; }
-        .loader-progress { position: absolute; width: 40%; height: 100%; background: #22d3ee; animation: load 1.5s infinite ease-in-out; }
-        @keyframes load { 0% { left: -40%; } 100% { left: 100%; } }
 
-        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 1000; pointer-events: none; }
+        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 10000; pointer-events: none; }
         .toast {
-            background: rgba(15, 15, 15, 0.9); border: 1px solid rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px); color: white; padding: 12px 20px; border-radius: 12px;
-            margin-bottom: 10px; font-size: 11px; font-weight: 800; text-transform: uppercase;
-            letter-spacing: 1px; display: flex; align-items: center; gap: 10px;
+            background: rgba(10, 10, 10, 0.95); border: 1px solid rgba(34, 211, 238, 0.2);
+            backdrop-filter: blur(10px); color: white; padding: 14px 24px; border-radius: 14px;
+            margin-bottom: 10px; font-size: 11px; font-weight: 900; text-transform: uppercase;
+            letter-spacing: 1px; display: flex; align-items: center; gap: 12px;
             transform: translateX(120%); transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         .toast.show { transform: translateX(0); }
@@ -42,8 +54,11 @@
 <body class="text-white min-h-screen">
 
     <div id="master-loader">
-        <h1 class="text-2xl font-black italic tracking-tighter uppercase">DLS <span class="text-cyan-400">VALUE</span></h1>
-        <div class="loader-bar"><div class="loader-progress"></div></div>
+        <div class="loader-content">
+            <h1 class="loader-logo italic">DLS <span class="loader-accent">VALUE</span></h1>
+            <div class="loader-bar-bg"><div id="loader-progress" class="loader-bar-fill"></div></div>
+            <p class="text-[9px] font-black uppercase tracking-[0.4em] text-zinc-600 mt-4">Initializing Network</p>
+        </div>
     </div>
 
     <div id="toast-container"></div>
@@ -55,12 +70,12 @@
         <div id="loginForm" class="w-full max-w-sm space-y-3">
             <input id="email" type="email" placeholder="EMAIL ADDRESS" class="w-full bg-zinc-900/50 border border-white/10 p-4 rounded-xl text-[10px] font-black focus:border-cyan-500 outline-none transition-all">
             <input id="password" type="password" placeholder="PASSWORD" class="w-full bg-zinc-900/50 border border-white/10 p-4 rounded-xl text-[10px] font-black focus:border-cyan-500 outline-none transition-all">
-            <button onclick="handleAuth('login')" class="w-full bg-cyan-500 text-black font-black p-4 rounded-xl uppercase italic hover:bg-cyan-400 transition-all">Enter Dashboard</button>
-            <p class="text-[9px] text-zinc-600 font-bold uppercase py-2">Account is shared with Tournament Site</p>
+            <button onclick="handleAuth('login')" id="authBtn" class="w-full bg-cyan-500 text-black font-black p-4 rounded-xl uppercase italic hover:bg-cyan-400 transition-all">Enter Dashboard</button>
+            <p class="text-[9px] text-zinc-600 font-bold uppercase py-2">Use your tournament site credentials</p>
         </div>
     </div>
 
-    <main id="dashboard" class="hidden p-5 max-w-lg mx-auto pt-10">
+    <main id="dashboard" class="hidden p-5 max-w-lg mx-auto pt-10 opacity-0 transition-opacity duration-700">
         <div class="flex justify-between items-start mb-8">
             <div class="flex items-center gap-4">
                 <img id="displayPhoto" src="" class="w-12 h-12 rounded-full border-2 border-cyan-400/30 object-cover bg-zinc-900">
@@ -77,7 +92,7 @@
         </div>
 
         <div class="relative overflow-hidden bg-gradient-to-br from-zinc-900 to-black p-8 rounded-[2rem] neon-border shimmer mb-6">
-            <p class="text-[9px] font-black text-zinc-500 uppercase tracking-[0.2em]">Available Balance</p>
+            <p class="text-[9px] font-black text-zinc-500 uppercase tracking-[0.2em]">Total Earnings</p>
             <div class="flex items-baseline gap-2 mt-1">
                 <h1 id="balanceUSD" class="text-5xl font-black italic tracking-tighter">$0.000</h1>
                 <span class="text-xs font-bold text-zinc-600 uppercase">USD</span>
@@ -92,7 +107,7 @@
         </button>
 
         <div class="mb-8">
-            <h3 class="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-3 ml-1">Affiliate Rates</h3>
+            <h3 class="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-3 ml-1">Live Rates</h3>
             <div class="bg-white/5 border border-white/5 rounded-2xl overflow-hidden font-bold text-[10px]">
                 <div class="flex justify-between p-4 border-b border-white/5">
                     <span class="uppercase">Link Click</span>
@@ -103,7 +118,7 @@
                     <span class="text-cyan-400" id="rateReferral">$0.05</span>
                 </div>
                 <div class="flex justify-between p-4">
-                    <span class="uppercase">Paid Entry</span>
+                    <span class="uppercase">Paid User</span>
                     <span class="text-cyan-400" id="ratePaid">$0.50</span>
                 </div>
             </div>
@@ -117,7 +132,7 @@
             </div>
         </div>
 
-        <h3 class="text-[9px] font-black uppercase text-zinc-400 mb-3 tracking-widest ml-1">Network Activity</h3>
+        <h3 class="text-[9px] font-black uppercase text-zinc-400 mb-3 tracking-widest ml-1">Network Traffic</h3>
         <div id="logTable" class="space-y-2 mb-20"></div>
     </main>
 
@@ -143,7 +158,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
-    import { getDatabase, ref, onValue, query, orderByChild, equalTo, set, runTransaction, get, child } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+    import { getDatabase, ref, onValue, query, orderByChild, equalTo, set, runTransaction } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
     import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
 
     const firebaseConfig = {
@@ -162,35 +177,45 @@
     let currentBalance = 0;
     let localCurrency = 'USD';
 
-    // --- CORE UI ---
+    // --- LOADING PROGRESS CONTROL ---
+    function updateProgress(percent) {
+        document.getElementById('loader-progress').style.width = percent + '%';
+        if (percent >= 100) {
+            setTimeout(() => {
+                const loader = document.getElementById('master-loader');
+                loader.style.opacity = '0';
+                setTimeout(() => {
+                    loader.style.display = 'none';
+                    const dash = document.getElementById('dashboard');
+                    dash.classList.remove('hidden');
+                    setTimeout(() => dash.style.opacity = '1', 50);
+                }, 600);
+            }, 400);
+        }
+    }
+
+    // --- NOTIFICATION SYSTEM ---
     window.notify = (msg, type = 'info') => {
         const container = document.getElementById('toast-container');
         const toast = document.createElement('div');
-        toast.className = `toast border-${type === 'error' ? 'red' : 'cyan'}-500/50`;
+        toast.className = `toast`;
+        toast.style.borderColor = type === 'error' ? 'rgba(239, 68, 68, 0.5)' : 'rgba(34, 211, 238, 0.5)';
         toast.innerHTML = `<div class="w-2 h-2 rounded-full ${type === 'error' ? 'bg-red-500' : 'bg-cyan-400'} animate-pulse"></div><span>${msg}</span>`;
         container.appendChild(toast);
         setTimeout(() => toast.classList.add('show'), 100);
         setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 500); }, 4000);
     };
 
-    const hideMasterLoader = () => {
-        const loader = document.getElementById('master-loader');
-        loader.style.opacity = '0';
-        setTimeout(() => {
-            loader.style.visibility = 'hidden';
-            document.getElementById('dashboard').classList.remove('hidden');
-        }, 500);
-    };
-
-    // --- CURRENCY & RATES ---
+    // --- CURRENCY CONVERSION ---
     async function updateRates(currency) {
+        updateProgress(60);
         try {
             const res = await fetch(`https://open.er-api.com/v6/latest/USD`);
             const data = await res.json();
             const rate = data.rates[currency] || 1;
             
-            const fmt = (v, dec=2) => (v * rate).toLocaleString(undefined, {
-                style: 'currency', currency: currency, minimumFractionDigits: dec
+            const fmt = (v, d=2) => (v * rate).toLocaleString(undefined, {
+                style: 'currency', currency: currency, minimumFractionDigits: d
             });
 
             document.getElementById('balanceLocal').innerText = `≈ ${fmt(currentBalance, 3)}`;
@@ -198,19 +223,22 @@
             document.getElementById('rateReferral').innerText = `${fmt(0.05)}`;
             document.getElementById('ratePaid').innerText = `${fmt(0.50)}`;
             document.getElementById('minText').innerText = `${fmt(5)} ($5.00 USD)`;
-        } catch (e) { console.error("Rate fail", e); }
-        hideMasterLoader();
+        } catch (e) { console.error("FX Error"); }
+        updateProgress(100);
     }
 
-    // --- DATA LOADING ---
+    // --- MAIN DATA LOADING ---
     function loadUserData(uid) {
-        // Build Referral Link pointing to your main site
-        const siteUrl = "https://dlsvalue.site"; // Update to your actual domain
+        updateProgress(30);
+        const siteUrl = "https://dlsvalue.site";
         document.getElementById('refLink').value = `${siteUrl}/index.html?ref=${uid}`;
-        document.getElementById('displayID').innerText = `Partner ID: ${uid.substring(0,8)}`;
+        document.getElementById('displayID').innerText = `PARTNER ID: ${uid.substring(0,8)}`;
 
         onValue(ref(db, `managers/${uid}`), async (snap) => {
-            if(!snap.exists()) return;
+            if(!snap.exists()) {
+                updateProgress(100);
+                return;
+            }
             const d = snap.val();
             currentBalance = parseFloat(d.balance || 0);
             
@@ -218,19 +246,18 @@
             document.getElementById('displayPhoto').src = d.photo || "https://via.placeholder.com/100";
             document.getElementById('balanceUSD').innerText = `$${currentBalance.toFixed(3)}`;
             
-            // Detect location once per session
-            if (!window.currencyDetected) {
+            if (!window.curInit) {
                 try {
-                    const locRes = await fetch('https://ipinfo.io/json');
+                    const locRes = await fetch('https://ipinfo.io/json?token=YOUR_OPTIONAL_TOKEN'); // Replace with your token if needed
                     const locData = await locRes.json();
                     localCurrency = locData.currency || 'USD';
-                    window.currencyDetected = true;
+                    window.curInit = true;
                 } catch(e) { localCurrency = 'USD'; }
             }
             updateRates(localCurrency);
         });
 
-        // Load Referrals (Users where referredBy == my UID)
+        // Load Referrals
         const q = query(ref(db, 'managers'), orderByChild('referredBy'), equalTo(uid));
         onValue(q, (snap) => {
             const list = [];
@@ -242,46 +269,50 @@
     function renderLogs(logs) {
         const container = document.getElementById('logTable');
         if (!logs.length) {
-            container.innerHTML = `<div class="p-8 bg-white/5 border border-dashed border-white/10 rounded-2xl text-center text-[10px] font-black uppercase text-zinc-600">No referrals found</div>`;
+            container.innerHTML = `<div class="p-8 bg-white/5 border border-dashed border-white/10 rounded-2xl text-center text-[10px] font-black uppercase text-zinc-600 tracking-widest">No Active Traffic</div>`;
             return;
         }
         
         container.innerHTML = logs.reverse().map(l => `
-            <div class="p-4 bg-white/5 border border-white/5 rounded-2xl flex justify-between items-center">
+            <div class="p-4 bg-white/5 border border-white/5 rounded-2xl flex justify-between items-center transition-all hover:bg-white/10">
                 <div class="flex items-center gap-3">
-                    <img src="${l.photo}" class="w-8 h-8 rounded-full bg-black/50 border border-white/10">
+                    <img src="${l.photo}" class="w-8 h-8 rounded-full border border-white/10">
                     <div>
                         <p class="text-[10px] font-black uppercase text-white">${l.name}</p>
-                        <p class="text-[8px] font-bold text-zinc-500 uppercase tracking-widest mt-1">
-                            ${l.hasPaid ? 'PAID TOURNAMENT USER' : 'NEW REGISTRATION'}
+                        <p class="text-[7px] font-bold text-zinc-500 uppercase tracking-widest mt-1">
+                            ${l.hasPaid ? 'PAID ENTRY' : 'REGISTRATION'}
                         </p>
                     </div>
                 </div>
-                <p class="text-[10px] font-black text-cyan-400">
-                    +$${l.hasPaid ? '0.50' : '0.05'}
-                </p>
+                <p class="text-[10px] font-black text-cyan-400">+$${l.hasPaid ? '0.50' : '0.05'}</p>
             </div>
         `).join('');
     }
 
-    // --- ACTIONS ---
+    // --- AUTH ACTIONS ---
     window.handleAuth = async (type) => {
         const email = document.getElementById('email').value;
         const pass = document.getElementById('password').value;
-        if(!email || !pass) return notify("Enter credentials", "error");
+        const btn = document.getElementById('authBtn');
+        if(!email || !pass) return notify("Missing Info", "error");
+        
+        btn.innerText = "AUTHENTICATING...";
         try {
             await signInWithEmailAndPassword(auth, email, pass);
-        } catch (e) { notify("Invalid Email or Password", "error"); }
+        } catch (e) { 
+            notify("Invalid Credentials", "error"); 
+            btn.innerText = "ENTER DASHBOARD";
+        }
     };
 
-    window.signOutUser = () => signOut(auth);
+    window.signOutUser = () => signOut(auth).then(() => location.reload());
     window.copyLink = () => {
         navigator.clipboard.writeText(document.getElementById('refLink').value);
         notify("Partner Link Copied!");
     };
 
     window.openWithdraw = () => {
-        if(currentBalance < 5) return notify("Minimum $5.00 required", "error");
+        if(currentBalance < 5) return notify("Min $5.00 Required", "error");
         document.getElementById('withdrawModal').classList.remove('hidden');
         setTimeout(() => document.getElementById('withdrawSheet').classList.remove('translate-y-full'), 10);
     };
@@ -294,37 +325,31 @@
     window.processWithdrawal = async () => {
         const amount = parseFloat(document.getElementById('withdrawAmount').value);
         const address = document.getElementById('payoutAddress').value.trim();
-        if (!address) return notify("Enter Address/Phone", "error");
-        if (currentBalance < amount) return notify("Insufficient Funds", "error");
+        if (!address) return notify("Enter Address", "error");
 
         const balRef = ref(db, `managers/${auth.currentUser.uid}/balance`);
         const result = await runTransaction(balRef, (val) => {
-            const current = parseFloat(val || 0);
-            return current >= amount ? (current - amount).toFixed(4) : undefined;
+            const cur = parseFloat(val || 0);
+            return cur >= amount ? (cur - amount).toFixed(4) : undefined;
         });
         
         if (result.committed) {
             await set(ref(db, `payouts/${auth.currentUser.uid}_${Date.now()}`), { 
-                uid: auth.currentUser.uid, 
-                amount, 
-                address, 
-                status: 'PENDING', 
-                time: Date.now(),
-                method: 'MiniPay/Celo'
+                uid: auth.currentUser.uid, amount, address, status: 'PENDING', time: Date.now()
             });
             notify("Withdrawal Requested!");
             closeWithdraw();
         }
     };
 
+    // --- OBSERVER ---
     onAuthStateChanged(auth, (user) => {
         if (user) {
             document.getElementById('authOverlay').classList.add('hidden');
             loadUserData(user.uid);
         } else {
             document.getElementById('authOverlay').classList.remove('hidden');
-            document.getElementById('dashboard').classList.add('hidden');
-            hideMasterLoader();
+            updateProgress(100);
         }
     });
 </script>
