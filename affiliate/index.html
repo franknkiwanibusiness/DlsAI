@@ -3,203 +3,164 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DLS VALUE | PROMOTER HUB</title>
+    <title>PROMOTER HUB | DLS VALUE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;700;900&display=swap');
-
-        :root { --neon-cyan: #00f2ff; --deep-bg: #050505; }
-        body { 
-            background-color: var(--deep-bg); color: #fff; 
-            font-family: 'Inter', sans-serif; overflow: hidden; height: 100vh; 
-        }
-        .impact-text { font-family: 'Archivo Black', sans-serif; text-transform: uppercase; letter-spacing: -0.5px; }
+        :root { --neon-cyan: #00f2ff; --bg: #050505; }
+        body { background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; overflow: hidden; height: 100vh; }
+        .impact-text { font-family: 'Archivo Black', sans-serif; text-transform: uppercase; }
         
-        /* Glassmorphism */
-        .glass-card {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(0, 242, 255, 0.15);
-            backdrop-filter: blur(12px);
+        /* Modal Glass Effect */
+        .modal-overlay {
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 50;
         }
-
-        /* Shimmer Button */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(0, 242, 255, 0.2);
+        }
         .shimmer-btn {
             background: linear-gradient(90deg, #00f2ff 0%, #7000ff 50%, #00f2ff 100%);
             background-size: 200% auto;
             animation: move-gradient 3s linear infinite;
         }
         @keyframes move-gradient { to { background-position: 200% center; } }
-
-        /* Custom Scroll for Logs */
-        #log-area::-webkit-scrollbar { width: 3px; }
-        #log-area::-webkit-scrollbar-thumb { background: var(--neon-cyan); border-radius: 10px; }
-
         .hidden { display: none !important; }
-        
-        #api-loader {
-            position: fixed; inset: 0; background: #000; z-index: 100;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-        }
     </style>
 </head>
-<body class="flex flex-col p-5">
+<body class="flex flex-col p-6">
 
-    <div id="api-loader">
-        <div class="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
-        <p class="impact-text text-[10px] mt-4 tracking-widest text-cyan-500">Syncing Network...</p>
+    <div id="api-loader" class="fixed inset-0 bg-black z-[100] flex flex-col items-center justify-center">
+        <div class="w-10 h-10 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+        <p class="impact-text text-[10px] mt-4 tracking-widest text-cyan-500">Connecting...</p>
     </div>
 
-    <div id="auth-screen" class="hidden flex flex-col justify-center h-full space-y-6">
-        <div class="text-center">
-            <h1 class="impact-text text-4xl italic text-white leading-none">PRO <span class="text-cyan-500">ELITE</span></h1>
-            <p class="text-[10px] opacity-40 tracking-[0.3em] uppercase mt-2">Affiliate Network</p>
-        </div>
-
-        <div class="glass-card p-6 rounded-2xl space-y-4">
-            <input id="email-input" type="email" placeholder="Email" class="w-full bg-white/5 border border-white/10 p-4 rounded-xl text-sm focus:outline-none focus:border-cyan-500">
-            <input id="pass-input" type="password" placeholder="Password" class="w-full bg-white/5 border border-white/10 p-4 rounded-xl text-sm focus:outline-none focus:border-cyan-500">
-            <button id="email-login-btn" class="w-full bg-white text-black font-black py-4 rounded-xl impact-text text-sm">Login / Sign Up</button>
+    <div id="auth-modal" class="hidden fixed inset-0 modal-overlay flex items-center justify-center p-6">
+        <div class="glass-card w-full max-w-sm p-8 rounded-3xl text-center relative">
+            <div class="absolute -top-1 left-1/2 -translate-x-1/2 w-20 h-1 bg-cyan-500 shadow-[0_0_15px_#00f2ff]"></div>
             
-            <div class="flex items-center gap-2 py-2">
-                <div class="h-[1px] bg-white/10 flex-1"></div>
-                <span class="text-[10px] opacity-30 font-bold">OR</span>
-                <div class="h-[1px] bg-white/10 flex-1"></div>
-            </div>
+            <h2 class="impact-text text-2xl mb-2 italic">Join the <span class="text-cyan-400">Elite</span></h2>
+            <p class="text-[10px] opacity-40 uppercase tracking-widest mb-8">Promoter Registration</p>
 
-            <button id="google-login-btn" class="w-full glass-card border-white/20 py-4 rounded-xl flex items-center justify-center gap-3">
-                <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" class="w-5">
-                <span class="font-bold text-sm">Continue with Google</span>
-            </button>
+            <div class="space-y-4">
+                <input id="email-field" type="email" placeholder="Email Address" 
+                    class="w-full bg-white/5 border border-white/10 p-4 rounded-xl text-sm focus:border-cyan-500 outline-none">
+                <input id="pass-field" type="password" placeholder="Password" 
+                    class="w-full bg-white/5 border border-white/10 p-4 rounded-xl text-sm focus:border-cyan-500 outline-none">
+                
+                <button id="main-auth-btn" class="w-full bg-white text-black font-black py-4 rounded-xl impact-text text-sm">
+                    Access Dashboard
+                </button>
+
+                <div class="flex items-center gap-2 py-2">
+                    <div class="h-[1px] bg-white/10 flex-1"></div>
+                    <span class="text-[10px] opacity-30">OR</span>
+                    <div class="h-[1px] bg-white/10 flex-1"></div>
+                </div>
+
+                <button id="google-auth-btn" class="w-full border border-white/20 py-4 rounded-xl flex items-center justify-center gap-3 bg-white/5">
+                    <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" class="w-5">
+                    <span class="font-bold text-sm">Continue with Google</span>
+                </button>
+            </div>
         </div>
     </div>
 
-    <div id="dash-screen" class="hidden flex-col h-full">
-        <header class="flex justify-between items-end mb-6">
-            <div>
-                <h1 class="impact-text text-xl italic text-cyan-400">Promoter Hub</h1>
-                <p id="user-display-email" class="text-[10px] opacity-40">User@dlsvalue.site</p>
-            </div>
-            <button id="logout-btn" class="text-[10px] impact-text opacity-50 border border-white/20 px-3 py-1 rounded">Logout</button>
+    <div id="main-content" class="hidden flex flex-col h-full">
+        <header class="flex justify-between items-center mb-8">
+            <h1 class="impact-text text-xl italic text-cyan-400">Network <span class="text-white">Hub</span></h1>
+            <button id="logout-btn" class="text-[9px] border border-white/20 px-3 py-1 rounded opacity-50 uppercase font-bold">Sign Out</button>
         </header>
 
-        <div class="glass-card p-4 rounded-xl mb-6 border-dashed border-cyan-500/40">
-            <p class="impact-text text-[9px] text-cyan-500 mb-2">Unique Tracking Link</p>
-            <div class="flex gap-2">
-                <input id="ref-link-input" type="text" readonly class="bg-black/40 border border-white/5 rounded-lg p-2 text-[10px] flex-1 text-cyan-200">
-                <button id="copy-btn" class="bg-cyan-500 text-black px-4 rounded-lg font-black text-[10px] uppercase">Copy</button>
-            </div>
-        </div>
-
-        <div class="glass-card rounded-2xl p-6 mb-6 text-center relative overflow-hidden">
-            <div class="absolute top-0 left-0 w-full h-1 bg-cyan-500 shadow-[0_0_15px_#00f2ff]"></div>
-            <p class="impact-text text-[10px] text-cyan-500 mb-1">Available Payout</p>
-            <h2 id="user-balance" class="text-5xl font-black mb-4">0.00</h2>
-            <button id="withdraw-btn" class="shimmer-btn w-full py-3 rounded-xl impact-text text-black font-bold text-xs tracking-widest">
-                Withdraw (Min $5)
+        <div class="glass-card rounded-2xl p-6 mb-6 text-center">
+            <p class="impact-text text-[10px] text-cyan-500 mb-1">Available Balance</p>
+            <h2 id="display-balance" class="text-5xl font-black mb-4">0.00</h2>
+            <button class="shimmer-btn w-full py-3 rounded-xl impact-text text-black font-bold text-xs tracking-widest">
+                Withdraw Now
             </button>
         </div>
 
-        <div class="grid grid-cols-3 gap-3 mb-6">
+        <div class="grid grid-cols-3 gap-3">
             <div class="glass-card rounded-xl p-3 text-center">
-                <p class="text-[9px] opacity-50 uppercase mb-1">Clicks</p>
-                <p id="stat-clicks" class="text-lg font-black">0</p>
+                <p class="text-[9px] opacity-50 uppercase">Clicks</p>
+                <p id="display-clicks" class="text-lg font-black">0</p>
             </div>
             <div class="glass-card rounded-xl p-3 text-center">
-                <p class="text-[9px] opacity-50 uppercase mb-1">Regs</p>
-                <p id="stat-regs" class="text-lg font-black">0</p>
+                <p class="text-[9px] opacity-50 uppercase">Regs</p>
+                <p id="display-regs" class="text-lg font-black">0</p>
             </div>
             <div class="glass-card rounded-xl p-3 text-center border-cyan-500/30">
-                <p class="text-[9px] text-cyan-400 uppercase mb-1">Paid</p>
-                <p id="stat-paid" class="text-lg font-black text-cyan-400">0</p>
+                <p class="text-[9px] text-cyan-400 uppercase">Paid</p>
+                <p id="display-paid" class="text-lg font-black text-cyan-400">0</p>
             </div>
         </div>
-
-        <h3 class="impact-text text-[10px] text-gray-500 mb-2">Network Activity</h3>
-        <div id="log-area" class="flex-1 overflow-y-auto space-y-2 pr-1 pb-4">
-            </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
-        import { getDatabase, ref, get, set, onValue } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
-        import { 
-            getAuth, onAuthStateChanged, GoogleAuthProvider, 
-            signInWithPopup, signInWithEmailAndPassword, 
-            createUserWithEmailAndPassword, signOut 
-        } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
 
-        // Your Config
         const firebaseConfig = {
             apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
             authDomain: "itzhoyoo-f9f7e.firebaseapp.com",
             databaseURL: "https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com",
             projectId: "itzhoyoo-f9f7e",
-            storageBucket: "itzhoyoo-f9f7e.filestorage.app",
-            messagingSenderId: "1094792075584",
             appId: "1:1094792075584:web:d49e9c3f899d3cd31082a5"
         };
 
         const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
         const auth = getAuth(app);
+        const db = getDatabase(app);
         const googleProvider = new GoogleAuthProvider();
 
-        // 1. Auth Logic
-        document.getElementById('google-login-btn').onclick = () => signInWithPopup(auth, googleProvider);
+        // FAILSAFE: Hide loader if stuck
+        setTimeout(() => {
+            document.getElementById('api-loader').classList.add('hidden');
+            if(!auth.currentUser) document.getElementById('auth-modal').classList.remove('hidden');
+        }, 2500);
+
+        // AUTH STATE
+        onAuthStateChanged(auth, (user) => {
+            document.getElementById('api-loader').classList.add('hidden');
+            if (user) {
+                document.getElementById('auth-modal').classList.add('hidden');
+                document.getElementById('main-content').classList.remove('hidden');
+                listenToData(user.uid);
+            } else {
+                document.getElementById('auth-modal').classList.remove('hidden');
+                document.getElementById('main-content').classList.add('hidden');
+            }
+        });
+
+        function listenToData(uid) {
+            onValue(ref(db, `promoters/${uid}`), (snap) => {
+                const data = snap.val() || { balance: 0, clicks: 0, regs: 0, paid: 0 };
+                document.getElementById('display-balance').innerText = data.balance.toFixed(2);
+                document.getElementById('display-clicks').innerText = data.clicks;
+                document.getElementById('display-regs').innerText = data.regs;
+                document.getElementById('display-paid').innerText = data.paid;
+            });
+        }
+
+        // BUTTON ACTIONS
+        document.getElementById('google-auth-btn').onclick = () => signInWithPopup(auth, googleProvider);
         
-        document.getElementById('email-login-btn').onclick = async () => {
-            const email = document.getElementById('email-input').value;
-            const pass = document.getElementById('pass-input').value;
-            if(!email || !pass) return alert("Enter details");
+        document.getElementById('main-auth-btn').onclick = async () => {
+            const email = document.getElementById('email-field').value;
+            const pass = document.getElementById('pass-field').value;
             try {
                 await signInWithEmailAndPassword(auth, email, pass);
             } catch (e) {
-                await createUserWithEmailAndPassword(auth, email, pass);
+                if(e.code === 'auth/user-not-found') {
+                    await createUserWithEmailAndPassword(auth, email, pass);
+                } else { alert(e.message); }
             }
         };
 
         document.getElementById('logout-btn').onclick = () => signOut(auth);
-
-        // 2. State Management
-        onAuthStateChanged(auth, async (user) => {
-            document.getElementById('api-loader').classList.add('hidden');
-            if (user) {
-                document.getElementById('auth-screen').classList.add('hidden');
-                document.getElementById('dash-screen').classList.remove('hidden');
-                document.getElementById('user-display-email').innerText = user.email;
-                await initUserDb(user);
-            } else {
-                document.getElementById('auth-screen').classList.remove('hidden');
-                document.getElementById('dash-screen').classList.add('hidden');
-            }
-        });
-
-        // 3. Database & Tracking
-        async function initUserDb(user) {
-            const userRef = ref(db, `promoters/${user.uid}`);
-            const snap = await get(userRef);
-            
-            let refId;
-            if (!snap.exists()) {
-                refId = Math.random().toString(36).substring(2, 8).toUpperCase();
-                await set(userRef, {
-                    refId: refId,
-                    balance: 0,
-                    clicks: 0,
-                    regs: 0,
-                    paid: 0,
-                    logs: []
-                });
-            } else {
-                refId = snap.val().refId;
-            }
-
-            document.getElementById('ref-link-input').value = `https://dlsvalue.site/?ref=${refId}`;
-            
-            // Listen for data updates (Live)
-            onValue(userRef, (s) => {
-                const data = s.val();
-                document.getElementById('user-balance').innerText = data.balance.toFixed(2);
-                document.getElementById('stat-clicks').innerText = data.clicks;
-                document.getElementById('stat-regs').innerText = data.regs;
-                document.getElementById('stat-paid').innerText = data.
+    </script>
+</body>
+</html>
