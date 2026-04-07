@@ -453,7 +453,7 @@
 </script>
 
 
-</div>
+    </div>
 
 
     <header class="sticky top-0 z-50 w-full h-16 bg-black/80 backdrop-blur-xl flex items-center justify-between px-5 border-b border-white/10">
@@ -1694,9 +1694,11 @@ let isAdmin = false;
 let pinActive = false; 
 
 const AD_POOL = [
-    { title: "DLS PRO ELITE", url: "https://www.youtube.com/embed/X9wUIsyoz4Y", cta: "Join Pro", link: "/pro" },
-    { title: "ULTIMATE UCL TOURNAMENT", url: "https://www.youtube.com/embed/ZUkQxleBZ_0", cta: "Register", link: "/ucl" },
-    { title: "ELITE KITS UNLOCKED", url: "https://www.youtube.com/embed/Rc3kRIY.jpeg", cta: "View Kits", link: "/kits" }
+    { title: "BEST DLS APK MOD", url: "https://omg10.com/4/7950037", cta: "Visit" },
+    { title: "DLS APK MOD", url: "https://omg10.com/4/7165724", cta: "Visit" },
+    { title: "DREAM LEAGUE SOCCER", url: "https://omg10.com/4/8272145", cta: "Visit" },
+    { title: "MINIPAY REWARDS", url: "https://link.minipay.xyz/invite?ref=sVWZUHNR", cta: "Download" },
+    { title: "WHATSAPP COMMUNITY", url: "https://chat.whatsapp.com/BuXOukkfTDMCCaSMDKnh6z", cta: "Join Group" }
 ];
 
 // --- CHAT UI CONTROL ---
@@ -1778,46 +1780,67 @@ onChildAdded(chatRef, (snapshot) => {
 
 setTimeout(() => { isInitialLoad = false; }, 1500);
 
-// --- RENDERING & PINNED LOGIC ---
+// --- RENDERING & SYSTEM LOGIC ---
 function renderMessage(msg) {
     const box = document.getElementById('chatBox');
     if(!box) return;
 
-    // Handle Pinned Top Bar
+    // 1. PINNED BAR LOGIC
     if(msg.pinned) {
         const pBox = document.getElementById('pinnedBox');
         if(pBox) {
             pBox.classList.remove('hidden');
-            pBox.innerHTML = `<div class="p-3 flex items-center justify-between animate-in slide-in-from-top text-white">
-                <div class="flex items-center gap-3">
-                    <div class="w-1 h-6 bg-cyan-400 rounded-full shadow-[0_0_10px_#00f3ff]"></div>
-                    <p class="text-[10px] font-medium truncate max-w-[200px]">ADMIN: ${msg.text}</p>
-                </div>
-                <button onclick="this.parentElement.parentElement.classList.add('hidden')" class="opacity-40">&times;</button>
-            </div>`;
+            pBox.innerHTML = `
+                <div class="p-3 flex items-center justify-between animate-in slide-in-from-top text-white bg-cyan-500/20 backdrop-blur-md border-b border-cyan-500/30">
+                    <div class="flex items-center gap-3">
+                        <div class="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_10px_#00f3ff]"></div>
+                        <p class="text-[9px] font-black uppercase tracking-widest">SYSTEM ALERT: ${msg.text}</p>
+                    </div>
+                    <button onclick="this.parentElement.parentElement.classList.add('hidden')" class="opacity-60 text-xl px-2">&times;</button>
+                </div>`;
         }
     }
 
+    // 2. DETECTION LOGIC
     const isMe = msg.uid === deviceId;
-    const isHighlighted = msg.isHighlighted || (isAdmin && isMe);
-    const time = msg.time ? new Date(msg.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now';
+    // Detects if it's a System Broadcast
+    const isSystem = msg.team === "SYSTEM" || msg.isHighlighted; 
+    const time = msg.time ? new Date(msg.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Now';
     
     const isImage = msg.text && msg.text.startsWith('[IMG]');
     const content = isImage 
-        ? `<img src="${msg.text.replace('[IMG]', '')}" class="rounded-xl max-w-full border border-white/10 mt-1">` 
+        ? `<img src="${msg.text.replace('[IMG]', '')}" class="rounded-xl max-w-full border border-white/20 mt-1 shadow-lg">` 
         : msg.text;
 
+    // 3. SYSTEM VS USER STYLING
+    const alignmentClass = isSystem ? 'justify-center w-full' : (isMe ? 'flex-row-reverse' : 'flex-row');
+    const itemAlignment = isSystem ? 'items-center' : (isMe ? 'items-end' : 'items-start');
+    const bubbleStyle = isSystem 
+        ? 'admin-glow border-cyan-400/50 bg-cyan-500/10 text-cyan-50 shadow-[0_0_20px_rgba(0,243,255,0.1)]' 
+        : (isMe ? 'bg-blue-600/40 border-blue-400/30' : 'bg-white/5 border-white/10');
+
     const html = `
-        <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} animate-in fade-in mb-3">
-            <span class="text-[7px] font-black uppercase mb-1 ${isHighlighted ? 'text-cyan-400' : 'text-white/30'}">
-                ${isHighlighted ? '⭐ ' : ''}${msg.team} • ${time}
-            </span>
-            <div class="${isHighlighted ? 'admin-glow' : (isMe ? 'bg-blue-600' : 'bg-white/5')} px-4 py-3 rounded-2xl max-w-[85%] text-[13px] border border-white/5 text-white">
-                ${content}
+        <div class="flex gap-3 mb-6 animate-in fade-in slide-in-from-bottom-2 ${alignmentClass}">
+            ${!isSystem ? `
+                <div class="w-9 h-9 rounded-full border border-white/10 bg-white/5 backdrop-blur-md overflow-hidden flex-shrink-0 shadow-lg">
+                    <img src="${msg.photo || 'https://via.placeholder.com/100'}" class="w-full h-full object-cover">
+                </div>
+            ` : ''}
+            
+            <div class="flex flex-col ${itemAlignment} ${isSystem ? 'max-w-[92%]' : 'max-w-[78%]'}">
+                <span class="text-[7px] font-black uppercase mb-1 px-1 tracking-[0.2em] ${isSystem ? 'text-cyan-400' : 'text-white/30'}">
+                    ${isSystem ? '🛡️ SYSTEM BROADCAST' : msg.team} • ${time}
+                </span>
+                <div class="${bubbleStyle} backdrop-blur-xl px-5 py-3 rounded-2xl border text-[13px] text-white shadow-xl ${isSystem ? 'text-center' : ''}">
+                    ${isSystem ? `<span class="italic font-bold tracking-tight">${content}</span>` : content}
+                </div>
             </div>
         </div>`;
+        
     box.insertAdjacentHTML('beforeend', html);
+    box.scrollTop = box.scrollHeight;
 }
+
 
 // --- SHUFFLED AD ENGINE ---
 async function fetchAndRenderAd() {
@@ -2002,56 +2025,176 @@ const initReferralModule = (() => {
     };
 })();
 
-// 3. EVENT LISTENERS (REGISTRATION & IMAGES)
+// --- CONFIGURATION ---
+const IMGUR_CLIENT_ID_REG = "891e5bb4aa94282"; 
+const HQ_PHOTO_URL = "https://i.imgur.com/Rc3kRIY.jpeg";
+
+// --- HELPER: SYSTEM BROADCAST ---
+async function logRegistrationToSystem(message) {
+    try {
+        await push(ref(db, 'chat'), {
+            team: "SYSTEM",
+            photo: HQ_PHOTO_URL,
+            text: `[HQ-LOG]: ${message}`,
+            isHighlighted: true,
+            time: serverTimestamp(),
+            uid: "hq_logger"
+        });
+    } catch (e) { console.error("Broadcast failed", e); }
+}
+
+// --- UNIQUE REGISTRATION UPLOADER ---
+window.uploadToImgur_Reg = async (file, targetId) => {
+    if (!file) return;
+    
+    // Safety check for UI elements
+    const targetElement = document.getElementById(targetId);
+    const btn = document.getElementById('submitBtn');
+    if (!targetElement) return;
+    
+    if (btn) {
+        btn.disabled = true;
+        btn.innerText = "UPLOADING...";
+    }
+
+    const formData = new FormData();
+    formData.append("image", file);
+
+    try {
+        const response = await fetch("https://api.imgur.com/3/image", {
+            method: "POST",
+            headers: { Authorization: `Client-ID ${IMGUR_CLIENT_ID_REG}` },
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            const link = data.data.link;
+            if (targetElement.tagName === 'IMG') {
+                targetElement.src = link;
+            } else {
+                targetElement.style.backgroundImage = `url(${link})`;
+            }
+            if (btn) btn.innerText = "IMAGE READY ✅";
+        }
+    } catch (err) {
+        console.error("Imgur Reg Error:", err);
+        if (btn) btn.innerText = "UPLOAD FAILED";
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            setTimeout(() => { if(btn.innerText.includes("READY")) btn.innerText = "Complete Registration"; }, 1500);
+        }
+    }
+};
+
+// --- MAIN REGISTRATION EVENT ---
 document.getElementById('regForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('submitBtn');
-    const phoneValue = document.getElementById('phoneNum').value.replace(/\s+/g, '');
+    const teamNameInput = document.getElementById('teamName');
+    const phoneInput = document.getElementById('phoneNum');
     
+    if (!btn || !teamNameInput || !phoneInput) return;
+
+    const teamName = teamNameInput.value.trim();
+    const phoneValue = phoneInput.value.replace(/\s+/g, '');
+    
+    // Validation
     if (phoneValue.length < 9) { 
-        btn.innerText = "TOO SHORT (MIN 9)"; 
+        btn.innerText = "INVALID NUMBER"; 
         setTimeout(() => btn.innerText = "Complete Registration", 2000); 
         return; 
     }
 
-    btn.innerText = "LINKING...";
-    
-    const urlParams = new URLSearchParams(window.location.search);
-    const activeRefID = urlParams.get('ref');
-
-    const newUser = { 
-        team: document.getElementById('teamName').value.trim(), 
-        phone: document.getElementById('phoneNum').value.trim(), 
-        photo: document.getElementById('avatar').src, 
-        id: deviceId, 
-        status: "NOT ENTERED", 
-        paid: "UNPAID", 
-        currency: userGeo.currency, 
-        country: userGeo.name,
-        referredBy: activeRefID || null 
-    };
+    // LOCK STATE
+    btn.disabled = true;
+    btn.innerText = "VERIFYING...";
+    document.body.style.overflow = 'hidden'; 
 
     try {
-        await set(ref(db, `users/${deviceId}`), newUser);
+        // Use a clean check for deviceId (make sure it exists globally)
+        const currentId = typeof deviceId !== 'undefined' ? deviceId : localStorage.getItem('deviceId');
+        if (!currentId) throw new Error("No Device ID found");
 
-        // TRIGGER SIGNUP CREDIT (+0.05)
-        if (activeRefID && activeRefID !== deviceId) {
-            await window.creditReferrerOnSignup(db, activeRefID);
+        const userCheck = await get(ref(db, `users/${currentId}`));
+        
+        if (userCheck.exists()) {
+            btn.innerText = "ALREADY REGISTERED";
+            setTimeout(() => {
+                window.toggleModal('register', false);
+                document.body.style.overflow = 'auto'; // UNLOCK
+                btn.disabled = false;
+                btn.innerText = "Complete Registration";
+                if (typeof checkSession === "function") checkSession();
+            }, 1500);
+            return;
         }
 
-        btn.innerText = "LINKED! ✅";
+        btn.innerText = "SYNCING CORE...";
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const activeRefID = urlParams.get('ref');
+
+        const newUser = { 
+            team: teamName, 
+            phone: phoneInput.value.trim(), 
+            photo: document.getElementById('avatar')?.src || HQ_PHOTO_URL, 
+            id: currentId, 
+            status: "NOT ENTERED", 
+            paid: "UNPAID", 
+            currency: (typeof userGeo !== 'undefined' && userGeo.currency) ? userGeo.currency : "USD", 
+            country: (typeof userGeo !== 'undefined' && userGeo.name) ? userGeo.name : "Global",
+            referredBy: activeRefID || null,
+            joinedAt: serverTimestamp()
+        };
+
+        // SAVE TO DATABASE
+        await set(ref(db, `users/${currentId}`), newUser);
+
+        // Credit Referrer logic
+        if (activeRefID && activeRefID !== currentId) {
+            // Update stats for the referrer
+            const refStatsRef = ref(db, `users/${activeRefID}/stats`);
+            const snap = await get(refStatsRef);
+            const currentStats = snap.exists() ? snap.val() : { registers: 0, earned: 0 };
+            
+            await update(refStatsRef, {
+                registers: (currentStats.registers || 0) + 1,
+                earned: (currentStats.earned || 0) + 0.05 // $0.05 bonus for new signup
+            });
+        }
+
+        await logRegistrationToSystem(`NEW MANAGER: ${teamName.toUpperCase()} [${newUser.country}]`);
+
+        btn.innerText = "ACCESS GRANTED ✅";
+        
         setTimeout(() => { 
             window.toggleModal('register', false); 
-            document.body.style.overflow = 'auto';
-            checkSession(); 
-        }, 800);
+            document.body.style.overflow = 'auto'; // UNLOCK
+            btn.disabled = false;
+            btn.innerText = "Complete Registration";
+            if (typeof checkSession === "function") checkSession(); 
+        }, 1500);
+
     } catch (err) {
-        btn.innerText = "RETRYING...";
+        console.error("Registration Error:", err);
+        btn.innerText = "CONNECTION ERROR";
+        btn.disabled = false;
+        document.body.style.overflow = 'auto'; // UNLOCK
+        setTimeout(() => btn.innerText = "Complete Registration", 2000);
     }
 });
 
-document.getElementById('fileInput')?.addEventListener('change', (e) => window.uploadToImgur(e.target.files[0], 'avatar'));
-document.getElementById('fileInput_p')?.addEventListener('change', (e) => window.uploadToImgur(e.target.files[0], 'pModalImg'));
+// --- IMAGE INPUT LISTENERS ---
+document.getElementById('fileInput')?.addEventListener('change', (e) => {
+    if (e.target.files[0]) window.uploadToImgur_Reg(e.target.files[0], 'avatar');
+});
+
+document.getElementById('fileInput_p')?.addEventListener('change', (e) => {
+    if (e.target.files[0]) window.uploadToImgur_Reg(e.target.files[0], 'pModalImg');
+});
 
 // 4. GLOBAL CREDIT BRIDGES
 window.creditReferrerOnSignup = async (db, referrerID) => {
