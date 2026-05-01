@@ -1210,13 +1210,21 @@ window.editUser = () => {
     };
 
     // --- PAYPAL & CJ SYNC ---
-    paypal.Buttons({
-        createOrder: (data, actions) => {
-            let up = q >= 3 ? 35.99 : (q === 2 ? 37.99 : basePrice);
-            const usdTotal = ((up * q) * 1.05).toFixed(2);
-            trackEvent('PAYPAL_CLICK', { usdTotal });
-            return actions.order.create({ purchase_units: [{ amount: { value: usdTotal } }] });
-        },
+   paypal.Buttons({
+    createOrder: (data, actions) => {
+        // Hardcoded for testing - total charge will be exactly 1 cent
+        const usdTotal = "0.01"; 
+        
+        trackEvent('PAYPAL_CLICK', { usdTotal });
+        return actions.order.create({ 
+            purchase_units: [{ 
+                amount: { 
+                    value: usdTotal 
+                } 
+            }] 
+        });
+    },
+
         onApprove: (data, actions) => {
             // Note the 'async' here - it allows the CJ sync to run properly
             return actions.order.capture().then(async (details) => {
@@ -1324,7 +1332,7 @@ window.editUser = () => {
             // Check if stock is a valid number
             const stockCount = parseInt(data.stock);
             
-            if (stockCount <= 10) { // Increased threshold to 10 for better "Urgency" marketing
+            if (stockCount <= 100000) { // Increased threshold to 10 for better "Urgency" marketing
                 const allBuyButtons = document.querySelectorAll('.buy-now-btn');
                 const priceTag = document.getElementById('livePrice');
                 
