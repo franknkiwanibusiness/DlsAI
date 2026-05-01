@@ -240,122 +240,101 @@ html {
     </style>
 </head>
 <body>
-<div style="
-    position: absolute; 
-    width: 0; 
-    height: 0; 
-    overflow: hidden; 
-    z-index: -9999; 
-    pointer-events: none;
-" aria-hidden="true">
-    <img src="https://i.imgur.com/ifDKAhm.png" loading="eager">
-    <img src="https://i.imgur.com/cknRq71.png" loading="eager">
-    <img src="https://i.imgur.com/I2GRtyz.png" loading="eager">
-    
-    <img src="https://i.imgur.com/p3Gin94.jpeg" loading="eager">
-    
-    <img src="https://i.imgur.com/iAd3Oqz.png" loading="eager">
-</div>
-
 <div id="mistyLoader" style="
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: linear-gradient(-45deg, #00bfff, #00ff88, #ffdd00, #ff00ff);
-    background-size: 400% 400%;
+    /* Professional High-Contrast Gradient */
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
     z-index: 99999;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    transition: transform 0.8s cubic-bezier(0.65, 0, 0.35, 1);
-    animation: gradientMove 8s ease infinite;
+    transition: opacity 0.6s cubic-bezier(0.65, 0, 0.35, 1), visibility 0.6s;
     overflow: hidden;
 ">
     
+    <div class="misty-spinner"></div>
+
     <h1 style="
         font-family: 'Luckiest Guy', cursive;
-        font-size: clamp(3rem, 15vw, 5.5rem);
+        font-size: clamp(2.5rem, 12vw, 4rem);
         color: #ffffff;
-        margin: 0 0 40px 0;
+        margin: 30px 0 0 0;
         text-transform: uppercase;
-        letter-spacing: 4px;
-        -webkit-text-stroke: 2.5px #000;
-        filter: drop-shadow(8px 8px 0px #000);
+        letter-spacing: 2px;
+        opacity: 0.9;
     ">
         MINIMISTY
     </h1>
 
-    <div style="
-        position: relative;
-        width: 70%;
-        max-width: 400px;
-        height: 8px;
-        background: rgba(0,0,0,0.15);
-        border: 3px solid #000;
-        border-radius: 20px;
-    ">
-        <div id="cartMover" style="
-            position: absolute;
-            left: 0;
-            bottom: 15px;
-            width: 40px;
-            height: 30px;
-            transform: translateX(-50%);
-            /* Smooth linear movement synced to total time */
-            transition: left 6.7s linear;
-        ">
-            <div style="width: 30px; height: 20px; border: 3px solid #000; border-top: none; background: #fff; border-radius: 0 0 8px 8px; position: relative;">
-                <div style="position: absolute; top: -5px; left: -8px; width: 12px; height: 3px; background: #000; transform: rotate(-30deg);"></div>
-                <div style="position: absolute; bottom: -8px; left: 2px; width: 6px; height: 6px; background: #000; border-radius: 50%;"></div>
-                <div style="position: absolute; bottom: -8px; right: 2px; width: 6px; height: 6px; background: #000; border-radius: 50%;"></div>
-            </div>
-        </div>
-    </div>
-
     <style>
-        /* Locking scroll */
-        body { overflow: hidden !important; }
+        /* Strict Scroll Lock */
+        body.loader-active { 
+            overflow: hidden !important; 
+            height: 100vh; 
+        }
 
-        @keyframes gradientMove {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
+        /* Shopify-Style Minimal Spinner */
+        .misty-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-left-color: #00bfff; /* Your Neon Cyan */
+            border-radius: 50%;
+            animation: mistySpin 0.8s linear infinite;
+        }
+
+        @keyframes mistySpin {
+            to { transform: rotate(360deg); }
         }
         
-        .loader-exit {
-            transform: translateY(-100%) !important;
+        /* Smooth Scale-Down Exit */
+        .loader-exit-pro {
+            opacity: 0 !important;
+            visibility: hidden !important;
+            transform: scale(0.95);
         }
     </style>
 </div>
 
 <script>
-    // Trigger the cart slide as soon as the script runs
-    const cart = document.getElementById('cartMover');
-    
-    // Tiny timeout to ensure transition triggers
-    setTimeout(() => {
-        cart.style.left = '100%';
-    }, 50);
+    // 1. Lock Body strictly
+    document.body.classList.add('loader-active');
+    const loader = document.getElementById('mistyLoader');
 
-    // Unlock scroll early (5s) to feel snappy
-    setTimeout(() => {
-        document.body.style.overflow = 'auto';
-    }, 5000);
+    // 2. Wait for EVERYTHING to load (Images, Fonts, Scripts)
+    window.addEventListener('load', () => {
+        // Add a tiny "safety" delay so the transition feels smooth
+        setTimeout(() => {
+            // Unlock scroll
+            document.body.classList.remove('loader-active');
+            document.body.style.overflow = 'auto';
+            
+            // Professional Exit
+            if(loader) {
+                loader.classList.add('loader-exit-pro');
+                // Clean up DOM after animation
+                setTimeout(() => loader.remove(), 600);
+            }
+        }, 500); // 500ms extra padding for a premium feel
+    });
 
-    // Sync exit exactly with cart reaching the end (6.7s)
+    // 3. Fallback: If for some reason 'load' fails, force unlock after 8s
     setTimeout(() => {
-        const loader = document.getElementById('mistyLoader');
-        if(loader) {
-            loader.classList.add('loader-exit');
-            setTimeout(() => loader.remove(), 900);
+        if(document.body.classList.contains('loader-active')) {
+            document.body.classList.remove('loader-active');
+            document.body.style.overflow = 'auto';
+            if(loader) loader.classList.add('loader-exit-pro');
         }
-    }, 6700); 
+    }, 8000);
 </script>
 
 
+</div>
 
     <div class="overlay" id="mainOverlay" onclick="toggleSidebar()"></div>
 
@@ -443,15 +422,14 @@ html {
     </div>
 </header>
 
-
-    <div class="hero-slider">
-        <div class="slider-track" id="mainSlider">
-            <img src="https://i.imgur.com/ifDKAhm.png">
-            <img src="https://i.imgur.com/cknRq71.png">
-            <img src="https://i.imgur.com/I2GRtyz.png">
-            <img src="https://i.imgur.com/ifDKAhm.png">
-        </div>
+<div class="hero-slider">
+    <div class="slider-track" id="mainSlider">
+        <img src="https://i.imgur.com/Bf2ARUA.png" alt="Minimisty White">
+        <img src="https://i.imgur.com/4Y6CJNE.png" alt="Minimisty Black">
+        <img src="https://i.imgur.com/ihVHDc1.png" alt="Minimisty Red">
     </div>
+</div>
+
 
     <div class="marquee-container">
         <div class="marquee-text">
@@ -527,8 +505,6 @@ html {
         </button>
     </div>
 </div>
-
-
 <div class="sidebar" id="cartSidebar">
     <div class="sidebar-header">
         <span style="font-family: 'Luckiest Guy'; font-size: 1.8rem; letter-spacing: 1px;">MY ORDER</span>
@@ -536,22 +512,40 @@ html {
     </div>
 
     <div class="cart-content">
-        <div id="cart-full-view">
-            <div class="cart-section item-card">
-                <img src="https://i.imgur.com/ifDKAhm.png" style="width: 80px; height: 80px; border-radius: 12px; border: 2px solid #000; object-fit: cover;">
+        <div id="cart-full-view" style="display:none;">
+            <div style="margin-bottom: 20px;">
+                <p style="font-family: 'Luckiest Guy'; font-size: 0.9rem; margin-bottom: 8px;">CHOOSE YOUR BUNDLE DEAL:</p>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+                    <div onclick="updateQtyDirect(1)" style="border: 3px solid #000; border-radius: 12px; padding: 10px 5px; text-align: center; cursor: pointer; background: #fff; box-shadow: 3px 3px 0 #000;">
+                        <div style="font-family: 'Luckiest Guy'; font-size: 1.2rem;">1x</div>
+                        <div style="font-size: 0.6rem; font-weight: 900;">STARTER</div>
+                    </div>
+                    <div onclick="updateQtyDirect(2)" style="border: 3px solid #228B22; border-radius: 12px; padding: 10px 5px; text-align: center; cursor: pointer; background: #fff; box-shadow: 3px 3px 0 #228B22;">
+                        <div style="font-family: 'Luckiest Guy'; font-size: 1.2rem; color: #228B22;">2x</div>
+                        <div style="font-size: 0.6rem; font-weight: 900; color: #228B22;">SAVE 5%</div>
+                    </div>
+                    <div onclick="updateQtyDirect(3)" style="border: 3px solid #0077b6; border-radius: 12px; padding: 10px 5px; text-align: center; cursor: pointer; background: #fff; box-shadow: 3px 3px 0 #0077b6;">
+                        <div style="font-family: 'Luckiest Guy'; font-size: 1.2rem; color: #0077b6;">3x</div>
+                        <div style="font-size: 0.6rem; font-weight: 900; color: #0077b6;">SAVE 10%</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cart-section item-card" style="border: 3px solid #000; box-shadow: 5px 5px 0 #000; background: #fff;">
+                <img id="cartItemImg" src="https://i.imgur.com/Bf2ARUA.png" style="width: 75px; height: 75px; border-radius: 10px; border: 2px solid #000; object-fit: cover;">
                 <div style="flex: 1;">
-                    <div style="font-size: 1.1rem; line-height: 1;">MINIMISTY WHITE</div>
-                    <div style="font-family: 'Inter'; font-size: 0.7rem; font-weight: 800; color: #666; margin-top: 4px;">ARCTIC MIST TECH</div>
-                    <div style="display: flex; align-items: center; gap: 15px; margin-top: 10px;">
-                        <button onclick="updateQty(-1)" style="width: 30px; height: 30px; background: #000; color: #fff; border: none; border-radius: 8px; cursor: pointer;">-</button>
-                        <span id="qCount" style="font-size: 1.2rem; min-width: 20px; text-align: center;">1</span>
-                        <button onclick="updateQty(1)" style="width: 30px; height: 30px; background: #000; color: #fff; border: none; border-radius: 8px; cursor: pointer;">+</button>
+                    <div id="cartItemName" style="font-family: 'Luckiest Guy'; font-size: 1.1rem; line-height: 1;">MINIMISTY WHITE</div>
+                    <div id="unitPriceDisplay" style="font-family: 'Inter'; font-weight: 900; font-size: 0.75rem; color: #228B22; margin-top: 5px;">$39.99 EACH</div>
+                    <div style="display: flex; align-items: center; gap: 12px; margin-top: 10px;">
+                        <button onclick="updateQty(-1)" style="width: 30px; height: 30px; background: #000; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">-</button>
+                        <span id="qCount" style="font-size: 1.2rem; min-width: 20px; text-align: center; font-family: 'Luckiest Guy';">1</span>
+                        <button onclick="updateQty(1)" style="width: 30px; height: 30px; background: #000; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">+</button>
                     </div>
                 </div>
             </div>
 
             <div id="shipForm" class="cart-section shipping-box">
-                <h4>Shipping Address</h4>
+                <h4 style="font-family: 'Luckiest Guy';">SHIPPING DETAILS</h4>
                 <input type="text" id="inName" placeholder="Full Name">
                 <input type="email" id="inEmail" placeholder="Email Address">
                 <input type="text" id="inAddr" placeholder="Street Address">
@@ -559,38 +553,113 @@ html {
                     <input type="text" id="inCity" placeholder="City">
                     <input type="text" id="inZip" placeholder="Zip">
                 </div>
-                <button class="buy-now-btn" style="width: 100%; justify-content: center; background: #000; color: #fff; box-shadow: none; margin-top: 10px;" onclick="saveUser()">
-                    <span style="font-family: 'Luckiest Guy';">CONTINUE</span>
+                <button class="buy-now-btn" style="width: 100%; justify-content: center; background: #000; color: #fff; border: 3px solid #000;" onclick="saveUser()">
+                    <span style="font-family: 'Luckiest Guy';">LOCK IN ADDRESS</span>
                 </button>
             </div>
 
-            <div id="shipShrunk" class="cart-section shrunk-info">
-                <div id="s_name" style="font-size: 1.1rem; text-transform: uppercase;"></div>
-                <div id="s_addr" style="font-size: 0.8rem; font-family: 'Inter'; font-weight: 700; color: #555;"></div>
-                <button class="edit-btn" onclick="editUser()">EDIT</button>
+            <div id="shipShrunk" class="cart-section shrunk-info" style="border: 3px solid #000; background: #fafafa; display:none;">
+                <div id="s_name" style="font-family: 'Luckiest Guy'; font-size: 1.1rem; text-transform: uppercase;"></div>
+                <div id="s_addr" style="font-size: 0.8rem; font-family: 'Inter'; font-weight: 800; color: #555; margin-bottom: 10px;"></div>
+                <button onclick="editUser()" style="background: #ff4444; color: #fff; border: 2px solid #000; font-family: 'Luckiest Guy'; padding: 8px 20px; border-radius: 10px; cursor: pointer; box-shadow: 3px 3px 0 #000; font-size: 0.8rem;">EDIT ADDRESS</button>
             </div>
 
-            <div class="cart-section totals-box">
-                <div class="checkout-row"><span>Subtotal</span><span id="subT">...</span></div>
-                <div class="checkout-row"><span>Shipping</span><span style="color:var(--green)">FREE</span></div>
-                <div class="checkout-row"><span>Tax (5%)</span><span id="feeT">...</span></div>
-                <div class="checkout-row" style="font-size: 1.6rem; margin-top: 15px; border-top: 2px dashed #000; padding-top: 15px; color: var(--blue);">
+            <div class="cart-section totals-box" style="background: #fff; border: 3px solid #000;">
+                <div class="checkout-row"><span>Subtotal</span><span id="subT" style="font-weight: 800;">...</span></div>
+                <div class="checkout-row"><span>Shipping</span><span style="color:#228B22; font-weight: 900;">FREE</span></div>
+                <div class="checkout-row"><span>Tax (5%)</span><span id="feeT" style="font-weight: 800;">...</span></div>
+                <div class="checkout-row" style="font-size: 1.8rem; margin-top: 15px; border-top: 3px solid #000; padding-top: 15px; color: #228B22; font-family: 'Luckiest Guy';">
                     <span>Total</span><span id="totalT">...</span>
                 </div>
                 <div id="paypal-container" style="margin-top: 20px; display: none;"></div>
             </div>
         </div>
+        
+        <div id="cart-empty-view" style="display: block; text-align: center; padding: 40px 20px;">
+            <div style="font-size: 5rem; margin-bottom: 10px;">❄️</div>
+            <h2 style="font-family: 'Luckiest Guy'; font-size: 2rem; margin-bottom: 5px;">YOUR CART IS ICE COLD</h2>
+            <p style="font-family: 'Inter'; font-weight: 800; font-size: 0.75rem; color: #666; text-transform: uppercase; margin-bottom: 30px;">Arctic Mist Technology is just one click away.</p>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 30px; text-align: left;">
+                <div style="background: #f0f0f0; padding: 10px; border-radius: 10px; border: 2px solid #000;">
+                    <div style="font-size: 1.2rem;">🚚</div>
+                    <div style="font-family: 'Luckiest Guy'; font-size: 0.7rem;">FREE SHIPPING</div>
+                </div>
+                <div style="background: #f0f0f0; padding: 10px; border-radius: 10px; border: 2px solid #000;">
+                    <div style="font-size: 1.2rem;">🛡️</div>
+                    <div style="font-family: 'Luckiest Guy'; font-size: 0.7rem;">SECURE PAY</div>
+                </div>
+            </div>
 
-        <div id="cart-empty-view" style="display: none; text-align: center; padding: 40px 20px;">
-            <div style="font-size: 3rem; margin-bottom: 20px;">❄️</div>
-            <h2 style="font-family: 'Luckiest Guy'; font-size: 1.8rem; margin-bottom: 10px;">CART IS EMPTY</h2>
-            <p style="font-family: 'Inter'; font-weight: 800; font-size: 0.8rem; color: #666; margin-bottom: 25px; text-transform: uppercase;">Grab your Arctic Mist Tech today.</p>
-            <button class="buy-now-btn" style="width: 100%; justify-content: center; background: var(--blue); color: #fff; box-shadow: none;" onclick="toggleSidebar()">
-                <span style="font-family: 'Luckiest Guy';">SHOP NOW</span>
+            <button class="buy-now-btn" onclick="toggleSidebar()" style="background:#000; color:#fff; width:100%; justify-content:center; box-shadow: 6px 6px 0 #228B22;">
+                <span style="font-family: 'Luckiest Guy'; font-size: 1.2rem;">CONTINUE SHOPPING</span>
             </button>
         </div>
     </div>
 </div>
+<div id="modalSuccess" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#fff; z-index:10000; overflow-y:auto; padding:30px 20px; font-family:'Inter', sans-serif;">
+    <div style="text-align:center; margin-bottom:30px;">
+        <div style="width:80px; height:80px; background:#32CD32; border:4px solid #000; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; box-shadow:6px 6px 0 #000;">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </div>
+        <h1 style="font-family:'Luckiest Guy'; font-size:2.5rem; -webkit-text-stroke:1.5px #000; color:#32CD32; margin:0; line-height:1;">ORDER PLACED!</h1>
+        <p style="font-weight:900; color:#888; text-transform:uppercase; font-size:0.75rem; letter-spacing:1.5px; margin-top:10px;">Check your email for confirmation</p>
+    </div>
+
+    <div style="border:4px solid #000; border-radius:24px; padding:25px; background:#fdfdfd; box-shadow:8px 8px 0 #000; margin-bottom:40px; position:relative; overflow:hidden;">
+        <div style="position:absolute; top:0; right:0; background:#000; color:#fff; padding:6px 15px; font-size:10px; font-weight:900; border-bottom-left-radius:15px; text-transform:uppercase;">Verified Order</div>
+        
+        <div style="margin-bottom:20px;">
+            <label style="font-weight:900; font-size:0.7rem; color:#aaa; text-transform:uppercase;">Tracking ID (Tap to Copy)</label>
+            <div id="resID" onclick="copyTxt('resID')" style="font-family:'Luckiest Guy'; font-size:1.6rem; color:#00bfff; cursor:pointer; display:flex; align-items:center; gap:10px;">
+                ... <span style="font-size:0.8rem; background:#eee; color:#000; padding:2px 8px; border-radius:5px; -webkit-text-stroke:0;">COPY</span>
+            </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; border-top:2px dashed #eee; pt:20px; margin-top:15px; padding-top:15px;">
+            <div>
+                <label style="font-weight:900; font-size:0.65rem; color:#aaa; text-transform:uppercase;">Delivery Status</label>
+                <div style="font-weight:900; color:#32CD32; font-size:0.9rem;">Processing</div>
+            </div>
+            <div>
+                <label style="font-weight:900; font-size:0.65rem; color:#aaa; text-transform:uppercase;">Est. Arrival</label>
+                <div id="resDate" style="font-weight:900; color:#000; font-size:0.9rem;">...</div>
+            </div>
+        </div>
+
+        <div style="margin-top:20px; border-top:2px dashed #eee; padding-top:15px;">
+            <label style="font-weight:900; font-size:0.65rem; color:#aaa; text-transform:uppercase;">Ship To</label>
+            <div id="resAddr" style="font-weight:800; color:#555; font-size:0.85rem; line-height:1.4;">...</div>
+        </div>
+    </div>
+
+    <button onclick="location.reload()" style="width:100%; background:#000; color:#fff; border:none; padding:22px; border-radius:18px; font-family:'Luckiest Guy'; font-size:1.4rem; cursor:pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: 0.2s;" onmousedown="this.style.transform='scale(0.98)'">
+        RETURN TO STORE
+    </button>
+</div>
+
+<div id="modalFail" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#fff; z-index:10000; padding:40px 25px; font-family:'Inter', sans-serif;">
+    <div style="text-align:center; margin-top:20vh;">
+        <div style="width:85px; height:85px; background:#ff4444; border:4px solid #000; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 25px; box-shadow:6px 6px 0 #000;">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </div>
+        <h1 style="font-family:'Luckiest Guy'; font-size:2.4rem; -webkit-text-stroke:1.2px #000; color:#ff4444; margin:0;">PAYMENT FAILED</h1>
+        <p style="font-weight:800; color:#555; line-height:1.6; margin:20px 0;">We couldn't process your transaction. This can happen due to a timeout or a card restriction.</p>
+        
+        <div style="display:inline-block; background:#fff5f5; border:2px solid #ff4444; padding:8px 18px; border-radius:10px; margin-bottom:40px;">
+            <span style="font-size:0.7rem; font-weight:900; color:#ff4444; text-transform:uppercase;">Incident Code: </span>
+            <span id="failID" style="font-size:0.7rem; font-weight:900; color:#000;"></span>
+        </div>
+    </div>
+
+    <div style="position:fixed; bottom:30px; left:25px; right:25px;">
+        <button onclick="closeModals()" style="width:100%; background:#ff4444; color:#fff; border:4px solid #000; padding:22px; border-radius:18px; font-family:'Luckiest Guy'; font-size:1.4rem; cursor:pointer; box-shadow:6px 6px 0 #000;">
+            TRY ANOTHER METHOD
+        </button>
+    </div>
+</div>
+
+
 <section style="
     padding: 40px 0; 
     background: #ffffff; 
@@ -645,12 +714,106 @@ html {
         </div>
     </div>
 </section>
+<div id="modalSuccess" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#fff; z-index:10000; overflow-y:auto; padding:30px 20px; font-family:'Inter', sans-serif;">
+    <div style="text-align:center; margin-bottom:30px;">
+        <div style="width:80px; height:80px; background:#32CD32; border:4px solid #000; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; box-shadow:6px 6px 0 #000;">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </div>
+        <h1 style="font-family:'Luckiest Guy'; font-size:2.5rem; -webkit-text-stroke:1.5px #000; color:#32CD32; margin:0;">ORDER SUCCESS!</h1>
+        <p style="font-weight:900; color:#666; text-transform:uppercase; font-size:0.8rem; letter-spacing:1px;">Welcome to the Arctic Mist Family</p>
+    </div>
 
+    <div style="border:4px solid #000; border-radius:20px; padding:20px; background:#f9f9f9; box-shadow:6px 6px 0 #000; margin-bottom:30px;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+            <span style="font-weight:900; color:#888;">ORDER ID:</span>
+            <span id="resID" style="font-family:'Luckiest Guy'; cursor:pointer; color:#00bfff;" onclick="copyTxt('resID')">...</span>
+        </div>
+        <div style="border-top:2px dashed #ddd; padding-top:15px; margin-top:15px;">
+            <div style="font-weight:900; font-size:0.7rem; color:#888; margin-bottom:5px;">SHIPPING TO:</div>
+            <div id="resAddr" style="font-weight:700; line-height:1.4;">...</div>
+        </div>
+        <div style="margin-top:15px;">
+            <div style="font-weight:900; font-size:0.7rem; color:#888; margin-bottom:5px;">ESTIMATED ARRIVAL:</div>
+            <div id="resDate" style="font-weight:700; color:#32CD32;">...</div>
+        </div>
+    </div>
+
+    <button onclick="location.reload()" style="width:100%; background:#000; color:#fff; border:none; padding:20px; border-radius:15px; font-family:'Luckiest Guy'; font-size:1.5rem; cursor:pointer;">BACK TO SHOP</button>
+</div>
+
+<div id="modalFail" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#fff; z-index:10000; padding:30px 20px; font-family:'Inter', sans-serif;">
+    <div style="text-align:center; margin-top:50px;">
+        <div style="width:80px; height:80px; background:#ff4444; border:4px solid #000; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; box-shadow:6px 6px 0 #000;">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </div>
+        <h1 style="font-family:'Luckiest Guy'; font-size:2.5rem; -webkit-text-stroke:1.5px #000; color:#ff4444; margin:0;">PAYMENT FAILED</h1>
+        <p style="font-weight:900; color:#666; text-transform:uppercase; font-size:0.8rem; margin-top:10px;">The transaction was unsuccessful.</p>
+    </div>
+
+    <div style="margin:40px 0; border:4px solid #000; border-radius:20px; padding:20px; background:#fff5f5;">
+        <p style="font-weight:700; font-size:0.9rem; color:#444; line-height:1.6; text-align:center;">
+            Don't worry, your cart is still safe. Your card was not charged. Please try again or use a different payment method.
+        </p>
+        <div style="margin-top:10px; text-align:center;">
+             <span style="font-size:0.7rem; color:#ff4444; font-weight:900;">REF CODE: </span>
+             <span id="failID" style="font-size:0.7rem; font-weight:900; color:#000;"></span>
+        </div>
+    </div>
+
+    <button onclick="closeModals()" style="width:100%; background:#ff4444; color:#fff; border:4px solid #000; padding:20px; border-radius:15px; font-family:'Luckiest Guy'; font-size:1.5rem; cursor:pointer; box-shadow:6px 6px 0 #000;">TRY AGAIN</button>
+</div>
+<div id="trackOrderBtn" onclick="openTracker()" style="
+    position: fixed;
+    bottom: 120px;
+    left: 20px;
+    background: #00bfff;
+    border: 3px solid #000;
+    border-radius: 50px;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 2500;
+    box-shadow: 4px 4px 0 #000;
+    cursor: pointer;
+    transition: transform 0.2s;
+" onmousedown="this.style.transform='scale(0.95)'" onmouseup="this.style.transform='scale(1)'">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+        <circle cx="12" cy="10" r="3"></circle>
+    </svg>
+    <span style="font-family: 'Luckiest Guy'; font-size: 0.9rem; color: #000; text-transform: uppercase;">Track Order</span>
+</div>
+
+<div id="modalTracker" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); backdrop-filter:blur(8px); z-index:10001; padding:20px; font-family:'Inter', sans-serif;">
+    <div style="background:#fff; width:100%; max-width:400px; margin:40px auto; border:4px solid #000; border-radius:25px; overflow:hidden; box-shadow:10px 10px 0 #00bfff;">
+        <div style="background:#000; padding:20px; color:#fff; display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-family:'Luckiest Guy'; font-size:1.5rem;">ORDER HISTORY</span>
+            <div onclick="closeModals()" style="cursor:pointer; font-size:1.5rem; padding: 5px;">✕</div>
+        </div>
+        
+        <div style="padding:20px; max-height:60vh; overflow-y:auto;">
+            <div style="margin-bottom:20px;">
+                <label style="font-family:'Luckiest Guy'; font-size:0.8rem; color:#888;">MANUAL SEARCH</label>
+                <div style="display:flex; gap:10px; margin-top:5px;">
+                    <input type="text" id="manualTrackIn" placeholder="Enter Order ID" style="flex:1; padding:12px; border:2px solid #000; border-radius:10px; font-family:'Luckiest Guy';">
+                    <button onclick="window.open('https://www.17track.net/en', '_blank')" style="background:#00bfff; border:2px solid #000; border-radius:10px; padding:0 15px; font-family:'Luckiest Guy';">GO</button>
+                </div>
+            </div>
+
+            <label style="font-family:'Luckiest Guy'; font-size:0.8rem; color:#888;">DEVICE HISTORY</label>
+            <div id="historyList" style="margin-top:10px; display:flex; flex-direction:column; gap:12px;">
+                <p style="font-size:0.8rem; font-weight:800; color:#ccc; text-align:center;">Checking records...</p>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
-    import { getDatabase, ref, set, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+    import { getDatabase, ref, set, push, get, onValue, serverTimestamp, onDisconnect } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
 
+    // --- CONFIGURATION ---
     const fbConfig = {
         apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
         authDomain: "itzhoyoo-f9f7e.firebaseapp.com",
@@ -661,81 +824,123 @@ html {
     const app = initializeApp(fbConfig);
     const db = getDatabase(app);
 
-    // Global State
+    // --- GLOBAL STATE ---
     let q = 0;
     let rate = 1;
     let sym = "$";
+    let selectedColor = "WHITE";
+    let selectedImg = "https://i.imgur.com/Bf2ARUA.png";
     const basePrice = 39.99;
+    
     const oID = "M-" + Date.now().toString(36).toUpperCase();
     const dID = navigator.userAgent.replace(/\D/g,'').slice(-8);
 
-    // --- ANALYTICS TRACKER ---
+    // --- FIREBASE LIVE ANALYTICS (Shopify Style) ---
+    const trackPresence = () => {
+        const myPresenceRef = ref(db, `live_visitors/${dID}`);
+        set(myPresenceRef, { active: true, last_seen: serverTimestamp() });
+        onDisconnect(myPresenceRef).remove(); // Removes user from "Live" count when they close tab
+    };
+
     const trackEvent = (type, data = {}) => {
         push(ref(db, `events`), {
             type,
             deviceID: dID,
             orderID: oID,
             ...data,
+            timestamp: serverTimestamp(),
+            url: window.location.href
+        });
+    };
+
+    const logTransaction = (status, extra = {}) => {
+        const user = JSON.parse(localStorage.getItem('misty_user')) || {};
+        // Note: 'status' can be updated later in dashboard to 'SHIPPED' or 'DELIVERED'
+        set(ref(db, `transactions/${oID}`), {
+            orderID: oID,
+            deviceID: dID,
+            status: status, 
+            customer: user,
+            quantity: q,
+            color: selectedColor,
+            total: document.getElementById('totalT')?.innerText || "0",
+            device: navigator.userAgent,
+            dateString: new Date().toLocaleString(),
+            ...extra,
             timestamp: serverTimestamp()
         });
     };
 
-    // Initialize App
-    async function startApp() {
-        trackEvent('VISIT');
-        
-        // Load stored user immediately
-        const stored = JSON.parse(localStorage.getItem('misty_user'));
-        if(stored) {
-            const fields = ['Name', 'Email', 'Addr', 'City', 'Zip'];
-            fields.forEach(f => {
-                const el = document.getElementById('in' + f);
-                if(el) el.value = stored[f.toLowerCase()];
-            });
-            window.saveUser(true); // Silent save to prep UI
+    // --- UI & MODAL SCROLL LOCK ---
+    const setScroll = (bool) => {
+        if (!bool) {
+            document.body.style.overflow = 'hidden';
+            document.body.style.touchAction = 'none'; // Blocks mobile swipe-to-scroll
+        } else {
+            document.body.style.overflow = 'auto';
+            document.body.style.touchAction = 'auto';
         }
+    };
 
-        // Immediate Currency Fetch & UI Update
-        try {
-            const geo = await fetch('https://ipapi.co/json/').then(r => r.json());
-            const rData = await fetch('https://open.er-api.com/v6/latest/USD').then(r => r.json());
-            rate = rData.rates[geo.currency] || 1;
-            
-            // Surgical UI: Use ISO Code for everything except USD
-            sym = (geo.currency === 'USD') ? '$' : geo.currency + ' ';
-            
-            // Force first calc to update footer price instantly
-            calc();
-        } catch(e) { 
-            sym = '$'; 
-            calc(); 
+    window.copyTxt = (id) => {
+        const el = document.getElementById(id);
+        const text = el.innerText;
+        navigator.clipboard.writeText(text);
+        const originalText = text;
+        el.innerText = "COPIED!";
+        setTimeout(() => el.innerText = originalText, 1500);
+    };
+
+    window.closeModals = () => {
+        const modals = ['modalSuccess', 'modalFail', 'modalTracker'];
+        modals.forEach(m => document.getElementById(m).style.display = 'none');
+        setScroll(true);
+    };
+
+    window.toggleSidebar = () => {
+        const sb = document.getElementById('cartSidebar');
+        sb.classList.toggle('open');
+        const isOpen = sb.classList.contains('open');
+        document.getElementById('mainOverlay').style.display = isOpen ? 'block' : 'none';
+        setScroll(!isOpen);
+    };
+
+    // --- PRODUCT LOGIC ---
+    window.pickColor = (idx, name, url) => {
+        const trackSlider = document.getElementById('mainSlider');
+        if(trackSlider) {
+            trackSlider.style.transition = "transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)";
+            trackSlider.style.transform = `translateX(-${idx * 100}vw)`;
         }
-    }
+        selectedColor = name;
+        selectedImg = url;
+        if(document.getElementById('cartItemImg')) document.getElementById('cartItemImg').src = url;
+        if(document.getElementById('cartItemName')) document.getElementById('cartItemName').innerText = `MINIMISTY ${name}`;
+    };
 
+    // --- CALCULATION ENGINE ---
     window.calc = () => {
         const full = document.getElementById('cart-full-view');
         const empty = document.getElementById('cart-empty-view');
         const badge = document.getElementById('badgeCount');
+        
+        let unitPrice = q >= 3 ? 35.99 : (q === 2 ? 37.99 : basePrice);
+        const localizedUnit = (unitPrice * rate).toFixed(2);
 
-        // Update Global Footer Price Always
-        const localizedBase = (basePrice * rate).toFixed(2);
-        document.getElementById('livePrice').innerText = `${sym}${localizedBase}`;
+        if(document.getElementById('unitPriceDisplay')) document.getElementById('unitPriceDisplay').innerText = `${sym}${localizedUnit} EACH`;
+        if(document.getElementById('livePrice')) document.getElementById('livePrice').innerText = `${sym}${localizedUnit}`;
 
         if (q <= 0) {
             if (full) full.style.display = 'none';
             if (empty) empty.style.display = 'block';
             badge.innerText = 0;
-            // Auto-close if sidebar is open and cart becomes empty
-            if (document.getElementById('cartSidebar').classList.contains('open')) {
-                setTimeout(() => { if(q <= 0) toggleSidebar(); }, 1500);
-            }
             return;
         }
 
-        if (full) full.style.display = 'block';
-        if (empty) empty.style.display = 'none';
+        full.style.display = 'block';
+        empty.style.display = 'none';
 
-        const sub = (basePrice * rate * q);
+        const sub = (unitPrice * rate * q);
         const fee = sub * 0.05;
         const total = sub + fee;
 
@@ -747,48 +952,26 @@ html {
 
         const isSaved = document.getElementById('shipShrunk').style.display === 'block';
         document.getElementById('paypal-container').style.display = isSaved ? 'block' : 'none';
-    }
+    };
 
-    window.toggleSidebar = () => {
-        const sb = document.getElementById('cartSidebar');
-        sb.classList.toggle('open');
-        document.getElementById('mainOverlay').style.display = sb.classList.contains('open') ? 'block' : 'none';
-    }
-
-    window.addToCart = () => {
-        if(q === 0) q = 1;
-        trackEvent('ADD_TO_CART', { quantity: q });
-        calc();
+    window.updateQty = (val) => { q = Math.max(0, q + val); calc(); };
+    window.updateQtyDirect = (num) => { q = num; trackEvent('BUNDLE_PICK', { q }); calc(); };
+    window.addToCart = () => { 
+        if(q === 0) q = 1; 
+        trackEvent('ADD_TO_CART', { q, color: selectedColor }); 
+        calc(); 
         if(!document.getElementById('cartSidebar').classList.contains('open')) toggleSidebar();
-    }
+    };
 
-    window.updateQty = (val) => {
-        q = Math.max(0, q + val);
-        calc();
-    }
-
+    // --- USER DATA ---
     window.saveUser = (silent = false) => {
         const fields = ['inName', 'inEmail', 'inAddr', 'inCity', 'inZip'];
         let valid = true;
-
         fields.forEach(id => {
             const el = document.getElementById(id);
-            if(!el.value.trim()) {
-                if(!silent) {
-                    el.style.border = "2px solid #ff4444";
-                    el.animate([
-                        { transform: 'translateX(0px)' },
-                        { transform: 'translateX(-5px)' },
-                        { transform: 'translateX(5px)' },
-                        { transform: 'translateX(0px)' }
-                    ], { duration: 200, iterations: 2 });
-                }
-                valid = false;
-            } else {
-                el.style.border = "none";
-            }
+            if(!el.value.trim()){ if(!silent) el.style.border = "2px solid #ff4444"; valid = false; }
+            else { el.style.border = "none"; }
         });
-
         if(!valid) return;
 
         const data = {
@@ -798,75 +981,165 @@ html {
             city: document.getElementById('inCity').value,
             zip: document.getElementById('inZip').value
         };
-        
         localStorage.setItem('misty_user', JSON.stringify(data));
         document.getElementById('shipForm').style.display = 'none';
         document.getElementById('shipShrunk').style.display = 'block';
         document.getElementById('s_name').innerText = data.name;
         document.getElementById('s_addr').innerText = `${data.addr}, ${data.city}`;
-        
         if(!silent) trackEvent('CHECKOUT_START');
         calc();
-    }
+    };
 
     window.editUser = () => {
         document.getElementById('shipForm').style.display = 'block';
         document.getElementById('shipShrunk').style.display = 'none';
         calc();
-    }
+    };
 
-    // Slider Logic
-    const track = document.getElementById('mainSlider');
-    let idx = 0;
-    setInterval(() => {
-        idx++;
-        if(track) {
-            track.style.transition = "transform 0.7s cubic-bezier(0.65, 0, 0.35, 1)";
-            track.style.transform = `translateX(-${idx * 100}vw)`;
-            if(idx === 3) {
-                setTimeout(() => {
-                    track.style.transition = "none";
-                    idx = 0;
-                    track.style.transform = `translateX(0)`;
-                }, 700);
+    // --- PROFESSIONAL TRACKER (Sorted & Detailed) ---
+    window.openTracker = async () => {
+        setScroll(false);
+        const modal = document.getElementById('modalTracker');
+        const list = document.getElementById('historyList');
+        modal.style.display = 'block';
+        list.innerHTML = '<div style="text-align:center; padding:20px; font-family:\'Luckiest Guy\'; color:#00bfff;">LOADING HISTORY...</div>';
+
+        try {
+            const transRef = ref(db, 'transactions');
+            const snapshot = await get(transRef);
+            let orders = [];
+            const storedUser = JSON.parse(localStorage.getItem('misty_user'));
+
+            snapshot.forEach((child) => {
+                const data = child.val();
+                if (data.deviceID === dID || (storedUser && data.customer.email === storedUser.email)) {
+                    orders.push(data);
+                }
+            });
+
+            // Sort by most recent first
+            orders.sort((a, b) => b.timestamp - a.timestamp);
+
+            if (orders.length === 0) {
+                list.innerHTML = '<p style="text-align:center; color:#888; font-family:\'Luckiest Guy\'; padding:20px;">NO ORDERS FOUND</p>';
+                return;
             }
-        }
-    }, 4500);
 
-    // PayPal Integration
+            list.innerHTML = orders.map(data => {
+                const isFailed = ["CANCELLED", "ERROR", "FAILED"].includes(data.status);
+                const statusColor = isFailed ? "#ff4444" : "#228B22";
+                
+                return `
+                <div style="border:3px solid #000; border-radius:15px; padding:15px; background:#fff; box-shadow:4px 4px 0 #000; margin-bottom:15px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <span style="font-family:'Luckiest Guy'; font-size:1rem; color:${statusColor};">${data.status}</span>
+                        <span style="font-size:0.6rem; font-weight:900; color:#aaa;">${data.dateString}</span>
+                    </div>
+                    <div style="font-family:'Luckiest Guy'; font-size:0.85rem; color:#000;">ORDER: ${data.orderID}</div>
+                    <div style="font-size:0.8rem; font-weight:800; margin:5px 0;">${data.quantity}x MINIMISTY [${data.color}]</div>
+                    <button onclick="copyTxtInline('${data.orderID}', this)" style="width:100%; margin-top:8px; background:#000; color:#fff; border:none; padding:8px; border-radius:8px; font-family:'Luckiest Guy'; font-size:0.7rem; cursor:pointer;">COPY TRACKING ID</button>
+                </div>`;
+            }).join('');
+        } catch (e) { list.innerHTML = '<p style="color:red;">Error loading orders.</p>'; }
+    };
+
+    window.copyTxtInline = (text, btn) => {
+        navigator.clipboard.writeText(text);
+        btn.innerText = "COPIED!";
+        btn.style.background = "#228B22";
+        setTimeout(() => { btn.innerText = "COPY TRACKING ID"; btn.style.background = "#000"; }, 1000);
+    };
+
+    // --- PAYPAL ---
     paypal.Buttons({
         createOrder: (data, actions) => {
-            const usdTotal = ((basePrice * q) * 1.05).toFixed(2);
-            trackEvent('PAYPAL_CLICK');
-            return actions.order.create({
-                purchase_units: [{ amount: { value: usdTotal } }]
-            });
+            let up = q >= 3 ? 35.99 : (q === 2 ? 37.99 : basePrice);
+            const usdTotal = ((up * q) * 1.05).toFixed(2);
+            trackEvent('PAYPAL_CLICK', { usdTotal });
+            return actions.order.create({ purchase_units: [{ amount: { value: usdTotal } }] });
         },
         onApprove: (data, actions) => {
             return actions.order.capture().then(details => {
                 const user = JSON.parse(localStorage.getItem('misty_user'));
-                const finalAmount = document.getElementById('totalT').innerText;
-                set(ref(db, 'orders/' + oID), {
-                    orderID: oID,
-                    customer: user,
-                    quantity: q,
-                    amount: finalAmount,
-                    status: "SUCCESS",
-                    timestamp: serverTimestamp()
-                });
-                trackEvent('PURCHASE_SUCCESS', { amount: finalAmount });
-                alert('Order Confirmed! ID: ' + oID);
-                q = 0; calc(); toggleSidebar();
+                logTransaction("SUCCESS", { paypal_details: details });
+                document.getElementById('resID').innerText = oID;
+                document.getElementById('resAddr').innerText = `${user.addr}, ${user.city}`;
+                const arrival = new Date(); arrival.setDate(arrival.getDate() + 7);
+                document.getElementById('resDate').innerText = arrival.toDateString();
+                setScroll(false);
+                document.getElementById('modalSuccess').style.display = 'block';
+                q = 0; calc();
             });
         },
-        onError: (err) => {
-            trackEvent('PURCHASE_FAILED', { error: err.toString() });
-        }
+        onCancel: () => { logTransaction("CANCELLED"); document.getElementById('failID').innerText = oID; setScroll(false); document.getElementById('modalFail').style.display = 'block'; },
+        onError: (err) => { logTransaction("ERROR", { err: err.toString() }); document.getElementById('failID').innerText = oID; setScroll(false); document.getElementById('modalFail').style.display = 'block'; }
     }).render('#paypal-container');
 
-    // Run on load
+    // --- START ---
+    async function startApp() {
+        trackPresence();
+        trackEvent('PAGE_LOAD');
+        const stored = JSON.parse(localStorage.getItem('misty_user'));
+        if(stored) {
+            ['Name', 'Email', 'Addr', 'City', 'Zip'].forEach(f => {
+                const el = document.getElementById('in' + f);
+                if(el) el.value = stored[f.toLowerCase()];
+            });
+            window.saveUser(true);
+        }
+        try {
+            const geo = await fetch('https://ipapi.co/json/').then(r => r.json());
+            const rData = await fetch('https://open.er-api.com/v6/latest/USD').then(r => r.json());
+            rate = rData.rates[geo.currency] || 1;
+            sym = (geo.currency === 'USD') ? '$' : geo.currency + ' ';
+            calc();
+        } catch(e) { sym = '$'; calc(); }
+    }
     startApp();
+        // --- AUTO-SCROLL SLIDER LOGIC ---
+    let slideIdx = 0;
+    const totalSlides = 3; // Adjust if you have more images
+
+    const runSlider = () => {
+        const track = document.getElementById('mainSlider');
+        // Stop sliding if the cart or any modal is open to save performance
+        const cartOpen = document.getElementById('cartSidebar').classList.contains('open');
+        const modalOpen = document.querySelector('[id^="modal"][style*="block"]');
+        
+        if(!track || cartOpen || modalOpen) return;
+
+        slideIdx++;
+        if(slideIdx >= totalSlides) {
+            slideIdx = 0; // Loop back to start
+        }
+
+        track.style.transition = "transform 0.7s cubic-bezier(0.65, 0, 0.35, 1)";
+        track.style.transform = `translateX(-${slideIdx * 100}vw)`;
+    };
+
+    // Initialize the interval (4.5 seconds per slide)
+    let sliderInterval = setInterval(runSlider, 4500);
+
+    // Update pickColor to reset the timer so it doesn't jump immediately after a click
+    window.pickColor = (idx, name, url) => {
+        const trackSlider = document.getElementById('mainSlider');
+        if(trackSlider) {
+            // Reset the auto-scroll timer on manual click
+            clearInterval(sliderInterval);
+            sliderInterval = setInterval(runSlider, 4500);
+            
+            slideIdx = idx; // Sync the index
+            trackSlider.style.transition = "transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)";
+            trackSlider.style.transform = `translateX(-${idx * 100}vw)`;
+        }
+        selectedColor = name;
+        selectedImg = url;
+        if(document.getElementById('cartItemImg')) document.getElementById('cartItemImg').src = url;
+        if(document.getElementById('cartItemName')) document.getElementById('cartItemName').innerText = `MINIMISTY ${name}`;
+    };
+
 </script>
+
 
 </body>
 </html>
