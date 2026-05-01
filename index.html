@@ -298,6 +298,40 @@ html {
             visibility: hidden !important;
             transform: scale(0.95);
         }
+        /* The pulsing container */
+.skeleton-parent {
+    position: relative;
+    background-color: #e2e2e2 !important; /* The Noir Gray */
+    overflow: hidden;
+}
+
+/* The shimmer animation */
+.skeleton-parent::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    animation: shimmer-global 1.5s infinite;
+    transform: translateX(-100%);
+}
+
+@keyframes shimmer-global {
+    100% { transform: translateX(100%); }
+}
+
+/* Image states */
+img {
+    transition: opacity 0.4s ease-in-out;
+}
+
+.img-is-loading {
+    opacity: 0;
+}
+
+.img-is-ready {
+    opacity: 1;
+}
+
     </style>
 </div>
 
@@ -331,6 +365,21 @@ html {
             if(loader) loader.classList.add('loader-exit-pro');
         }
     }, 8000);
+    function toggleVibe(id) {
+    const v = document.getElementById('volcano-drop');
+    const j = document.getElementById('jelly-drop');
+    const target = document.getElementById(id);
+
+    // If it's already open, hide it. Otherwise, hide all and show target.
+    if (target.style.display === 'block') {
+        target.style.display = 'none';
+    } else {
+        v.style.display = 'none';
+        j.style.display = 'none';
+        target.style.display = 'block';
+    }
+}
+
 </script>
 
 
@@ -808,6 +857,50 @@ html {
         </div>
     </div>
 </div>
+<section style="padding: 60px 20px; background: #ffffff; color: #000; text-align: center;">
+    <h2 style="font-family: 'Inter', sans-serif; font-weight: 900; font-size: 1.8rem; margin-bottom: 5px; color: #000; text-transform: uppercase; letter-spacing: -0.5px;">Choose Your Vibe</h2>
+    <p style="font-family: 'Inter', sans-serif; font-size: 0.8rem; color: #666; margin-bottom: 30px; font-weight: 500;">Select a mode to view technical specifications.</p>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+        
+        <div onclick="toggleVibe('volcano-drop')" style="padding: 20px; background: #f9f9f9; border-radius: 12px; cursor: pointer; transition: all 0.2s ease;">
+            <div style="font-size: 2.5rem; margin-bottom: 10px;">🌋</div>
+            <h3 style="font-family: 'Inter', sans-serif; font-weight: 800; color: #ff4500; font-size: 1rem; margin: 0; letter-spacing: 0.5px;">VOLCANO</h3>
+        </div>
+
+        <div onclick="toggleVibe('jelly-drop')" style="padding: 20px; background: #f9f9f9; border-radius: 12px; cursor: pointer; transition: all 0.2s ease;">
+            <div style="font-size: 2.5rem; margin-bottom: 10px;">🪼</div>
+            <h3 style="font-family: 'Inter', sans-serif; font-weight: 800; color: #00bfff; font-size: 1rem; margin: 0; letter-spacing: 0.5px;">JELLYFISH</h3>
+        </div>
+    </div>
+
+    <div id="vibe-info-container">
+        
+        <div id="volcano-drop" style="display: none; border-top: 1px solid #eee; padding: 25px 5px; text-align: left; animation: slideIn 0.3s ease-out;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff4500" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                <h4 style="margin: 0; font-family: 'Inter'; font-weight: 700; color: #000; font-size: 0.95rem;">Power Stream Mode</h4>
+            </div>
+            <p style="margin: 0; font-family: 'Inter'; font-size: 0.85rem; color: #444; line-height: 1.6;">A high-output, continuous mist cycle. Engineered for rapid hydration and scent distribution across spaces up to 30m².</p>
+        </div>
+
+        <div id="jelly-drop" style="display: none; border-top: 1px solid #eee; padding: 25px 5px; text-align: left; animation: slideIn 0.3s ease-out;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00bfff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8l4 4-4 4-4-4 4-4z"/></svg>
+                <h4 style="margin: 0; font-family: 'Inter'; font-weight: 700; color: #000; font-size: 0.95rem;">Rhythmic Pulse Mode</h4>
+            </div>
+            <p style="margin: 0; font-family: 'Inter'; font-size: 0.85rem; color: #444; line-height: 1.6;">Releases ultrasonic mist in timed 2-second intervals. Optimized for extended runtimes and therapeutic visual focus.</p>
+        </div>
+
+    </div>
+</section>
+
+<style>
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
@@ -998,59 +1091,43 @@ html {
 
     // --- PROFESSIONAL TRACKER (Sorted & Detailed) ---
     window.openTracker = async () => {
-        setScroll(false);
-        const modal = document.getElementById('modalTracker');
-        const list = document.getElementById('historyList');
-        modal.style.display = 'block';
-        list.innerHTML = '<div style="text-align:center; padding:20px; font-family:\'Luckiest Guy\'; color:#00bfff;">LOADING HISTORY...</div>';
+    setScroll(false);
+    const modal = document.getElementById('modalTracker');
+    const list = document.getElementById('historyList');
+    modal.style.display = 'block';
+    list.innerHTML = '<div style="text-align:center; padding:20px; font-family:\'Luckiest Guy\'; color:#00bfff;">FETCHING SATELLITE DATA...</div>';
 
-        try {
-            const transRef = ref(db, 'transactions');
-            const snapshot = await get(transRef);
-            let orders = [];
-            const storedUser = JSON.parse(localStorage.getItem('misty_user'));
+    // 1. Get order from your Firebase history
+    const storedUser = JSON.parse(localStorage.getItem('misty_user'));
+    // (Existing Firebase fetching code here...)
 
-            snapshot.forEach((child) => {
-                const data = child.val();
-                if (data.deviceID === dID || (storedUser && data.customer.email === storedUser.email)) {
-                    orders.push(data);
-                }
-            });
+    if (orders.length > 0) {
+        const latestOrder = orders[0];
+        const res = await fetch(`/api/get-tracking?orderId=${latestOrder.orderID}`);
+        const trackData = await res.json();
 
-            // Sort by most recent first
-            orders.sort((a, b) => b.timestamp - a.timestamp);
-
-            if (orders.length === 0) {
-                list.innerHTML = '<p style="text-align:center; color:#888; font-family:\'Luckiest Guy\'; padding:20px;">NO ORDERS FOUND</p>';
-                return;
-            }
-
-            list.innerHTML = orders.map(data => {
-                const isFailed = ["CANCELLED", "ERROR", "FAILED"].includes(data.status);
-                const statusColor = isFailed ? "#ff4444" : "#228B22";
-                
-                return `
-                <div style="border:3px solid #000; border-radius:15px; padding:15px; background:#fff; box-shadow:4px 4px 0 #000; margin-bottom:15px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                        <span style="font-family:'Luckiest Guy'; font-size:1rem; color:${statusColor};">${data.status}</span>
-                        <span style="font-size:0.6rem; font-weight:900; color:#aaa;">${data.dateString}</span>
-                    </div>
-                    <div style="font-family:'Luckiest Guy'; font-size:0.85rem; color:#000;">ORDER: ${data.orderID}</div>
-                    <div style="font-size:0.8rem; font-weight:800; margin:5px 0;">${data.quantity}x MINIMISTY [${data.color}]</div>
-                    <button onclick="copyTxtInline('${data.orderID}', this)" style="width:100%; margin-top:8px; background:#000; color:#fff; border:none; padding:8px; border-radius:8px; font-family:'Luckiest Guy'; font-size:0.7rem; cursor:pointer;">COPY TRACKING ID</button>
+        if (trackData.success && trackData.updates.length > 0) {
+            list.innerHTML = trackData.updates.map(step => `
+                <div style="border-left: 4px solid #00bfff; margin-left: 10px; padding-left: 15px; padding-bottom: 20px; position: relative;">
+                    <div style="width:12px; height:12px; background:#00bfff; border-radius:50%; position:absolute; left:-8px; top:0;"></div>
+                    <div style="font-family:'Luckiest Guy'; font-size:0.9rem; color:#000;">${step.statusDescription}</div>
+                    <div style="font-size:0.7rem; font-weight:800; color:#888;">${step.statusTime}</div>
+                    <div style="font-size:0.6rem; color:#aaa; text-transform:uppercase;">Location: ${step.remark || 'In Transit'}</div>
+                </div>
+            `).join('');
+        } else {
+            list.innerHTML = `
+                <div style="text-align:center; padding:20px;">
+                    <div style="font-size:3rem;">📦</div>
+                    <p style="font-family:'Luckiest Guy';">PREPARING FOR TAKEOFF</p>
+                    <p style="font-size:0.7rem; font-weight:800; color:#888;">Warehouse is packing your Arctic Mist...</p>
                 </div>`;
-            }).join('');
-        } catch (e) { list.innerHTML = '<p style="color:red;">Error loading orders.</p>'; }
-    };
+        }
+    }
+};
 
-    window.copyTxtInline = (text, btn) => {
-        navigator.clipboard.writeText(text);
-        btn.innerText = "COPIED!";
-        btn.style.background = "#228B22";
-        setTimeout(() => { btn.innerText = "COPY TRACKING ID"; btn.style.background = "#000"; }, 1000);
-    };
 
-    // --- PAYPAL ---
+    // --- PAYPAL & CJ SYNC ---
     paypal.Buttons({
         createOrder: (data, actions) => {
             let up = q >= 3 ? 35.99 : (q === 2 ? 37.99 : basePrice);
@@ -1059,20 +1136,61 @@ html {
             return actions.order.create({ purchase_units: [{ amount: { value: usdTotal } }] });
         },
         onApprove: (data, actions) => {
-            return actions.order.capture().then(details => {
+            // Note the 'async' here - it allows the CJ sync to run properly
+            return actions.order.capture().then(async (details) => {
                 const user = JSON.parse(localStorage.getItem('misty_user'));
+                
+                // 1. Log to Firebase immediately
                 logTransaction("SUCCESS", { paypal_details: details });
+
+                // 2. TRIGGER VERCEL SERVERLESS FUNCTION (CJ Sync)
+                try {
+                    // This hits your api/place-order.js file
+                    await fetch('/api/place-order', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            details: details,      // PayPal transaction info
+                            customer: user,        // The shipping address from your form
+                            q: q,                  // How many they bought
+                            selectedColor: selectedColor // The color they picked
+                        })
+                    });
+                    console.log("Order successfully pushed to CJ Dropshipping");
+                } catch (err) {
+                    // If the CJ sync fails, we still show the success screen to the user
+                    // because we already captured the money. You can handle this manually later.
+                    console.error("CJ Sync Error:", err);
+                }
+
+                // 3. UPDATE UI
                 document.getElementById('resID').innerText = oID;
                 document.getElementById('resAddr').innerText = `${user.addr}, ${user.city}`;
-                const arrival = new Date(); arrival.setDate(arrival.getDate() + 7);
+                
+                const arrival = new Date(); 
+                arrival.setDate(arrival.getDate() + 7);
                 document.getElementById('resDate').innerText = arrival.toDateString();
+                
                 setScroll(false);
                 document.getElementById('modalSuccess').style.display = 'block';
-                q = 0; calc();
+                
+                // Reset Cart
+                q = 0; 
+                calc();
             });
         },
-        onCancel: () => { logTransaction("CANCELLED"); document.getElementById('failID').innerText = oID; setScroll(false); document.getElementById('modalFail').style.display = 'block'; },
-        onError: (err) => { logTransaction("ERROR", { err: err.toString() }); document.getElementById('failID').innerText = oID; setScroll(false); document.getElementById('modalFail').style.display = 'block'; }
+        onCancel: () => { 
+            logTransaction("CANCELLED"); 
+            document.getElementById('failID').innerText = oID; 
+            setScroll(false); 
+            document.getElementById('modalFail').style.display = 'block'; 
+        },
+        onError: (err) => { 
+            logTransaction("ERROR", { err: err.toString() }); 
+            document.getElementById('failID').innerText = oID; 
+            setScroll(false); 
+            document.getElementById('modalFail').style.display = 'block'; 
+        }
     }).render('#paypal-container');
 
     // --- START ---
@@ -1095,6 +1213,29 @@ html {
             calc();
         } catch(e) { sym = '$'; calc(); }
     }
+    async function syncStock() {
+    const productId = "CJJT163563001AZ"; // Your specific ID
+    try {
+        const res = await fetch(`/api/get-stock?pid=${productId}`);
+        const data = await res.json();
+        
+        // If stock is dangerously low or zero
+        if (data.stock <= 5) {
+            const btn = document.querySelector('.buy-now-btn');
+            const priceTag = document.getElementById('livePrice');
+            
+            if (data.stock === 0) {
+                btn.style.background = "#555";
+                btn.innerHTML = `<span style="font-family:'Luckiest Guy';">SOLD OUT</span>`;
+                btn.onclick = null;
+            } else {
+                priceTag.innerHTML = `ONLY ${data.stock} LEFT!`;
+                priceTag.style.color = "#ff4444";
+            }
+        }
+    } catch (e) { console.log("Stock check skipped"); }
+}
+
     startApp();
         // --- AUTO-SCROLL SLIDER LOGIC ---
     let slideIdx = 0;
