@@ -1094,50 +1094,115 @@ img {
         if(!document.getElementById('cartSidebar').classList.contains('open')) toggleSidebar();
     };
 
-// --- USER DATA ---
+
+// --- GLOBAL SETTINGS & AUTO-DETECT ---
+let detectedISO = ""; // Global variable to store the 2-letter code (e.g. ZA)
+
+async function autoDetectLocation() {
+    try {
+        const res = await fetch('https://ipapi.co/json/');
+        const geo = await res.json();
+        if (geo.country_code) {
+            detectedISO = geo.country_code;
+            // Auto-fill form fields if they are currently empty
+            const autoFields = {
+                'inCountry': geo.country_name,
+                'inCity': geo.city,
+                'inState': geo.region,
+                'inZip': geo.postal
+            };
+            Object.keys(autoFields).forEach(id => {
+                const el = document.getElementById(id);
+                if (el && !el.value) el.value = autoFields[id];
+            });
+            console.log("Global shipping set to:", detectedISO);
+        }
+    } catch (e) {
+        console.warn("Location auto-detect unavailable.");
+    }
+}
+autoDetectLocation();
+
+// --- 1. FUNCTION TO SAVE DATA ---
 window.saveUser = (silent = false) => {
     const fields = ['inName', 'inEmail', 'inPhone', 'inCountry', 'inAddr', 'inApt', 'inCity', 'inState', 'inZip'];
     let valid = true;
+
     fields.forEach(id => {
         const el = document.getElementById(id);
-        if(!el) return;
-        // Validation: Required unless it's the Apartment field
-        if(!el.value.trim() && id !== 'inApt'){ 
-            if(!silent) el.style.border = "3px solid #ff4444"; 
+        if (!el) return;
+        if (!el.value.trim() && id !== 'inApt') { 
+            if (!silent) el.style.border = "3px solid #ff4444"; 
             valid = false; 
         } else { 
             el.style.border = "3px solid #000"; 
         }
     });
-    if(!valid) return;
+
+    if (!valid && !silent) return;
 
     const data = {
         name: document.getElementById('inName').value,
         email: document.getElementById('inEmail').value,
         phone: document.getElementById('inPhone').value,
-        country: document.getElementById('inCountry').value,
+        country: detectedISO || document.getElementById('inCountry').value, // Used for CJ API
+        countryFull: document.getElementById('inCountry').value, // Used for Display
         addr: document.getElementById('inAddr').value,
         apt: document.getElementById('inApt').value,
         city: document.getElementById('inCity').value,
         state: document.getElementById('inState').value,
         zip: document.getElementById('inZip').value
     };
+
     localStorage.setItem('misty_user', JSON.stringify(data));
+    
+    // UI Update to Shrunk View
     document.getElementById('shipForm').style.display = 'none';
     document.getElementById('shipShrunk').style.display = 'block';
     document.getElementById('s_name').innerText = data.name;
-    document.getElementById('s_addr').innerText = `${data.addr}${data.apt ? ', ' + data.apt : ''}, ${data.city}, ${data.state}, ${data.zip}, ${data.country}`;
-    if(!silent) trackEvent('CHECKOUT_START');
-    calc();
+    document.getElementById('s_addr').innerText = `${data.addr}${data.apt ? ', ' + data.apt : ''}, ${data.city}, ${data.state} ${data.zip}, ${data.countryFull}`;
+    
+    if (!silent && typeof trackEvent === "function") trackEvent('CHECKOUT_START');
+    if (typeof calc === "function") calc();
 };
 
+// --- 2. FUNCTION TO EDIT DATA ---
 window.editUser = () => {
     document.getElementById('shipForm').style.display = 'block';
     document.getElementById('shipShrunk').style.display = 'none';
     const payContainer = document.getElementById('paypal-container');
-    if(payContainer) payContainer.style.display = 'none';
-    calc();
+    if (payContainer) payContainer.style.display = 'none';
+    if (typeof calc === "function") calc();
 };
+
+// --- 3. AUTO-LOAD LOGIC ---
+(function loadSavedUser() {
+    const stored = JSON.parse(localStorage.getItem('misty_user'));
+    if (stored) {
+        const fieldMap = {
+            'inName': stored.name,
+            'inEmail': stored.email,
+            'inPhone': stored.phone,
+            'inCountry': stored.countryFull || stored.country,
+            'inAddr': stored.addr,
+            'inApt': stored.apt,
+            'inCity': stored.city,
+            'inState': stored.state,
+            'inZip': stored.zip
+        };
+
+        Object.keys(fieldMap).forEach(id => {
+            const el = document.getElementById(id);
+            if (el && fieldMap[id]) el.value = fieldMap[id];
+        });
+
+        if (stored.country && stored.country.length === 2) {
+            detectedISO = stored.country;
+        }
+
+        setTimeout(() => window.saveUser(true), 150);
+    }
+})();
 
     // --- PROFESSIONAL TRACKER (Fixed & Connected) ---
     window.openTracker = async () => {
@@ -1225,97 +1290,84 @@ window.editUser = () => {
         });
     },
 
-        onApprove: (data, actions) => {
-            // Note the 'async' here - it allows the CJ sync to run properly
+      onApprove: (data, actions) => {
             return actions.order.capture().then(async (details) => {
                 const user = JSON.parse(localStorage.getItem('misty_user'));
                 
-                // 1. Log to Firebase immediately
-                logTransaction("SUCCESS", { paypal_details: details });
+                // 1. Log to Firebase
+                if (typeof logTransaction === "function") logTransaction("SUCCESS", { paypal_details: details });
 
                 // 2. TRIGGER VERCEL SERVERLESS FUNCTION (CJ Sync)
                 try {
-                    // This hits your api/place-order.js file
                     await fetch('/api/place-order', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            details: details,      // PayPal transaction info
-                            customer: user,        // The shipping address from your form
-                            q: q,                  // How many they bought
-                            selectedColor: selectedColor // The color they picked
+                            details: details,      
+                            customer: user,        // Contains the ISO code for CJ
+                            q: q,                  
+                            selectedColor: selectedColor 
                         })
                     });
                     console.log("Order successfully pushed to CJ Dropshipping");
                 } catch (err) {
-                    // If the CJ sync fails, we still show the success screen to the user
-                    // because we already captured the money. You can handle this manually later.
                     console.error("CJ Sync Error:", err);
                 }
 
                 // 3. UPDATE UI
-                document.getElementById('resID').innerText = oID;
-                document.getElementById('resAddr').innerText = `${user.addr}, ${user.city}`;
+                document.getElementById('resID').innerText = details.id || "ORDER-123";
+                document.getElementById('resAddr').innerText = `${user.addr}, ${user.city}, ${user.countryFull || user.country}`;
                 
                 const arrival = new Date(); 
-                arrival.setDate(arrival.getDate() + 7);
+                arrival.setDate(arrival.getDate() + 12); // Realistic 12-day worldwide shipping
                 document.getElementById('resDate').innerText = arrival.toDateString();
                 
-                setScroll(false);
+                if (typeof setScroll === "function") setScroll(false);
                 document.getElementById('modalSuccess').style.display = 'block';
                 
                 // Reset Cart
                 q = 0; 
-                calc();
+                if (typeof calc === "function") calc();
             });
         },
         onCancel: () => { 
-            logTransaction("CANCELLED"); 
-            document.getElementById('failID').innerText = oID; 
+            if (typeof logTransaction === "function") logTransaction("CANCELLED"); 
             setScroll(false); 
             document.getElementById('modalFail').style.display = 'block'; 
         },
         onError: (err) => { 
-            logTransaction("ERROR", { err: err.toString() }); 
-            document.getElementById('failID').innerText = oID; 
+            if (typeof logTransaction === "function") logTransaction("ERROR", { err: err.toString() }); 
             setScroll(false); 
             document.getElementById('modalFail').style.display = 'block'; 
         }
     }).render('#paypal-container');
 
-    // --- START ---
+    // --- UPDATED START APP ---
     async function startApp() {
-        // 1. Initial Analytics & Presence
-        trackPresence();
-        trackEvent('PAGE_LOAD');
+        // 1. Initial Analytics
+        if (typeof trackPresence === "function") trackPresence();
+        if (typeof trackEvent === "function") trackEvent('PAGE_LOAD');
 
-        // 2. LIVE STOCK CHECK (Runs immediately on load)
+        // 2. LIVE STOCK CHECK
         await syncStock(); 
 
-        // 3. LOAD USER DATA (Auto-fills shipping if they've been here before)
-        const stored = JSON.parse(localStorage.getItem('misty_user'));
-        if(stored) {
-            ['Name', 'Email', 'Addr', 'City', 'Zip'].forEach(f => {
-                const el = document.getElementById('in' + f);
-                if(el) el.value = stored[f.toLowerCase()];
-            });
-            window.saveUser(true);
-        }
-
-        // 4. CURRENCY & GEO-TARGETING (South Africa / Global rates)
+        // 3. CURRENCY & GEO-TARGETING (South Africa / Global rates)
         try {
             const geo = await fetch('https://ipapi.co/json/').then(r => r.json());
             const rData = await fetch('https://open.er-api.com/v6/latest/USD').then(r => r.json());
             
-            // Sets local currency symbol (e.g., R for ZAR) and converts rates
+            // Set global ISO if not already set by autoDetectLocation
+            if(!detectedISO) detectedISO = geo.country_code;
+            
+            // Sets local currency
             rate = rData.rates[geo.currency] || 1;
             sym = (geo.currency === 'USD') ? '$' : (geo.currency + ' ');
             
-            calc(); // Refresh prices with local currency
+            if (typeof calc === "function") calc(); 
         } catch(e) { 
             console.log("Geo-target failed, defaulting to USD");
             sym = '$'; 
-            calc(); 
+            if (typeof calc === "function") calc(); 
         }
     }
 
@@ -1323,52 +1375,40 @@ window.editUser = () => {
     async function syncStock() {
         const productId = "CJJT163563001AZ"; 
         try {
-            // Using a full URL or relative path depending on your environment
             const res = await fetch(`/api/get-stock?pid=${productId}`);
             if (!res.ok) throw new Error('Network response was not ok');
             
             const data = await res.json();
-            
-            // Check if stock is a valid number
             const stockCount = parseInt(data.stock);
             
-            if (stockCount <= 100000) { // Increased threshold to 10 for better "Urgency" marketing
-                const allBuyButtons = document.querySelectorAll('.buy-now-btn');
-                const priceTag = document.getElementById('livePrice');
-                
-                if (stockCount <= 0) {
-                    // SOLD OUT STATE
-                    allBuyButtons.forEach(btn => {
-                        btn.style.filter = "grayscale(1)"; // Keeps the chunky look but makes it "dead"
-                        btn.style.opacity = "0.6";
-                        btn.style.pointerEvents = "none";
-                        btn.style.boxShadow = "none";
-                        btn.innerHTML = `<span style="font-family:'Luckiest Guy';">SOLD OUT</span>`;
-                    });
-                    
-                    if(priceTag) {
-                        priceTag.innerText = "OUT OF STOCK";
-                        priceTag.style.color = "#ff4444";
-                    }
-                } else {
-                    // LOW STOCK URGENCY STATE
-                    if(priceTag) {
-                        priceTag.innerHTML = `ONLY ${stockCount} LEFT!`;
-                        priceTag.style.color = "#ff4444";
-                        // Add a little "heartbeat" animation to the text
-                        priceTag.style.animation = "pulse-text 1.5s infinite";
-                    }
+            const priceTag = document.getElementById('livePrice');
+            const allBuyButtons = document.querySelectorAll('.buy-now-btn');
+
+            if (stockCount <= 0) {
+                allBuyButtons.forEach(btn => {
+                    btn.style.filter = "grayscale(1)";
+                    btn.style.opacity = "0.6";
+                    btn.style.pointerEvents = "none";
+                    btn.innerHTML = `<span style="font-family:'Luckiest Guy';">SOLD OUT</span>`;
+                });
+                if(priceTag) {
+                    priceTag.innerText = "OUT OF STOCK";
+                    priceTag.style.color = "#ff4444";
+                }
+            } else if (stockCount < 50) { // Only show urgency if stock is actually low
+                if(priceTag) {
+                    priceTag.innerHTML = `🔥 ONLY ${stockCount} LEFT!`;
+                    priceTag.style.color = "#ff4444";
+                    priceTag.classList.add('pulse-text'); // Use a CSS class for animation
                 }
             }
         } catch (e) { 
             console.error("Stock Sync Error:", e);
-            // Default to "In Stock" view if API fails so you don't lose sales
         }
     }
 
-
-    // Initialize the whole engine
     startApp();
+
 
         // --- AUTO-SCROLL SLIDER LOGIC ---
     let slideIdx = 0;
