@@ -5,21 +5,22 @@ export default async function handler(req, res) {
     const API_KEY = process.env.DROPSHIP_API_KEY; 
     const TARGET_SKU = "CJJT163563001AZ"; 
 
+    // WORLDWIDE MAPPER
     const getCountryCode = (name) => {
         if (!name) return "US";
         const n = name.trim().toLowerCase();
         const codes = {
-            "south africa": "ZA",
-            "united states": "US", "usa": "US",
-            "united kingdom": "GB", "uk": "GB",
-            "australia": "AU", "canada": "CA",
-            "nigeria": "NG", "ghana": "GH"
+            "south africa": "ZA", "nigeria": "NG", "ghana": "GH", "kenya": "KE",
+            "united states": "US", "usa": "US", "canada": "CA", "mexico": "MX",
+            "united kingdom": "GB", "uk": "GB", "germany": "DE", "france": "FR",
+            "australia": "AU", "new zealand": "NZ", "brazil": "BR"
         };
-        return codes[n] || "US";
+        // If it's a 2-letter code already (like someone typing 'ZA'), use it. 
+        // Otherwise, look it up or default to US.
+        return n.length === 2 ? n.toUpperCase() : (codes[n] || "US");
     };
 
     try {
-        // 1. Get Access Token
         const authResponse = await fetch('https://developers.cjdropshipping.com/api2.0/v1/authentication/getAccessToken', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -28,15 +29,12 @@ export default async function handler(req, res) {
 
         const authData = await authResponse.json();
         if (!authData.result) throw new Error(`Auth Failed: ${authData.message}`);
-
         const accessToken = authData.data.accessToken;
 
-        // 2. Prepare Data
         const firstName = customer.name.split(' ')[0];
         const lastName = customer.name.split(' ').slice(1).join(' ') || 'Customer';
         const isoCountry = getCountryCode(customer.country);
 
-        // 3. Push Order to CJ (V3)
         const cjResponse = await fetch('https://developers.cjdropshipping.com/api2.0/v1/shopping/order/createOrderV3', {
             method: 'POST',
             headers: {
@@ -45,10 +43,8 @@ export default async function handler(req, res) {
             },
             body: JSON.stringify({
                 orderNumber: details.id,
-                // FIX 4: Warehouse origin (CN = China)
-                fromCountryCode: 'CN', 
-                // FIX 5: Full country name at top level for V3 validation
-                shippingCountry: customer.country || "United States",
+                fromCountryCode: 'CN', // Origin: China
+                shippingCountry: customer.country || "United States", // Dynamic Worldwide Name
                 shippingAddressRequest: {
                     firstName: firstName,
                     lastName: lastName,
@@ -57,7 +53,7 @@ export default async function handler(req, res) {
                     city: customer.city,
                     province: customer.state || customer.city,
                     zipCode: customer.zip,
-                    countryCode: isoCountry, 
+                    countryCode: isoCountry, // 2-Letter Code
                     phone: customer.phone || "0000000000"
                 },
                 products: [{ 
@@ -68,9 +64,7 @@ export default async function handler(req, res) {
         });
 
         const orderResult = await cjResponse.json();
-
-        // Important for debugging in Vercel Dashboard
-        console.log("CJ API RESPONSE:", orderResult);
+        console.log("WORLDWIDE CJ API RESPONSE:", orderResult);
 
         if (orderResult.result || orderResult.success) {
             return res.status(200).json({ 
