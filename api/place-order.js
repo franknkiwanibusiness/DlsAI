@@ -45,11 +45,12 @@ export default async function handler(req, res) {
             },
             body: JSON.stringify({
                 orderNumber: details.id,
-                // CRITICAL FIX 1: Change to 'shippingAddressRequest'
+                // FIX 4: warehouse origin (CN for China) - Required for V3
+                fromCountryCode: 'CN', 
                 shippingAddressRequest: {
                     firstName: firstName,
                     lastName: lastName,
-                    addressLine1: customer.addr, // FIX 2: Use addressLine1
+                    addressLine1: customer.addr, 
                     addressLine2: customer.apt || "",
                     city: customer.city,
                     province: customer.state || customer.city,
@@ -58,7 +59,6 @@ export default async function handler(req, res) {
                     phone: customer.phone || "0000000000"
                 },
                 products: [{ 
-                    // FIX 3: Use 'variantSku' instead of 'sku'
                     variantSku: TARGET_SKU, 
                     quantity: parseInt(q) || 1 
                 }]
@@ -67,14 +67,19 @@ export default async function handler(req, res) {
 
         const orderResult = await cjResponse.json();
 
-        // Log this to your Vercel logs so you can see it!
+        // Important for debugging in Vercel Dashboard
         console.log("CJ API RESPONSE:", orderResult);
 
-        if (orderResult.result) {
-            return res.status(200).json({ success: true, orderId: orderResult.data.orderId });
+        if (orderResult.result || orderResult.success) {
+            return res.status(200).json({ 
+                success: true, 
+                orderId: orderResult.data ? orderResult.data.orderId : "SUCCESS" 
+            });
         } else {
-            // This captures the exact reason CJ said no (e.g., "Invalid SKU")
-            return res.status(400).json({ success: false, details: orderResult.message });
+            return res.status(400).json({ 
+                success: false, 
+                details: orderResult.message || "CJ API Error" 
+            });
         }
 
     } catch (error) {
