@@ -1,24 +1,26 @@
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
-    const { details, customer, q, selectedColor } = req.body;
+    const { details, customer, q } = req.body;
     const API_KEY = process.env.DROPSHIP_API_KEY; 
     const TARGET_SKU = "CJJT163563001AZ"; 
 
-    // CLEAN MAPPER: No "guessing" or defaults
+    // 1. THE MAPPER (Stays inside the API)
     const getCountryCode = (name) => {
         if (!name) return "";
-        const n = name.trim().toLowerCase();
+        const n = name.trim().toUpperCase();
+        if (n.length === 2) return n; // If user sends "ZA", use it.
+
         const codes = {
-            "south africa": "ZA", "nigeria": "NG", "ghana": "GH", "kenya": "KE",
-            "united states": "US", "usa": "US", "united kingdom": "GB", "uk": "GB",
-            "canada": "CA", "australia": "AU", "germany": "DE", "france": "FR"
+            "SOUTH AFRICA": "ZA", "NIGERIA": "NG", "GHANA": "GH", "KENYA": "KE",
+            "UNITED STATES": "US", "USA": "US", "UNITED KINGDOM": "GB", "UK": "GB",
+            "CANADA": "CA", "AUSTRALIA": "AU", "GERMANY": "DE", "FRANCE": "FR"
         };
-        // Use 2-letter input directly, or look up, or return empty
-        return n.length === 2 ? n.toUpperCase() : (codes[n] || "");
+        return codes[n] || ""; 
     };
 
     try {
+        // AUTHENTICATION
         const authResponse = await fetch('https://developers.cjdropshipping.com/api2.0/v1/authentication/getAccessToken', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -27,13 +29,22 @@ export default async function handler(req, res) {
 
         const authData = await authResponse.json();
         if (!authData.result) throw new Error(`Auth Failed: ${authData.message}`);
-        
         const accessToken = authData.data.accessToken;
-        const nameParts = customer.name.trim().split(' ');
-        const firstName = nameParts[0];
-        const lastName = nameParts.slice(1).join(' '); // Empty if only one name provided
-        const isoCountry = getCountryCode(customer.countryFull || customer.country);
 
+        // 2. DATA PREP
+        const isoCountry = getCountryCode(customer.country);
+        const firstName = customer.name.split(' ')[0];
+        const lastName = customer.name.split(' ').slice(1).join(' ') || ' ';
+
+        // 3. EMERGENCY CHECK: Stop if country code is missing
+        if (!isoCountry) {
+            return res.status(400).json({ 
+                success: false, 
+                msg: `CJ requires a 2-letter country code. Received: ${customer.country}` 
+            });
+        }
+
+        // 4. CREATE THE ORDER
         const cjResponse = await fetch('https://developers.cjdropshipping.com/api2.0/v1/shopping/order/createOrderV3', {
             method: 'POST',
             headers: {
@@ -43,22 +54,21 @@ export default async function handler(req, res) {
             body: JSON.stringify({
                 orderNumber: details.id,
                 fromCountryCode: 'CN', 
-                shippingCountry: customer.countryFull || customer.country, 
+                shippingCountry: customer.country, 
                 shippingAddressRequest: {
                     firstName: firstName,
                     lastName: lastName,
                     addressLine1: customer.addr, 
                     addressLine2: customer.apt || "",
                     city: customer.city,
-                    province: customer.state || "",
+                    province: customer.state || customer.city,
                     zipCode: customer.zip,
-                    countryCode: isoCountry, 
-                    phone: customer.phone || ""
+                    countryCode: isoCountry, // The fix is here
+                    phone: customer.phone || "0000000000"
                 },
                 products: [{ 
                     variantSku: TARGET_SKU, 
-                    quantity: parseInt(q),
-                    shippingName: "CJPacket Sensitive" // High-performance line
+                    quantity: parseInt(q) || 1 
                 }]
             })
         });
