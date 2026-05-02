@@ -45,8 +45,10 @@ export default async function handler(req, res) {
             },
             body: JSON.stringify({
                 orderNumber: details.id,
-                // FIX 4: warehouse origin (CN for China) - Required for V3
+                // FIX 4: Warehouse origin (CN = China)
                 fromCountryCode: 'CN', 
+                // FIX 5: Full country name at top level for V3 validation
+                shippingCountry: customer.country || "United States",
                 shippingAddressRequest: {
                     firstName: firstName,
                     lastName: lastName,
