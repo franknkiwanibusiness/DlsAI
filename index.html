@@ -1,1799 +1,1057 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MINIMISTY | ARCTIC MIST TECHNOLOGY</title>
-    
+    <title>MINIMISTY | PRO ELITE</title>
     <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+
+<style>
+    /* Professional Branding Font */
+    .brand-name { font-family: 'Luckiest Guy', cursive; color: #fff; letter-spacing: 1px; }
+    
+    * { user-select: none; -webkit-tap-highlight-color: transparent; outline: none; }
+    body { margin: 0; background: #000; color: #fff; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+    body.modal-open { overflow: hidden; }
+    ::-webkit-scrollbar { display: none; }
+
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-8px); }
+        75% { transform: translateX(8px); }
+    }
+    .input-error { border: 1.5px solid #ff4b4b !important; animation: shake 0.2s ease-in-out 0s 2; }
+    .hidden { display: none !important; }
+
+    .bundle-card {
+        border: 1px solid #1a1a1a; background: #050505; border-radius: 12px; padding: 15px; margin-bottom: 10px; cursor: pointer; transition: 0.2s;
+    }
+    .bundle-card.active { border-color: #ccff00; background: rgba(204, 255, 0, 0.05); }
+
+    .modal {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98);
+        z-index: 9999; display: none; flex-direction: column; backdrop-filter: blur(25px); padding: 25px; box-sizing: border-box;
+    }
+
+    input { background: #111; border: 1px solid #222; color: #fff; padding: 15px; border-radius: 10px; width: 100%; box-sizing: border-box; margin-bottom: 12px; font-family: 'Inter'; font-size: 14px; }
+</style>
+   
+    <link rel="stylesheet" href="style.css">
     
     <script src="https://www.paypal.com/sdk/js?client-id=AW7nmsZqdabjCrj62j0qekUqalJJ3T53ngjrime14foH5HMhNLmpUzULQV-OvV82KSuZQoBoEP4Rkwi4&currency=USD"></script>
 
+    <script type="importmap">
+      {
+        "imports": {
+          "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js": "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js",
+          "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js": "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js"
+        }
+      }
+    </script>
+
     <style>
-        :root {
-            --blue: #00bfff;
-            --green: #00ff88;
-            --yellow: #ffdd00;
-            --black: #000000;
-            --white: #ffffff;
-            --gray: #f4f4f4;
-            --thick-border: 4px solid #000;
+        * { user-select: none; -webkit-tap-highlight-color: transparent; outline: none; }
+        body { margin: 0; background: #000; color: #fff; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        body.modal-open { overflow: hidden; }
+        ::-webkit-scrollbar { display: none; }
+
+        /* Shaking animation for validation errors */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+        }
+        .input-error { border: 1.5px solid #ff4b4b !important; animation: shake 0.2s ease-in-out 0s 2; }
+        .hidden { display: none !important; }
+
+        @keyframes infinite-hero { 
+            0%, 25% { transform: translateX(0); } 
+            33%, 58% { transform: translateX(-25%); } 
+            66%, 91% { transform: translateX(-50%); } 
+            100% { transform: translateX(-75%); } 
+        }
+        
+        .bundle-card {
+            border: 1px solid #1a1a1a; background: #050505; border-radius: 12px; padding: 15px; margin-bottom: 10px; cursor: pointer; transition: 0.2s;
+        }
+        .bundle-card.active { border-color: #ccff00; background: rgba(204, 255, 0, 0.05); }
+
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98);
+            z-index: 9999; display: none; flex-direction: column; backdrop-filter: blur(25px); padding: 25px; box-sizing: border-box;
         }
 
-        /* --- RESET & CORE --- */
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: var(--white);
-            font-family: 'Luckiest Guy', cursive;
-            overflow-x: hidden;
-            color: var(--black);
-            padding-bottom: 120px;
-        }
-
-
-        /* --- MAIN SLIDER --- */
-        .hero-slider {
-            width: 100vw;
-            margin-top: 30px;
-            overflow: hidden;
-            border-bottom: var(--thick-border);
-            background: var(--black);
-        }
-        .slider-track {
-            display: flex;
-            transition: transform 0.7s cubic-bezier(0.65, 0, 0.35, 1);
-            line-height: 0;
-        }
-        .slider-track img {
-            width: 100vw;
-            height: auto;
-            display: block;
-            object-fit: cover;
-        }
-
-        /* --- MARQUEE SCROLLER --- */
-        .marquee-container {
-            background: white;
-            padding: 12px 0;
-            border-bottom: var(--thick-border);
-            overflow: hidden;
-            display: flex;
-        }
-        .marquee-text {
-            display: flex;
-            white-space: nowrap;
-            animation: marquee-run 25s linear infinite;
-        }
-        .marquee-text span {
-            color: black;
-            font-size: 1.2rem;
-            margin: 0 30px;
-            text-transform: uppercase;
-        }
-        @keyframes marquee-run {
-            from { transform: translateX(0); }
-            to { transform: translateX(-50%); }
-        }
-
-        /* --- INFO CARDS --- */
-        .scroller-box { width: 100vw; padding: 40px 0; overflow: hidden; }
-        .scroller-track { display: flex; width: max-content; animation: infinite-scroll 30s linear infinite; }
-        .card {
-            width: 280px;
-            margin: 0 15px;
-            border: var(--thick-border);
-            border-radius: 25px;
-            padding: 25px;
-            background: var(--white);
-            box-shadow: 6px 6px 0px var(--black);
-            text-align: center;
-        }
-        .card h3 { font-size: 1.8rem; margin: 0 0 10px 0; -webkit-text-stroke: 1px #000; }
-        .card p { font-family: 'Inter', sans-serif; font-weight: 700; font-size: 0.9rem; line-height: 1.4; margin: 0; }
-        @keyframes infinite-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-
-        /* --- STICKY FOOTER --- */
-        .sticky-footer {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 110px;
-            background: var(--white);
-            border-top: 6px solid var(--black);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 25px;
-            z-index: 3000;
-        }
-        .footer-price-stack { display: flex; flex-direction: column; align-items: center; }
-        .footer-price-text {
-            color: var(--black);
-            font-size: 2.2rem;
-            line-height: 1;
-            margin-bottom: 5px;
-            -webkit-text-stroke: 1.5px var(--black);
-        }
-        .buy-now-btn {
-            background: var(--yellow);
-            border: var(--thick-border);
-            border-radius: 15px;
-            padding: 10px 35px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            cursor: pointer;
-            box-shadow: 5px 5px 0px var(--black);
-            transition: 0.1s;
-        }
-        .buy-now-btn:active { transform: translate(3px, 3px); box-shadow: 0px 0px 0px #000; }
-/* --- CARTTONIC NATIVE SIDEBAR --- */
-.sidebar {
-    position: fixed; top: 0; right: -100%;
-    width: 100%; max-width: 440px; height: 100%;
-    background: #f8f9fa; /* Light gray "app" background */
-    z-index: 5000;
-    transition: 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-    display: flex; flex-direction: column;
+        input { background: #111; border: 1px solid #222; color: #fff; padding: 15px; border-radius: 10px; width: 100%; box-sizing: border-box; margin-bottom: 12px; font-family: 'Inter'; font-size: 14px; transition: border 0.3s; }
+        input:focus { border-color: #ccff00; }
+        /* Red Edit Address Button */
+#address-preview button {
+    display: inline-block;
+    background: #ff4b4b !important;
+    color: #fff !important;
+    padding: 8px 16px !important;
+    border-radius: 8px !important;
+    font-weight: 900 !important;
+    text-transform: uppercase;
+    font-size: 10px !important;
+    margin-top: 15px !important;
+    text-decoration: none !important;
+    cursor: pointer;
+    transition: opacity 0.2s;
 }
 
-.sidebar.open { right: 0; }
-
-.sidebar-header {
-    position: sticky; top: 0; background: #fff;
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 20px 25px; border-bottom: 1px solid #e0e0e0; z-index: 10;
+#address-preview button:hover {
+    opacity: 0.8;
+}
+/* Make Shipping Modal Scrollable */
+#shipping-modal {
+    max-height: 100vh;
+    display: none; /* Controlled by JS flex/none */
+    flex-direction: column;
 }
 
-.cart-content {
-    flex: 1; overflow-y: auto;
-    padding: 20px; display: flex; flex-direction: column; gap: 15px;
+#address-fields {
+    flex-grow: 1;
+    overflow-y: auto; /* Enables vertical scroll */
+    padding-right: 5px; /* Space for a clean look while scrolling */
+    padding-bottom: 20px; /* Ensures the last button isn't cut off */
+    
+    /* Hide scrollbar for a clean "Pro Elite" look */
+    -ms-overflow-style: none;  
+    scrollbar-width: none; 
 }
 
-/* --- NATIVE CONTAINER CARDS (NO BORDERS) --- */
-.cart-section {
-    background: #fff; border-radius: 18px;
-    padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+#address-fields::-webkit-scrollbar {
+    display: none;
 }
 
-.item-card { display: flex; gap: 15px; align-items: center; }
-
-/* --- CLEAN NATIVE FORM --- */
-.shipping-box h4 {
-    margin: 0 0 15px 0; font-family: 'Inter'; font-weight: 900;
-    font-size: 0.9rem; color: #666; text-transform: uppercase;
+/* Ensure inputs are large enough for touch but don't break the layout */
+#address-fields input {
+    margin-bottom: 15px;
+    min-height: 55px;
+}
+/* Condensed Shipping Preview */
+#address-preview {
+    background: #e6e0ff; /* Light Purple */
+    border-radius: 15px;
+    padding: 15px;
+    margin: 10px 0;
+    color: #1a1a1a; /* Dark text for contrast on light purple */
+    border: 1px solid #d1c4ff;
 }
 
-.shipping-box input {
-    width: 100%; padding: 16px; margin-bottom: 10px;
-    background: #f0f2f5; border: none; border-radius: 12px;
-    font-family: 'Inter', sans-serif; font-weight: 600; font-size: 15px;
-    outline: none; transition: 0.2s;
+#address-preview p {
+    margin: 0;
+    font-size: 11px; /* Smaller font for "shrinked" look */
+    line-height: 1.4;
+    font-weight: 700;
 }
 
-.shipping-box input:focus { background: #e8eaf0; box-shadow: inset 0 0 0 2px var(--blue); }
-
-.shrunk-info { display: none; position: relative; }
-
-.edit-btn {
-    position: absolute; top: 0; right: 0; background: #000; color: #fff;
-    border: none; padding: 5px 12px; border-radius: 20px;
-    font-size: 10px; font-family: 'Inter'; font-weight: 900; cursor: pointer;
+#address-preview .label {
+    color: #6200ea; /* Deeper purple for label */
+    font-size: 9px;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 4px;
+}
+/* Layout for the Shipping Modal */
+#shipping-modal {
+    display: none;
+    flex-direction: column;
+    height: 100vh; /* Fill screen */
+    padding: 0; /* Reset for internal padding */
 }
 
-/* --- TOTALS & CHECKOUT --- */
-.totals-box { margin-bottom: 40px; }
-
-.checkout-row {
-    display: flex; justify-content: space-between;
-    font-family: 'Inter', sans-serif; font-weight: 700;
-    margin-bottom: 12px; font-size: 14px; color: #444;
+/* Modal Internal Padding */
+.modal-content-wrapper {
+    padding: 25px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
 }
 
-.total-row {
-    margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee;
-    font-size: 1.4rem; color: var(--black); font-family: 'Luckiest Guy';
+/* The Scrollable Area */
+#address-fields {
+    flex: 1; /* Take up available space */
+    overflow-y: auto;
+    padding-right: 8px;
+    margin-bottom: 20px;
+    
+    /* Hide scrollbar for Chrome/Safari */
+    -webkit-overflow-scrolling: touch;
 }
 
-.overlay {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); /* 30% style */
-    display: none; z-index: 4000;
-}
-/* --- APP-LIKE UI POLISH --- */
-
-/* 1. Remove Text Selection & Blue Tap Highlight */
-* {
-    -webkit-user-select: none;      /* Chrome, Safari, Opera */
-    -moz-user-select: none;         /* Firefox */
-    -ms-user-select: none;          /* IE/Edge */
-    user-select: none;              /* Standard */
-    -webkit-tap-highlight-color: transparent; /* Removes blue box on mobile tap */
+#address-fields::-webkit-scrollbar {
+    width: 0px;
+    display: none;
 }
 
-/* 2. Allow selection only for inputs/forms (so users can type their address) */
-input, textarea, [contenteditable="true"] {
-    -webkit-user-select: text;
-    user-select: text;
+/* High-End Address Preview (Shrinked Look) */
+#address-preview {
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 12px;
+    padding: 15px;
+    margin-top: 10px;
 }
 
-/* 3. Hide Scrollbar Track (Sleek Ghost Scroll) */
-::-webkit-scrollbar {
-    width: 0px;  /* Total removal for Chrome/Safari */
-    background: transparent; 
+#address-preview .preview-label {
+    font-size: 10px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 5px;
+    display: block;
 }
 
-html {
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE/Edge */
+#address-preview p {
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 0;
+    color: #eee;
+}
+#shipping-modal {
+    overflow-y: auto !important; /* Allows the entire modal content to scroll */
+    -webkit-overflow-scrolling: touch;
 }
 
-/* 4. Optional: Custom highlight color if you WANT them to select specific text later */
-::selection {
-    background: var(--blue);
-    color: white;
+#address-fields.hidden {
+    display: none !important;
+}
+/* Sticky Header for Shipping Modal */
+.sticky-header {
+    position: sticky;
+    top: 0;
+    background: rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(15px);
+    z-index: 100;
+    padding: 20px;
+    border-bottom: 1px solid #1a1a1a;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Shimmer Loading Effect */
+@keyframes shimmer {
+    0% { background-position: -468px 0; }
+    100% { background-position: 468px 0; }
+}
+.loading-shimmer {
+    background: #1a1a1a;
+    background-image: linear-gradient(to right, #1a1a1a 0%, #222 20%, #1a1a1a 40%, #1a1a1a 100%);
+    background-repeat: no-repeat;
+    background-size: 800px 104px;
+    animation: shimmer 1.2s infinite linear;
+    color: transparent !important;
+    border-radius: 8px;
+}
+
+/* Enhanced Cart Item Layout */
+.cart-item-card {
+    display: flex;
+    gap: 15px;
+    background: #0a0a0a;
+    padding: 15px;
+    border-radius: 16px;
+    border: 1px solid #1a1a1a;
+    margin-bottom: 15px;
+    align-items: center;
+    transition: transform 0.2s;
+}
+
+/* Red Error Shaking for Inputs */
+.input-error {
+    border: 1.5px solid #ff4b4b !important;
+    animation: shake 0.2s ease-in-out 0s 2;
+}
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    75% { transform: translateX(8px); }
+}
+.shake-error { 
+    animation: shake 0.2s ease-in-out 0s 3; 
+}
+#shipping-options-box.shake-error p {
+    color: #ff4b4b !important; /* Turns "Select Delivery Speed" text red */
+}
+/* Toast Notification Styling */
+#toast-container {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10000;
+    pointer-events: none;
+}
+
+.toast {
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 900;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #fff;
+    animation: slideDown 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+@keyframes slideDown {
+    from { transform: translateY(-50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.toast-red { background: rgba(255, 75, 75, 0.9); border-color: #ff4b4b; }
+.toast-green { background: rgba(74, 222, 128, 0.9); border-color: #4ade80; color: #000; }
+/* Premium Cart Aesthetic */
+.modal {
+    background: rgba(10, 10, 10, 0.95) !important;
+    backdrop-filter: blur(20px) saturate(180%);
+    border-left: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Shipping Option Container Colors */
+#shipping-options-box {
+    background: rgba(255, 255, 255, 0.02);
+    padding: 15px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Shipping Button States */
+.bundle-card {
+    position: relative;
+    overflow: hidden;
+    background: #000 !important;
+    border: 1px solid #1a1a1a !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Standard Selection Highlight (Green) */
+.ship-standard-active {
+    border-color: #4ade80 !important;
+    box-shadow: 0 0 20px rgba(74, 222, 128, 0.15);
+    background: rgba(74, 222, 128, 0.03) !important;
+}
+
+/* Prime Selection Highlight (Gold) */
+.ship-prime-active {
+    border-color: #fbbf24 !important;
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.15);
+    background: rgba(251, 191, 36, 0.03) !important;
+}
+
+/* Active Badge Animation */
+#prime-status-badge {
+    transition: all 0.3s ease;
+    box-shadow: 0 0 10px rgba(251, 191, 36, 0.4);
+}
+
+/* Summary Row Styling */
+#cart-summary div {
+    padding: 4px 0;
+    border-bottom: 1px style solid rgba(255,255,255,0.03);
+}
+
+#cart-summary span:last-child {
+    font-weight: 700;
+    color: #fff;
+}
+/* Premium iOS Glassy Toast */
+#toast-container {
+    position: fixed;
+    top: 30px; /* Slightly lower for better visibility */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10001;
+    pointer-events: none;
+    width: 90%;
+    max-width: 350px;
+}
+
+.toast {
+    padding: 16px 24px;
+    border-radius: 20px; /* Rounded iOS style */
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: -0.2px;
+    
+    /* The Glass Effect */
+    background: rgba(255, 255, 255, 0.08); 
+    backdrop-filter: blur(25px) saturate(150%);
+    -webkit-backdrop-filter: blur(25px) saturate(150%);
+    
+    /* Subtle Border & Shadow */
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    
+    color: #fff;
+    margin-bottom: 12px;
+    animation: iosSlideDown 0.5s cubic-bezier(0.2, 1, 0.3, 1);
+}
+
+/* No color variants - clean and minimal */
+.toast-red, .toast-green {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: #fff !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+@keyframes iosSlideDown {
+    from { 
+        transform: translateY(-20px) scale(0.95); 
+        opacity: 0; 
+    }
+    to { 
+        transform: translateY(0) scale(1); 
+        opacity: 1; 
+    }
 }
 
     </style>
 </head>
 <body>
-<div id="mistyLoader" style="
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    /* Professional High-Contrast Gradient */
-    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
-    z-index: 99999;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    transition: opacity 0.6s cubic-bezier(0.65, 0, 0.35, 1), visibility 0.6s;
-    overflow: hidden;
-">
-    
-    <div class="misty-spinner"></div>
 
-    <h1 style="
-        font-family: 'Luckiest Guy', cursive;
-        font-size: clamp(2.5rem, 12vw, 4rem);
-        color: #ffffff;
-        margin: 30px 0 0 0;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        opacity: 0.9;
-    ">
-        MINIMISTY
-    </h1>
-
-    <style>
-        /* Strict Scroll Lock */
-        body.loader-active { 
-            overflow: hidden !important; 
-            height: 100vh; 
-        }
-
-        /* Shopify-Style Minimal Spinner */
-        .misty-spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid rgba(255, 255, 255, 0.1);
-            border-left-color: #00bfff; /* Your Neon Cyan */
-            border-radius: 50%;
-            animation: mistySpin 0.8s linear infinite;
-        }
-
-        @keyframes mistySpin {
-            to { transform: rotate(360deg); }
-        }
-        
-        /* Smooth Scale-Down Exit */
-        .loader-exit-pro {
-            opacity: 0 !important;
-            visibility: hidden !important;
-            transform: scale(0.95);
-        }
-        /* The pulsing container */
-.skeleton-parent {
-    position: relative;
-    background-color: #e2e2e2 !important; /* The Noir Gray */
-    overflow: hidden;
-}
-
-/* The shimmer animation */
-.skeleton-parent::after {
-    content: "";
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-    animation: shimmer-global 1.5s infinite;
-    transform: translateX(-100%);
-}
-
-@keyframes shimmer-global {
-    100% { transform: translateX(100%); }
-}
-
-/* Image states */
-img {
-    transition: opacity 0.4s ease-in-out;
-}
-
-.img-is-loading {
-    opacity: 0;
-}
-
-.img-is-ready {
-    opacity: 1;
-}
-
-    </style>
-</div>
-
-<script>
-    // 1. Lock Body strictly
-    document.body.classList.add('loader-active');
-    const loader = document.getElementById('mistyLoader');
-
-    // 2. Wait for EVERYTHING to load (Images, Fonts, Scripts)
-    window.addEventListener('load', () => {
-        // Add a tiny "safety" delay so the transition feels smooth
-        setTimeout(() => {
-            // Unlock scroll
-            document.body.classList.remove('loader-active');
-            document.body.style.overflow = 'auto';
-            
-            // Professional Exit
-            if(loader) {
-                loader.classList.add('loader-exit-pro');
-                // Clean up DOM after animation
-                setTimeout(() => loader.remove(), 600);
-            }
-        }, 500); // 500ms extra padding for a premium feel
-    });
-
-    // 3. Fallback: If for some reason 'load' fails, force unlock after 8s
-    setTimeout(() => {
-        if(document.body.classList.contains('loader-active')) {
-            document.body.classList.remove('loader-active');
-            document.body.style.overflow = 'auto';
-            if(loader) loader.classList.add('loader-exit-pro');
-        }
-    }, 8000);
-    function toggleVibe(id) {
-    const v = document.getElementById('volcano-drop');
-    const j = document.getElementById('jelly-drop');
-    const target = document.getElementById(id);
-
-    // If it's already open, hide it. Otherwise, hide all and show target.
-    if (target.style.display === 'block') {
-        target.style.display = 'none';
-    } else {
-        v.style.display = 'none';
-        j.style.display = 'none';
-        target.style.display = 'block';
-    }
-}
-
-</script>
-
-
-</div>
-
-    <div class="overlay" id="mainOverlay" onclick="toggleSidebar()"></div>
-
-<header style="
-    position: sticky;
-    top: 15px;
-    z-index: 2000;
-    width: 92%;
-    height: 65px;
-    margin: 0 auto;
-    background: #ffffff;
-    border: 3px solid #000000;
-    border-radius: 50px;
-    box-shadow: 0 5px 0 #000000;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 25px;
-    box-sizing: border-box;
-">
-    <div style="display: flex; align-items: center; gap: 12px; height: 100%;">
-        <div style="display: flex; align-items: center; justify-content: center;">
-            <img src="https://i.imgur.com/iAd3Oqz.png" alt="Logo" style="
-                height: 40px; 
-                width: auto; 
-                display: block;
-                filter: drop-shadow(2px 2px 0px #000) drop-shadow(-2px -2px 0px #000) drop-shadow(2px -2px 0px #000) drop-shadow(-2px 2px 0px #000);
-                transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-                cursor: pointer;
-            " onmouseover="this.style.transform='rotate(-8deg) scale(1.1)'" onmouseout="this.style.transform='rotate(0deg) scale(1)'">
+<div class="header-wrapper">
+    <header class="main-header">
+        <div class="branding" onclick="location.reload()" style="cursor:pointer;">
+            <img src="https://i.imgur.com/iAd3Oqz.png" class="logo" alt="Logo">
+            <span class="brand-name">MINIMISTY</span>
         </div>
-        
-        <span style="
-            font-family: 'Luckiest Guy', cursive; 
-            font-size: 1.8rem; 
-            line-height: 1;
-            display: inline-block;
-            padding-top: 8px; 
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-            /* Footer-style Gradient */
-            background: linear-gradient(90deg, #ff00ff, #00bfff, #ffdd00); 
-            -webkit-background-clip: text; 
-            -webkit-text-fill-color: transparent;
-            /* Sticker Stroke Filter */
-            filter: drop-shadow(1.5px 1.5px 0px #000) 
-                    drop-shadow(-1px -1px 0px #000) 
-                    drop-shadow(1px -1px 0px #000) 
-                    drop-shadow(-1px 1px 0px #000);
-        ">MINIMISTY</span>
-    </div>
-
-    <div onclick="toggleSidebar()" style="
-        position: relative; 
-        cursor: pointer; 
-        display: flex; 
-        align-items: center; 
-        justify-content: center;
-        height: 100%;
-        transition: transform 0.2s ease;
-    " onmousedown="this.style.transform='scale(0.9)'" onmouseup="this.style.transform='scale(1)'">
-        
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M9 7c0-1.657 1.343-3 3-3s3 1.343 3 3" stroke="black" stroke-width="2.5" stroke-linecap="round"/>
-            <path d="M5 8h14l1 12H4L5 8z" fill="white" stroke="black" stroke-width="2.5" stroke-linejoin="round"/>
-        </svg>
-        
-        <div id="badgeCount" style="
-            position: absolute;
-            top: 14px;
-            right: -2px;
-            background: #000;
-            color: #fff;
-            border-radius: 50%;
-            width: 18px;
-            height: 18px;
-            font-family: Arial, sans-serif;
-            font-weight: bold;
-            font-size: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 2px solid #fff;
-        ">0</div>
-    </div>
-</header>
-
-<div class="hero-slider">
-    <div class="slider-track" id="mainSlider">
-        <img src="https://i.imgur.com/Bf2ARUA.png" alt="Minimisty White">
-        <img src="https://i.imgur.com/4Y6CJNE.png" alt="Minimisty Black">
-        <img src="https://i.imgur.com/ihVHDc1.png" alt="Minimisty Red">
-    </div>
-</div>
-
-
-    <div class="marquee-container">
-        <div class="marquee-text">
-            <span>• Arctic Mist Tech •</span><span>• USB-C Rechargeable •</span><span>• 24H Battery Life •</span><span>• Free Worldwide Shipping •</span>
-            <span>• Arctic Mist Tech •</span><span>• USB-C Rechargeable •</span><span>• 24H Battery Life •</span><span>• Free Worldwide Shipping •</span>
-        </div>
-    </div>
-
-    <div class="scroller-box">
-        <div class="scroller-track">
-            <div class="card"><h3 style="color:var(--blue)">ICED AIR</h3><p>Proprietary cooling tech that drops local temperature by 10 degrees.</p></div>
-            <div class="card"><h3 style="color:var(--green)">BIO-GLOW</h3><p>Maintains 60% skin hydration levels throughout the night.</p></div>
-            <div class="card"><h3 style="color:var(--yellow)">ULTRA SILENT</h3><p>Operates at 15dB. Quieter than a whisper in a library.</p></div>
-            <div class="card"><h3 style="color:var(--blue)">ICED AIR</h3><p>Proprietary cooling tech that drops local temperature by 10 degrees.</p></div>
-            <div class="card"><h3 style="color:var(--green)">BIO-GLOW</h3><p>Maintains 60% skin hydration levels throughout the night.</p></div>
-            <div class="card"><h3 style="color:var(--yellow)">ULTRA SILENT</h3><p>Operates at 15dB. Quieter than a whisper in a library.</p></div>
-        </div>
-    </div>
-<div class="sticky-footer" style="position: fixed; bottom: 0; left: 0; width: 100%; height: 100px; background: #ffffff; border-top: 5px solid #000; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; z-index: 3000; box-sizing: border-box;">
-    
-    <div style="display: flex; flex-direction: column; gap: 2px;">
-        <span style="
-            font-family: 'Luckiest Guy', cursive; 
-            font-size: 1.5rem; 
-            letter-spacing: 1px; 
-            line-height: 1; 
-            background: linear-gradient(90deg, #ff00ff, #00bfff, #ffdd00); 
-            -webkit-background-clip: text; 
-            -webkit-text-fill-color: transparent; 
-            text-transform: uppercase;
-            filter: drop-shadow(1.5px 1.5px 0px #000) drop-shadow(-1px -1px 0px #000);
-        ">MINIMISTY</span>
-        
-        <span style="
-            font-family: 'Inter', sans-serif; 
-            font-weight: 900; 
-            font-size: 0.55rem; 
-            letter-spacing: 1px; 
-            color: #000; 
-            text-transform: uppercase;">
-            Air Humidifier
-        </span>
-    </div>
-
-    <div class="footer-actions-stack" style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-        <div id="livePrice" style="
-            font-family: 'Luckiest Guy', cursive; 
-            color: #32CD32; 
-            font-size: 1.3rem; 
-            line-height: 1; 
-            -webkit-text-stroke: 1px #000;
-            filter: drop-shadow(1.5px 1.5px 0px #000);
-        ">...</div>
-
-        <button class="buy-now-btn" onclick="addToCart()" style="
-            background: #ffdd00; 
-            border: 3px solid #000; 
-            border-radius: 12px; 
-            padding: 6px 20px; 
-            display: flex; 
-            align-items: center; 
-            gap: 8px; 
-            cursor: pointer; 
-            box-shadow: 3px 3px 0px #000; 
-            transition: 0.1s; 
-            outline: none;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="9" cy="21" r="1"></circle>
-                <circle cx="20" cy="21" r="1"></circle>
-                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-            </svg>
-            <span style="font-family: 'Luckiest Guy', cursive; font-size: 1rem; color: #000; text-transform: uppercase;">BUY</span>
+        <button id="btn-cart-toggle" style="background:none; border:none; position:relative; cursor:pointer; padding: 10px;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4H6z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+            <div id="cart-count" style="position:absolute; top:2px; right:2px; background:#ccff00; color:#000; font-size:10px; font-weight:900; width:16px; height:16px; border-radius:50%; display:flex; align-items:center; justify-content:center;">0</div>
         </button>
+    </header>
+
+    <div class="announcement-bar">
+        <div class="slider-track">
+            <div class="announcement-item"><span>Free Shipping Worldwide</span></div>
+            <div class="announcement-item"><span>3-Day Express Available</span></div>
+        </div>
     </div>
 </div>
-<div class="sidebar" id="cartSidebar">
 
-    <!-- HEADER -->
-    <div class="sidebar-header" style="padding: 18px 20px; border-bottom: 1px solid #3a3a3a; display: flex; justify-content: space-between; align-items: center; background: #1e1e1e;">
-        <span style="font-family: 'Inter', sans-serif; font-size: 1.25rem; font-weight: 700; color: #fff; letter-spacing: 0.01em;">My Order</span>
-        <div class="sidebar-close" onclick="toggleSidebar()" style="width: 34px; height: 34px; border: 1.5px solid #555; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; cursor: pointer; background: #2a2a2a; color: #ccc;">✕</div>
-    </div>
+<main>
+    <section id="hero-container" style="width:100%; overflow:hidden; position:relative;">
+        <div id="hero-track" style="display:flex; width:400%; animation:infinite-hero 16s infinite ease-in-out;">
+            <div style="width:25%; aspect-ratio:16/9;"><img src="https://i.imgur.com/3yRmq0y.jpeg" style="width:100%; height:100%; object-fit:contain;"></div>
+            <div style="width:25%; aspect-ratio:16/9;"><img src="https://i.imgur.com/FvZqeIJ.jpeg" style="width:100%; height:100%; object-fit:contain;"></div>
+            <div style="width:25%; aspect-ratio:16/9;"><img src="https://i.imgur.com/XraIwhC.jpeg" style="width:100%; height:100%; object-fit:contain;"></div>
+            <div style="width:25%; aspect-ratio:16/9;"><img src="https://i.imgur.com/3yRmq0y.jpeg" style="width:100%; height:100%; object-fit:contain;"></div>
+        </div>
+    </section>
 
-    <!-- SCROLLABLE BODY -->
-    <div class="cart-content" style="padding: 0; overflow-y: auto; max-height: calc(100vh - 65px); background: #1e1e1e;">
+    <section style="padding:25px; text-align:center;">
+        <h1 style="font-size:26px; font-weight:900; margin:0; text-transform:uppercase; letter-spacing:-1px;">
+            <span style="color:#fff;">Minimisty</span> <span style="color:#ccff00;">Fragrance</span> <span style="color:#00ffff;">Humidifier</span>
+        </h1>
+        
+        <div style="display:flex; justify-content:center; align-items:center; gap:6px; margin:10px 0;">
+            <svg width="8" height="8" viewBox="0 0 10 10" fill="#00ff64"><circle cx="5" cy="5" r="5"/></svg>
+            <span style="font-size:11px; color:#00ff64; font-weight:900; text-transform:uppercase; letter-spacing:1px;">In Stock</span>
+        </div>
 
-        <!-- ═══════════════════════ FULL VIEW ═══════════════════════ -->
-        <div id="cart-full-view" style="display:none; padding: 14px 14px 0 14px; flex-direction: column; gap: 12px;">
+        <div style="display:flex; justify-content:center; align-items:center; gap:8px; margin-bottom:18px;">
+            <div style="display:flex; gap:2px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="#ccff00"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="#ccff00"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="#ccff00"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="#ccff00"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="#ccff00"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            </div>
+            <span style="font-size:11px; color:#666; font-weight:900;">999+ POSITIVE REVIEWS</span>
+        </div>
 
-            <!-- BUNDLE DEAL SECTION -->
-            <div style="margin-bottom: 12px;">
-                <p style="font-family: 'Inter', sans-serif; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #888; margin-bottom: 10px;">Bundle Deal Section</p>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
-                    <!-- 1x - blue -->
-                    <div onclick="updateQtyDirect(1)" style="border: 1.5px solid #4aa3d4; border-radius: 10px; padding: 10px 4px; text-align: center; cursor: pointer; background: linear-gradient(160deg, #2a5f82, #1a3d54);">
-                        <div style="font-family: 'Inter', sans-serif; font-size: 1.1rem; font-weight: 800; color: #fff;">1x</div>
-                        <div style="font-size: 0.6rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #a0d4f0; margin-top: 2px;">STARTER</div>
-                    </div>
-                    <!-- 2x - green -->
-                    <div onclick="updateQtyDirect(2)" style="border: 1.5px solid #3aaf6a; border-radius: 10px; padding: 10px 4px; text-align: center; cursor: pointer; background: linear-gradient(160deg, #1e5c38, #123824);">
-                        <div style="font-family: 'Inter', sans-serif; font-size: 1.1rem; font-weight: 800; color: #fff;">2x</div>
-                        <div style="font-size: 0.6rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #7de0a8; margin-top: 2px;">SAVE 5%</div>
-                    </div>
-                    <!-- 3x - blue/teal -->
-                    <div onclick="updateQtyDirect(3)" style="border: 1.5px solid #4aa3d4; border-radius: 10px; padding: 10px 4px; text-align: center; cursor: pointer; background: linear-gradient(160deg, #1a4a6e, #0f2d45);">
-                        <div style="font-family: 'Inter', sans-serif; font-size: 1.1rem; font-weight: 800; color: #fff;">3x</div>
-                        <div style="font-size: 0.6rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #a0d4f0; margin-top: 2px;">SAVE 10%</div>
-                    </div>
+        <p style="font-size:14px; line-height:1.7; color:#fff; max-width:95%; margin:0 auto 30px; font-weight:400;">
+            Minimisty Fragrance Humidifier refreshes your space with a gentle mist and calming scent. Its sleek design fits any room while improving air quality. Quiet, portable, and easy to use.
+        </p>
+
+        <div id="bundle-container" style="text-align:left; margin-bottom:25px;">
+            <div class="bundle-card active" data-qty="1" data-price="39.99">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-weight:900; font-size:14px;">X1 MINIMISTY UNIT</span>
+                    <span id="price-x1" style="font-weight:900;">$39.99</span>
                 </div>
             </div>
-
-            <!-- ITEM CARD -->
-            <div class="cart-section item-card" style="border: 1px solid #3a3a3a; border-radius: 12px; background: #2a2a2a; padding: 14px; display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px;">
-                <img id="cartItemImg" src="https://i.imgur.com/Bf2ARUA.png" style="width: 72px; height: 72px; border-radius: 8px; border: 1px solid #444; object-fit: cover; flex-shrink: 0; background: #fff;">
-                <div style="flex: 1; min-width: 0;">
-                    <div id="cartItemName" style="font-family: 'Inter', sans-serif; font-size: 0.9rem; font-weight: 800; color: #fff; line-height: 1.3; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.03em;">MINIMISTY WHITE</div>
-                    <div id="unitPriceDisplay" style="font-family: 'Inter', sans-serif; font-weight: 800; font-size: 1.05rem; color: #fff; margin-bottom: 8px;">$39.99</div>
-                    <div style="display: flex; align-items: center; justify-content: space-between;">
-                        <div style="background: #1a3d28; border: 1px solid #3aaf6a; border-radius: 5px; padding: 3px 9px; display: inline-flex; align-items: center; gap: 4px;">
-                            <div style="width: 5px; height: 5px; background: #3aaf6a; border-radius: 50%;"></div>
-                            <span style="font-family: 'Inter', sans-serif; font-weight: 700; font-size: 0.6rem; color: #3aaf6a; text-transform: uppercase; letter-spacing: 0.05em;">IN STOCK</span>
-                        </div>
-                        <div style="display: flex; align-items: center; border: 1px solid #555; border-radius: 7px; overflow: hidden; background: #333;">
-                            <button onclick="updateQty(-1)" style="width: 30px; height: 30px; background: transparent; color: #fff; border: none; border-right: 1px solid #555; cursor: pointer; font-size: 1rem; font-weight: 500; display: flex; align-items: center; justify-content: center;">−</button>
-                            <span id="qCount" style="font-family: 'Inter', sans-serif; font-size: 0.9rem; font-weight: 700; color: #fff; min-width: 30px; text-align: center; line-height: 30px; display: inline-block;">1</span>
-                            <button onclick="updateQty(1)" style="width: 30px; height: 30px; background: transparent; color: #fff; border: none; border-left: 1px solid #555; cursor: pointer; font-size: 1rem; font-weight: 500; display: flex; align-items: center; justify-content: center;">+</button>
-                        </div>
-                    </div>
+            <div class="bundle-card" data-qty="2" data-price="37.99">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-weight:900; font-size:14px;">X2 VALUE BUNDLE <span style="color:#ccff00; font-size:10px; margin-left:10px;">SAVE 5%</span></span>
+                    <span id="price-x2" style="font-weight:900;">$75.98</span>
                 </div>
             </div>
+            <div class="bundle-card" data-qty="3" data-price="35.99">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-weight:900; font-size:14px;">X3 PRO BUNDLE <span style="color:#00ffff; font-size:10px; margin-left:10px;">SAVE 10%</span></span>
+                    <span id="price-x3" style="font-weight:900;">$107.97</span>
+                </div>
+            </div>
+        </div>
 
-            <!-- SHIPPING DETAILS FORM -->
-            <div id="shipForm" class="cart-section shipping-box" style="border: 1px solid #3a3a3a; border-radius: 12px; background: #2a2a2a; padding: 16px; margin-bottom: 12px;">
-                <h4 style="font-family: 'Inter', sans-serif; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #fff; margin-bottom: 14px;">SHIPPING DETAILS</h4>
-                <div style="display: flex; flex-direction: column; gap: 9px;">
+        <div id="geo-shipping" style="font-size:12px; color:#555; font-weight:900; margin-bottom:20px; text-transform:uppercase;">
+            Ships to <span id="user-flag"></span> <span id="user-country" style="color:#fff;">Worldwide</span>
+        </div>
 
-                    <!-- Full Name | Email / Phone -->
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                        <div>
-                            <label style="font-family: 'Inter', sans-serif; font-size: 0.65rem; font-weight: 600; color: #aaa; display: block; margin-bottom: 4px;">Full Name</label>
-                            <input type="text" id="inName" placeholder="Full Name..." style="width: 100%; padding: 10px 11px; border: 1px solid #444; border-radius: 7px; font-family: 'Inter', sans-serif; font-size: 0.8rem; font-weight: 500; color: #fff; background: #1e1e1e; outline: none;">
+        <button id="btn-add-to-cart" style="width:100%; background:#ccff00; color:#000; padding:22px; border-radius:18px; font-weight:900; border:none; text-transform:uppercase; display:flex; align-items:center; justify-content:center; gap:12px; cursor:pointer;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+            Add to Cart
+        </button>
+    </section>
+</main>
+
+<footer class="main-footer">
+    <button class="nav-item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4H6z"></path><path d="M3 6h18"></path><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+        <span>Orders</span>
+    </button>
+    <button class="nav-item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+        <span>Tracking</span>
+    </button>
+    <button class="nav-item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+        <span>Support</span>
+    </button>
+</footer>
+<div id="cart-overlay" class="modal" style="display: none; flex-direction: column; background: #000 !important; padding: 0;">
+    <div style="display: flex; flex-direction: column; height: 100vh; width: 100%; border: 1px solid rgba(255,255,255,0.1); box-sizing: border-box;">
+        
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.2); padding: 25px; flex-shrink: 0; background: #000;">
+            <h2 style="margin:0; font-weight:900; color:#ccff00; font-size:24px; letter-spacing:-1px;">SHOPPING CART</h2>
+            <button onclick="toggleModal('cart-overlay', false)" style="background:none; border:1px solid rgba(255,255,255,0.3); color:#fff; font-size:24px; cursor:pointer; width:45px; height:45px; border-radius:50%; display:flex; align-items:center; justify-content:center;">&times;</button>
+        </div>
+        
+        <div style="flex-grow: 1; overflow-y: auto; padding: 25px;">
+            
+            <div id="cart-items"></div>
+
+            <div id="shipping-options-box" style="margin: 40px 0; padding: 25px; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; background: rgba(255,255,255,0.02);">
+                <p style="font-size:11px; font-weight:900; color:#888; margin-bottom:20px; letter-spacing:2px; text-transform:uppercase;">Select Delivery Speed</p>
+                
+                <div style="display:flex; flex-direction:column; gap:12px;">
+                    <button id="ship-free" onclick="setShipping('standard')" class="bundle-card">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-weight:900; color:#4ade80; font-size:14px;">STANDARD SHIPPING</span>
+                            <span style="font-weight:900; color:#4ade80;">FREE</span>
                         </div>
-                        <div>
-                            <label style="font-family: 'Inter', sans-serif; font-size: 0.65rem; font-weight: 600; color: #aaa; display: block; margin-bottom: 4px;">Email/Phone</label>
-                            <input type="email" id="inEmail" placeholder="Email..." style="width: 100%; padding: 10px 11px; border: 1px solid #444; border-radius: 7px; font-family: 'Inter', sans-serif; font-size: 0.8rem; font-weight: 500; color: #fff; background: #1e1e1e; outline: none;">
-                        </div>
-                    </div>
-
-                    <!-- Phone (hidden row, kept for script access) -->
-                    <input type="tel" id="inPhone" placeholder="Phone (optional)" style="width: 100%; padding: 10px 11px; border: 1px solid #444; border-radius: 7px; font-family: 'Inter', sans-serif; font-size: 0.8rem; font-weight: 500; color: #fff; background: #1e1e1e; outline: none;">
-
-                    <!-- Country dropdown — populated by script -->
-                    <div style="position: relative;">
-                        <select id="inCountry" style="width: 100%; padding: 10px 36px 10px 36px; border: 1px solid #444; border-radius: 7px; font-family: 'Inter', sans-serif; font-size: 0.8rem; font-weight: 500; color: #ccc; background: #1e1e1e; outline: none; appearance: none; cursor: pointer;">
-                            <option value="" disabled selected>Country</option>
-                            <!-- Populated by script -->
-                        </select>
-                        <span style="position: absolute; left: 11px; top: 50%; transform: translateY(-50%); font-size: 14px; pointer-events: none;">🌍</span>
-                        <span style="position: absolute; right: 11px; top: 50%; transform: translateY(-50%); color: #888; font-size: 11px; pointer-events: none;">▼</span>
-                    </div>
-
-                    <!-- Address | Apt -->
-                    <div>
-                        <label style="font-family: 'Inter', sans-serif; font-size: 0.65rem; font-weight: 600; color: #aaa; display: block; margin-bottom: 4px;">Address</label>
-                        <div style="display: grid; grid-template-columns: 1fr 75px; gap: 8px;">
-                            <input type="text" id="inAddr" placeholder="Address..." style="width: 100%; padding: 10px 11px; border: 1px solid #444; border-radius: 7px; font-family: 'Inter', sans-serif; font-size: 0.8rem; font-weight: 500; color: #fff; background: #1e1e1e; outline: none;">
-                            <input type="text" id="inApt" placeholder="Apt" style="width: 100%; padding: 10px 8px; border: 1px solid #444; border-radius: 7px; font-family: 'Inter', sans-serif; font-size: 0.8rem; font-weight: 500; color: #fff; background: #1e1e1e; outline: none; text-align: center;">
-                        </div>
-                    </div>
-
-                    <!-- City | State dropdown | Zip -->
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 80px; gap: 8px;">
-                        <div>
-                            <label style="font-family: 'Inter', sans-serif; font-size: 0.65rem; font-weight: 600; color: #aaa; display: block; margin-bottom: 4px;">City</label>
-                            <input type="text" id="inCity" placeholder="City" style="width: 100%; padding: 10px 11px; border: 1px solid #444; border-radius: 7px; font-family: 'Inter', sans-serif; font-size: 0.8rem; font-weight: 500; color: #fff; background: #1e1e1e; outline: none;">
-                        </div>
-                        <div>
-                            <label style="font-family: 'Inter', sans-serif; font-size: 0.65rem; font-weight: 600; color: #aaa; display: block; margin-bottom: 4px;">State / Region</label>
-                            <select id="inState" style="width: 100%; padding: 10px 8px; border: 1px solid #444; border-radius: 7px; font-family: 'Inter', sans-serif; font-size: 0.8rem; font-weight: 500; color: #ccc; background: #1e1e1e; outline: none; appearance: none; cursor: pointer;">
-                                <option value="" disabled selected>State</option>
-                                <!-- Populated by script based on country -->
-                            </select>
-                        </div>
-                        <div>
-                            <label style="font-family: 'Inter', sans-serif; font-size: 0.65rem; font-weight: 600; color: #aaa; display: block; margin-bottom: 4px;">Zip</label>
-                            <input type="text" id="inZip" placeholder="Zip" style="width: 100%; padding: 10px 8px; border: 1px solid #444; border-radius: 7px; font-family: 'Inter', sans-serif; font-size: 0.8rem; font-weight: 500; color: #fff; background: #1e1e1e; outline: none; text-align: center;">
-                        </div>
-                    </div>
-
-                    <!-- Confirm Address -->
-                    <button class="buy-now-btn" style="width: 100%; display: flex; align-items: center; justify-content: center; background: #2563eb; color: #fff; border: none; border-radius: 8px; padding: 13px; margin-top: 4px; cursor: pointer;" onclick="saveUser()">
-                        <span style="font-family: 'Inter', sans-serif; font-size: 0.875rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;">CONFIRM ADDRESS</span>
+                        <p style="margin:8px 0 0 0; font-size:11px; color:#666; font-weight:700;">11 - 15 Business Days</p>
                     </button>
 
+                    <button id="ship-prime" onclick="setShipping('prime')" class="bundle-card">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-weight:900; color:#fbbf24; font-size:14px;">PRIME EXPRESS</span>
+                            <span id="prime-price-display" style="font-weight:900; color:#fbbf24;">$4.99</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+                            <p style="margin:0; font-size:11px; color:#666; font-weight:700;">3 - 7 Business Days</p>
+                            <span id="prime-status-badge" style="font-size:9px; background:#fbbf24; color:#000; padding:3px 8px; border-radius:5px; font-weight:900; visibility:hidden;">UNLOCKED</span>
+                        </div>
+                    </button>
                 </div>
             </div>
+        </div>
 
-            <!-- SHIPPING ADDRESS SHRUNK -->
-            <div id="shipShrunk" class="cart-section shrunk-info" style="border: 1px solid #3a3a3a; border-radius: 12px; background: #2e2a1e; padding: 14px; margin-bottom: 12px; display:none;">
-                <div style="font-family: 'Inter', sans-serif; font-size: 0.6rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #f0a500; margin-bottom: 5px;">DELIVER TO:</div>
-                <div id="s_name" style="font-family: 'Inter', sans-serif; font-size: 0.95rem; font-weight: 800; color: #fff;"></div>
-                <div id="s_addr" style="font-size: 0.8rem; font-family: 'Inter', sans-serif; font-weight: 500; color: #bbb; margin: 4px 0 12px 0; line-height: 1.5;"></div>
-                <button onclick="editUser()" style="width: 100%; background: #333; color: #fff; border: 1px solid #555; border-radius: 7px; font-family: 'Inter', sans-serif; font-weight: 700; padding: 9px 14px; cursor: pointer; font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase;">EDIT DETAILS</button>
+        <div style="background: #050505; border-top: 1px solid rgba(255,255,255,0.2); padding: 30px; flex-shrink: 0;">
+            <div id="cart-summary" style="margin-bottom: 15px;"></div>
+            
+            <div style="display:flex; justify-content:space-between; font-weight:900; font-size:28px; margin-bottom:25px;">
+                <span style="letter-spacing:-1px;">TOTAL:</span>
+                <span id="final-total" style="color:#ccff00;">$0.00</span>
             </div>
-
-            <!-- TOTALS BOX -->
-            <div class="cart-section totals-box" style="border: 1px solid #3a3a3a; border-radius: 12px; background: #2a2a2a; padding: 16px; margin-bottom: 12px;">
-                <div class="checkout-row" style="display: flex; justify-content: space-between; align-items: center; font-family: 'Inter', sans-serif; font-size: 0.875rem; color: #aaa; padding: 7px 0; border-bottom: 1px solid #3a3a3a;">
-                    <span>Subtotal</span>
-                    <span id="subT" style="font-weight: 700; color: #fff;">...</span>
-                </div>
-                <div class="checkout-row" style="display: flex; justify-content: space-between; align-items: center; font-family: 'Inter', sans-serif; font-size: 0.875rem; color: #aaa; padding: 7px 0; border-bottom: 1px solid #3a3a3a;">
-                    <span>Shipping:</span>
-                    <span style="color: #3aaf6a; font-weight: 800; font-size: 0.875rem; letter-spacing: 0.05em;">FREE</span>
-                </div>
-                <div class="checkout-row" style="display: flex; justify-content: space-between; align-items: center; font-family: 'Inter', sans-serif; font-size: 0.875rem; color: #aaa; padding: 7px 0; border-bottom: 1px solid #555;">
-                    <span>Tax (5%)</span>
-                    <span id="feeT" style="font-weight: 700; color: #fff;">...</span>
-                </div>
-                <div class="checkout-row" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0 4px;">
-                    <span style="font-family: 'Inter', sans-serif; font-size: 1.15rem; font-weight: 800; color: #fff;">Total</span>
-                    <span id="totalT" style="font-family: 'Inter', sans-serif; font-size: 1.35rem; font-weight: 900; color: #3aaf6a;">...</span>
-                </div>
-            </div>
-
-            <!-- PAYMENT METHODS -->
-            <div style="border: 1px solid #3a3a3a; border-radius: 12px; background: #2a2a2a; padding: 16px; margin-bottom: 12px; text-align: center;">
-                <p style="font-family: 'Inter', sans-serif; font-size: 0.65rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #fff; margin-bottom: 12px;">PAYMENT METHODS</p>
-                <div id="paypal-container" style="display: block; margin-bottom: 10px;"></div>
-                <!-- Card logos -->
-                <div style="display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 10px;">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" style="height: 20px; background: #fff; border-radius: 4px; padding: 2px 5px;">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" style="height: 24px;">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/American_Express_logo_%282018%29.svg" style="height: 22px; background: #fff; border-radius: 4px; padding: 2px 4px;">
-                    <div style="width: 30px; height: 20px; background: #1a6632; border-radius: 4px; display: flex; align-items: center; justify-content: center;">
-                        <span style="font-size: 10px;">✔</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- PLACE ORDER / CONFIRMATION BUTTON -->
-            <div style="margin-bottom: 32px;">
-                <button style="width: 100%; background: #2563eb; color: #fff; border: none; border-radius: 8px; padding: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
-                    <span style="font-family: 'Inter', sans-serif; font-size: 0.95rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;">PLACE ORDER</span>
+            
+            <button id="btn-checkout" style="width:100%; background:#fff; color:#000; padding:24px; border-radius:20px; font-weight:900; border:none; text-transform:uppercase; letter-spacing:1px; cursor:pointer; font-size:16px;">Proceed to Checkout</button>
+        </div>
+    </div>
+</div>
+<div id="shipping-modal" class="modal" style="display: none; background: #e6e0ff !important;"> <div class="modal-content-wrapper" style="display: flex; flex-direction: column; height: 100vh; width: 100%; padding: 0;">
+        
+        <div style="position: sticky; top: 0; background: #e6e0ff; z-index: 10; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(0,0,0,0.1); padding: 25px; flex-shrink: 0;">
+            <h2 style="margin:0; font-weight:900; color:#1a1a1a; font-size:24px; letter-spacing:-1px;">SHIPPING</h2>
+            <button onclick="toggleModal('shipping-modal', false)" style="background:none; border:1px solid rgba(0,0,0,0.2); color:#1a1a1a; font-size:24px; width:45px; height:45px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center;">&times;</button>
+        </div>
+        
+        <div style="flex-grow: 1; overflow-y: auto; padding: 25px;">
+            <div id="address-fields">
+                <input type="text" id="ship-name" placeholder="Full Name" class="purple-input">
+                <input type="text" id="ship-address" placeholder="Street Address" class="purple-input">
+                <input type="text" id="ship-city" placeholder="City" class="purple-input">
+                <input type="text" id="ship-zip" placeholder="Zip / Postal Code" class="purple-input">
+                <input type="text" id="ship-country" placeholder="Country" class="purple-input">
+                <input type="text" id="ship-phone" placeholder="Mobile Phone (for Tracking)" class="purple-input">
+                
+                <button onclick="confirmAddress()" style="width:100%; background:#1a1a1a; color:#ccff00; padding:22px; border-radius:18px; font-weight:900; border:1px solid rgba(255,255,255,0.1); text-transform:uppercase; margin-top:10px; cursor:pointer; font-size:16px; letter-spacing:1px;">
+                    Confirm Details
                 </button>
             </div>
 
-        </div><!-- end cart-full-view -->
-
-
-        <!-- ═══════════════════════ EMPTY VIEW ═══════════════════════ -->
-        <div id="cart-empty-view" style="display: block; text-align: center; padding: 70px 20px 40px;">
-            <div style="font-size: 3rem; margin-bottom: 16px; opacity: 0.15;">🛒</div>
-            <h2 style="font-family: 'Inter', sans-serif; font-size: 1.2rem; font-weight: 800; color: #fff; margin-bottom: 8px;">Your cart is empty</h2>
-            <p style="font-family: 'Inter', sans-serif; font-weight: 500; font-size: 0.825rem; color: #666; margin: 0 0 28px 0; line-height: 1.5;">Grab your portable mist blender and stay cool anywhere.</p>
-            <button class="buy-now-btn" onclick="toggleSidebar()" style="background: #2563eb; color: #fff; border: none; border-radius: 8px; width: 100%; padding: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
-                <span style="font-family: 'Inter', sans-serif; font-size: 0.875rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;">CONTINUE SHOPPING</span>
-            </button>
+            <div id="address-preview"></div>
         </div>
-
-    </div><!-- end cart-content -->
-</div><!-- end cartSidebar -->
-
-<div id="modalSuccess" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#fff; z-index:10000; overflow-y:auto; padding:30px 20px; font-family:'Inter', sans-serif;">
-    <div style="text-align:center; margin-bottom:30px;">
-        <div style="width:80px; height:80px; background:#32CD32; border:4px solid #000; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; box-shadow:6px 6px 0 #000;">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-        </div>
-        <h1 style="font-family:'Luckiest Guy'; font-size:2.5rem; -webkit-text-stroke:1.5px #000; color:#32CD32; margin:0; line-height:1;">ORDER PLACED!</h1>
-        <p style="font-weight:900; color:#888; text-transform:uppercase; font-size:0.75rem; letter-spacing:1.5px; margin-top:10px;">Check your email for confirmation</p>
-    </div>
-
-    <div style="border:4px solid #000; border-radius:24px; padding:25px; background:#fdfdfd; box-shadow:8px 8px 0 #000; margin-bottom:40px; position:relative; overflow:hidden;">
-        <div style="position:absolute; top:0; right:0; background:#000; color:#fff; padding:6px 15px; font-size:10px; font-weight:900; border-bottom-left-radius:15px; text-transform:uppercase;">Verified Order</div>
-        
-        <div style="margin-bottom:20px;">
-            <label style="font-weight:900; font-size:0.7rem; color:#aaa; text-transform:uppercase;">Tracking ID (Tap to Copy)</label>
-            <div id="resID" onclick="copyTxt('resID')" style="font-family:'Luckiest Guy'; font-size:1.6rem; color:#00bfff; cursor:pointer; display:flex; align-items:center; gap:10px;">
-                ... <span style="font-size:0.8rem; background:#eee; color:#000; padding:2px 8px; border-radius:5px; -webkit-text-stroke:0;">COPY</span>
-            </div>
-        </div>
-
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; border-top:2px dashed #eee; pt:20px; margin-top:15px; padding-top:15px;">
-            <div>
-                <label style="font-weight:900; font-size:0.65rem; color:#aaa; text-transform:uppercase;">Delivery Status</label>
-                <div style="font-weight:900; color:#32CD32; font-size:0.9rem;">Processing</div>
-            </div>
-            <div>
-                <label style="font-weight:900; font-size:0.65rem; color:#aaa; text-transform:uppercase;">Est. Arrival</label>
-                <div id="resDate" style="font-weight:900; color:#000; font-size:0.9rem;">...</div>
-            </div>
-        </div>
-
-        <div style="margin-top:20px; border-top:2px dashed #eee; padding-top:15px;">
-            <label style="font-weight:900; font-size:0.65rem; color:#aaa; text-transform:uppercase;">Ship To</label>
-            <div id="resAddr" style="font-weight:800; color:#555; font-size:0.85rem; line-height:1.4;">...</div>
-        </div>
-    </div>
-
-    <button onclick="location.reload()" style="width:100%; background:#000; color:#fff; border:none; padding:22px; border-radius:18px; font-family:'Luckiest Guy'; font-size:1.4rem; cursor:pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: 0.2s;" onmousedown="this.style.transform='scale(0.98)'">
-        RETURN TO STORE
-    </button>
-</div>
-
-<div id="modalFail" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#fff; z-index:10000; padding:40px 25px; font-family:'Inter', sans-serif;">
-    <div style="text-align:center; margin-top:20vh;">
-        <div style="width:85px; height:85px; background:#ff4444; border:4px solid #000; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 25px; box-shadow:6px 6px 0 #000;">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-        </div>
-        <h1 style="font-family:'Luckiest Guy'; font-size:2.4rem; -webkit-text-stroke:1.2px #000; color:#ff4444; margin:0;">PAYMENT FAILED</h1>
-        <p style="font-weight:800; color:#555; line-height:1.6; margin:20px 0;">We couldn't process your transaction. This can happen due to a timeout or a card restriction.</p>
-        
-        <div style="display:inline-block; background:#fff5f5; border:2px solid #ff4444; padding:8px 18px; border-radius:10px; margin-bottom:40px;">
-            <span style="font-size:0.7rem; font-weight:900; color:#ff4444; text-transform:uppercase;">Incident Code: </span>
-            <span id="failID" style="font-size:0.7rem; font-weight:900; color:#000;"></span>
-        </div>
-    </div>
-
-    <div style="position:fixed; bottom:30px; left:25px; right:25px;">
-        <button onclick="closeModals()" style="width:100%; background:#ff4444; color:#fff; border:4px solid #000; padding:22px; border-radius:18px; font-family:'Luckiest Guy'; font-size:1.4rem; cursor:pointer; box-shadow:6px 6px 0 #000;">
-            TRY ANOTHER METHOD
-        </button>
     </div>
 </div>
 
-<section style="
-    padding: 40px 0; 
-    background: #ffffff; 
-    border-top: 4px solid #000; 
-    border-bottom: 4px solid #000;
-    width: 100vw;
-    position: relative;
-    left: 50%;
-    right: 50%;
-    margin-left: -50vw;
-    margin-right: -50vw;
-">
-    <h2 style="
-        text-align: center; 
-        font-family: 'Luckiest Guy', cursive; 
-        font-size: 2.5rem; 
-        margin: 0 0 30px 0; 
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        -webkit-text-stroke: 1.5px #000;
-        color: #000;
-    ">INSIDE THE MIST</h2>
-    
-    <div style="width: 100%; border-top: 4px solid #000; border-bottom: 4px solid #000; line-height: 0;">
-        <img src="https://i.imgur.com/p3Gin94.jpeg" alt="Inside Tech" style="width: 100%; height: auto; display: block;">
-    </div>
-    
-    <div style="
-        display: grid; 
-        grid-template-columns: repeat(2, 1fr); 
-        background: #000; 
-        gap: 2px; /* Creates thin black lines between items */
-    ">
-        <div style="background: #fff; padding: 20px; display: flex; align-items: center; gap: 15px;">
-            <div style="background: #00bfff; width: 35px; height: 35px; border: 2px solid #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; box-shadow: 3px 3px 0 #000;">1</div>
-            <p style="font-family: 'Inter', sans-serif; font-weight: 900; font-size: 0.75rem; margin: 0; text-transform: uppercase;">Arctic Filter</p>
-        </div>
 
-        <div style="background: #fff; padding: 20px; display: flex; align-items: center; gap: 15px;">
-            <div style="background: #00ff88; width: 35px; height: 35px; border: 2px solid #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; box-shadow: 3px 3px 0 #000;">2</div>
-            <p style="font-family: 'Inter', sans-serif; font-weight: 900; font-size: 0.75rem; margin: 0; text-transform: uppercase;">Vortex Fan</p>
-        </div>
-
-        <div style="background: #fff; padding: 20px; display: flex; align-items: center; gap: 15px;">
-            <div style="background: #ffdd00; width: 35px; height: 35px; border: 2px solid #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; box-shadow: 3px 3px 0 #000;">3</div>
-            <p style="font-family: 'Inter', sans-serif; font-weight: 900; font-size: 0.75rem; margin: 0; text-transform: uppercase;">Glow Sensor</p>
-        </div>
-
-        <div style="background: #fff; padding: 20px; display: flex; align-items: center; gap: 15px;">
-            <div style="background: #ff00ff; width: 35px; height: 35px; border: 2px solid #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; box-shadow: 3px 3px 0 #000;">4</div>
-            <p style="font-family: 'Inter', sans-serif; font-weight: 900; font-size: 0.75rem; margin: 0; text-transform: uppercase;">Power Chip</p>
-        </div>
-    </div>
-</section>
-<div id="modalSuccess" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#fff; z-index:10000; overflow-y:auto; padding:30px 20px; font-family:'Inter', sans-serif;">
-    <div style="text-align:center; margin-bottom:30px;">
-        <div style="width:80px; height:80px; background:#32CD32; border:4px solid #000; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; box-shadow:6px 6px 0 #000;">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-        </div>
-        <h1 style="font-family:'Luckiest Guy'; font-size:2.5rem; -webkit-text-stroke:1.5px #000; color:#32CD32; margin:0;">ORDER SUCCESS!</h1>
-        <p style="font-weight:900; color:#666; text-transform:uppercase; font-size:0.8rem; letter-spacing:1px;">Welcome to the Arctic Mist Family</p>
-    </div>
-
-    <div style="border:4px solid #000; border-radius:20px; padding:20px; background:#f9f9f9; box-shadow:6px 6px 0 #000; margin-bottom:30px;">
-        <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
-            <span style="font-weight:900; color:#888;">ORDER ID:</span>
-            <span id="resID" style="font-family:'Luckiest Guy'; cursor:pointer; color:#00bfff;" onclick="copyTxt('resID')">...</span>
-        </div>
-        <div style="border-top:2px dashed #ddd; padding-top:15px; margin-top:15px;">
-            <div style="font-weight:900; font-size:0.7rem; color:#888; margin-bottom:5px;">SHIPPING TO:</div>
-            <div id="resAddr" style="font-weight:700; line-height:1.4;">...</div>
-        </div>
-        <div style="margin-top:15px;">
-            <div style="font-weight:900; font-size:0.7rem; color:#888; margin-bottom:5px;">ESTIMATED ARRIVAL:</div>
-            <div id="resDate" style="font-weight:700; color:#32CD32;">...</div>
-        </div>
-    </div>
-
-    <button onclick="location.reload()" style="width:100%; background:#000; color:#fff; border:none; padding:20px; border-radius:15px; font-family:'Luckiest Guy'; font-size:1.5rem; cursor:pointer;">BACK TO SHOP</button>
-</div>
-
-<div id="modalFail" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#fff; z-index:10000; padding:30px 20px; font-family:'Inter', sans-serif;">
-    <div style="text-align:center; margin-top:50px;">
-        <div style="width:80px; height:80px; background:#ff4444; border:4px solid #000; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; box-shadow:6px 6px 0 #000;">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-        </div>
-        <h1 style="font-family:'Luckiest Guy'; font-size:2.5rem; -webkit-text-stroke:1.5px #000; color:#ff4444; margin:0;">PAYMENT FAILED</h1>
-        <p style="font-weight:900; color:#666; text-transform:uppercase; font-size:0.8rem; margin-top:10px;">The transaction was unsuccessful.</p>
-    </div>
-
-    <div style="margin:40px 0; border:4px solid #000; border-radius:20px; padding:20px; background:#fff5f5;">
-        <p style="font-weight:700; font-size:0.9rem; color:#444; line-height:1.6; text-align:center;">
-            Don't worry, your cart is still safe. Your card was not charged. Please try again or use a different payment method.
-        </p>
-        <div style="margin-top:10px; text-align:center;">
-             <span style="font-size:0.7rem; color:#ff4444; font-weight:900;">REF CODE: </span>
-             <span id="failID" style="font-size:0.7rem; font-weight:900; color:#000;"></span>
-        </div>
-    </div>
-
-    <button onclick="closeModals()" style="width:100%; background:#ff4444; color:#fff; border:4px solid #000; padding:20px; border-radius:15px; font-family:'Luckiest Guy'; font-size:1.5rem; cursor:pointer; box-shadow:6px 6px 0 #000;">TRY AGAIN</button>
-</div>
-<div id="trackOrderBtn" onclick="openTracker()" style="
-    position: fixed;
-    bottom: 120px;
-    left: 20px;
-    background: #ffffff;
-    border: 3px solid #000;
-    border-radius: 50px;
-    padding: 8px 16px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    z-index: 2500;
-    box-shadow: 4px 4px 0 #000;
-    cursor: pointer;
-    transition: all 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-" onmousedown="this.style.transform='translate(3px, 3px)'; this.style.boxShadow='0px 0px 0 #000'" onmouseup="this.style.transform='translate(0,0)'; this.style.boxShadow='4px 4px 0 #000'">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-        <circle cx="12" cy="10" r="3"></circle>
-    </svg>
-    <span style="font-family: 'Luckiest Guy'; font-size: 0.8rem; color: #000; text-transform: uppercase; letter-spacing: 0.5px; padding-top: 2px;">Tracker</span>
-</div>
-
-<div id="modalTracker" style="display:none; position:fixed; top:0; left:0; width:100%; height:100dvh; background:#0a0a0c; z-index:10001; font-family:'Inter', sans-serif; overflow:hidden; color:#fff;">
-    
-    <div style="background:#000; padding: 40px 20px 20px; border-bottom: 3px solid #1a1a1a; display: flex; justify-content: space-between; align-items: center;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <img src="https://i.imgur.com/iAd3Oqz.png" style="height: 35px; filter: drop-shadow(1px 1px 0px #000);">
-            <span style="font-family: 'Luckiest Guy'; font-size: 1.4rem; background: linear-gradient(90deg, #ff00ff, #00bfff, #ffdd00); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(1px 1px 0px #000);">MINIMISTY</span>
-        </div>
-        <div onclick="closeModals()" style="padding:10px 15px; background:#1a1a1a; border-radius:12px; cursor:pointer; color:#ff4757; border:2px solid #333; font-weight:900;">✕</div>
-    </div>
-
-    <div style="padding: 20px; background: #0f0f0f; border-bottom: 1px solid #222;">
-        <div style="display:flex; gap:10px; background:#1a1a1a; padding:6px; border-radius:18px; border:2px solid #333;">
-            <input type="text" id="manualTrackIn" placeholder="ORDER ID (e.g. M-123...)" style="flex:1; background:transparent; border:none; padding:12px; color:#fff; font-family:monospace; font-size:0.8rem; outline:none;">
-            <button onclick="const id = document.getElementById('manualTrackIn').value; if(id) window.open('https://www.17track.net/en/track?nums='+id, '_blank')" style="background:#00bfff; border:none; border-radius:12px; padding:0 20px; font-family:'Luckiest Guy'; font-size:0.9rem; cursor:pointer; color:#000;">SYNC</button>
-        </div>
-    </div>
-
-    <div id="historyList" style="height: calc(100dvh - 185px); overflow-y:auto; padding: 20px; display:flex; flex-direction:column; gap:20px;">
-        </div>
-</div>
-<section style="padding: 80px 20px; background: #ffffff; color: #000; text-align: center; font-family: 'Inter', sans-serif;">
-    <div style="max-width: 1000px; margin: 0 auto;">
-        
-        <h2 style="font-weight: 900; font-size: 2.2rem; margin: 0 0 15px 0; color: #000; text-transform: uppercase; letter-spacing: -1px; line-height: 1.1;">
-            Restore Your Balance
-        </h2>
-        <p style="font-size: 0.95rem; color: #444; margin: 0 auto 40px auto; font-weight: 500; max-width: 600px; line-height: 1.6;">
-            The Minimisty V25 doesn’t just humidify; it creates an environment that helps your mind reset. By managing humidity levels, you can directly combat the dryness that triggers anxiety, insomnia, and tired skin.
-        </p>
-
-        <div style="margin-bottom: 40px; text-align: center;">
-            <img src="https://i.imgur.com/AOjHlvg.jpeg" 
-                 alt="Minimisty V25 in use, showing different atmospheric modes and placement settings." 
-                 style="width: 100%; max-width: 900px; height: auto; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
-        </div>
-
-        <h3 style="font-weight: 800; font-size: 1.4rem; margin-bottom: 5px; color: #000; text-transform: uppercase; letter-spacing: 0.5px;">Choose Your Mental State</h3>
-        <p style="font-size: 0.8rem; color: #666; margin-bottom: 25px; font-weight: 500;">Select an output mode designed to align with your needs.</p>
-        
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 0 auto 20px auto; max-width: 600px;">
-            
-            <div onclick="toggleVibe('volcano-drop')" style="padding: 20px; background: #fdfdfd; border-radius: 12px; cursor: pointer; border: 1px solid rgba(0,0,0,0.05); transition: all 0.2s ease;">
-                <div style="font-size: 2.5rem; margin-bottom: 10px;">🌋</div>
-                <h3 style="font-weight: 800; color: #ff4500; font-size: 1rem; margin: 0; letter-spacing: 0.5px;">NOT GOOD</h3>
-            </div>
-
-            <div onclick="toggleVibe('jelly-drop')" style="padding: 20px; background: #fdfdfd; border-radius: 12px; cursor: pointer; border: 1px solid rgba(0,0,0,0.05); transition: all 0.2s ease;">
-                <div style="font-size: 2.5rem; margin-bottom: 10px;">🪼</div>
-                <h3 style="font-weight: 800; color: #00bfff; font-size: 1rem; margin: 0; letter-spacing: 0.5px;">GOOD</h3>
-            </div>
-        </div>
-
-        <div id="vibe-info-container" style="max-width: 600px; margin: 0 auto;">
-            
-            <div id="volcano-drop" style="display: none; border-top: 1px solid #eee; padding: 25px 15px; text-align: left; animation: slideIn 0.3s ease-out;">
-                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff4500" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-                    <h4 style="margin: 0; font-weight: 700; color: #000; font-size: 0.95rem;">Rapid Aromatherapy / Focus Flow</h4>
-                </div>
-                <p style="margin: 0; font-size: 0.85rem; color: #444; line-height: 1.6;">Engage Volcano mode for **Active Aromatherapy**. The high-output stream rapidly diffuses essential oils, shifting your environment's energy for intense focus or deep relaxation.</p>
-            </div>
-
-            <div id="jelly-drop" style="display: none; border-top: 1px solid #eee; padding: 25px 15px; text-align: left; animation: slideIn 0.3s ease-out;">
-                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00bfff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8l4 4-4 4-4-4 4-4z"/></svg>
-                    <h4 style="margin: 0; font-weight: 700; color: #000; font-size: 0.95rem;">Therapeutic Light Pulse / Night Cycle</h4>
-                </div>
-                <p style="margin: 0; font-size: 0.85rem; color: #444; line-height: 1.6;">Activate Jellyfish mode for **Deep Sleep & Calm**. The rhythmic 2-second pulse lowers visual clutter and heart rate, while the soft light provides a therapeutic anchor for anxiety relief.</p>
-            </div>
-
-        </div>
-    </div>
-
-<script>
-    let activeVibe = null;
-
-    function toggleVibe(vibeId) {
-        const infoContainer = document.getElementById('vibe-info-container');
-        const vibeInfo = document.getElementById(vibeId);
-
-        if (activeVibe && activeVibe !== vibeId) {
-            document.getElementById(activeVibe).style.display = 'none';
-        }
-
-        if (activeVibe === vibeId) {
-            vibeInfo.style.display = 'none';
-            activeVibe = null;
-        } else {
-            vibeInfo.style.display = 'block';
-            activeVibe = vibeId;
-        }
-    }
-</script>
-
-<style>
-@keyframes slideIn {
-    from { opacity: 0; transform: translateY(-5px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-/* Keep existing pulse animation for other sections if needed */
-@keyframes pulse-yellow {
-    0% { transform: scale(1); box-shadow: 3px 3px 0px #000; }
-    50% { transform: scale(1.05); box-shadow: 5px 5px 0px #000; }
-    100% { transform: scale(1); box-shadow: 3px 3px 0px #000; }
-}
-
-.buy-now-btn {
-    animation: pulse-yellow 2s infinite ease-in-out;
-}
-/* Style adjustments for the dynamic grid items on hover */
-div[onclick]:hover {
-    background-color: #f6f6f6 !important;
-    border-color: rgba(0,0,0,0.1) !important;
-    transform: translateY(-2px);
-}
-</style>
-
-<section style="padding: 60px 0; background: #ffffff; font-family: 'Inter', sans-serif; overflow: hidden;">
-    
-    <div class="scroll-wrapper" style="width: 100%; overflow-x: auto; padding-bottom: 20px; cursor: grab;">
-        <div class="infinite-track">
-            
-            <div class="review-card">
-                <div class="img-container"><img src="https://cf.cjdropshipping.com/17082144/2402180744490327700.jpg?x-oss-process=image/format,webp"></div>
-                <div class="stars">★★★★★</div>
-                <p class="review-text">"The jellyfish rings are mesmerizing. It's the first thing people notice in my office."</p>
-                <div class="user-profile">
-                    <div class="avatar">JD</div>
-                    <div><p class="user-name">James D.</p><p class="verified">Verified Buyer</p></div>
-                </div>
-            </div>
-
-            <div class="review-card">
-                <div class="img-container"><img src="https://cf.cjdropshipping.com/17082144/2402180744500320400.jpg?x-oss-process=image/format,webp"></div>
-                <div class="stars" style="color: #ff4d00;">★★★★★</div>
-                <p class="review-text">"The flame effect is incredibly realistic. It creates such a warm, cozy vibe instantly."</p>
-                <div class="user-profile">
-                    <div class="avatar">SK</div>
-                    <div><p class="user-name">Sarah K.</p><p class="verified">Verified Buyer</p></div>
-                </div>
-            </div>
-
-            <div class="review-card">
-                <div class="img-container"><img src="https://cf.cjdropshipping.com/17082144/2402180744490329100.jpg?x-oss-process=image/format,webp"></div>
-                <div class="stars">★★★★★</div>
-                <p class="review-text">"Super quiet for sleeping. I love that it uses USB for travel convenience."</p>
-                <div class="user-profile">
-                    <div class="avatar">ML</div>
-                    <div><p class="user-name">Marcus L.</p><p class="verified">Verified Buyer</p></div>
-                </div>
-            </div>
-
-            <div class="review-card">
-                <div class="img-container"><img src="https://cf.cjdropshipping.com/17082144/2402180744490327700.jpg?x-oss-process=image/format,webp"></div>
-                <div class="stars">★★★★★</div>
-                <p class="review-text">"The jellyfish rings are mesmerizing. It's the first thing people notice in my office."</p>
-                <div class="user-profile">
-                    <div class="avatar">JD</div>
-                    <div><p class="user-name">James D.</p><p class="verified">Verified Buyer</p></div>
-                </div>
-            </div>
-
-            <div class="review-card">
-                <div class="img-container"><img src="https://cf.cjdropshipping.com/17082144/2402180744500320400.jpg?x-oss-process=image/format,webp"></div>
-                <div class="stars" style="color: #ff4d00;">★★★★★</div>
-                <p class="review-text">"The flame effect is incredibly realistic. It creates such a warm, cozy vibe instantly."</p>
-                <div class="user-profile">
-                    <div class="avatar">SK</div>
-                    <div><p class="user-name">Sarah K.</p><p class="verified">Verified Buyer</p></div>
-                </div>
-            </div>
-
-            <div class="review-card">
-                <div class="img-container"><img src="https://cf.cjdropshipping.com/17082144/2402180744490329100.jpg?x-oss-process=image/format,webp"></div>
-                <div class="stars">★★★★★</div>
-                <p class="review-text">"Super quiet for sleeping. I love that it uses USB for travel convenience."</p>
-                <div class="user-profile">
-                    <div class="avatar">ML</div>
-                    <div><p class="user-name">Marcus L.</p><p class="verified">Verified Buyer</p></div>
-                </div>
-            </div>
-
-        </div>
-    </div>
-</section>
-
-<style>
-    /* Infinite Scroll Logic */
-    .infinite-track {
-        display: flex;
-        gap: 30px;
-        width: max-content;
-        padding: 0 20px;
-        animation: scroll 30s linear infinite;
-    }
-
-    .infinite-track:hover {
-        animation-play-state: paused;
-    }
-
-    @keyframes scroll {
-        0% { transform: translateX(0); }
-        100% { transform: translateX(calc(-50% - 15px)); } /* Moves exactly half the width */
-    }
-
-    /* Surgical White Styling */
-    .review-card {
-        width: 320px;
-        border: 2px solid #000;
-        border-radius: 20px;
-        padding: 25px;
-        background: #fff;
-        flex-shrink: 0;
-    }
-
-    .img-container {
-        width: 100%;
-        height: 200px;
-        border-radius: 12px;
-        overflow: hidden;
-        margin-bottom: 20px;
-        background: #f8f8f8;
-    }
-
-    .img-container img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-
-    .stars {
-        font-size: 14px;
-        margin-bottom: 15px;
-        letter-spacing: 2px;
-    }
-
-    .review-text {
-        font-size: 0.9rem;
-        color: #333;
-        line-height: 1.6;
-        margin-bottom: 20px;
-        font-weight: 500;
-        height: 3.2em;
-        overflow: hidden;
-    }
-
-    .user-profile {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        border-top: 1px solid #eee;
-        padding-top: 15px;
-    }
-
-    .avatar {
-        width: 35px;
-        height: 35px;
-        border-radius: 50%;
-        background: #000;
-        color: #fff;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 900;
-        font-size: 0.75rem;
-    }
-
-    .user-name { margin: 0; font-weight: 900; font-size: 0.8rem; text-transform: uppercase; }
-    .verified { margin: 0; font-size: 0.65rem; color: #999; text-transform: uppercase; letter-spacing: 1px; }
-
-    /* Custom Scrollbar for visibility */
-    .scroll-wrapper::-webkit-scrollbar {
-        height: 4px;
-    }
-    .scroll-wrapper::-webkit-scrollbar-track {
-        background: #f1f1f1;
-    }
-    .scroll-wrapper::-webkit-scrollbar-thumb {
-        background: #000;
-        border-radius: 10px;
-    }
-</style>
-
+<div id="toast-container"></div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
-    import { getDatabase, ref, set, push, get, onValue, serverTimestamp, onDisconnect } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+    import { getDatabase, ref, push } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
 
-    // --- CONFIGURATION ---
-    const fbConfig = {
+    // --- Configuration ---
+    const firebaseConfig = {
         apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
         authDomain: "itzhoyoo-f9f7e.firebaseapp.com",
         databaseURL: "https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com",
         projectId: "itzhoyoo-f9f7e",
+        storageBucket: "itzhoyoo-f9f7e.filestorage.app",
         appId: "1:1094792075584:web:d49e9c3f899d3cd31082a5"
     };
-    const app = initializeApp(fbConfig);
+
+    const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // --- GLOBAL STATE ---
-    let q = 0;
-    let rate = 1;
-    let sym = "$";
-    let selectedColor = "WHITE";
-    let selectedImg = "https://i.imgur.com/Bf2ARUA.png";
-    const basePrice = 39.99;
-    
-    const oID = "M-" + Date.now().toString(36).toUpperCase();
-    const dID = navigator.userAgent.replace(/\D/g,'').slice(-8);
+   // --- Global State ---
+let cart = {
+    qty: 1,
+    shippingMethod: null, // Changed from 'free' to null to force selection
+    currency: '$',
+    rate: 1,
+    taxRate: 0.05,
+    discount: 0
+};
 
-    // --- FIREBASE LIVE ANALYTICS (Shopify Style) ---
-    const trackPresence = () => {
-        const myPresenceRef = ref(db, `live_visitors/${dID}`);
-        set(myPresenceRef, { active: true, last_seen: serverTimestamp() });
-        onDisconnect(myPresenceRef).remove(); // Removes user from "Live" count when they close tab
+    // --- Professional Initialization (Live Rates & No Shimmers) ---
+    window.onload = async () => {
+        await initGeoAndRates();
+        setupEventListeners();
+        calculateTotal();
     };
 
-    const trackEvent = (type, data = {}) => {
-        push(ref(db, `events`), {
-            type,
-            deviceID: dID,
-            orderID: oID,
-            ...data,
-            timestamp: serverTimestamp(),
-            url: window.location.href
-        });
-    };
+    async function initGeoAndRates() {
+        try {
+            // 1. Fetch User Location
+            const geoRes = await fetch('https://ipapi.co/json/');
+            const geoData = await geoRes.json();
+            
+            // Sync UI Elements
+            document.getElementById('user-country').innerText = geoData.country_name || 'Worldwide';
+            document.getElementById('ship-country').value = geoData.country_name || '';
+            document.getElementById('ship-city').value = geoData.city || '';
+            document.getElementById('ship-zip').value = geoData.postal || '';
+            
+            if (geoData.country_code) {
+                document.getElementById('user-flag').innerText = geoData.country_code
+                    .toUpperCase()
+                    .replace(/./g, char => String.fromCodePoint(char.charCodeAt(0) + 127397));
+            }
 
-    const logTransaction = (status, extra = {}) => {
-        const user = JSON.parse(localStorage.getItem('misty_user')) || {};
-        // Note: 'status' can be updated later in dashboard to 'SHIPPED' or 'DELIVERED'
-        set(ref(db, `transactions/${oID}`), {
-            orderID: oID,
-            deviceID: dID,
-            status: status, 
-            customer: user,
-            quantity: q,
-            color: selectedColor,
-            total: document.getElementById('totalT')?.innerText || "0",
-            device: navigator.userAgent,
-            dateString: new Date().toLocaleString(),
-            ...extra,
-            timestamp: serverTimestamp()
-        });
-    };
+            // 2. Fetch Real-Time Exchange Rates
+            const rateRes = await fetch('https://open.er-api.com/v6/latest/USD');
+            const rateData = await rateRes.json();
+            const userCurrency = geoData.currency || 'USD';
 
-    // --- UI & MODAL SCROLL LOCK ---
-    const setScroll = (bool) => {
-        if (!bool) {
-            document.body.style.overflow = 'hidden';
-            document.body.style.touchAction = 'none'; // Blocks mobile swipe-to-scroll
-        } else {
-            document.body.style.overflow = 'auto';
-            document.body.style.touchAction = 'auto';
+            if (rateData && rateData.rates && rateData.rates[userCurrency]) {
+                cart.rate = rateData.rates[userCurrency];
+                
+                // Map symbols professionally
+                const symbols = { 'ZAR': 'R', 'EUR': '€', 'GBP': '£', 'CAD': 'C$', 'AUD': 'A$' };
+                cart.currency = symbols[userCurrency] || userCurrency;
+                
+                console.log(`Exchange Rate Synced: 1 USD = ${cart.rate} ${userCurrency}`);
+            } else {
+                throw new Error("Rates unavailable");
+            }
+
+        } catch (e) {
+            // Silent Fallback: Standard USD pricing if APIs fail
+            console.warn("API/Network fallback triggered. Using default USD.");
+            cart.currency = '$';
+            cart.rate = 1;
+            
+            const geoEl = document.getElementById('geo-shipping');
+            if (geoEl) {
+                geoEl.innerHTML = `Standard pricing applied. <span onclick="location.reload()" style="cursor:pointer; color:#ccff00; font-size:10px; text-decoration:underline;">[ Refresh Rates ]</span>`;
+            }
         }
-    };
-
-    window.copyTxt = (id) => {
-        const el = document.getElementById(id);
-        const text = el.innerText;
-        navigator.clipboard.writeText(text);
-        const originalText = text;
-        el.innerText = "COPIED!";
-        setTimeout(() => el.innerText = originalText, 1500);
-    };
-
-    window.closeModals = () => {
-        const modals = ['modalSuccess', 'modalFail', 'modalTracker'];
-        modals.forEach(m => document.getElementById(m).style.display = 'none');
-        setScroll(true);
-    };
-
-    window.toggleSidebar = () => {
-        const sb = document.getElementById('cartSidebar');
-        sb.classList.toggle('open');
-        const isOpen = sb.classList.contains('open');
-        document.getElementById('mainOverlay').style.display = isOpen ? 'block' : 'none';
-        setScroll(!isOpen);
-    };
-
-    // --- PRODUCT LOGIC ---
-    window.pickColor = (idx, name, url) => {
-        const trackSlider = document.getElementById('mainSlider');
-        if(trackSlider) {
-            trackSlider.style.transition = "transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)";
-            trackSlider.style.transform = `translateX(-${idx * 100}vw)`;
-        }
-        selectedColor = name;
-        selectedImg = url;
-        if(document.getElementById('cartItemImg')) document.getElementById('cartItemImg').src = url;
-        if(document.getElementById('cartItemName')) document.getElementById('cartItemName').innerText = `MINIMISTY ${name}`;
-    };
-
-
-// --- GLOBAL SETTINGS & AUTO-DETECT ---
-let detectedISO = ""; // Global variable to store the 2-letter code (e.g. ZA)
-
-async function autoDetectLocation() {
-    try {
-        const res = await fetch('https://ipapi.co/json/');
-        const geo = await res.json();
-        if (geo.country_code) {
-            detectedISO = geo.country_code;
-            // Auto-fill form fields if they are currently empty
-            const autoFields = {
-                'inCountry': geo.country_name,
-                'inCity': geo.city,
-                'inState': geo.region,
-                'inZip': geo.postal
+        
+        updateBundleDisplay();
+    }
+    function setupEventListeners() {
+        // Bundle Selection (Homepage)
+        document.querySelectorAll('#bundle-container .bundle-card').forEach(card => {
+            card.onclick = () => {
+                document.querySelectorAll('#bundle-container .bundle-card').forEach(c => c.classList.remove('active'));
+                card.classList.add('active');
+                cart.qty = parseInt(card.dataset.qty);
+                calculateTotal();
             };
-            Object.keys(autoFields).forEach(id => {
-                const el = document.getElementById(id);
-                if (el && !el.value) el.value = autoFields[id];
-            });
-            console.log("Global shipping set to:", detectedISO);
-        }
-    } catch (e) {
-        console.warn("Location auto-detect unavailable.");
-    }
-}
-autoDetectLocation();
-
-// --- 1. FUNCTION TO SAVE DATA ---
-window.saveUser = (silent = false) => {
-    const fields = ['inName', 'inEmail', 'inPhone', 'inCountry', 'inAddr', 'inApt', 'inCity', 'inState', 'inZip'];
-    let valid = true;
-
-    fields.forEach(id => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        if (!el.value.trim() && id !== 'inApt') { 
-            if (!silent) el.style.border = "3px solid #ff4444"; 
-            valid = false; 
-        } else { 
-            el.style.border = "3px solid #000"; 
-        }
-    });
-
-    if (!valid && !silent) return;
-
-    const data = {
-        name: document.getElementById('inName').value,
-        email: document.getElementById('inEmail').value,
-        phone: document.getElementById('inPhone').value,
-        country: detectedISO || document.getElementById('inCountry').value, // Used for CJ API
-        countryFull: document.getElementById('inCountry').value, // Used for Display
-        addr: document.getElementById('inAddr').value,
-        apt: document.getElementById('inApt').value,
-        city: document.getElementById('inCity').value,
-        state: document.getElementById('inState').value,
-        zip: document.getElementById('inZip').value
-    };
-
-    localStorage.setItem('misty_user', JSON.stringify(data));
-    
-    // UI Update to Shrunk View
-    document.getElementById('shipForm').style.display = 'none';
-    document.getElementById('shipShrunk').style.display = 'block';
-    document.getElementById('s_name').innerText = data.name;
-    document.getElementById('s_addr').innerText = `${data.addr}${data.apt ? ', ' + data.apt : ''}, ${data.city}, ${data.state} ${data.zip}, ${data.countryFull}`;
-    
-    if (!silent && typeof trackEvent === "function") trackEvent('CHECKOUT_START');
-    if (typeof calc === "function") calc();
-};
-
-// --- 2. FUNCTION TO EDIT DATA ---
-window.editUser = () => {
-    document.getElementById('shipForm').style.display = 'block';
-    document.getElementById('shipShrunk').style.display = 'none';
-    const payContainer = document.getElementById('paypal-container');
-    if (payContainer) payContainer.style.display = 'none';
-    if (typeof calc === "function") calc();
-};
-
-// --- 3. AUTO-LOAD LOGIC ---
-(function loadSavedUser() {
-    const stored = JSON.parse(localStorage.getItem('misty_user'));
-    if (stored) {
-        const fieldMap = {
-            'inName': stored.name,
-            'inEmail': stored.email,
-            'inPhone': stored.phone,
-            'inCountry': stored.countryFull || stored.country,
-            'inAddr': stored.addr,
-            'inApt': stored.apt,
-            'inCity': stored.city,
-            'inState': stored.state,
-            'inZip': stored.zip
-        };
-
-        Object.keys(fieldMap).forEach(id => {
-            const el = document.getElementById(id);
-            if (el && fieldMap[id]) el.value = fieldMap[id];
         });
 
-        if (stored.country && stored.country.length === 2) {
-            detectedISO = stored.country;
-        }
+        // Shipping selection is now handled globally by window.setShipping
+        // to match the onclick attributes in your HTML.
 
-        setTimeout(() => window.saveUser(true), 150);
+ 
+
+        // Modal Controls
+        document.getElementById('btn-add-to-cart').onclick = () => toggleModal('cart-overlay', true);
+        document.getElementById('btn-cart-toggle').onclick = () => toggleModal('cart-overlay', true);
+        
+        // UPDATED CHECKOUT FLOW: With Validation & Shake
+document.getElementById('btn-checkout').onclick = () => {
+    // Check if the user has picked a method yet
+    if (!cart.shippingMethod) {
+        const box = document.getElementById('shipping-options-box');
+        
+        // Trigger the red shake animation
+        box.classList.add('shake-error'); 
+        
+        // Remove the class after 600ms so they can trigger it again if they fail again
+        setTimeout(() => box.classList.remove('shake-error'), 600);
+        
+        // Stop the function here so they don't go to the next modal
+        return; 
     }
-})();
-
-
-// --- 1. CALCULATION ENGINE ---
-window.calc = () => {
-    const full = document.getElementById('cart-full-view');
-    const empty = document.getElementById('cart-empty-view');
-    const badge = document.getElementById('badgeCount');
     
-    // Tiered Pricing logic
-    let unitPrice = q >= 3 ? 35.99 : (q === 2 ? 37.99 : basePrice);
-    const localizedUnit = (unitPrice * rate).toFixed(2);
+    // If they DID pick a method, proceed as normal
+    toggleModal('cart-overlay', false);
+    toggleModal('shipping-modal', true);
+};
 
-    if(document.getElementById('unitPriceDisplay')) document.getElementById('unitPriceDisplay').innerText = `${sym}${localizedUnit} EACH`;
-    if(document.getElementById('livePrice')) document.getElementById('livePrice').innerText = `${sym}${localizedUnit}`;
+        
+        window.toggleModal = (id, show) => {
+            const modal = document.getElementById(id);
+            if (modal) {
+                modal.style.display = show ? 'flex' : 'none';
+                document.body.classList.toggle('modal-open', show);
+                if (show && id === 'cart-overlay') calculateTotal();
+            }
+        };
+    }
 
-    if (q <= 0) {
-        if (full) full.style.display = 'none';
-        if (empty) empty.style.display = 'block';
-        badge.innerText = 0;
+    function updateShippingUI() {
+        document.getElementById('ship-free').classList.toggle('active', cart.shippingMethod === 'free');
+        document.getElementById('ship-prime').classList.toggle('active', cart.shippingMethod === 'prime');
+        calculateTotal();
+    }
+
+    function updateBundleDisplay() {
+        document.getElementById('price-x1').innerText = `${cart.currency}${(39.99 * cart.rate).toFixed(2)}`;
+        document.getElementById('price-x2').innerText = `${cart.currency}${(75.98 * cart.rate).toFixed(2)}`;
+        document.getElementById('price-x3').innerText = `${cart.currency}${(107.97 * cart.rate).toFixed(2)}`;
+    }
+
+    window.changeQty = (n) => {
+        cart.qty = Math.max(0, cart.qty + n);
+        // If user manually changes quantity in cart, unselect homepage bundle highlight to avoid confusion
+        document.querySelectorAll('#bundle-container .bundle-card').forEach(c => c.classList.remove('active'));
+        calculateTotal();
+    };
+// --- Toast Utility ---
+window.showToast = (msg, type = 'red') => {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = msg;
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+};
+
+// --- Set Shipping (Global for HTML attributes) ---
+window.setShipping = (method) => {
+    cart.shippingMethod = method;
+    
+    const btnStandard = document.getElementById('ship-free');
+    const btnPrime = document.getElementById('ship-prime');
+
+    // 1. Reset function to clear highlights
+    const resetStyle = (el) => {
+        if (!el) return;
+        el.style.setProperty('border-color', 'rgba(255, 255, 255, 0.15)', 'important');
+        el.style.setProperty('background', '#000', 'important');
+        el.style.boxShadow = "none";
+        el.style.transform = "scale(1)";
+    };
+
+    resetStyle(btnStandard);
+    resetStyle(btnPrime);
+
+    // 2. Apply highlight with !important to override inline HTML styles
+    if (method === 'standard') {
+        btnStandard.style.setProperty('border-color', '#4ade80', 'important');
+        btnStandard.style.setProperty('background', 'rgba(74, 222, 128, 0.1)', 'important');
+        btnStandard.style.boxShadow = "0 0 20px rgba(74, 222, 128, 0.2)";
+        btnStandard.style.transform = "scale(1.02)";
+        
+        showToast("Standard Delivery Set", "green");
+    } 
+    else if (method === 'prime') {
+        btnPrime.style.setProperty('border-color', '#fbbf24', 'important');
+        btnPrime.style.setProperty('background', 'rgba(251, 191, 36, 0.1)', 'important');
+        btnPrime.style.boxShadow = "0 0 20px rgba(251, 191, 36, 0.2)";
+        btnPrime.style.transform = "scale(1.02)";
+        
+        showToast("Prime Express Set", "green");
+    }
+    
+    calculateTotal();
+};
+
+
+
+
+// --- Final calculateTotal (Cleaned, no extra HTML injection) ---
+function calculateTotal() {
+    const cartItems = document.getElementById('cart-items');
+    const cartFooter = document.querySelector('#cart-overlay div[style*="border-top"]');
+    document.getElementById('cart-count').innerText = cart.qty;
+
+    if (cart.qty === 0) {
+        cartItems.innerHTML = `<div style="text-align:center; padding:50px 0;"><p style="color:#666; font-weight:900;">CART IS EMPTY</p></div>`;
+        cartFooter.classList.add('hidden');
         return;
     }
 
-    full.style.display = 'block';
-    empty.style.display = 'none';
+    cartFooter.classList.remove('hidden');
 
-    const sub = (unitPrice * rate * q);
-    const fee = sub * 0.05; 
-    const total = sub + fee;
-
-    badge.innerText = q;
-    document.getElementById('qCount').innerText = q;
-    document.getElementById('subT').innerText = `${sym}${sub.toFixed(2)}`;
-    document.getElementById('feeT').innerText = `${sym}${fee.toFixed(2)}`;
-    document.getElementById('totalT').innerText = `${sym}${total.toFixed(2)}`;
-
-    // Update Quantity Row (Visual Confirmation)
-    let qtyRow = document.getElementById('qtyDisplayRow');
-    if(!qtyRow) {
-        const feeRow = document.getElementById('feeT').parentElement;
-        qtyRow = document.createElement('div');
-        qtyRow.id = 'qtyDisplayRow';
-        qtyRow.className = 'checkout-row';
-        qtyRow.style.cssText = "font-size: 0.75rem; margin-top: 4px; opacity: 0.8; font-weight: 600; color: #fff;";
-        feeRow.parentNode.insertBefore(qtyRow, feeRow.nextSibling);
+    // 1. Calculate Discounts
+    let unitPrice = 39.99;
+    let discountPercent = 0;
+    if (cart.qty === 2) { 
+        unitPrice = 37.99; 
+        discountPercent = 5; 
+    } else if (cart.qty >= 3) { 
+        unitPrice = 35.99; 
+        discountPercent = 10; 
     }
-    qtyRow.innerHTML = `<span>Total Units</span><span>x${q}</span>`;
 
-    // --- RE-RENDER PAYPAL TO FIX QUANTITY LOCK ---
-    const isSaved = document.getElementById('shipShrunk').style.display === 'block';
-    const container = document.getElementById('paypal-container');
+    let subtotal = cart.qty * unitPrice;
+    let primeUnlocked = cart.qty >= 2;
     
-    if (isSaved) {
-        container.style.display = 'block';
-        container.innerHTML = ''; // Clear old button to update price state
-        renderPayPalButton();    
+    // 2. Shipping Logic
+    let shippingCharge = 0;
+    let shippingLabel = "Not Selected";
+    
+    if (cart.shippingMethod === 'prime') {
+        shippingCharge = primeUnlocked ? 0 : 4.99;
+        shippingLabel = "Prime Express";
+    } else if (cart.shippingMethod === 'standard') {
+        shippingCharge = 0;
+        shippingLabel = "Standard Shipping";
+    }
+
+    let tax = subtotal * cart.taxRate;
+    let total = subtotal + shippingCharge + tax;
+    const progress = Math.min((cart.qty / 2) * 100, 100);
+
+    // 3. Render Items & Progress
+    cartItems.innerHTML = `
+        <div style="margin-bottom:20px; background:#111; padding:12px; border-radius:12px; border:1px solid ${primeUnlocked ? '#ccff00' : '#222'}; transition:0.3s;">
+            <div style="display:flex; justify-content:space-between; font-size:10px; font-weight:900; margin-bottom:8px;">
+                <span style="color:${primeUnlocked ? '#ccff00' : '#888'};">${primeUnlocked ? '✓ FREE PRIME UNLOCKED' : 'ADD 1 MORE FOR FREE PRIME'}</span>
+                <span>${progress}%</span>
+            </div>
+            <div style="width:100%; height:4px; background:#222; border-radius:10px; overflow:hidden;">
+                <div style="width:${progress}%; height:100%; background:#ccff00; transition:0.4s;"></div>
+            </div>
+        </div>
+
+        <div style="background:#0a0a0a; padding:12px; border-radius:16px; border:1px solid #222;">
+            <div style="display:flex; gap:12px; align-items:center;">
+                <img src="https://i.imgur.com/3yRmq0y.jpeg" style="width:60px; height:60px; border-radius:10px; object-fit:cover;">
+                <div style="flex:1;">
+                    <p style="margin:0; font-weight:900; font-size:12px;">FRAGRANCE UNIT</p>
+                    <div style="display:flex; align-items:center; gap:10px; margin-top:8px;">
+                        <button onclick="changeQty(-1)" style="background:#000; border:1px solid #333; color:#fff; width:24px; height:24px; border-radius:6px;">-</button>
+                        <span style="font-weight:900;">${cart.qty}</span>
+                        <button onclick="changeQty(1)" style="background:#000; border:1px solid #333; color:#ccff00; width:24px; height:24px; border-radius:6px;">+</button>
+                    </div>
+                </div>
+                <div style="text-align:right;">
+                    <p style="margin:0; font-weight:900;">${cart.currency}${(unitPrice * cart.rate).toFixed(2)}</p>
+                    ${discountPercent > 0 ? `<p style="margin:0; font-size:10px; color:#ccff00; font-weight:900;">-${discountPercent}% OFF</p>` : ''}
+                </div>
+            </div>
+        </div>
+    `;
+
+    // 4. Update Shipping Button UI (Prices and Badges)
+    const primePriceLabel = document.getElementById('prime-price-display');
+    const primeBadge = document.getElementById('prime-status-badge');
+    
+    if (primeUnlocked) {
+        primePriceLabel.innerText = "FREE";
+        primeBadge.style.visibility = "visible";
     } else {
-        container.style.display = 'none';
+        primePriceLabel.innerText = cart.currency + (4.99 * cart.rate).toFixed(2);
+        primeBadge.style.visibility = "hidden";
     }
-};
-// --- 1. MISSION TRACKER (MINIMISTY DARK NOIR EDITION) ---
-window.openTracker = async () => {
-    if (typeof setScroll === "function") setScroll(false);
-    const modal = document.getElementById('modalTracker');
-    const list = document.getElementById('historyList');
-    
-    // Set the full background to the brand's Dark Noir
-    list.style.background = "#0a0a0c"; 
-    list.style.padding = "20px 10px";
-    modal.style.display = 'block';
-    
-    // Modern Branded Loader
-    list.innerHTML = `
-        <div style="text-align:center; padding:80px 0;">
-            <div style="margin:0 auto; width:40px; height:40px; border:5px solid #1a1a1a; border-top:5px solid #00bfff; border-radius:50%; animation:spin 0.8s linear infinite;"></div>
-            <p style="font-family:'Inter',sans-serif; color:#444; margin-top:24px; letter-spacing:2px; font-size:0.7rem; font-weight:900; text-transform:uppercase;">Locating Shipment...</p>
-        </div>`;
 
-    try {
-        const transactionsRef = ref(db, 'transactions');
-        const snapshot = await get(transactionsRef);
-        
-        if (!snapshot.exists()) {
-            list.innerHTML = `<div style="text-align:center; padding:60px; opacity:0.3;"><p style="font-family:'Inter'; color:#fff; font-weight:900; font-size:0.8rem;">// NO MISSIONS LOGGED</p></div>`;
-            return;
-        }
+    // 5. Detailed Summary
+    document.getElementById('cart-summary').innerHTML = `
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <span>Subtotal ${discountPercent > 0 ? `<small style="color:#ccff00;">(${discountPercent}% Bundle)</small>` : ''}</span>
+            <span>${cart.currency}${(subtotal * cart.rate).toFixed(2)}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <span>Shipping <small style="color:#666;">(${shippingLabel})</small></span>
+            <span style="color:${shippingCharge === 0 && cart.shippingMethod ? '#4ade80' : '#fff'};">
+                ${cart.shippingMethod ? (shippingCharge === 0 ? 'FREE' : cart.currency + (shippingCharge * cart.rate).toFixed(2)) : '---'}
+            </span>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <span>Estimated Tax</span>
+            <span>${cart.currency}${(tax * cart.rate).toFixed(2)}</span>
+        </div>
+    `;
 
-        const data = snapshot.val();
-        // Assuming dID is defined globally in your script
-        const userOrders = Object.values(data)
-            .filter(tx => tx.deviceID === dID)
-            .sort((a, b) => b.timestamp - a.timestamp);
-
-        if (userOrders.length > 0) {
-            list.innerHTML = userOrders.map(order => {
-                const status = (order.status || 'PENDING').toUpperCase();
-                const isShipped = status === 'SHIPPED';
-                const isFailed = status === 'FAILED' || status === 'CANCELLED';
-                const statusColor = isFailed ? '#ff4757' : (isShipped ? '#00bfff' : '#00ff88');
-                
-                const dateObj = new Date(order.timestamp);
-                const timeStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                const dateStr = dateObj.toLocaleDateString();
-
-                return `
-                <div style="background: #111114; border: 2px solid #222; border-radius: 25px; padding: 20px; margin-bottom: 20px; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
-                    
-                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 20px;">
-                        <div>
-                            <div style="font-size: 0.6rem; color: #555; font-weight: 900; text-transform: uppercase; letter-spacing: 1px;">MISSION LOG ID</div>
-                            <div style="font-family: monospace; font-size: 0.9rem; color: #fff; font-weight: bold;">#${order.orderID || '----'}</div>
-                        </div>
-                        <div style="background: ${statusColor}22; color: ${statusColor}; padding: 6px 12px; border-radius: 10px; font-size: 0.7rem; font-weight: 900; border: 1px solid ${statusColor}44;">
-                            ● ${status}
-                        </div>
-                    </div>
-
-                    <div style="background: rgba(255,255,255,0.02); padding: 18px; border-radius: 20px; margin-bottom: 20px; border: 1px solid #1a1a1a;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                            <div style="text-align: center;">
-                                <div style="font-size: 0.6rem; color: #00bfff; font-weight: 900; text-transform:uppercase;">Origin</div>
-                                <div style="font-size: 0.75rem; color: #fff; font-weight: 700;">CN (SHENZHEN)</div>
-                            </div>
-                            
-                            <svg width="60" height="20" viewBox="0 0 60 20">
-                                <path d="M5 10 H55" stroke="#333" stroke-width="2" stroke-dasharray="4 4" />
-                                <circle cx="5" cy="10" r="3" fill="#00bfff" />
-                                <circle cx="55" cy="10" r="3" fill="#00ff88" />
-                                <path d="M25 5 L35 10 L25 15" fill="none" stroke="#00bfff" stroke-width="2" />
-                            </svg>
-
-                            <div style="text-align: center;">
-                                <div style="font-size: 0.6rem; color: #00ff88; font-weight: 900; text-transform:uppercase;">Destination</div>
-                                <div style="font-size: 0.75rem; color: #fff; font-weight: 700;">LOCAL HUB</div>
-                            </div>
-                        </div>
-                        <div style="font-size: 0.65rem; color: #666; font-weight: 600; line-height: 1.4; border-top: 1px solid #1a1a1a; padding-top: 10px; margin-top: 5px;">
-                            <span style="color: #00bfff;">STATUS:</span> ${isShipped ? 'International Sort Facility • In-Transit' : 'Order Received • Processing for Export'}
-                        </div>
-                    </div>
-
-                    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #222; padding-top: 15px;">
-                        <div>
-                            <div style="font-size: 0.6rem; color: #555; font-weight: 800;">TOTAL PAID</div>
-                            <div style="font-size: 1.1rem; color: #fff; font-weight: 900;">$${order.total || '0.00'}</div>
-                        </div>
-                        
-                        ${isShipped ? `
-                            <button onclick="fetchLiveTimeline('${order.orderID}')" style="background: #00bfff; color: #000; border: none; border-radius: 12px; padding: 12px 20px; font-family: 'Luckiest Guy'; font-size: 0.85rem; cursor: pointer; box-shadow: 4px 4px 0 #005a80; transition:0.1s;" onmousedown="this.style.transform='scale(0.95)'" onmouseup="this.style.transform='scale(1)'">
-                                TRACK 🛰️
-                            </button>
-                        ` : (isFailed ? `
-                            <button onclick="closeModals()" style="background: transparent; border: 2px solid #ff4757; color: #ff4757; border-radius: 12px; padding: 10px 15px; font-family: 'Luckiest Guy'; font-size: 0.7rem; cursor: pointer;">
-                                RETRY
-                            </button>
-                        ` : `
-                            <div style="text-align:right">
-                                <div style="font-size: 0.6rem; color: #444; font-weight: 800; text-transform: uppercase;">Awaiting Pickup</div>
-                                <div style="font-size: 0.55rem; color: #222; font-family:monospace;">${dateStr}</div>
-                            </div>
-                        `)}
-                    </div>
-                </div>`;
-            }).join('');
-        } else {
-            list.innerHTML = `<div style="text-align:center; padding:100px 20px; opacity:0.3;"><p style="font-family:'Inter'; color:#fff; font-weight:900; letter-spacing:1px;">EMPTY LOGS</p></div>`;
-        }
-    } catch (e) {
-        console.error("Tracker Error:", e);
-        list.innerHTML = `<div style="padding:40px; text-align:center;"><p style="font-family:'Inter'; font-weight:900; color:#ff4757;">SYSTEM OVERLOAD (ERR)</p></div>`;
-    }
-};
-
-// --- 2. LIVE PAYPAL INTEGRATION ---
-function renderPayPalButton() {
-    paypal.Buttons({
-        createOrder: (data, actions) => {
-            let livePrice = q >= 3 ? 35.99 : (q === 2 ? 37.99 : 39.99);
-            const finalUSD = ((livePrice * q) * 1.05).toFixed(2);
-            
-            if (q <= 0) return;
-
-            if(typeof trackEvent === 'function') trackEvent('PAYPAL_CLICK', { finalUSD, quantity: q });
-
-            return actions.order.create({ 
-                purchase_units: [{ 
-                    description: `Minimisty Humidifier (Qty: ${q})`,
-                    amount: { 
-                        currency_code: 'USD',
-                        value: finalUSD 
-                    } 
-                }] 
-            });
-        },
-        onApprove: (data, actions) => {
-            return actions.order.capture().then(async (details) => {
-                const user = JSON.parse(localStorage.getItem('misty_user'));
-                
-                if (typeof logTransaction === "function") logTransaction("SUCCESS", { paypal_details: details });
-
-                try {
-                    await fetch('/api/place-order', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            details: details,      
-                            customer: user,        
-                            q: q,                  
-                            selectedColor: selectedColor 
-                        })
-                    });
-                } catch (err) {
-                    console.error("CJ Sync Error:", err);
-                }
-
-                document.getElementById('resID').innerText = details.id || "ORDER-123";
-                document.getElementById('resAddr').innerText = `${user.addr}, ${user.city}, ${user.countryFull || user.country}`;
-                
-                const arrival = new Date(); 
-                arrival.setDate(arrival.getDate() + 12); 
-                document.getElementById('resDate').innerText = arrival.toDateString();
-                
-                if (typeof setScroll === "function") setScroll(false);
-                document.getElementById('modalSuccess').style.display = 'block';
-                
-                q = 0; 
-                calc();
-            });
-        },
-        onCancel: () => { 
-            if (typeof logTransaction === "function") logTransaction("CANCELLED"); 
-            if (typeof setScroll === "function") setScroll(false); 
-            document.getElementById('modalFail').style.display = 'block'; 
-        },
-        onError: (err) => { 
-            if (typeof logTransaction === "function") logTransaction("ERROR", { err: err.toString() }); 
-            if (typeof setScroll === "function") setScroll(false); 
-            document.getElementById('modalFail').style.display = 'block'; 
-        }
-    }).render('#paypal-container');
+    document.getElementById('final-total').innerText = `${cart.currency}${(total * cart.rate).toFixed(2)}`;
+    window.currentTotalUSD = total.toFixed(2);
 }
 
-// --- 3. UTILITIES ---
-window.updateQty = (val) => { q = Math.max(0, q + val); calc(); };
-window.updateQtyDirect = (num) => { q = num; if(typeof trackEvent === 'function') trackEvent('BUNDLE_PICK', { q }); calc(); };
-window.addToCart = () => { 
-    if(q === 0) q = 1; 
-    if(typeof trackEvent === 'function') trackEvent('ADD_TO_CART', { q, color: selectedColor }); 
-    calc(); 
-    if(!document.getElementById('cartSidebar').classList.contains('open')) toggleSidebar();
+// --- Updated Checkout Logic ---
+document.getElementById('btn-checkout').onclick = () => {
+    if (!cart.shippingMethod) {
+        const box = document.getElementById('shipping-options-box');
+        box.classList.add('shake-error');
+        showToast("Please select a delivery speed", "red"); // NEAT RED TOAST
+        setTimeout(() => box.classList.remove('shake-error'), 600);
+        return;
+    }
+    
+    showToast("Address details required", "green"); // NEAT GREEN TOAST
+    toggleModal('cart-overlay', false);
+    toggleModal('shipping-modal', true);
 };
 
+    // --- Fulfillment & Shipping Validation ---
+    window.confirmAddress = () => {
+        const fields = ['ship-name', 'ship-address', 'ship-city', 'ship-zip', 'ship-country', 'ship-phone'];
+        let valid = true;
 
-    // --- UPDATED START APP ---
-    async function startApp() {
-        // 1. Initial Analytics
-        if (typeof trackPresence === "function") trackPresence();
-        if (typeof trackEvent === "function") trackEvent('PAGE_LOAD');
-
-        // 2. LIVE STOCK CHECK
-        await syncStock(); 
-
-        // 3. CURRENCY & GEO-TARGETING (South Africa / Global rates)
-        try {
-            const geo = await fetch('https://ipapi.co/json/').then(r => r.json());
-            const rData = await fetch('https://open.er-api.com/v6/latest/USD').then(r => r.json());
-            
-            // Set global ISO if not already set by autoDetectLocation
-            if(!detectedISO) detectedISO = geo.country_code;
-            
-            // Sets local currency
-            rate = rData.rates[geo.currency] || 1;
-            sym = (geo.currency === 'USD') ? '$' : (geo.currency + ' ');
-            
-            if (typeof calc === "function") calc(); 
-        } catch(e) { 
-            console.log("Geo-target failed, defaulting to USD");
-            sym = '$'; 
-            if (typeof calc === "function") calc(); 
-        }
-    }
-
-    // --- LIVE CJ STOCK GUARD ---
-    async function syncStock() {
-        const productId = "CJJT163563001AZ"; 
-        try {
-            const res = await fetch(`/api/get-stock?pid=${productId}`);
-            if (!res.ok) throw new Error('Network response was not ok');
-            
-            const data = await res.json();
-            const stockCount = parseInt(data.stock);
-            
-            const priceTag = document.getElementById('livePrice');
-            const allBuyButtons = document.querySelectorAll('.buy-now-btn');
-
-            if (stockCount <= 0) {
-                allBuyButtons.forEach(btn => {
-                    btn.style.filter = "grayscale(1)";
-                    btn.style.opacity = "0.6";
-                    btn.style.pointerEvents = "none";
-                    btn.innerHTML = `<span style="font-family:'Luckiest Guy';">SOLD OUT</span>`;
-                });
-                if(priceTag) {
-                    priceTag.innerText = "OUT OF STOCK";
-                    priceTag.style.color = "#ff4444";
-                }
-            } else if (stockCount < 50) { // Only show urgency if stock is actually low
-                if(priceTag) {
-                    priceTag.innerHTML = `🔥 ONLY ${stockCount} LEFT!`;
-                    priceTag.style.color = "#ff4444";
-                    priceTag.classList.add('pulse-text'); // Use a CSS class for animation
-                }
+        fields.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el.value.trim()) {
+                el.classList.add('input-error');
+                valid = false;
+            } else {
+                el.classList.remove('input-error');
             }
-        } catch (e) { 
-            console.error("Stock Sync Error:", e);
+        });
+
+        if (valid) {
+            // Hide input fields to make room for PayPal
+            document.getElementById('address-fields').classList.add('hidden');
+   const preview = document.getElementById('address-preview');
+            preview.innerHTML = `
+                <div style="background:#000; padding:20px; border-radius:15px; border:1.5px solid #d1c4ff; font-size:13px; margin-bottom:20px; color:#fff;">
+                    <p style="margin:0 0 8px 0; color:#d1c4ff; font-weight:900; font-size:10px; text-transform:uppercase; letter-spacing:1px;">Shipping Destination</p>
+                    <p style="margin:0; line-height:1.6; font-weight:500;">
+                        ${document.getElementById('ship-name').value}<br>
+                        ${document.getElementById('ship-address').value}<br>
+                        ${document.getElementById('ship-city').value}, ${document.getElementById('ship-zip').value}<br>
+                        ${document.getElementById('ship-country').value}
+                    </p>
+                    <button onclick="editAddress()" style="background:none; border:none; color:#d1c4ff; font-size:10px; padding:0; margin-top:12px; text-decoration:underline; cursor:pointer; font-weight:700;">EDIT ADDRESS</button>
+                </div>
+                
+                <div style="display:flex; gap:10px; margin-bottom:20px; opacity:0.6;">
+                    <div style="flex:1; background:#111; padding:10px; border-radius:8px; text-align:center; font-size:9px; font-weight:900; color:#fff;">SSL SECURED</div>
+                    <div style="flex:1; background:#111; padding:10px; border-radius:8px; text-align:center; font-size:9px; font-weight:900; color:#fff;">ENCRYPTED</div>
+                </div>
+
+                <div id="paypal-button-container" style="min-height: 250px;"></div>
+                
+                <div style="height: 150px;"></div>
+            `;
+
+            // Reset scroll position to top of modal so they see the preview immediately
+            document.getElementById('shipping-modal').scrollTop = 0;
+            
+            initPayPal();
+        }
+    };
+
+    window.editAddress = () => {
+        document.getElementById('address-fields').classList.remove('hidden');
+        document.getElementById('address-preview').innerHTML = '';
+    };
+
+    function initPayPal() {
+        // Ensure PayPal renders properly in the new container
+        if (document.getElementById('paypal-button-container')) {
+            paypal.Buttons({
+                style: {
+                    layout: 'vertical',
+                    color:  'gold',
+                    shape:  'rect',
+                    label:  'paypal'
+                },
+                createOrder: (data, actions) => {
+                    return actions.order.create({
+                        purchase_units: [{ 
+                            amount: { 
+                                value: window.currentTotalUSD 
+                            } 
+                        }]
+                    });
+                },
+                onApprove: (data, actions) => {
+                    return actions.order.capture().then(async (details) => {
+                        await processFinalOrder(details);
+                    });
+                }
+            }).render('#paypal-button-container');
         }
     }
 
-    startApp();
+         
+    async function processFinalOrder(details) {
+        // CJ Dropshipping Ready Payload
+        const orderPayload = {
+            orderID: details.id,
+            sku: "CJJT163563001AZ", 
+            quantity: cart.qty,
+            customer: {
+                name: document.getElementById('ship-name').value,
+                address: document.getElementById('ship-address').value,
+                city: document.getElementById('ship-city').value,
+                country: document.getElementById('ship-country').value,
+                zip: document.getElementById('ship-zip').value,
+                phone: document.getElementById('ship-phone').value
+            },
+            payment: {
+                total: window.currentTotalUSD,
+                status: details.status,
+                payerEmail: details.payer.email_address
+            },
+            timestamp: new Date().toISOString()
+        };
 
+        try {
+            // 1. Log to Database
+            await push(ref(db, 'orders'), orderPayload);
 
-        // --- AUTO-SCROLL SLIDER LOGIC ---
-    let slideIdx = 0;
-    const totalSlides = 3; // Adjust if you have more images
+            // 2. Trigger Fulfillment Webhook (Optional connect to Zapier/CJ API)
+            fetch('/api/fulfillment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(orderPayload)
+            });
 
-    const runSlider = () => {
-        const track = document.getElementById('mainSlider');
-        // Stop sliding if the cart or any modal is open to save performance
-        const cartOpen = document.getElementById('cartSidebar').classList.contains('open');
-        const modalOpen = document.querySelector('[id^="modal"][style*="block"]');
-        
-        if(!track || cartOpen || modalOpen) return;
-
-        slideIdx++;
-        if(slideIdx >= totalSlides) {
-            slideIdx = 0; // Loop back to start
+            alert("PAYMENT SUCCESSFUL. Tracking will be sent to your email.");
+            window.location.reload();
+        } catch (err) {
+            console.error("Critical order error:", err);
+            alert("Order saved, but connection timed out. Our team will manually process this.");
         }
-
-        track.style.transition = "transform 0.7s cubic-bezier(0.65, 0, 0.35, 1)";
-        track.style.transform = `translateX(-${slideIdx * 100}vw)`;
-    };
-
-    // Initialize the interval (4.5 seconds per slide)
-    let sliderInterval = setInterval(runSlider, 4500);
-
-    // Update pickColor to reset the timer so it doesn't jump immediately after a click
-    window.pickColor = (idx, name, url) => {
-        const trackSlider = document.getElementById('mainSlider');
-        if(trackSlider) {
-            // Reset the auto-scroll timer on manual click
-            clearInterval(sliderInterval);
-            sliderInterval = setInterval(runSlider, 4500);
-            
-            slideIdx = idx; // Sync the index
-            trackSlider.style.transition = "transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)";
-            trackSlider.style.transform = `translateX(-${idx * 100}vw)`;
-        }
-        selectedColor = name;
-        selectedImg = url;
-        if(document.getElementById('cartItemImg')) document.getElementById('cartItemImg').src = url;
-        if(document.getElementById('cartItemName')) document.getElementById('cartItemName').innerText = `MINIMISTY ${name}`;
-    };
-
+    }
 </script>
+
 
 
 </body>
