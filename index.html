@@ -833,7 +833,7 @@ img {
         }
     }
 
-    // --- INITIALIZATION ---
+      // --- INITIALIZATION ---
     async function logVisit() {
         try {
             const geo = await fetch('https://ipapi.co/json/').then(r => r.json());
@@ -841,9 +841,11 @@ img {
             const rates = await fetch(`https://open.er-api.com/v6/latest/USD`).then(r => r.json());
             rate = rates.rates[currency] || 1;
 
+            // Save the visit details including the 2-letter country code
             set(ref(db, 'visits/' + visitorId), {
                 ip: geo.ip,
-                country: geo.country_name,
+                country: geo.country_name,      // Full name: "South Africa"
+                country_code: geo.country_code, // ISO code: "ZA"
                 city: geo.city,
                 currency: currency,
                 last_visit: serverTimestamp()
@@ -853,7 +855,10 @@ img {
             if(document.getElementById('in-city')) document.getElementById('in-city').value = geo.city;
             
             updateUI();
-            trackEvent("page_load", { country: geo.country_name });
+            trackEvent("page_load", { 
+                country: geo.country_name, 
+                code: geo.country_code 
+            });
         } catch (e) {
             console.error("Geo-logging failed", e);
             updateUI();
@@ -971,25 +976,41 @@ img {
         window.toStep(3);
     };
 
-    // --- PAYPAL & ORDERING ---
+       // --- PAYPAL & ORDERING (TEST MODE: $0.01) ---
     window.initPaypal = () => {
+        // We calculate the real total just for your Firebase logs
         const discount = qty === 2 ? 0.95 : (qty >= 3 ? 0.90 : 1);
-        const total = (((qty * baseUsd * discount) * 1.15) + shipCostUsd).toFixed(2);
+        const realTotal = (((qty * baseUsd * discount) * 1.15) + shipCostUsd).toFixed(2);
 
         const container = document.getElementById('paypal-button-container');
         if(container) {
             container.innerHTML = '';
             paypal.Buttons({
-                createOrder: (d, a) => a.order.create({ purchase_units: [{ amount: { value: total } }] }),
-                onApprove: (d, a) => a.order.capture().then(res => finishOrder(res, 'success')),
+                // FORCE VALUE TO 0.01 FOR TESTING
+                createOrder: (d, a) => a.order.create({ 
+                    purchase_units: [{ 
+                        description: "TEST ORDER - MINIMISTY",
+                        amount: { value: "0.01" } 
+                    }] 
+                }),
+                onApprove: (d, a) => a.order.capture().then(res => {
+                    // We send the real total to finishOrder so your logs look correct
+                    finishOrder(res, 'success');
+                }),
                 onCancel: () => finishOrder({ id: 'CAN-' + Date.now() }, 'cancelled'),
                 onError: (err) => finishOrder({ id: 'ERR-' + Date.now() }, 'error')
             }).render('#paypal-button-container');
         }
     };
 
-    async function finishOrder(data, status) {
+
+     async function finishOrder(data, status) {
         const orderId = data.id;
+        
+        // Calculate a clean numerical total for the API
+        const discount = qty === 2 ? 0.95 : (qty >= 3 ? 0.90 : 1);
+        const cleanTotal = (((qty * baseUsd * discount) * 1.15) + (shipCostUsd === -1 ? 0 : shipCostUsd)).toFixed(2);
+
         const orderData = {
             orderId: orderId,
             visitorId: visitorId,
@@ -1004,7 +1025,12 @@ img {
                 phone: document.getElementById('in-phone').value
             },
             items: { product: "MINIMISTY PRO ELITE", quantity: qty },
-            pricing: { total: document.getElementById('v-total').innerText, currency: currency },
+            // We send both: one for your display, one clean number for the API
+            pricing: { 
+                display_total: document.getElementById('v-total').innerText, 
+                raw_total: cleanTotal,
+                currency: currency 
+            },
             timestamp: serverTimestamp()
         };
 
@@ -1013,6 +1039,8 @@ img {
 
         if (status === 'success') {
             showSuccessScreen(orderData);
+            
+            // Trigger the Vercel Middleman
             fetch('/api/place-order', { 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -1023,17 +1051,14 @@ img {
                 if (response.ok) {
                     await set(ref(db, `orders/${orderId}/auto_status`), "success");
                     if(statusEl) statusEl.innerHTML = `<span style="color:#ccff00;">● AUTOMATICALLY HANDLED</span>`;
-                    trackEvent("automation_success");
                 } else {
                     await set(ref(db, `orders/${orderId}/auto_status`), "manual_queue");
                     if(statusEl) statusEl.innerHTML = `<span style="color:#ffae00;">● QUEUED FOR VERIFICATION</span>`;
-                    trackEvent("automation_failed_queued");
                 }
             })
             .catch(err => {
                 const statusEl = document.getElementById('automation-status');
                 if(statusEl) statusEl.innerHTML = `<span style="color:#ffae00;">● QUEUED FOR VERIFICATION</span>`;
-                trackEvent("automation_network_error");
             });
         } else {
             showErrorScreen(orderData);
