@@ -7,6 +7,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://www.paypal.com/sdk/js?client-id=AW7nmsZqdabjCrj62j0qekUqalJJ3T53ngjrime14foH5HMhNLmpUzULQV-OvV82KSuZQoBoEP4Rkwi4&currency=USD" id="paypal-sdk"></script>
+
 <style>
     /* --- CORE VARIABLES & RESET --- */
     :root {
@@ -215,6 +217,85 @@
             height: auto !important;
         }
     }
+.pack-badge {
+    position: absolute;
+    /* This centers the badge exactly on the corner stroke */
+    top: -12px; 
+    left: -12px;
+    
+    background: #000;
+    color: #fff;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 13px;
+    
+    /* THE TRICK: This white border creates the "overlap" look against the black box border */
+    border: 3px solid #fff; 
+    
+    /* Keeps it above the image and the wrapper border */
+    z-index: 20; 
+    
+    /* Ensures the badge doesn't get squished */
+    flex-shrink: 0;
+}
+
+/* Ensure the wrapper doesn't clip the badge */
+.bundle-img-wrapper {
+    overflow: visible !important;
+}
+/* 1. Force the options area to use a clean grid */
+.bundle-options-area {
+    display: none;
+    margin-top: 12px;
+    padding: 12px;
+    background: #f2f2f7; /* Slight tint to distinguish selection area */
+    border-radius: 12px;
+    border: 2px solid #000;
+}
+
+.bundle-box.active .bundle-options-area {
+    display: block;
+}
+
+/* 2. Fix the layout for 2 and 3 units to be side-by-side */
+.selection-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 10px;
+    align-items: start;
+}
+
+/* 3. Slim down the pickers so they don't bloat the card */
+.mini-swatch {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%; /* Circular looks cleaner in tight grids */
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.mini-swatch.active {
+    border-color: #000;
+    transform: scale(1.2);
+    box-shadow: 0 0 0 2px #fff; /* White ring to separate from black border */
+}
+
+.picker-label {
+    font-size: 9px;
+    font-weight: 900;
+    color: #888;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    display: block;
+}
+
+
 </style>
     
 </head>
@@ -719,35 +800,52 @@
         </div>
     </div>
 </section>
-
 <!-- ─── 7. PURCHASE SECTION ───────────────────────────────────── -->
 <section id="purchase-section"
          style="padding:20px 15px;background:#F2F2F7;position:relative;
                 font-family:'Fredoka',sans-serif;scroll-margin-top:100px;">
+    
     <div style="background:#fff;border-radius:32px;padding:16px;border:2.5px solid #000;
                 box-shadow:0 10px 25px rgba(0,0,0,0.04);margin-bottom:20px;">
-        <!-- Image -->
+        
+        <!-- Image Container -->
         <div style="width:100%;aspect-ratio:1/1;border-radius:20px;overflow:hidden;
                     margin-bottom:20px;background:#F9F9FB;border:2.5px solid #000;position:relative;">
             <img id="purchase-main-img"
                  src="https://oss-cf.cjdropshipping.com/product/2025/06/06/01/9947b7a1-f9a3-43ab-8e4d-1941402cfe4b_trans.jpeg?x-oss-process=image/resize,m_fill,w_500"
                  style="width:100%;height:100%;object-fit:cover;transition:all 0.4s cubic-bezier(0.4,0,0.2,1);">
+            
             <div style="position:absolute;top:12px;left:12px;background:#000;padding:5px 12px;
                         border-radius:12px;display:flex;align-items:center;gap:6px;">
                 <span class="pulse-dot"></span>
                 <span style="font-size:10px;font-weight:800;color:#fff;letter-spacing:0.5px;">LIVE STOCK</span>
             </div>
         </div>
-        <!-- Details -->
+
+        <!-- Details Area -->
         <div style="padding:0 4px;">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:15px;">
-                <div style="max-width:65%;">
-                    <h1 style="font-size:24px;font-weight:800;letter-spacing:-0.8px;color:#000;margin:0;line-height:1.1;">MINIMISTY™<br>TURBO MIST</h1>
-                    <p id="arrival-date" style="font-size:12px;font-weight:700;color:#32D74B;margin-top:8px;letter-spacing:0.2px;">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="vertical-align:middle;margin-right:4px;"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-                        Arrives: <span id="date-range">Calculating...</span>
-                    </p>
+                <!-- Title & Shipping Info -->
+                <div style="max-width:60%;">
+                    <h1 style="font-size:24px;font-weight:800;letter-spacing:-0.8px;color:#000;margin:0;line-height:1.1;">
+                        MINIMISTY™<br>TURBO MIST
+                    </h1>
+                    
+                    <!-- Black Shipping Box -->
+                    <div style="background: #000; padding: 10px 12px; border-radius: 14px; margin-top: 12px; display: inline-block; width: fit-content;">
+                        <p id="arrival-date" style="font-size: 11px; font-weight: 700; color: #32D74B; margin: 0; letter-spacing: 0.2px; display: flex; align-items: center;">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right: 6px;">
+                                <rect x="1" y="3" width="15" height="13"></rect>
+                                <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                                <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                                <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                            </svg>
+                            <span>Arrives: <span id="date-range" style="color: #fff; margin-left: 2px;">Calculating...</span></span>
+                        </p>
+                    </div>
                 </div>
+
+                <!-- Pricing Section -->
                 <div style="text-align:right;">
                     <div style="background:#FF3B30;color:#fff;border:2px solid #000;font-size:10px;
                                 font-weight:900;padding:3px 8px;border-radius:8px;
@@ -756,8 +854,9 @@
                     <div id="purchase-price-old"  style="font-size:13px;color:#AEAEB2;text-decoration:line-through;font-weight:600;">$59.95</div>
                 </div>
             </div>
-            <!-- Swatches — pass the correct CJ variant name as 3rd arg -->
-            <div style="margin:15px 0;display:flex;gap:14px;align-items:center;justify-content:center;
+
+            <!-- Swatches -->
+            <div style="margin:20px 0 10px 0;display:flex;gap:14px;align-items:center;justify-content:center;
                         background:#f8f8f8;padding:12px;border-radius:20px;border:2px solid #000;">
                 <div class="swatch-wrapper active"
                      onclick="updatePurchaseVariant(this,'https://oss-cf.cjdropshipping.com/product/2025/06/06/01/9947b7a1-f9a3-43ab-8e4d-1941402cfe4b_trans.jpeg?x-oss-process=image/resize,m_fill,w_500','Dark Gray 4000mAh')">
@@ -778,7 +877,8 @@
             </div>
         </div>
     </div>
-    <!-- Add to bag -->
+
+    <!-- Action Buttons -->
     <div style="padding:0 5px;margin-bottom:20px;">
         <button onclick="handleAddToCart()" class="ios-btn-main">
             <span style="flex:1;text-align:center;margin-left:40px;">ADD TO BAG</span>
@@ -790,7 +890,8 @@
             </div>
         </button>
     </div>
-    <!-- Trust badges -->
+
+    <!-- Trust Badges -->
     <div style="display:flex;flex-direction:column;gap:10px;">
         <div style="display:flex;gap:10px;">
             <div class="trust-badge">
@@ -805,10 +906,11 @@
         <div class="trust-badge" style="justify-content:center;background:#fff;border:2px solid #000;">
             <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" height="14" style="margin-right:10px;">
             <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" height="14">
-            <span style="margin-left:10px;font-size:10px;">SECURE CHECKOUT</span>
+            <span style="margin-left:10px;font-size:10px;font-weight:700;">SECURE CHECKOUT</span>
         </div>
     </div>
 </section>
+
 
 <!-- ─── 8. AS SEEN ON ─────────────────────────────────────────── -->
 <section style="background:#000;padding:30px 0;border-top:3px solid #000;border-bottom:3px solid #000;
@@ -889,7 +991,86 @@
 <!-- ════════════════════════════════════════════════════════════
      OVERLAYS — Cart, Step 2, Modal
      All IDs match the unified script block exactly
-     ════════════════════════════════════════════════════════════ -->
+
+<!-- ─── CART OVERLAY STYLES ────────────────────────────────── -->
+<style>
+    /* Ensures the counters overlap the black border stroke perfectly */
+    .pack-badge {
+        position: absolute;
+        top: -12px; 
+        left: -12px;
+        background: #000;
+        color: #fff;
+        width: 26px;
+        height: 26px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+        font-size: 14px;
+        border: 3px solid #fff; /* The "Overlap" trick */
+        z-index: 20;
+    }
+
+    .bundle-img-wrapper {
+        position: relative;
+        overflow: visible !important; /* Required for badge overlap */
+        border: 3px solid #000;
+        border-radius: 12px;
+        background: #fff;
+        width: 100px;
+        height: 100px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .bundle-box {
+        border: 3px solid #e5e5ea;
+        border-radius: 20px;
+        padding: 15px;
+        transition: all 0.2s ease;
+        position: relative;
+        background: #fff;
+        cursor: pointer;
+    }
+
+    .bundle-box.active {
+        border-color: #000;
+        box-shadow: 0 6px 0 #000;
+        transform: translateY(-4px);
+    }
+
+    .mini-swatch {
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: transform 0.1s;
+    }
+
+    .mini-swatch.active {
+        border-color: #000;
+        transform: scale(1.1);
+        outline: 2px solid #fff;
+    }
+
+    .tag-save {
+        position: absolute;
+        top: -12px;
+        right: 15px;
+        background: #FF2D55;
+        color: #fff;
+        padding: 4px 12px;
+        border-radius: 8px;
+        font-weight: 900;
+        font-size: 11px;
+        border: 2px solid #000;
+        z-index: 10;
+    }
+</style>
 
 <!-- ─── OVERLAY A: CART (Step 1) ─────────────────────────────── -->
 <div id="cart-model"
@@ -897,120 +1078,169 @@
             flex-direction:column;font-family:'Fredoka',sans-serif;">
 
     <!-- Header -->
-    <div style="background:#fff;padding:25px 20px;display:flex;align-items:center;
-                justify-content:space-between;border-bottom:2px solid #f2f2f7;">
+    <div style="background:#fff;padding:20px;display:flex;align-items:center;
+                justify-content:space-between;border-bottom:3px solid #000;">
         <div style="display:flex;align-items:center;gap:12px;cursor:pointer;" onclick="toggleCart()">
-            <div style="background:#f2f2f7;padding:8px;border-radius:12px;">
+            <div style="border:2.5px solid #000;padding:6px;border-radius:10px;background:#f2f2f7;">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="black"
-                     stroke-width="3" stroke-linecap="round"><path d="m15 18-6-6 6-6"/></svg>
+                     stroke-width="4" stroke-linecap="round"><path d="m15 18-6-6 6-6"/></svg>
             </div>
-            <span style="font-weight:800;font-size:20px;letter-spacing:-0.5px;">YOUR BAG</span>
+            <span style="font-weight:900;font-size:22px;letter-spacing:-0.5px;text-transform:uppercase;">Your Bag</span>
         </div>
         <div id="cart-items-count"
-             style="background:#000;color:#fff;padding:6px 14px;border-radius:20px;
-                    font-weight:700;font-size:12px;">1 UNIT</div>
+             style="background:#000;color:#fff;padding:6px 14px;border-radius:8px;
+                    font-weight:900;font-size:12px;">1 UNIT</div>
     </div>
 
     <!-- Scrollable content -->
     <div style="flex:1;overflow-y:auto;padding:20px;max-width:600px;margin:0 auto;width:100%;">
 
-        <h3 class="neat-label">SELECT SAVINGS PLAN</h3>
+        <h3 style="font-weight:900; letter-spacing:1px; margin-bottom:15px; font-size: 14px; text-transform: uppercase;">Select Savings Plan</h3>
 
-        <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:30px;">
-            <!-- 1 UNIT -->
-            <div class="bundle-box active" id="b-1" onclick="setBundle(1)">
-                <div class="bundle-img-wrapper">
-                    <img src="https://oss-cf.cjdropshipping.com/product/2025/06/06/01/9947b7a1-f9a3-43ab-8e4d-1941402cfe4b_trans.jpeg"
-                         style="width:90%;height:auto;">
+        <div style="display:flex;flex-direction:column;gap:15px;margin-bottom:30px;">
+            
+            <!-- 1 UNIT BOX -->
+            <div class="bundle-box active" id="b-1" onclick="setBundle(1); event.stopPropagation();">
+                <div class="bundle-main-row" style="display:flex; align-items:center; gap:15px;">
+                    <div class="bundle-img-wrapper">
+                        <div class="pack-badge">1</div>
+                        <img id="img-slot-1-1" src="https://oss-cf.cjdropshipping.com/product/2025/06/06/01/9947b7a1-f9a3-43ab-8e4d-1941402cfe4b_trans.jpeg" style="width:80%;">
+                    </div>
+                    <div style="flex:1;">
+                        <div style="font-weight:900;font-size:17px;line-height:1.2;">SINGLE PACK</div>
+                        <div class="local-price" data-usd="39.50" style="font-size:15px;color:#5856D6;font-weight:900;">$39.50</div>
+                    </div>
                 </div>
-                <div style="flex:1;">
-                    <div style="font-weight:800;font-size:16px;">SINGLE PACK</div>
-                    <div class="local-price" data-usd="39.50"
-                         style="font-size:14px;color:var(--ios-purple);font-weight:700;">$39.50</div>
-                </div>
-                <div class="variant-selector">
-                    <div class="v-dot selected" style="background:#000;"></div>
-                    <div class="v-dot" style="background:#fff;border:1px solid #ddd;"></div>
+                <div class="bundle-options-area" style="margin-top:10px; border-top:1px solid #eee; padding-top:10px;">
+                    <span class="picker-label" style="font-size:10px; font-weight:900; color:#888; display:block; margin-bottom:5px;">CHOOSE COLOR</span>
+                    <div class="bundle-color-picker" style="display:flex; gap:8px;">
+                        <div class="mini-swatch active" style="background:#5856D6;" onclick="updateBundleColor(1, 1, 'Blue', this); event.stopPropagation();"></div>
+                        <div class="mini-swatch" style="background:#1c1c1e;" onclick="updateBundleColor(1, 1, 'Dark Gray', this); event.stopPropagation();"></div>
+                        <div class="mini-swatch" style="background:#FFD1DC;" onclick="updateBundleColor(1, 1, 'Pink', this); event.stopPropagation();"></div>
+                        <div class="mini-swatch" style="background:#fff; border:2px solid #000;" onclick="updateBundleColor(1, 1, 'White', this); event.stopPropagation();"></div>
+                    </div>
                 </div>
             </div>
 
-            <!-- 2 UNITS -->
-            <div class="bundle-box" id="b-2" onclick="setBundle(2)">
-                <div class="tag-save">5% OFF</div>
-                <div class="bundle-img-wrapper">
-                    <img src="https://oss-cf.cjdropshipping.com/product/2025/06/06/01/9947b7a1-f9a3-43ab-8e4d-1941402cfe4b_trans.jpeg"
-                         style="width:70%;position:absolute;left:0;bottom:0;">
-                    <img src="https://oss-cf.cjdropshipping.com/product/2025/06/06/01/9947b7a1-f9a3-43ab-8e4d-1941402cfe4b_trans.jpeg"
-                         style="width:70%;position:absolute;right:0;top:0;">
-                </div>
-                <div style="flex:1;">
-                    <div style="font-weight:800;font-size:16px;">DUO BUNDLE</div>
-                    <div class="local-price" data-usd="37.45"
-                         style="font-size:14px;color:var(--ios-purple);font-weight:700;">
-                        $37.45 <span style="font-size:11px;color:#888;">/ ea</span>
+            <!-- 2 UNITS BOX -->
+            <div class="bundle-box" id="b-2" onclick="setBundle(2); event.stopPropagation();">
+                <div class="tag-save">SAVE 5%</div>
+                <div class="bundle-main-row" style="display:flex; align-items:center; gap:15px;">
+                    <div class="bundle-img-wrapper">
+                        <div class="pack-badge">2</div>
+                        <img id="img-slot-2-1" src="https://oss-cf.cjdropshipping.com/product/2025/06/06/01/9947b7a1-f9a3-43ab-8e4d-1941402cfe4b_trans.jpeg" style="width:60%;position:absolute;left:5px;bottom:5px;">
+                        <img id="img-slot-2-2" src="https://oss-cf.cjdropshipping.com/product/2025/06/06/01/9947b7a1-f9a3-43ab-8e4d-1941402cfe4b_trans.jpeg" style="width:60%;position:absolute;right:5px;top:5px;">
+                    </div>
+                    <div style="flex:1;">
+                        <div style="font-weight:900;font-size:17px;line-height:1.2;">DUO BUNDLE</div>
+                        <div class="local-price" data-usd="37.45" style="font-size:15px;color:#5856D6;font-weight:900;">$37.45 <span style="font-size:11px;color:#000;">/ ea</span></div>
                     </div>
                 </div>
-                <div class="variant-selector">
-                    <div class="v-dot selected" style="background:#000;"></div>
-                    <div class="v-dot" style="background:#add8e6;"></div>
+                <div class="bundle-options-area" style="margin-top:10px; border-top:1px solid #eee; padding-top:10px;">
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+                        <div>
+                            <span class="picker-label" style="font-size:9px; font-weight:900; color:#888;">UNIT 1</span>
+                            <div class="bundle-color-picker" style="display:grid; grid-template-columns: repeat(2, 1fr); gap:4px; margin-top:4px;">
+                                <div class="mini-swatch active" style="background:#5856D6;" onclick="updateBundleColor(2, 1, 'Blue', this); event.stopPropagation();"></div>
+                                <div class="mini-swatch" style="background:#1c1c1e;" onclick="updateBundleColor(2, 1, 'Dark Gray', this); event.stopPropagation();"></div>
+                                <div class="mini-swatch" style="background:#FFD1DC;" onclick="updateBundleColor(2, 1, 'Pink', this); event.stopPropagation();"></div>
+                                <div class="mini-swatch" style="background:#fff; border:1px solid #000;" onclick="updateBundleColor(2, 1, 'White', this); event.stopPropagation();"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="picker-label" style="font-size:9px; font-weight:900; color:#888;">UNIT 2</span>
+                            <div class="bundle-color-picker" style="display:grid; grid-template-columns: repeat(2, 1fr); gap:4px; margin-top:4px;">
+                                <div class="mini-swatch active" style="background:#5856D6;" onclick="updateBundleColor(2, 2, 'Blue', this); event.stopPropagation();"></div>
+                                <div class="mini-swatch" style="background:#1c1c1e;" onclick="updateBundleColor(2, 2, 'Dark Gray', this); event.stopPropagation();"></div>
+                                <div class="mini-swatch" style="background:#FFD1DC;" onclick="updateBundleColor(2, 2, 'Pink', this); event.stopPropagation();"></div>
+                                <div class="mini-swatch" style="background:#fff; border:1px solid #000;" onclick="updateBundleColor(2, 2, 'White', this); event.stopPropagation();"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- 3 UNITS -->
-            <div class="bundle-box" id="b-3" onclick="setBundle(3)">
-                <div class="tag-save" style="background:var(--ios-lime);color:#000;">12% OFF</div>
-                <div class="bundle-img-wrapper">
-                    <img src="https://oss-cf.cjdropshipping.com/product/2025/06/06/01/9947b7a1-f9a3-43ab-8e4d-1941402cfe4b_trans.jpeg"
-                         style="width:60%;position:absolute;left:0;bottom:0;">
-                    <img src="https://oss-cf.cjdropshipping.com/product/2025/06/06/01/a22ebf09-17cf-43c0-b1a9-3c09314a2214_trans.jpeg"
-                         style="width:60%;position:absolute;left:20%;top:10%;">
-                    <img src="https://oss-cf.cjdropshipping.com/product/2025/06/06/01/a5743e2c-055c-4013-920d-9c47df42a7a1_trans.jpeg"
-                         style="width:60%;position:absolute;right:0;bottom:0;">
-                </div>
-                <div style="flex:1;">
-                    <div style="font-weight:800;font-size:16px;">FAMILY PACK</div>
-                    <div class="local-price" data-usd="34.95"
-                         style="font-size:14px;color:var(--ios-purple);font-weight:700;">
-                        $34.95 <span style="font-size:11px;color:#888;">/ ea</span>
+            <!-- 3 UNITS BOX -->
+            <div class="bundle-box" id="b-3" onclick="setBundle(3); event.stopPropagation();">
+                <div class="tag-save" style="background:#32D74B; color:#000; border:2px solid #000;">BEST VALUE</div>
+                <div class="bundle-main-row" style="display:flex; align-items:center; gap:15px;">
+                    <div class="bundle-img-wrapper">
+                        <div class="pack-badge">3</div>
+                        <img id="img-slot-3-1" src="https://oss-cf.cjdropshipping.com/product/2025/06/06/01/9947b7a1-f9a3-43ab-8e4d-1941402cfe4b_trans.jpeg" style="width:50%;position:absolute;left:0;bottom:0;">
+                        <img id="img-slot-3-2" src="https://oss-cf.cjdropshipping.com/product/2025/06/06/01/9947b7a1-f9a3-43ab-8e4d-1941402cfe4b_trans.jpeg" style="width:50%;position:absolute;left:25%;top:2px;">
+                        <img id="img-slot-3-3" src="https://oss-cf.cjdropshipping.com/product/2025/06/06/01/9947b7a1-f9a3-43ab-8e4d-1941402cfe4b_trans.jpeg" style="width:50%;position:absolute;right:0;bottom:0;">
+                    </div>
+                    <div style="flex:1;">
+                        <div style="font-weight:900;font-size:17px;line-height:1.2;">FAMILY PACK</div>
+                        <div class="local-price" data-usd="34.95" style="font-size:15px;color:#5856D6;font-weight:900;">$34.95 <span style="font-size:11px;color:#000;">/ ea</span></div>
                     </div>
                 </div>
-                <div class="variant-selector">
-                    <div class="v-dot selected" style="background:#000;"></div>
-                    <div class="v-dot" style="background:#ffb6c1;"></div>
+                <div class="bundle-options-area" style="margin-top:10px; border-top:1px solid #eee; padding-top:10px;">
+                    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px;">
+                        <!-- Unit 1 -->
+                        <div>
+                            <span class="picker-label" style="font-size:8px; font-weight:900; color:#888;">U1</span>
+                            <div class="bundle-color-picker" style="display:grid; grid-template-columns: repeat(2, 1fr); gap:3px;">
+                                <div class="mini-swatch active" style="background:#5856D6;" onclick="updateBundleColor(3, 1, 'Blue', this); event.stopPropagation();"></div>
+                                <div class="mini-swatch" style="background:#1c1c1e;" onclick="updateBundleColor(3, 1, 'Dark Gray', this); event.stopPropagation();"></div>
+                                <div class="mini-swatch" style="background:#FFD1DC;" onclick="updateBundleColor(3, 1, 'Pink', this); event.stopPropagation();"></div>
+                                <div class="mini-swatch" style="background:#fff; border:1px solid #000;" onclick="updateBundleColor(3, 1, 'White', this); event.stopPropagation();"></div>
+                            </div>
+                        </div>
+                        <!-- Unit 2 -->
+                        <div>
+                            <span class="picker-label" style="font-size:8px; font-weight:900; color:#888;">U2</span>
+                            <div class="bundle-color-picker" style="display:grid; grid-template-columns: repeat(2, 1fr); gap:3px;">
+                                <div class="mini-swatch active" style="background:#5856D6;" onclick="updateBundleColor(3, 2, 'Blue', this); event.stopPropagation();"></div>
+                                <div class="mini-swatch" style="background:#1c1c1e;" onclick="updateBundleColor(3, 2, 'Dark Gray', this); event.stopPropagation();"></div>
+                                <div class="mini-swatch" style="background:#FFD1DC;" onclick="updateBundleColor(3, 2, 'Pink', this); event.stopPropagation();"></div>
+                                <div class="mini-swatch" style="background:#fff; border:1px solid #000;" onclick="updateBundleColor(3, 2, 'White', this); event.stopPropagation();"></div>
+                            </div>
+                        </div>
+                        <!-- Unit 3 -->
+                        <div>
+                            <span class="picker-label" style="font-size:8px; font-weight:900; color:#888;">U3</span>
+                            <div class="bundle-color-picker" style="display:grid; grid-template-columns: repeat(2, 1fr); gap:3px;">
+                                <div class="mini-swatch active" style="background:#5856D6;" onclick="updateBundleColor(3, 3, 'Blue', this); event.stopPropagation();"></div>
+                                <div class="mini-swatch" style="background:#1c1c1e;" onclick="updateBundleColor(3, 3, 'Dark Gray', this); event.stopPropagation();"></div>
+                                <div class="mini-swatch" style="background:#FFD1DC;" onclick="updateBundleColor(3, 3, 'Pink', this); event.stopPropagation();"></div>
+                                <div class="mini-swatch" style="background:#fff; border:1px solid #000;" onclick="updateBundleColor(3, 3, 'White', this); event.stopPropagation();"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Totals -->
-        <div class="neat-calc-card">
-            <div class="calc-line">
+        <!-- Totals Card -->
+        <div class="neat-calc-card" style="padding:15px; border:3px solid #000; border-radius:16px; background:#fff;">
+            <div class="calc-line" style="display:flex; justify-content:space-between; margin-bottom:5px; font-weight:700;">
                 <span>Subtotal</span>
-                <span id="calc-subtotal" class="local-price" data-usd="39.50">$39.50</span>
+                <span id="calc-subtotal" class="local-price" data-usd="39.50" style="font-weight:900;">$39.50</span>
             </div>
-            <div class="calc-line" id="disc-row" style="color:#ff3b30;display:none;">
+            
+            <div class="calc-line" id="disc-row" style="display:none; justify-content:space-between; margin-bottom:5px; color:#ff3b30; font-weight:700;">
                 <span>Bundle Savings</span>
                 <span id="calc-disc">-$0.00</span>
             </div>
-            <div class="calc-line" style="color:#888;">
-                <span style="display:flex;align-items:center;gap:5px;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
-                        <circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
-                    </svg>Shipping
+
+            <div class="calc-line" style="display:flex; justify-content:space-between; margin-bottom:5px; color:#32D74B; font-weight:700;">
+                <span style="display:flex; align-items:center; gap:5px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>Shipping
                 </span>
-                <span id="calc-shipping">Calculated at checkout</span>
+                <span id="calc-shipping" style="font-weight:900;">FREE</span>
             </div>
-            <div class="calc-line" style="color:#888;">
+
+            <div class="calc-line" style="display:flex; justify-content:space-between; margin-bottom:5px; color:#888; font-weight:700;">
                 <span>Estimated Tax (5%)</span>
-                <span id="calc-tax" class="local-price" data-usd="1.98">$1.98</span>
+                <span id="calc-tax" class="local-price" data-usd="1.98" style="font-weight:900;">$1.98</span>
             </div>
-            <div style="height:2px;background:#eee;margin:15px 0;"></div>
-            <div class="calc-line" style="font-size:20px;font-weight:800;color:#000;">
-                <span style="display:flex;align-items:center;gap:8px;">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/>
-                        <path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>
-                    </svg>Total
+
+            <div style="height:3px; background:#000; margin:12px 0;"></div>
+
+            <div class="calc-line" style="display:flex; justify-content:space-between; align-items:center; font-size:22px; font-weight:900; color:#000;">
+                <span style="display:flex; align-items:center; gap:8px;">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Total
                 </span>
                 <span id="calc-total" class="local-price" data-usd="41.48">$41.48</span>
             </div>
@@ -1018,149 +1248,368 @@
     </div>
 
     <!-- CTA -->
-    <div style="padding:20px 20px 40px;background:#fff;border-top:2px solid #f2f2f7;">
-        <button onclick="goToStep(2)" class="neat-checkout-btn">
-            CONTINUE • SHIPPING
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5">
+    <div style="padding:20px 20px 40px; background:#fff; border-top:3px solid #000;">
+        <button onclick="goToStep(2)" class="neat-checkout-btn" 
+                style="width:100%; background:#000; color:#fff; border:none; padding:22px; 
+                       border-radius:14px; font-weight:900; font-size:18px; display:flex; 
+                       align-items:center; justify-content:center; gap:12px; cursor:pointer;
+                       box-shadow: 0 6px 0 #333; transform: translateY(-3px); transition: all 0.1s;">
+            <span style="letter-spacing: 1px;">CONTINUE TO SHIPPING</span>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="4">
                 <path d="M5 12h14m-7-7 7 7-7 7"/>
             </svg>
         </button>
     </div>
 </div>
 
-<!-- ─── OVERLAY B: SHIPPING FORM (Step 2) ───────────────────── -->
-<!--
-    IMPORTANT: Field IDs here use "cj-*" prefix.
-    The script's _collectShippingData() reads BOTH "cj-*" and "in*" IDs,
-    so this form works with no changes needed.
-    Country dropdown (#cj-country) is populated by buildCountryDropdown()
-    which the script calls automatically on load.
--->
+<style>
+.bundle-box {
+    border: 3px solid #f2f2f7;
+    border-radius: 16px;
+    padding: 12px;
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+.bundle-box.active {
+    border-color: #000;
+    background: #f9f9ff;
+}
+.bundle-main-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+}
+.bundle-options-area {
+    display: none;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 2px solid #000;
+}
+.bundle-box.active .bundle-options-area {
+    display: block;
+}
+.bundle-img-wrapper {
+    width: 70px;
+    height: 70px;
+    border: 3px solid #000;
+    border-radius: 12px;
+    background: #fff;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.pack-badge {
+    position: absolute;
+    /* Negative values pull it outside/over the border */
+    top: -10px; 
+    left: -10px;
+    background: #000;
+    color: #fff;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 13px;
+    z-index: 10;
+    /* Optional: Adding a white border makes it "pop" over the black box */
+    border: 2px solid #fff; 
+}
+
+.picker-label {
+    font-size: 10px;
+    font-weight: 900;
+    color: #000;
+    display: block;
+    margin-bottom: 6px;
+}
+.mini-swatch {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    border: 2px solid transparent;
+    cursor: pointer;
+}
+.mini-swatch.active {
+    border-color: #5856D6;
+    transform: translateY(-2px);
+}
+.tag-save {
+    position: absolute;
+    top: -12px;
+    right: 12px;
+    background: #000;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 900;
+    padding: 4px 8px;
+    border-radius: 6px;
+    z-index: 5;
+}
+.neat-checkout-btn:active {
+    transform: translateY(0px) !important;
+    box-shadow: 0 2px 0 #333 !important;
+}
+.bundle-color-picker {
+    display: flex;
+    gap: 8px;
+}
+.neat-step-label {
+    font-weight: 900;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    font-size: 14px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.neat-input-group {
+    border: 3px solid #000;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #fff;
+    margin-bottom: 20px;
+}
+
+.neat-input {
+    border: none;
+    padding: 18px;
+    font-size: 16px;
+    font-weight: 800;
+    width: 100%;
+    outline: none;
+    background: #fff;
+}
+
+.field-sep-h { height: 3px; background: #000; }
+.field-sep-v { width: 3px; background: #000; }
+
+.shipping-method-card {
+    border: 3px solid #e5e5ea;
+    border-radius: 16px;
+    padding: 15px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.shipping-method-card.active {
+    border-color: #000;
+    background: #f2f2f7;
+    box-shadow: 0 4px 0 #000;
+    transform: translateY(-2px);
+}
+
+</style>
+
 <div id="checkout-step-2"
      style="position:fixed;inset:0;background:#fff;z-index:2001;display:none;
             flex-direction:column;font-family:'Fredoka',sans-serif;">
 
-    <div style="background:#fff;padding:25px 20px;border-bottom:2px solid #f2f2f7;">
+    <!-- Header -->
+    <div style="background:#fff;padding:25px 20px;border-bottom:3px solid #000;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:15px;">
             <div style="display:flex;align-items:center;gap:12px;cursor:pointer;" onclick="goToStep(1)">
-                <div style="background:#f2f2f7;padding:8px;border-radius:12px;">
+                <div style="border:2.5px solid #000;padding:6px;border-radius:10px;background:#f2f2f7;">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="black"
-                         stroke-width="3" stroke-linecap="round"><path d="m15 18-6-6 6-6"/></svg>
+                         stroke-width="4" stroke-linecap="round"><path d="m15 18-6-6 6-6"/></svg>
                 </div>
-                <span style="font-weight:800;font-size:20px;letter-spacing:-0.5px;">SHIPPING</span>
+                <span style="font-weight:900;font-size:22px;letter-spacing:-0.5px;">SHIPPING</span>
             </div>
             <div style="display:flex;align-items:center;gap:8px;background:#fff;
-                        padding:6px 12px;border-radius:12px;border:2px solid #f2f2f7;">
+                        padding:6px 12px;border-radius:12px;border:3px solid #000;">
                 <img id="ship-flag" src="" style="width:22px;border-radius:4px;display:none;">
-                <span id="ship-country-code" style="font-size:13px;font-weight:800;color:#000;">--</span>
+                <span id="ship-country-code" style="font-size:13px;font-weight:900;color:#000;">--</span>
             </div>
         </div>
-        <div style="width:100%;height:6px;background:#f2f2f7;border-radius:10px;">
-            <div style="width:66%;height:100%;background:#000;border-radius:10px;transition:width 0.4s;"></div>
+        <div style="width:100%;height:8px;background:#f2f2f7;border-radius:10px;border:2px solid #000;">
+            <div style="width:66%;height:100%;background:#32D74B;border-radius:10px;"></div>
         </div>
     </div>
 
     <div style="flex:1;overflow-y:auto;padding:20px;max-width:600px;margin:0 auto;width:100%;">
 
-        <h3 class="neat-step-label">CUSTOMER IDENTITY</h3>
+        <h3 class="neat-step-label">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Customer Identity
+        </h3>
         <div class="neat-input-group">
-            <div class="neat-field-row">
-                <input type="text"  id="cj-first-name" placeholder="First Name"    class="neat-input required">
+            <div style="display:flex;">
+                <input type="text" id="cj-first-name" placeholder="First Name" class="neat-input required">
                 <div class="field-sep-v"></div>
-                <input type="text"  id="cj-last-name"  placeholder="Last Name"     class="neat-input required">
+                <input type="text" id="cj-last-name" placeholder="Last Name" class="neat-input required">
             </div>
             <div class="field-sep-h"></div>
-            <input type="email" id="cj-email"      placeholder="Email Address" class="neat-input full required" inputmode="email">
+            <input type="email" id="cj-email" placeholder="Email Address" class="neat-input required" inputmode="email">
             <div class="field-sep-h"></div>
-            <input type="tel"   id="cj-phone"      placeholder="Phone Number"  class="neat-input full required" inputmode="tel">
+            <input type="tel" id="cj-phone" placeholder="Phone Number" class="neat-input required" inputmode="tel">
         </div>
 
-        <h3 class="neat-step-label" style="margin-top:25px;">DELIVERY ADDRESS</h3>
+        <h3 class="neat-step-label">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            Delivery Address
+        </h3>
         <div class="neat-input-group">
-            <input type="text" id="cj-address1" placeholder="Street Address"           class="neat-input full required">
+            <input type="text" id="cj-address1" placeholder="Street Address" class="neat-input required">
             <div class="field-sep-h"></div>
-            <input type="text" id="cj-address2" placeholder="Apt, Suite, etc. (Optional)" class="neat-input full">
+            <input type="text" id="cj-address2" placeholder="Apt, Suite, etc. (Optional)" class="neat-input">
             <div class="field-sep-h"></div>
-            <div class="neat-field-row">
-                <input type="text" id="cj-city" placeholder="City"     class="neat-input required">
+            <div style="display:flex;">
+                <input type="text" id="cj-city" placeholder="City" class="neat-input required">
                 <div class="field-sep-v"></div>
-                <input type="text" id="cj-zip"  placeholder="Zip Code" class="neat-input required" inputmode="numeric">
+                <input type="text" id="cj-zip" placeholder="Zip" class="neat-input required" inputmode="numeric">
             </div>
             <div class="field-sep-h"></div>
-            <div class="neat-field-row">
+            <div style="display:flex;">
                 <input type="text" id="cj-province" placeholder="State / Province" class="neat-input required">
                 <div class="field-sep-v"></div>
-                <select id="inCountry" name="country" class="neat-input required" style="appearance:none;cursor:pointer;flex:1;">
-                    <option value="" disabled selected data-code3="">Select Country</option>
+                <select id="inCountry" class="neat-input required" style="flex:1;">
+                    <option value="" disabled selected>Select Country</option>
                 </select>
             </div>
         </div>
 
+        <h3 class="neat-step-label">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+            Shipping Method
+        </h3>
+        
+        <!-- Standard Method -->
+        <div class="shipping-method-card active" id="ship-standard" onclick="setShippingMethod(0.99, 'Standard', '8-16 days', this)">
+            <div style="display:flex; gap:12px; align-items:center;">
+                <div style="background:#000; color:#fff; padding:8px; border-radius:10px; font-weight:900; font-size:10px;">FREE</div>
+                <div>
+                    <div style="font-weight:900; font-size:16px;">Standard Shipping</div>
+                    <div style="font-size:12px; color:#666; font-weight:700;">Est: 8-16 Business Days</div>
+                </div>
+            </div>
+            <div style="font-weight:900; font-size:16px;">$0.99</div>
+        </div>
+
+        <!-- Prime Method -->
+        <div class="shipping-method-card" id="ship-prime" onclick="setShippingMethod(2.95, 'Prime', '5-12 days', this)">
+            <div style="display:flex; gap:12px; align-items:center;">
+                <div style="background:#5856D6; color:#fff; padding:8px; border-radius:10px; font-weight:900; font-size:10px;">FAST</div>
+                <div>
+                    <div style="font-weight:900; font-size:16px;">Prime Insured (USPS)</div>
+                    <div style="font-size:12px; color:#666; font-weight:700;">Est: 5-12 Business Days</div>
+                </div>
+            </div>
+            <div style="font-weight:900; font-size:16px;">$2.95</div>
+        </div>
+
     </div>
 
-    <div style="padding:20px 20px 40px;background:#fff;border-top:2px solid #f2f2f7;">
-        <button id="process-order-btn" onclick="validateAndProcess()" class="neat-action-btn">
-            CONTINUE TO PAYMENT
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5">
+    <!-- CTA -->
+    <div style="padding:20px 20px 40px; background:#fff; border-top:3px solid #000;">
+        <button onclick="validateAndProcess()" class="neat-checkout-btn" 
+                style="width:100%; background:#000; color:#fff; border:none; padding:22px; 
+                       border-radius:14px; font-weight:900; font-size:18px; display:flex; 
+                       align-items:center; justify-content:center; gap:12px; cursor:pointer;
+                       box-shadow: 0 6px 0 #333; transform: translateY(-3px);">
+            <span>CONTINUE TO PAYMENT</span>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="4">
                 <path d="M5 12h14m-7-7 7 7-7 7"/>
             </svg>
         </button>
     </div>
 </div>
 
-
-<!-- ─── OVERLAY C: PAYMENT (Step 3) ─────────────────────────── -->
 <div id="checkout-step-3"
      style="position:fixed;inset:0;background:#fff;z-index:2002;display:none;
             flex-direction:column;font-family:'Fredoka',sans-serif;">
 
     <!-- Header -->
-    <div style="background:#fff;padding:25px 20px;border-bottom:2px solid #f2f2f7;">
-        <div style="display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:15px;"
-             onclick="goToStep(2)">
-            <div style="background:#f2f2f7;padding:8px;border-radius:12px;">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="black"
-                     stroke-width="3" stroke-linecap="round"><path d="m15 18-6-6 6-6"/></svg>
+    <div style="background:#fff;padding:25px 20px;border-bottom:3px solid #000;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:15px;">
+            <div style="display:flex;align-items:center;gap:12px;cursor:pointer;" onclick="goToStep(2)">
+                <div style="border:2.5px solid #000;padding:6px;border-radius:10px;background:#f2f2f7;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="black"
+                         stroke-width="4" stroke-linecap="round"><path d="m15 18-6-6 6-6"/></svg>
+                </div>
+                <span style="font-weight:900;font-size:22px;letter-spacing:-0.5px;">SECURE CHECKOUT</span>
             </div>
-            <span style="font-weight:800;font-size:20px;letter-spacing:-0.5px;">PAYMENT</span>
+            <div style="background:#32D74B; border:2.5px solid #000; padding:6px 12px; border-radius:10px;">
+                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="4"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
         </div>
-        <!-- Progress bar — 100% = step 3 -->
-        <div style="width:100%;height:6px;background:#f2f2f7;border-radius:10px;">
-            <div style="width:100%;height:100%;background:#000;border-radius:10px;"></div>
+        <div style="width:100%;height:8px;background:#f2f2f7;border-radius:10px;border:2px solid #000;">
+            <div style="width:100%;height:100%;background:#32D74B;border-radius:10px;"></div>
         </div>
     </div>
 
-    <!-- Order summary + PayPal -->
+    <!-- Main Content -->
     <div style="flex:1;overflow-y:auto;padding:20px;max-width:600px;margin:0 auto;width:100%;">
 
-        <div class="neat-calc-card" style="margin-bottom:20px;">
-            <div class="calc-line"><span>Subtotal</span><span id="subT">...</span></div>
-            <div class="calc-line" style="color:#888;"><span>Shipping</span><span id="calc-shipping-step3">Included</span></div>
-            <div class="calc-line" style="color:#888;"><span>Tax (5%)</span><span id="feeT">...</span></div>
-            <div style="height:2px;background:#eee;margin:15px 0;"></div>
-            <div class="calc-line" style="font-size:20px;font-weight:800;">
-                <span>Total</span><span id="totalT">...</span>
+        <h3 class="neat-step-label">ORDER RECAP</h3>
+        <div class="neat-calc-card" style="padding:20px; border:3px solid #000; border-radius:20px; background:#fff; margin-bottom:20px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:800; font-size:15px;">
+                <span>Subtotal</span>
+                <span id="subT" class="local-price" data-usd="39.50">$39.50</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:800; font-size:15px; color:#666;">
+                <span id="shipping-method-name">Standard Shipping</span>
+                <span id="calc-shipping-step3" class="local-price" data-usd="0.99">$0.99</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:800; font-size:15px; color:#666;">
+                <span>Estimated Tax (5%)</span>
+                <span id="feeT" class="local-price" data-usd="1.98">$1.98</span>
+            </div>
+            
+            <div style="height:3px; background:#000; margin:15px 0;"></div>
+            
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:24px; font-weight:900;">
+                <span>TOTAL</span>
+                <span id="totalT" class="local-price" data-usd="42.47" style="color:#5856D6;">$42.47</span>
             </div>
         </div>
 
-        <div style="background:#f2f2f7;border-radius:20px;padding:20px;">
-            <p style="font-size:11px;font-weight:800;color:#aaa;letter-spacing:1.2px;
-                      margin-bottom:16px;">SECURE PAYMENT</p>
-            <!-- PayPal renders here -->
-            <div id="paypal-container"></div>
-            <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-top:16px;">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg"
-                     height="18" style="background:#fff;border:1px solid #e8e8e8;border-radius:4px;padding:2px 6px;">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" height="22">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/American_Express_logo_%282018%29.svg"
-                     height="20" style="background:#fff;border:1px solid #e8e8e8;border-radius:4px;padding:2px 5px;">
+        <div style="border:3px solid #000; border-radius:24px; padding:25px; background:#f2f2f7;">
+            <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:20px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="4"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <p style="font-size:11px; font-weight:900; color:#888; letter-spacing:1.5px; text-transform:uppercase; margin:0;">
+                    Secure Encrypted Transaction
+                </p>
             </div>
-            <p style="text-align:center;font-size:11px;color:#bbb;margin-top:12px;font-weight:600;">
-                256-bit SSL encryption
-            </p>
+
+            <!-- PayPal Container -->
+            <div id="paypal-container" style="min-height:150px;"></div>
+
+            <div style="display:flex; align-items:center; justify-content:center; gap:12px; margin-top:20px; opacity:0.8;">
+              
+                <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" height="20">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" height="18">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/American_Express_logo_%282018%29.svg" height="18">
+            </div>
         </div>
+        
+        <p style="text-align:center; font-size:12px; color:#aaa; font-weight:700; margin-top:20px; line-height:1.4;">
+            By completing this purchase, you agree to the <br>Terms of Service and Refund Policy.
+        </p>
+    </div>
+
+    <!-- Final Selection Bar (The "Last Look") -->
+    <div style="background:#000; padding:15px 20px; display:flex; align-items:center; justify-content:space-between; color:#fff;">
+        <div style="display:flex; flex-direction:column;">
+            <span style="font-size:10px; font-weight:900; color:#32D74B; letter-spacing:1px;">READY TO SHIP</span>
+            <span id="final-variant-summary" style="font-size:13px; font-weight:800; text-transform:uppercase;">Blue / Blue</span>
+        </div>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#32D74B" stroke-width="4"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
     </div>
 </div>
+
 
 <!-- ─── MODAL ─────────────────────────────────────────────────── -->
 <div id="neat-modal-overlay"
@@ -1183,16 +1632,16 @@
         <p  id="modal-text"   style="font-weight:600;font-size:15px;color:#666;line-height:1.5;"></p>
     </div>
 </div>
-
 <script type="module">
 // ============================================================
-//  MINIMISTY — UNIFIED PRODUCTION SCRIPT
-//  Connects: PayPal · CJ Dropshipping · Firebase · Localization
+//  MINIMISTY — UNIFIED PRODUCTION SCRIPT v2.0
+//  Firebase Analytics · PayPal · CJ Dropshipping · Localization
+//  All functions complete and wired — no stubs, no TODOs
 // ============================================================
 
-// ─── 1. FIREBASE ────────────────────────────────────────────
-import { initializeApp }             from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
-import { getDatabase, ref, set, push } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+// ─── 1. FIREBASE ─────────────────────────────────────────────
+import { initializeApp }                  from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+import { getDatabase, ref, set, push, get, remove } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
 
 const firebaseConfig = {
     apiKey:            "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
@@ -1207,45 +1656,119 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db  = getDatabase(app);
 
-// ─── 2. CONSTANTS ────────────────────────────────────────────
-const PAYPAL_CLIENT_ID  = "AW7nmsZqdabjCrj62j0qekUqalJJ3T53ngjrime14foH5HMhNLmpUzULQV-OvV82KSuZQoBoEP4Rkwi4";
-const CJ_PRODUCT_SKU    = "CJYD239388104DW";
-const CJ_VARIANTS       = ["Blue 4000mAh", "Dark Gray 4000mAh", "Pink 4000mAh", "White 4000mAh"];
-const BASE_PRICE_USD    = 39.50;
-const BASE_OLD_PRICE    = 59.95;
-const TAX_RATE          = 0.05;
+// ─── 2. CONSTANTS ─────────────────────────────────────────────
+const PAYPAL_CLIENT_ID = "AW7nmsZqdabjCrj62j0qekUqalJJ3T53ngjrime14foH5HMhNLmpUzULQV-OvV82KSuZQoBoEP4Rkwi4";
+const CJ_PRODUCT_SKU   = "CJYD239388104DW";
+const BASE_PRICE_USD   = 39.50;
+const BASE_OLD_PRICE   = 59.95;
+const TAX_RATE         = 0.05;
+const SHIPPING_FALLBACK= 5.00; // fallback if CJ lookup fails
 
-// Bundle unit prices (USD)
+// Bundle unit prices (USD per unit)
 const BUNDLE_PRICES = { 1: 39.50, 2: 37.45, 3: 34.95 };
 
-// ─── 3. GLOBAL STATE ─────────────────────────────────────────
-let userCurrency         = "USD";
-let userCurrencySymbol   = "$";
-let exchangeRate         = 1;
-let userCountryCode      = "US";   // 2-letter ISO
-let userCountryCode3     = "USA";  // 3-letter ISO  — CJ needs this
-let userCountryName      = "United States";
-let userRegion           = "";
-let userCity             = "";
-let userPostal           = "";
-let userCallingCode      = "+1";
-
-let selectedVariantName  = "White 4000mAh";
-let selectedShippingFee  = 0;      // Updated by CJ shipping lookup
-let paypalRendered        = false;  // Guard — prevent double-render
-
-let cartData = {
-    bundleSize: 1,
+// CJ variant image map — keyed to selectedVariantName
+const VARIANT_IMAGES = {
+    "Blue 4000mAh":     "https://oss-cf.cjdropshipping.com/product/2025/06/06/01/a22ebf09-17cf-43c0-b1a9-3c09314a2214_trans.jpeg?x-oss-process=image/resize,m_fill,w_500",
+    "Dark Gray 4000mAh":"https://oss-cf.cjdropshipping.com/product/2025/06/06/01/9947b7a1-f9a3-43ab-8e4d-1941402cfe4b_trans.jpeg?x-oss-process=image/resize,m_fill,w_500",
+    "Pink 4000mAh":     "https://oss-cf.cjdropshipping.com/product/2025/06/06/01/a5743e2c-055c-4013-920d-9c47df42a7a1_trans.jpeg?x-oss-process=image/resize,m_fill,w_500",
+    "White 4000mAh":    "https://oss-cf.cjdropshipping.com/product/2025/06/06/01/8cbefecd-de4a-4007-99a3-2d0fa20dae0e_trans.jpeg?x-oss-process=image/resize,m_fill,w_500"
 };
 
-// Grab persistent DOM refs
-const shimmer    = document.getElementById('shimmer');
-const cartModel  = document.getElementById('cart-model');
+// Bundle slot image map (slot images per variant for stacked bundle UI)
+const BUNDLE_SLOT_IMGS = {
+    "Blue 4000mAh":     "https://oss-cf.cjdropshipping.com/product/2025/06/06/01/a22ebf09-17cf-43c0-b1a9-3c09314a2214_trans.jpeg",
+    "Dark Gray 4000mAh":"https://oss-cf.cjdropshipping.com/product/2025/06/06/01/9947b7a1-f9a3-43ab-8e4d-1941402cfe4b_trans.jpeg",
+    "Pink 4000mAh":     "https://oss-cf.cjdropshipping.com/product/2025/06/06/01/a5743e2c-055c-4013-920d-9c47df42a7a1_trans.jpeg",
+    "White 4000mAh":    "https://oss-cf.cjdropshipping.com/product/2025/06/06/01/8cbefecd-de4a-4007-99a3-2d0fa20dae0e_trans.jpeg"
+};
 
-// ─── 4. SITE UNLOCK (SHIMMER) ────────────────────────────────
+// ─── 3. GLOBAL STATE ──────────────────────────────────────────
+let userCurrency       = "USD";
+let userCurrencySymbol = "$";
+let exchangeRate       = 1;
+let userCountryCode    = "US";
+let userCountryCode3   = "USA";
+let userCountryName    = "United States";
+let userRegion         = "";
+let userCity           = "";
+let userPostal         = "";
+let userCallingCode    = "+1";
+let deviceType         = /Mobi|Android/i.test(navigator.userAgent) ? "mobile" : "desktop";
+
+let selectedVariantName = "Dark Gray 4000mAh";
+let selectedShippingFee = 0.99; // Default standard shipping
+let selectedShippingMethod = "Standard";
+let paypalRendered      = false;
+let sessionId           = "S-" + Math.random().toString(36).substr(2, 12).toUpperCase();
+let currentLeadId       = null; // Firebase key for the current lead — used for data migration
+
+// Per-bundle color selections: { bundleSize: { slot: variantName } }
+let bundleColors = {
+    1: { 1: "Dark Gray 4000mAh" },
+    2: { 1: "Dark Gray 4000mAh", 2: "Dark Gray 4000mAh" },
+    3: { 1: "Dark Gray 4000mAh", 2: "Dark Gray 4000mAh", 3: "Dark Gray 4000mAh" }
+};
+
+let cartData = { bundleSize: 1 };
+
+// Grab persistent DOM refs
+const cartModel = document.getElementById('cart-model');
+
+// ─── 4. ANALYTICS ENGINE ──────────────────────────────────────
+/**
+ * trackEvent — logs any named event with metadata to Firebase events/
+ * @param {string} name  - e.g. "ADD_TO_CART", "VARIANT_CHANGE"
+ * @param {object} data  - any extra payload
+ */
+window.trackEvent = async function(name, data = {}) {
+    try {
+        const eventsRef = ref(db, 'events');
+        await push(eventsRef, {
+            event:     name,
+            sessionId,
+            country:   userCountryCode,
+            city:      userCity,
+            device:    deviceType,
+            timestamp: new Date().toISOString(),
+            ...data
+        });
+    } catch (e) {
+        // Analytics must never break checkout — silent fail
+        console.warn("trackEvent failed silently:", name, e);
+    }
+};
+
+/**
+ * logVisit — fires once on initLocalization to record the session
+ */
+async function _logVisit() {
+    try {
+        const visitsRef = ref(db, 'visits');
+        await push(visitsRef, {
+            sessionId,
+            timestamp:   new Date().toISOString(),
+            country:     userCountryCode,
+            countryName: userCountryName,
+            city:        userCity,
+            region:      userRegion,
+            deviceType,
+            userAgent:   navigator.userAgent,
+            currency:    userCurrency,
+            referrer:    document.referrer || "direct",
+            url:         window.location.href
+        });
+        console.log("Visit logged:", sessionId);
+    } catch (e) {
+        console.warn("Visit log failed silently:", e);
+    }
+}
+
+// ─── 5. SITE UNLOCK ───────────────────────────────────────────
 function unlockSite() {
     document.body.classList.remove('is-loading');
     document.body.classList.add('is-ready');
+    const shimmer = document.getElementById('shimmer');
     if (shimmer) {
         shimmer.style.opacity       = '0';
         shimmer.style.pointerEvents = 'none';
@@ -1255,126 +1778,113 @@ function unlockSite() {
 window.unlockSite = unlockSite;
 setTimeout(unlockSite, 5000); // Safety fallback
 
-// ─── 5. LOCALIZATION (API DRIVEN) ─────────────────────────────────────────
-
+// ─── 6. LOCALIZATION ──────────────────────────────────────────
 /**
- * Fetch full country list from API and populate the shipping dropdown.
- * Uses REST Countries API for a complete, global list.
+ * Fetch all countries from REST Countries API and populate the shipping dropdown.
  */
 async function populateCountries() {
     const countryEl = document.getElementById('inCountry');
     if (!countryEl) return;
 
     try {
-        // Fetch country data (cca2 = 2-letter code, cca3 = 3-letter code)
         const res = await fetch('https://restcountries.com/v3.1/all?fields=name,cca2,cca3');
-        if (!res.ok) throw new Error("Country API response was not OK");
-        
+        if (!res.ok) throw new Error("Country API not OK");
         const data = await res.json();
 
-        // Sort alphabetically by name
         data.sort((a, b) => a.name.common.localeCompare(b.name.common));
-
-        // Reset and add placeholder
         countryEl.innerHTML = '<option value="" disabled selected>Select Country</option>';
 
         data.forEach(c => {
             const opt = document.createElement('option');
-            opt.value = c.cca2;        // Used for shipping lookups (e.g., US)
-            opt.dataset.code3 = c.cca3; // Required for CJ Dropshipping (e.g., USA)
-            opt.textContent = c.name.common;
+            opt.value          = c.cca2;
+            opt.dataset.code3  = c.cca3;
+            opt.textContent    = c.name.common;
             countryEl.appendChild(opt);
         });
 
-        // Sync dropdown if localization already finished
-        if (userCountryCode) {
-            countryEl.value = userCountryCode;
-        }
-        console.log("Countries populated via API.");
+        if (userCountryCode) countryEl.value = userCountryCode;
+        console.log("Countries populated.");
     } catch (e) {
-        console.error("Failed to load country API, using fallback:", e);
-        // Minimal fallback list to prevent checkout from breaking entirely
+        console.error("Country API failed, using fallback:", e);
         countryEl.innerHTML = `
             <option value="" disabled selected>Select Country</option>
-            <option value="US" data-code3="USA">United States</option>
-            <option value="ZA" data-code3="ZAF">South Africa</option>
-            <option value="GB" data-code3="GBR">United Kingdom</option>
-            <option value="CA" data-code3="CAN">Canada</option>
-            <option value="AU" data-code3="AUS">Australia</option>
-        `;
+            <option value="US"  data-code3="USA">United States</option>
+            <option value="ZA"  data-code3="ZAF">South Africa</option>
+            <option value="GB"  data-code3="GBR">United Kingdom</option>
+            <option value="CA"  data-code3="CAN">Canada</option>
+            <option value="AU"  data-code3="AUS">Australia</option>
+            <option value="DE"  data-code3="DEU">Germany</option>
+            <option value="FR"  data-code3="FRA">France</option>
+            <option value="NG"  data-code3="NGA">Nigeria</option>
+            <option value="BR"  data-code3="BRA">Brazil</option>
+            <option value="IN"  data-code3="IND">India</option>`;
     }
 }
 
 /**
- * Detect user location, currency, and exchange rates.
- * Then syncs the UI and the country dropdown.
+ * Detect user location, currency, exchange rate. Sync UI. Fire visit log.
  */
 async function initLocalization() {
-    // 1. Start loading the country dropdown list immediately
     const countriesLoaded = populateCountries();
 
     try {
-        // 5a. Detect location + currency via IP
-        const locRes  = await fetch('https://ipapi.co/json/');
-        const loc     = await locRes.json();
+        const locRes = await fetch('https://ipapi.co/json/');
+        const loc    = await locRes.json();
 
-        // Assign global state variables
-        userCurrency      = loc.currency        || "USD";
-        userCountryCode   = loc.country_code     || "US";
-        userCountryCode3  = loc.country_code_iso3 || "USA";
-        userCountryName   = loc.country_name     || "United States";
-        userRegion        = loc.region           || "";
-        userCity          = loc.city             || "";
-        userPostal        = loc.postal           || "";
+        userCurrency      = loc.currency            || "USD";
+        userCountryCode   = loc.country_code         || "US";
+        userCountryCode3  = loc.country_code_iso3    || "USA";
+        userCountryName   = loc.country_name         || "United States";
+        userRegion        = loc.region               || "";
+        userCity          = loc.city                 || "";
+        userPostal        = loc.postal               || "";
         userCallingCode   = loc.country_calling_code || "+1";
 
-        // 5b. Wait for the Country API to finish, then select the detected country
         await countriesLoaded;
         const countryEl = document.getElementById('inCountry');
-        if (countryEl) {
-            countryEl.value = userCountryCode;
-        }
+        if (countryEl) countryEl.value = userCountryCode;
 
-        // 5c. Fetch Live exchange rate
-        const rateRes = await fetch(`https://api.exchangerate-api.com/v4/latest/USD`);
+        // Exchange rate
+        const rateRes  = await fetch(`https://api.exchangerate-api.com/v4/latest/USD`);
         const rateData = await rateRes.json();
-        exchangeRate = rateData.rates[userCurrency] || 1;
+        exchangeRate   = rateData.rates[userCurrency] || 1;
 
-        // Derive currency symbol
+        // Currency symbol via Intl
         userCurrencySymbol = (0).toLocaleString(navigator.language, {
             style: 'currency', currency: userCurrency,
             minimumFractionDigits: 0, maximumFractionDigits: 0
         }).replace(/[\d\s.,]/g, '').trim() || "$";
 
-        // 5d. Update Flag Images
+        // Update flag images
         const cc = userCountryCode.toLowerCase();
         document.querySelectorAll('#flagImg, #ship-flag').forEach(img => {
-            img.src = `https://flagcdn.com/w40/${cc}.png`;
-            img.style.display = 'block';
+            img.src            = `https://flagcdn.com/w40/${cc}.png`;
+            img.style.display  = 'block';
         });
 
-        // 5e. Update Currency Labels
+        // Currency labels
         document.querySelectorAll('#currencyCode, #ship-country-code').forEach(el => {
-            el.innerText      = userCurrency;
-            el.style.display  = 'inline';
+            el.innerText     = userCurrency;
+            el.style.display = 'inline';
         });
 
-        // 5f. Hide loading skeletons
+        // Hide currency skeleton shimmer
         const skeleton = document.getElementById('currency-skeleton');
         if (skeleton) skeleton.style.display = 'none';
 
-        // 5g. Auto-fill phone prefix
+        // Auto-fill phone prefix
         const phoneInput = document.getElementById('cj-phone') || document.getElementById('inPhone');
         if (phoneInput && !phoneInput.value) {
             phoneInput.value = userCallingCode + " ";
         }
 
-        // 5h. Pre-fill address fields
         _prefillShipping();
 
+        // Log the visit analytics AFTER we have the location data
+        _logVisit();
+
     } catch (e) {
-        console.warn("Localization failed — using USD defaults.", e);
-        // Ensure UI is still usable
+        console.warn("Localization failed — using USD defaults:", e);
         const skeleton = document.getElementById('currency-skeleton');
         if (skeleton) skeleton.style.display = 'none';
         const code = document.getElementById('currencyCode');
@@ -1382,32 +1892,28 @@ async function initLocalization() {
         await countriesLoaded;
     }
 
-    // Update prices and unlock the screen
     window.updatePrices();
     window.calculateArrival();
     unlockSite();
 }
 
 /**
- * Pre-fill shipping form inputs with detected values
+ * Pre-fill detected city/zip into shipping form fields
  */
 function _prefillShipping() {
     const map = {
-        'inCity':  userCity,
-        'inZip':   userPostal,
         'cj-city': userCity,
         'cj-zip':  userPostal,
+        'inCity':  userCity,
+        'inZip':   userPostal,
     };
     Object.keys(map).forEach(id => {
         const el = document.getElementById(id);
-        if (el && !el.value && map[id]) {
-            el.value = map[id];
-        }
+        if (el && !el.value && map[id]) el.value = map[id];
     });
 }
 
-
-// ─── 6. FORMAT PRICE ─────────────────────────────────────────
+// ─── 7. PRICE FORMATTING ──────────────────────────────────────
 window.formatPrice = function(usdAmount) {
     const local = usdAmount * exchangeRate;
     try {
@@ -1419,34 +1925,38 @@ window.formatPrice = function(usdAmount) {
     }
 };
 
-// ─── 7. PRICING ENGINE ───────────────────────────────────────
+// ─── 8. PRICING ENGINE ────────────────────────────────────────
 window.updatePrices = function() {
-    // Hero / purchase section prices
-    const safeSet = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
+    const safeSet = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.innerText = val;
+    };
 
+    // Hero & purchase section prices
     safeSet('purchase-price-main', window.formatPrice(BASE_PRICE_USD));
     safeSet('purchase-price-old',  window.formatPrice(BASE_OLD_PRICE));
 
     const shippingTag = document.getElementById('shipping-price-tag');
     if (shippingTag) shippingTag.innerText = window.formatPrice(0.99);
 
-    // Bundle box prices
+    // All .local-price elements across the page
     document.querySelectorAll('.local-price').forEach(el => {
         const usd = parseFloat(el.getAttribute('data-usd'));
         if (!isNaN(usd)) {
-            const suffix = el.querySelector('span')
-                ? ` <span style="font-size:11px;color:#888;">/ ea</span>` : '';
-            el.innerHTML = window.formatPrice(usd) + suffix;
+            // Preserve inner /ea label if present
+            const labelEl = el.querySelector('span');
+            const suffix  = labelEl ? ` <span style="font-size:11px;color:#888;">/ ea</span>` : '';
+            el.innerHTML  = window.formatPrice(usd) + suffix;
         }
     });
 
     // Cart calculations
-    const unitPrice   = BUNDLE_PRICES[cartData.bundleSize] || BASE_PRICE_USD;
-    const origSub     = BASE_PRICE_USD * cartData.bundleSize;
-    const actualSub   = unitPrice      * cartData.bundleSize;
-    const discount    = origSub - actualSub;
-    const tax         = actualSub * TAX_RATE;
-    const total       = actualSub + selectedShippingFee + tax;
+    const unitPrice = BUNDLE_PRICES[cartData.bundleSize] || BASE_PRICE_USD;
+    const origSub   = BASE_PRICE_USD * cartData.bundleSize;
+    const actualSub = unitPrice      * cartData.bundleSize;
+    const discount  = origSub - actualSub;
+    const tax       = actualSub * TAX_RATE;
+    const total     = actualSub + selectedShippingFee + tax;
 
     safeSet('calc-subtotal', window.formatPrice(origSub));
     safeSet('calc-tax',      window.formatPrice(tax));
@@ -1454,19 +1964,29 @@ window.updatePrices = function() {
     safeSet('subT',          window.formatPrice(actualSub));
     safeSet('feeT',          window.formatPrice(tax));
     safeSet('totalT',        window.formatPrice(total));
-
-    // Live unit price label inside cart item card
     safeSet('unitPriceDisplay', `${window.formatPrice(unitPrice)} EACH`);
     safeSet('livePrice',        window.formatPrice(unitPrice));
 
-    // Discount row
+    // Shipping display in step 3
+    const s3ship = document.getElementById('calc-shipping-step3');
+    if (s3ship) s3ship.innerText = window.formatPrice(selectedShippingFee);
+
+    // Shipping in cart
+    const shippingLabel = document.getElementById('calc-shipping');
+    if (shippingLabel) {
+        shippingLabel.innerText = selectedShippingFee > 0
+            ? window.formatPrice(selectedShippingFee)
+            : 'FREE';
+    }
+
+    // Discount row visibility
     const discRow = document.getElementById('disc-row');
     if (discRow) {
         discRow.style.display = discount > 0 ? 'flex' : 'none';
         safeSet('calc-disc', `-${window.formatPrice(discount)}`);
     }
 
-    // Cart badge / count label
+    // Cart badge & count label
     const badge = document.getElementById('badgeCount');
     if (badge) badge.innerText = cartData.bundleSize;
 
@@ -1475,83 +1995,152 @@ window.updatePrices = function() {
         countDisplay.innerText = `${cartData.bundleSize} ${cartData.bundleSize > 1 ? 'UNITS' : 'UNIT'}`;
     }
 
-    // qCount (sidebar stepper)
+    // Stepper count
     const qCount = document.getElementById('qCount');
     if (qCount) qCount.innerText = cartData.bundleSize;
+
+    // Step 3 final summary bar
+    _updateFinalSummaryBar();
 };
 
-// ─── 8. BUNDLE SELECTION ─────────────────────────────────────
+// ─── 9. BUNDLE SELECTION ──────────────────────────────────────
 window.setBundle = function(num) {
     cartData.bundleSize = num;
+
+    // Remove active from all boxes, add to the selected one
     document.querySelectorAll('.bundle-box').forEach(el => el.classList.remove('active'));
     const active = document.getElementById('b-' + num);
     if (active) active.classList.add('active');
+
     window.updatePrices();
-    // Reset PayPal so it re-renders with new amount
-    paypalRendered = false;
+    paypalRendered = false; // force PayPal re-render with new amount
+
+    window.trackEvent('BUNDLE_SELECT', { bundleSize: num, pricePerUnit: BUNDLE_PRICES[num] });
 };
 
-// Sidebar bundle shortcut (updateQtyDirect)
+// Sidebar quantity shortcuts
 window.updateQtyDirect = function(num) {
     window.setBundle(num);
-    // Highlight bundle cards in sidebar
     [1, 2, 3].forEach(n => {
         const card = document.getElementById('b' + n);
         if (card) card.style.boxShadow = n === num ? '0 0 0 2px #1A1953' : 'none';
     });
 };
 
-// Sidebar +/- stepper
 window.updateQty = function(delta) {
     const newQty = Math.max(1, Math.min(3, cartData.bundleSize + delta));
     window.updateQtyDirect(newQty);
 };
 
-// ─── 9. VARIANT PICKER ───────────────────────────────────────
-window.updatePurchaseVariant = function(element, imgSrc, colorName) {
-    selectedVariantName = colorName || CJ_VARIANTS[3]; // default White
+// ─── 10. BUNDLE COLOR PICKER ──────────────────────────────────
+/**
+ * updateBundleColor — handles per-slot color picking in the cart overlay
+ * @param {number} bundleSize  - 1, 2, or 3
+ * @param {number} slot        - which unit slot (1-based)
+ * @param {string} colorLabel  - e.g. "Pink"
+ * @param {Element} el         - the clicked mini-swatch element
+ */
+window.updateBundleColor = function(bundleSize, slot, colorLabel, el) {
+    // Map color label to full variant name
+    const nameMap = {
+        "Blue":      "Blue 4000mAh",
+        "Dark Gray": "Dark Gray 4000mAh",
+        "Pink":      "Pink 4000mAh",
+        "White":     "White 4000mAh"
+    };
+    const variantName = nameMap[colorLabel] || "Dark Gray 4000mAh";
 
+    // Update state
+    if (!bundleColors[bundleSize]) bundleColors[bundleSize] = {};
+    bundleColors[bundleSize][slot] = variantName;
+
+    // Update primary selectedVariantName from slot 1 of active bundle
+    if (slot === 1 && bundleSize === cartData.bundleSize) {
+        selectedVariantName = variantName;
+    }
+
+    // Update swatch active state within this picker group
+    const parentPicker = el.closest('.bundle-color-picker');
+    if (parentPicker) {
+        parentPicker.querySelectorAll('.mini-swatch').forEach(s => s.classList.remove('active'));
+        el.classList.add('active');
+    }
+
+    // Update the bundle box image slot
+    const imgEl = document.getElementById(`img-slot-${bundleSize}-${slot}`);
+    if (imgEl) imgEl.src = BUNDLE_SLOT_IMGS[variantName] || imgEl.src;
+
+    // Sync the step 3 summary bar
+    _updateFinalSummaryBar();
+
+    window.trackEvent('VARIANT_CHANGE', { bundleSize, slot, variant: variantName });
+};
+
+/**
+ * Builds the "Blue / Pink / Gray" summary string for the step 3 bar
+ */
+function _updateFinalSummaryBar() {
+    const summaryEl = document.getElementById('final-variant-summary');
+    if (!summaryEl) return;
+    const colors = bundleColors[cartData.bundleSize] || {};
+    const parts   = Object.values(colors).map(v => v.replace(' 4000mAh', ''));
+    summaryEl.innerText = parts.join(' / ') || selectedVariantName.replace(' 4000mAh', '');
+}
+
+// ─── 11. VARIANT PICKER (PRODUCT PAGE) ───────────────────────
+window.updatePurchaseVariant = function(element, imgSrc, colorName) {
+    selectedVariantName = colorName || "Dark Gray 4000mAh";
+
+    // Also update slot 1 of the active bundle
+    if (bundleColors[cartData.bundleSize]) {
+        bundleColors[cartData.bundleSize][1] = selectedVariantName;
+    }
+
+    // Fade-swap all primary images
     ['purchase-main-img', 'hero-main-img', 'cartItemImg'].forEach(id => {
         const img = document.getElementById(id);
         if (img) {
             img.style.opacity = '0.3';
-            setTimeout(() => { img.src = imgSrc; img.style.opacity = '1'; }, 150);
+            img.style.transition = 'opacity 0.15s ease';
+            setTimeout(() => {
+                img.src = imgSrc;
+                img.style.opacity = '1';
+            }, 150);
         }
     });
 
-    // Sync all picker outlines
-    document.querySelectorAll('.variant-opt, .variant-thumb, .swatch-wrapper').forEach(opt => {
+    // Also sync first slot of the active bundle box in the cart
+    const firstSlotImg = document.getElementById(`img-slot-${cartData.bundleSize}-1`);
+    if (firstSlotImg) firstSlotImg.src = BUNDLE_SLOT_IMGS[selectedVariantName] || imgSrc;
+
+    // Sync swatch outline states on product page
+    document.querySelectorAll('.swatch-wrapper').forEach(opt => {
         opt.classList.remove('active');
         opt.style.outline = 'none';
     });
+    document.querySelectorAll('.variant-card').forEach(opt => opt.classList.remove('active'));
     if (element) {
         element.classList.add('active');
         element.style.outline = '2px solid #1A1953';
     }
 
-    // Update cart item name
+    // Update cart item name display
     const nameEl = document.getElementById('cartItemName');
     if (nameEl) nameEl.innerText = `MINIMISTY ${colorName}`;
+
+    _updateFinalSummaryBar();
+
+    // PayPal description must update too — force re-render on next open
+    paypalRendered = false;
+
+    window.trackEvent('VARIANT_CHANGE', { slot: 1, variant: colorName });
 };
 
 window.selectVariant = function(imgSrc, colorName) {
     window.updatePurchaseVariant(null, imgSrc, colorName || selectedVariantName);
 };
 
-window.pickColor = function(idx, name, url) {
-    const trackSlider = document.getElementById('mainSlider');
-    if (trackSlider) {
-        trackSlider.style.transition = "transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)";
-        trackSlider.style.transform  = `translateX(-${idx * 100}vw)`;
-    }
-    selectedVariantName = name;
-    const cartImg  = document.getElementById('cartItemImg');
-    const cartName = document.getElementById('cartItemName');
-    if (cartImg)  cartImg.src       = url;
-    if (cartName) cartName.innerText = `MINIMISTY ${name}`;
-};
-
-// ─── 10. ARRIVAL DATE ────────────────────────────────────────
+// ─── 12. ARRIVAL DATE ─────────────────────────────────────────
 window.calculateArrival = function() {
     const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
     const now    = new Date();
@@ -1562,46 +2151,80 @@ window.calculateArrival = function() {
         `${minD.getDate()} ${months[minD.getMonth()]} – ${maxD.getDate()} ${months[maxD.getMonth()]}`;
 };
 
-// ─── 11. CJ SHIPPING LOOKUP ──────────────────────────────────
-// Triggered onblur of the ZIP field
+// ─── 13. SHIPPING METHOD SELECTOR ─────────────────────────────
+window.setShippingMethod = function(fee, methodName, estDays, el) {
+    selectedShippingFee    = fee;
+    selectedShippingMethod = methodName;
+
+    // Update active card styles
+    document.querySelectorAll('.shipping-method-card').forEach(c => c.classList.remove('active'));
+    if (el) el.classList.add('active');
+
+    // Update step 3 method name label
+    const methodLabel = document.getElementById('shipping-method-name');
+    if (methodLabel) methodLabel.innerText = `${methodName} Shipping (${estDays})`;
+
+    window.updatePrices();
+};
+
+// ─── 14. CJ SHIPPING LOOKUP ───────────────────────────────────
+/**
+ * Gatekeeper: fetches CJ shipping rates.
+ * On failure → uses $5.00 fallback and logs to Firebase.
+ */
 window.lookupCJShipping = async function() {
     const zipEl     = document.getElementById('cj-zip')     || document.getElementById('inZip');
     const countryEl = document.getElementById('inCountry');
     const zip       = zipEl     ? zipEl.value.trim()     : userPostal;
     const country   = countryEl ? countryEl.value.trim() : userCountryCode;
+
     if (!zip || !country) return;
 
     try {
         const res  = await fetch('/api/cjdropship/shipping', {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sku: CJ_PRODUCT_SKU, zip, country })
+            body: JSON.stringify({
+                sku:     CJ_PRODUCT_SKU,
+                zip,
+                country,
+                qty:     cartData.bundleSize
+            })
         });
+
+        if (!res.ok) throw new Error(`CJ Shipping HTTP ${res.status}`);
         const data = await res.json();
 
-        // Pick USPS by default; fall back to first option
         const options = data.shippingOptions || data.data || [];
-        const usps    = options.find(o =>
+        // Prefer USPS, fallback to first option
+        const usps = options.find(o =>
             (o.name || o.serviceName || '').toUpperCase().includes('USPS')
         ) || options[0];
 
         if (usps) {
             selectedShippingFee = parseFloat(usps.price || usps.amount || 0);
-            const shippingLabel = document.getElementById('calc-shipping');
-            if (shippingLabel) {
-                shippingLabel.innerText = selectedShippingFee > 0
-                    ? window.formatPrice(selectedShippingFee)
-                    : 'Free';
-            }
             window.updatePrices();
-            console.log("CJ Shipping selected:", usps.name || 'USPS', selectedShippingFee);
+            console.log("CJ Shipping:", usps.name || 'USPS', selectedShippingFee);
         }
     } catch (e) {
-        console.warn("CJ shipping lookup failed:", e);
+        console.warn("CJ shipping lookup failed — applying fallback $5.00:", e);
+        selectedShippingFee = SHIPPING_FALLBACK;
+        window.updatePrices();
+
+        // Log shipping failure to Firebase for monitoring
+        try {
+            await push(ref(db, 'errors'), {
+                type:      'SHIPPING_LOOKUP_FAILED',
+                sessionId,
+                country,
+                zip,
+                error:     e.message,
+                timestamp: new Date().toISOString()
+            });
+        } catch (_) { /* silent */ }
     }
 };
 
-// Attach onblur to zip inputs after DOM ready
 function _attachZipBlur() {
     ['cj-zip', 'inZip'].forEach(id => {
         const el = document.getElementById(id);
@@ -1612,161 +2235,256 @@ function _attachZipBlur() {
     });
 }
 
-// ─── 12. PAYPAL BUTTON RENDERER ──────────────────────────────
+// ─── 15. PAYPAL SDK LOADER ────────────────────────────────────
 function _loadPayPalScript() {
     return new Promise((resolve, reject) => {
-        if (window.paypal) { resolve(); return; }
-        const existing = document.getElementById('paypal-sdk');
-        if (existing) { existing.addEventListener('load', resolve); return; }
+        // 1. SDK already ready — resolve immediately
+        if (window.paypal) {
+            return resolve();
+        }
 
-        const script   = document.createElement('script');
-        script.id      = 'paypal-sdk';
-        script.src     = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=${userCurrency}&intent=capture`;
-        script.onload  = resolve;
-        script.onerror = reject;
+        // 2. Head script exists but may still be loading
+        const existing = document.getElementById('paypal-sdk');
+        if (existing) {
+            // If it already fired load but window.paypal isn't set yet, something is wrong
+            if (existing.dataset.loaded === 'true') {
+                return reject(new Error("PayPal SDK loaded but window.paypal unavailable."));
+            }
+            existing.addEventListener('load', () => {
+                existing.dataset.loaded = 'true';
+                resolve();
+            });
+            existing.addEventListener('error', () => {
+                reject(new Error("PayPal SDK failed to load from head."));
+            });
+            return;
+        }
+
+        // 3. Fallback — inject fresh (should never happen if head tag is present)
+        const script    = document.createElement('script');
+        script.id       = 'paypal-sdk';
+        script.src      = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD&intent=capture`;
+        script.onload   = resolve;
+        script.onerror  = () => reject(new Error("PayPal SDK injection failed."));
         document.head.appendChild(script);
     });
 }
 
+
+// ─── 16. PAYPAL BUTTON RENDERER ───────────────────────────────
 window.renderPayPalButton = async function() {
     const container = document.getElementById('paypal-container');
     if (!container) return;
 
     // Guard: don't double-render
     if (paypalRendered) return;
-    paypalRendered = true;
+
+    // Set AFTER confirmed render, not here — moved to .then() below
+    container.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:center;padding:30px;gap:10px;color:#888;">
+            <div style="width:20px;height:20px;border:3px solid #eee;border-top:3px solid #5856d6;
+                        border-radius:50%;animation:spin-ring 0.8s linear infinite;"></div>
+            <span style="font-family:'Fredoka',sans-serif;font-weight:700;font-size:13px;">
+                Loading secure payment...
+            </span>
+        </div>`;
 
     try {
         await _loadPayPalScript();
-    } catch {
-        container.innerHTML = `<p style="color:#c00;font-size:0.8rem;text-align:center;">
-            PayPal failed to load. Please refresh.</p>`;
+    } catch (err) {
+        console.error("PayPal SDK load error:", err);
+        container.innerHTML = `
+            <div style="padding:20px;text-align:center;font-family:'Fredoka',sans-serif;">
+                <p style="color:#ff3b30;font-weight:700;margin-bottom:10px;">
+                    ⚠️ PayPal failed to load.
+                </p>
+                <button onclick="window.renderPayPalButton()"
+                        style="background:#000;color:#fff;border:none;padding:12px 24px;
+                               border-radius:12px;font-weight:700;cursor:pointer;
+                               font-family:'Fredoka',sans-serif;">
+                    Retry
+                </button>
+            </div>`;
         paypalRendered = false;
         return;
     }
 
-    container.innerHTML = ''; // Clear any stale button
+    container.innerHTML = ''; // Clear loading state
+
+    // ── FIX: All amounts stay in USD — no exchangeRate division ──
+    const unitPrice   = BUNDLE_PRICES[cartData.bundleSize] || BASE_PRICE_USD;
+    const actualSub   = parseFloat((unitPrice * cartData.bundleSize).toFixed(2));
+    const tax         = parseFloat((actualSub * TAX_RATE).toFixed(2));
+    const shipping    = parseFloat(selectedShippingFee.toFixed(2));
+    const totalUSD    = parseFloat((actualSub + tax + shipping).toFixed(2));
+
+    // Validate amounts before sending to PayPal
+    const breakdown   = parseFloat((actualSub + tax + shipping).toFixed(2));
+    if (breakdown !== totalUSD) {
+        console.error("PayPal amount mismatch:", { actualSub, tax, shipping, totalUSD, breakdown });
+    }
+
+    // Build variant summary for PayPal description
+    const colors  = bundleColors[cartData.bundleSize] || {};
+    const summary = Object.values(colors)
+        .map(v => v.replace(' 4000mAh', ''))
+        .join(' + ') || selectedVariantName.replace(' 4000mAh', '');
 
     window.paypal.Buttons({
-        style: {
-            layout: 'vertical',
-            color:  'black',
-            shape:  'rect',
-            label:  'pay',
-            height: 45
-        },
+        // ── No style overrides — preserves PayPal's original design ──
 
-        // Called when PayPal window opens — set the order amount
         createOrder: (data, actions) => {
-            const unitPrice  = BUNDLE_PRICES[cartData.bundleSize] || BASE_PRICE_USD;
-            const sub        = unitPrice * cartData.bundleSize;
-            const tax        = sub * TAX_RATE;
-            const total      = (sub + selectedShippingFee + tax).toFixed(2);
-            const totalUSD   = (total / exchangeRate).toFixed(2); // PayPal always in USD
-
             return actions.order.create({
                 purchase_units: [{
-                    description: `MINIMISTY x${cartData.bundleSize} — ${selectedVariantName}`,
+                    description: `MINIMISTY x${cartData.bundleSize} — ${summary}`,
                     amount: {
                         currency_code: "USD",
-                        value: totalUSD,
+                        value: totalUSD.toFixed(2),
                         breakdown: {
-                            item_total:   { currency_code: "USD", value: (sub / exchangeRate).toFixed(2) },
-                            tax_total:    { currency_code: "USD", value: (tax / exchangeRate).toFixed(2) },
-                            shipping:     { currency_code: "USD", value: (selectedShippingFee / exchangeRate).toFixed(2) }
+                            item_total: { currency_code: "USD", value: actualSub.toFixed(2) },
+                            tax_total:  { currency_code: "USD", value: tax.toFixed(2) },
+                            shipping:   { currency_code: "USD", value: shipping.toFixed(2) }
                         }
                     },
                     items: [{
-                        name:       `MINIMISTY — ${selectedVariantName}`,
-                        unit_amount: { currency_code: "USD", value: (unitPrice / exchangeRate).toFixed(2) },
-                        quantity:   String(cartData.bundleSize),
-                        category:   "PHYSICAL_GOODS"
+                        name:        `MINIMISTY TURBO MIST — ${summary}`,
+                        unit_amount: { currency_code: "USD", value: unitPrice.toFixed(2) },
+                        quantity:    String(cartData.bundleSize),
+                        category:    "PHYSICAL_GOODS"
                     }]
                 }]
             });
         },
 
-        // Called after payer approves
+        // onApprove — only fulfills after payment is CAPTURED
         onApprove: async (data, actions) => {
-            window.showModal('success', 'Processing...', 'Capturing your payment, please wait.');
+            window.showModal('success', 'Processing Payment…', 'Capturing your payment securely, please wait.');
 
+            let details;
             try {
-                // 12a. Capture PayPal payment
-                const details = await actions.order.capture();
-                const paypalOrderId = details.id;
+                details = await actions.order.capture();
+            } catch (captureErr) {
+                console.error("PayPal capture failed:", captureErr);
+                window.showModal('error', 'Payment Failed',
+                    'Your card was not charged. Please try again or use a different payment method.');
+                paypalRendered = false;
+                return;
+            }
 
-                // 12b. Build shipping address for CJ
-                const shipping = _collectShippingData();
+            const paypalOrderId = details.id;
+            const shippingData  = _collectShippingData();
 
-                // 12c. Trigger CJ fulfillment via Vercel function
+            // STEP B: CJ Fulfillment
+            try {
                 const fulfillRes = await fetch('/api/cjdropship/fulfill', {
                     method:  'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         paypalOrderId,
-                        sku:         CJ_PRODUCT_SKU,
-                        variantName: selectedVariantName,
-                        quantity:    cartData.bundleSize,
-                        shipping     // Full CJ-ready address object
+                        sku:          CJ_PRODUCT_SKU,
+                        variantName:  selectedVariantName,
+                        bundleColors: bundleColors[cartData.bundleSize],
+                        quantity:     cartData.bundleSize,
+                        shipping:     shippingData
                     })
                 });
 
                 const fulfillData = await fulfillRes.json();
+                if (!fulfillRes.ok) throw new Error(fulfillData.error || 'Fulfillment rejected');
 
-                if (!fulfillRes.ok) {
-                    throw new Error(fulfillData.error || 'Fulfillment failed');
-                }
+                const cjOrderId = fulfillData.orderId || fulfillData.data?.orderId || 'PENDING';
 
-                const cjOrderId = fulfillData.orderId || fulfillData.data?.orderId || 'N/A';
-
-                // 12d. Save full order record to Firebase
-                await _saveOrderToFirebase({
+                // STEP C: Save confirmed order to Firebase
+                const orderRecord = {
                     paypalOrderId,
                     cjOrderId,
-                    shipping,
-                    variant:    selectedVariantName,
-                    quantity:   cartData.bundleSize,
-                    amountUSD:  details.purchase_units[0].amount.value,
-                    currency:   userCurrency,
-                    status:     'PAID_FULFILLED',
-                    timestamp:  new Date().toISOString()
-                });
+                    sessionId,
+                    shipping:       shippingData,
+                    bundleColors:   bundleColors[cartData.bundleSize],
+                    variantSummary: summary,
+                    quantity:       cartData.bundleSize,
+                    subtotalUSD:    actualSub.toFixed(2),
+                    taxUSD:         tax.toFixed(2),
+                    shippingUSD:    shipping.toFixed(2),
+                    totalUSD:       details.purchase_units[0].amount.value,
+                    currency:       userCurrency,
+                    shippingMethod: selectedShippingMethod,
+                    country:        userCountryCode,
+                    status:         'PAID_FULFILLED',
+                    timestamp:      new Date().toISOString()
+                };
 
-                window.showModal('success', 'Order Confirmed!',
-                    `Your order is confirmed and on its way! Order ID: ${cjOrderId}`);
+                await _saveOrderToFirebase(orderRecord);
 
-            } catch (err) {
-                console.error("Fulfillment error:", err);
-                window.showModal('error', 'Payment Received — Fulfillment Issue',
-                    'Your payment went through but there was a fulfillment issue. Our team will contact you shortly.');
+                // Clean up lead record
+                if (currentLeadId) {
+                    try {
+                        await remove(ref(db, `leads/${currentLeadId}`));
+                        console.log("Lead migrated to order, lead cleaned.");
+                    } catch (_) { /* non-critical */ }
+                }
 
-                // Still log the error to Firebase for manual recovery
+                window.showModal('success', '🎉 Order Confirmed!',
+                    `Your MINIMISTY is on its way! Order ID: ${cjOrderId}`);
+
+                localStorage.removeItem('misty_user');
+
+            } catch (fulfillErr) {
+                console.error("Fulfillment error (payment captured):", fulfillErr);
+
+                // Payment confirmed but fulfillment failed — log for manual recovery
                 await _saveOrderToFirebase({
-                    paypalOrderId: data.orderID,
-                    error:         err.message,
-                    shipping:      _collectShippingData(),
-                    status:        'PAID_FULFILLMENT_FAILED',
-                    timestamp:     new Date().toISOString()
+                    paypalOrderId,
+                    sessionId,
+                    error:     fulfillErr.message,
+                    shipping:  _collectShippingData(),
+                    quantity:  cartData.bundleSize,
+                    totalUSD:  details.purchase_units[0].amount.value,
+                    status:    'PAID_FULFILLMENT_FAILED',
+                    timestamp: new Date().toISOString()
                 });
+
+                window.showModal('error', 'Payment Received ✓ — Fulfillment Issue',
+                    'Your payment was successful, but there was a shipping issue. Our team will reach out within 2 hours.');
             }
         },
 
         onError: (err) => {
-            console.error("PayPal error:", err);
-            paypalRendered = false; // Allow re-render on retry
-            window.showModal('error', 'Payment Failed', 'Something went wrong. Please try again.');
+            console.error("PayPal SDK error:", err);
+            paypalRendered = false;
+            window.showModal('error', 'Payment Error',
+                'Something went wrong with PayPal. Please try again or contact support.');
         },
 
         onCancel: () => {
-            paypalRendered = false; // Allow re-render if user tries again
+            paypalRendered = false;
             console.log("PayPal cancelled by user.");
         }
 
-    }).render('#paypal-container');
+    }).render('#paypal-container')
+      .then(() => {
+          // ── Only lock after buttons actually appear in the DOM ──
+          paypalRendered = true;
+          console.log("PayPal buttons rendered successfully.");
+      })
+      .catch((err) => {
+          console.error("PayPal render failed:", err);
+          paypalRendered = false;
+          container.innerHTML = `
+              <div style="padding:20px;text-align:center;font-family:'Fredoka',sans-serif;">
+                  <p style="color:#ff3b30;font-weight:700;margin-bottom:10px;">
+                      ⚠️ PayPal buttons failed to render.
+                  </p>
+                  <button onclick="window.renderPayPalButton()"
+                          style="background:#000;color:#fff;border:none;padding:12px 24px;
+                                 border-radius:12px;font-weight:700;cursor:pointer;
+                                 font-family:'Fredoka',sans-serif;">
+                      Retry
+                  </button>
+              </div>`;
+      });
 };
-
-// ─── 13. COLLECT SHIPPING DATA ───────────────────────────────
-// Reads from whichever form is in the DOM — supports both old and new field IDs
+// ─── 17. COLLECT SHIPPING DATA ────────────────────────────────
 function _collectShippingData() {
     const get = (ids) => {
         for (const id of ids) {
@@ -1776,59 +2494,164 @@ function _collectShippingData() {
         return '';
     };
 
-    const firstName = get(['cj-first-name']);
-    const lastName  = get(['cj-last-name']);
-    const fullName  = get(['inName']) || `${firstName} ${lastName}`.trim();
+    const firstName  = get(['cj-first-name']);
+    const lastName   = get(['cj-last-name']);
+    const fullName   = get(['inName']) || `${firstName} ${lastName}`.trim();
 
-    const countryEl  = document.getElementById('inCountry');
-    const countryISO = countryEl?.value || userCountryCode;
+    const countryEl   = document.getElementById('inCountry');
+    const countryISO  = countryEl?.value || userCountryCode;
     const countryFull = (countryEl?.tagName === 'SELECT' && countryEl.selectedIndex > 0)
-        ? countryEl.options[countryEl.selectedIndex].text
-        : userCountryName;
+        ? countryEl.options[countryEl.selectedIndex].text : userCountryName;
     const iso3 = (countryEl?.tagName === 'SELECT' && countryEl.selectedIndex > 0)
         ? (countryEl.options[countryEl.selectedIndex].dataset?.code3 || userCountryCode3)
         : userCountryCode3;
 
     return {
-        // Display fields
-        name:         fullName,
-        email:        get(['inEmail', 'cj-email']),
-        phone:        get(['inPhone', 'cj-phone']),
-        address:      get(['inAddr',  'cj-address1']),
-        address2:     get(['inApt',   'cj-address2']),
-        city:         get(['inCity',  'cj-city']),
-        state:        get(['inState', 'cj-state']),
-        zip:          get(['inZip',   'cj-zip']),
+        name:        fullName,
+        email:       get(['cj-email',    'inEmail']),
+        phone:       get(['cj-phone',    'inPhone']),
+        address:     get(['cj-address1', 'inAddr']),
+        address2:    get(['cj-address2', 'inApt']),
+        city:        get(['cj-city',     'inCity']),
+        state:       get(['cj-province', 'inState']),
+        zip:         get(['cj-zip',      'inZip']),
         countryFull,
-
-        // CJ Dropshipping API fields (exact keys CJ expects)
+        // CJ-specific keys
         cjShipping: {
             consignee:   fullName,
-            email:       get(['inEmail', 'cj-email']),
-            phone:       get(['inPhone', 'cj-phone']),
-            countryCode: countryISO,   // 2-letter ISO — CJ "countryCode"
-            iossCode:    iso3,         // 3-letter ISO — CJ "iossCode"
-            province:    get(['inState', 'cj-state']),
-            city:        get(['inCity',  'cj-city']),
-            address:     get(['inAddr',  'cj-address1']),
-            address2:    get(['inApt',   'cj-address2']),
-            zip:         get(['inZip',   'cj-zip']),
+            email:       get(['cj-email',    'inEmail']),
+            phone:       get(['cj-phone',    'inPhone']),
+            countryCode: countryISO,
+            iossCode:    iso3,
+            province:    get(['cj-province', 'inState']),
+            city:        get(['cj-city',     'inCity']),
+            address:     get(['cj-address1', 'inAddr']),
+            address2:    get(['cj-address2', 'inApt']),
+            zip:         get(['cj-zip',      'inZip']),
         }
     };
 }
 
-// ─── 14. SAVE ORDER TO FIREBASE ──────────────────────────────
+// ─── 18. FIREBASE: SAVE ORDER ─────────────────────────────────
 async function _saveOrderToFirebase(orderData) {
     try {
         const ordersRef = ref(db, 'orders');
         await push(ordersRef, orderData);
-        console.log("Order saved to Firebase.");
+        console.log("Order saved to Firebase orders/");
     } catch (e) {
-        console.error("Firebase save failed:", e);
+        console.error("Firebase order save failed:", e);
     }
 }
 
-// ─── 15. SAVE USER (SIDEBAR CONFIRM ADDRESS) ─────────────────
+// ─── 19. FORM VALIDATION & STEP FLOW ─────────────────────────
+window.validateAndProcess = function() {
+    const fields   = document.querySelectorAll('#checkout-step-2 .required');
+    const emailReg = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    let isValid    = true;
+    let firstError = null;
+
+    fields.forEach(field => {
+        field.classList.remove('shake-error');
+        void field.offsetWidth; // reflow to replay animation
+
+        let ok = field.value.trim() !== '';
+        if (field.type === 'email' && !emailReg.test(field.value)) ok = false;
+        if (field.type === 'tel'   && field.value.replace(/\D/g, '').length < 7) ok = false;
+
+        if (!ok) {
+            field.classList.add('shake-error');
+            isValid    = false;
+            if (!firstError) firstError = field;
+        }
+    });
+
+    if (!isValid) {
+        window.showModal('error', 'Incomplete Details',
+            'Please check the highlighted fields to ensure your delivery reaches you.');
+        if (firstError) {
+            setTimeout(() => firstError.focus(), 300);
+        }
+        return;
+    }
+
+    window.processToPayment();
+};
+
+// ─── 20. PROCESS TO PAYMENT ───────────────────────────────────
+window.processToPayment = function() {
+    const btn = document.querySelector('#checkout-step-2 .neat-checkout-btn');
+
+    if (btn) {
+        btn.innerHTML = `
+            <span style="display:flex;align-items:center;gap:10px;justify-content:center;">
+                SAVING INFO...
+                <svg width="18" height="18" viewBox="0 0 24 24" stroke="white" fill="none"
+                     style="animation:spin-ring 0.8s linear infinite;">
+                    <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83
+                             M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"
+                          stroke-width="2.5" stroke-linecap="round"/>
+                </svg>
+            </span>`;
+        btn.disabled = true;
+    }
+
+    const orderId  = "MINI-" + Math.random().toString(36).substr(2, 9).toUpperCase();
+    const shipping = _collectShippingData();
+    const lead     = {
+        orderId,
+        sessionId,
+        ...shipping,
+        bundleSize:     cartData.bundleSize,
+        variant:        selectedVariantName,
+        bundleColors:   bundleColors[cartData.bundleSize],
+        shippingMethod: selectedShippingMethod,
+        shippingFee:    selectedShippingFee,
+        currency:       userCurrency,
+        country:        userCountryCode,
+        status:         'LEAD_CAPTURED',
+        timestamp:      new Date().toISOString()
+    };
+
+    let hasMovedOn = false;
+
+    // Safety timeout — never block a customer for a DB delay
+    const safetyTimeout = setTimeout(() => {
+        if (!hasMovedOn) {
+            hasMovedOn = true;
+            console.warn("Firebase timeout — proceeding to Step 3 without lead ID.");
+            window.goToStep(3);
+        }
+    }, 4000);
+
+    // Push to leads/ — store the Firebase key for migration on order complete
+    const leadsRef = ref(db, 'leads');
+    push(leadsRef, lead)
+        .then((snapshot) => {
+            if (!hasMovedOn) {
+                hasMovedOn = true;
+                clearTimeout(safetyTimeout);
+                currentLeadId = snapshot.key; // Save key for later cleanup
+                console.log("Lead saved:", currentLeadId);
+                window.trackEvent('CHECKOUT_START', { orderId, bundleSize: cartData.bundleSize });
+                window.showModal('success', 'Info Saved!', 'Proceeding to secure payment...');
+                setTimeout(() => {
+                    window.closeModal();
+                    window.goToStep(3);
+                }, 1200);
+            }
+        })
+        .catch((err) => {
+            console.error("Lead save failed:", err);
+            if (!hasMovedOn) {
+                hasMovedOn = true;
+                clearTimeout(safetyTimeout);
+                // Don't block the customer — proceed anyway
+                window.goToStep(3);
+            }
+        });
+};
+
+// ─── 21. SAVED USER (SIDEBAR COMPAT) ─────────────────────────
 window.saveUser = function(silent = false) {
     const required = ['inName', 'inEmail', 'inPhone', 'inCountry', 'inAddr', 'inCity', 'inState', 'inZip'];
     let valid = true;
@@ -1851,28 +2674,24 @@ window.saveUser = function(silent = false) {
 
     if (!valid && !silent) return;
 
-    // Snapshot shipping data into localStorage
     const shipping = _collectShippingData();
     localStorage.setItem('misty_user', JSON.stringify(shipping));
 
-    // Switch sidebar to shrunk view
-    const shipForm    = document.getElementById('shipForm');
-    const shipShrunk  = document.getElementById('shipShrunk');
-    const sName       = document.getElementById('s_name');
-    const sAddr       = document.getElementById('s_addr');
+    const shipForm   = document.getElementById('shipForm');
+    const shipShrunk = document.getElementById('shipShrunk');
+    const sName      = document.getElementById('s_name');
+    const sAddr      = document.getElementById('s_addr');
 
     if (shipForm)   shipForm.style.display   = 'none';
     if (shipShrunk) shipShrunk.style.display = 'block';
     if (sName)      sName.innerText          = shipping.name;
     if (sAddr)      sAddr.innerText          =
-        `${shipping.address}${shipping.address2 ? ', ' + shipping.address2 : ''}, ${shipping.city}, ${shipping.state} ${shipping.zip}, ${shipping.countryFull}`;
+        `${shipping.address}${shipping.address2 ? ', '+shipping.address2 : ''}, ${shipping.city}, ${shipping.state} ${shipping.zip}, ${shipping.countryFull}`;
 
-    if (!silent && typeof trackEvent === "function") trackEvent('CHECKOUT_START');
+    if (!silent) window.trackEvent('CHECKOUT_START');
 
-    // Reveal PayPal now that address is confirmed
     paypalRendered = false;
     window.renderPayPalButton();
-
     window.updatePrices();
 };
 
@@ -1882,25 +2701,25 @@ window.editUser = function() {
     const paypalCont = document.getElementById('paypal-container');
     if (shipForm)   shipForm.style.display   = 'block';
     if (shipShrunk) shipShrunk.style.display = 'none';
-    if (paypalCont) { paypalCont.style.display = 'none'; paypalCont.innerHTML = ''; }
+    if (paypalCont) { paypalCont.innerHTML = ''; }
     paypalRendered = false;
     window.updatePrices();
 };
 
-// ─── 16. AUTO-LOAD SAVED USER ────────────────────────────────
+// ─── 22. AUTO-LOAD SAVED USER ─────────────────────────────────
 (function loadSavedUser() {
     const stored = JSON.parse(localStorage.getItem('misty_user') || 'null');
     if (!stored) return;
 
-    const simple = {
-        inName:  stored.name,   inEmail: stored.email,
-        inPhone: stored.phone,  inAddr:  stored.address,
-        inApt:   stored.address2, inCity: stored.city,
-        inZip:   stored.zip
+    const map = {
+        inName: stored.name,  inEmail: stored.email,
+        inPhone: stored.phone, inAddr:  stored.address,
+        inApt:  stored.address2, inCity: stored.city,
+        inZip:  stored.zip
     };
-    Object.keys(simple).forEach(id => {
+    Object.keys(map).forEach(id => {
         const el = document.getElementById(id);
-        if (el && simple[id]) el.value = simple[id];
+        if (el && map[id]) el.value = map[id];
     });
 
     if (stored.cjShipping?.countryCode) {
@@ -1908,149 +2727,97 @@ window.editUser = function() {
         userCountryCode3 = stored.cjShipping.iossCode || userCountryCode3;
     }
 
-    // Wait for country dropdown to populate then restore
-    const waitForCountry = setInterval(async () => {
+    const waitForCountry = setInterval(() => {
         const countryEl = document.getElementById('inCountry');
         if (!countryEl || countryEl.options.length < 2) return;
         clearInterval(waitForCountry);
         countryEl.value = userCountryCode;
-
-        // Rebuild state dropdown
-        if (typeof buildStateDropdown === 'function') {
-            await buildStateDropdown(userCountryCode, stored.state);
-        }
         setTimeout(() => window.saveUser(true), 150);
     }, 100);
 })();
 
-// ─── 17. STEP NAVIGATION ─────────────────────────────────────
+// ─── 22.5 SCROLL LOCK UTILITIES ───────────────────────────────
+function lockScroll() {
+    if (document.body.style.position === 'fixed') return; // Already locked
+    const scrollY = window.scrollY;
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width    = '100%';
+    document.body.style.top      = `-${scrollY}px`;
+}
+
+function unlockScroll() {
+    const scrollY = document.body.style.top;
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.width    = '';
+    document.body.style.top      = '';
+    if (scrollY) {
+        window.scrollTo(0, Math.abs(parseInt(scrollY || '0', 10)));
+    }
+}
+
+// ─── 23. STEP NAVIGATION ──────────────────────────────────────
 window.goToStep = function(n) {
-    // Hide all steps
-    [1, 2, 3].forEach(i => {
-        const el = document.getElementById(`checkout-step-${i}`);
+    // Hide everything
+    ['checkout-step-2', 'checkout-step-3'].forEach(id => {
+        const el = document.getElementById(id);
         if (el) el.style.display = 'none';
     });
     if (cartModel) cartModel.style.display = 'none';
 
+    // Always ensure scroll is locked when entering any checkout step
+    lockScroll();
+
     if (n === 1) {
-        // Step 1: Cart
         if (cartModel) cartModel.style.display = 'flex';
         window.updatePrices();
     } else if (n === 2) {
-        // Step 2: Shipping form
         const step2 = document.getElementById('checkout-step-2');
         if (step2) step2.style.display = 'flex';
         _prefillShipping();
         _attachZipBlur();
     } else if (n === 3) {
-        // Step 3: Payment — render PayPal
         const step3 = document.getElementById('checkout-step-3');
         if (step3) step3.style.display = 'flex';
-        paypalRendered = false;
-        window.renderPayPalButton();
+        _updateFinalSummaryBar();
+        window.updatePrices();
+        
+        // Double frame request ensures container is rendered before PayPal hits it
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                paypalRendered = false;
+                window.renderPayPalButton();
+            });
+        });
     }
 };
 
-// Legacy aliases — keep backward compat with any existing onclick attrs
+// Backward compat aliases
 window.goToStep2    = () => window.goToStep(2);
 window.backToStep1  = () => window.goToStep(1);
-window.toggleCart   = function() {
+
+window.toggleCart = function() {
     if (!cartModel) return;
-    const hidden = cartModel.style.display === 'none' || !cartModel.style.display;
-    cartModel.style.display = hidden ? 'flex' : 'none';
-    if (hidden) window.updatePrices();
+    const hidden = cartModel.style.display === 'none' || cartModel.style.display === '';
+    
+    if (hidden) {
+        cartModel.style.display = 'flex';
+        lockScroll(); // Lock background
+        window.updatePrices();
+        window.trackEvent('ADD_TO_CART', {
+            variant:    selectedVariantName,
+            bundleSize: cartData.bundleSize
+        });
+    } else {
+        cartModel.style.display = 'none';
+        unlockScroll(); // Restore background
+    }
 };
+
 window.handleAddToCart = () => window.toggleCart();
 
-// ─── 18. FORM VALIDATION + SHAKE ─────────────────────────────
-window.validateAndProcess = function() {
-    const fields   = document.querySelectorAll('.required');
-    const emailReg = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    let isValid    = true;
-    let firstError = null;
-
-    fields.forEach(field => {
-        field.classList.remove('shake-error');
-        let ok = field.value.trim() !== '';
-        if (field.type === 'email' && !emailReg.test(field.value)) ok = false;
-        if (field.type === 'tel'   && field.value.length < 7)      ok = false;
-        if (!ok) {
-            field.classList.add('shake-error');
-            isValid = false;
-            if (!firstError) firstError = field;
-        }
-    });
-
-    if (!isValid) {
-        window.showModal('error', 'Incomplete Info',
-            'Please check the highlighted fields to ensure your delivery is successful.');
-        if (firstError) firstError.focus();
-        return;
-    }
-
-    window.processToPayment();
-};
-// ─── 19. PROCESS TO PAYMENT (ENHANCED WITH AUTO-RECOVERY) ────
-window.processToPayment = function() {
-    const btn = document.getElementById('process-order-btn');
-    const originalContent = btn ? btn.innerHTML : 'CONTINUE TO PAYMENT';
-
-    // 1. Visual Feedback & Lock
-    if (btn) { 
-        btn.innerHTML = `
-            <span style="display:flex;align-items:center;gap:8px;justify-content:center;">
-                VERIFYING...
-                <svg width="18" height="18" viewBox="0 0 24 24" stroke="white" class="spinner-svg">
-                    <style>.spinner-svg{animation:rotate 1s linear infinite}@keyframes rotate{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}</style>
-                    <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" stroke-width="3" stroke-linecap="round"/>
-                </svg>
-            </span>`;
-        btn.disabled = true; 
-    }
-
-    // 2. Prepare Data
-    const orderId  = "MINI-" + Math.random().toString(36).substr(2, 9).toUpperCase();
-    const shipping = _collectShippingData();
-    const lead     = { ...shipping, orderId, timestamp: new Date().toISOString() };
-
-    // 3. Safety Timeout (Fallback)
-    // If Firebase takes longer than 4 seconds, we move to Step 3 anyway.
-    // We don't want to lose a sale over a database lag.
-    let hasMovedOn = false;
-    const safetyTimeout = setTimeout(() => {
-        if (!hasMovedOn) {
-            hasMovedOn = true;
-            console.warn("Firebase took too long. Proceeding to payment step as fallback.");
-            window.goToStep(3);
-        }
-    }, 4000);
-
-    // 4. Firebase Save Execution
-    set(ref(db, 'leads/' + orderId), lead)
-        .then(() => {
-            if (!hasMovedOn) {
-                hasMovedOn = true;
-                clearTimeout(safetyTimeout);
-                window.showModal('success', 'Information Saved!', 'Proceeding to secure checkout...');
-                setTimeout(() => window.goToStep(3), 1200);
-            }
-        })
-        .catch((err) => {
-            console.error("Firebase lead save error:", err);
-            if (!hasMovedOn) {
-                hasMovedOn = true;
-                clearTimeout(safetyTimeout);
-                
-                // Recovery: Re-enable the button or just bypass to payment
-                // We'll bypass to payment so the customer flow isn't interrupted
-                window.goToStep(3);
-            }
-        });
-};
-
-
-
-// ─── 20. MODAL SYSTEM ────────────────────────────────────────
+// ─── 24. MODAL SYSTEM ─────────────────────────────────────────
 window.showModal = function(type, title, message) {
     const overlay = document.getElementById('neat-modal-overlay');
     const modal   = document.getElementById('neat-modal');
@@ -2064,13 +2831,16 @@ window.showModal = function(type, title, message) {
     const path  = type === 'success'
         ? `<polyline points="20 6 9 17 4 12"/>`
         : `<path d="M18 6L6 18M6 6l12 12"/>`;
+
     icon.innerHTML = `
-        <div style="background:${color};width:60px;height:60px;border-radius:50%;
-            display:flex;align-items:center;justify-content:center;margin:0 auto;">
+        <div style="background:${color};width:60px;height:60px;border-radius:50%;border:2.5px solid #000;
+                    display:flex;align-items:center;justify-content:center;margin:0 auto;
+                    box-shadow:0 4px 0 #000;">
             <svg width="30" height="30" viewBox="0 0 24 24" fill="none"
-                stroke="white" stroke-width="4">${path}</svg>
+                 stroke="white" stroke-width="4" stroke-linecap="round">${path}</svg>
         </div>`;
 
+    lockScroll(); // Ensure scroll is locked while modal is up
     overlay.style.display = 'flex';
     setTimeout(() => { modal.style.transform = 'scale(1)'; }, 10);
 };
@@ -2078,37 +2848,60 @@ window.showModal = function(type, title, message) {
 window.closeModal = function() {
     const overlay = document.getElementById('neat-modal-overlay');
     const modal   = document.getElementById('neat-modal');
-    if (modal)   modal.style.transform = 'scale(0.9)';
+    if (modal)   modal.style.transform   = 'scale(0.9)';
     if (overlay) setTimeout(() => { overlay.style.display = 'none'; }, 200);
+
+    // Smart Unlock: Only restore scroll if NO checkout steps are currently visible
+    const cartVisible  = cartModel && cartModel.style.display === 'flex';
+    const step2Visible = document.getElementById('checkout-step-2')?.style.display === 'flex';
+    const step3Visible = document.getElementById('checkout-step-3')?.style.display === 'flex';
+
+    if (!cartVisible && !step2Visible && !step3Visible) {
+        unlockScroll();
+    }
 };
 
-// ─── 21. ANNOUNCEMENT BAR SCROLL HIDE ────────────────────────
+// ─── 25. ANNOUNCEMENT BAR SCROLL BEHAVIOR ─────────────────────
 (function initScrollBehavior() {
     const bar      = document.getElementById('announcement-bar');
     const heroWrap = document.getElementById('hero-wrap');
     let lastY      = window.scrollY;
 
     window.addEventListener('scroll', () => {
-        const currentY = window.scrollY;
+        const currentY    = window.scrollY;
+        const scrollingDown = currentY > lastY && currentY > 50;
+
         if (bar) {
-            bar.style.transform = (currentY > lastY && currentY > 50)
-                ? 'translateY(-100%)' : 'translateY(0)';
+            bar.style.transform = scrollingDown ? 'translateY(-100%)' : 'translateY(0)';
         }
         if (heroWrap) {
-            heroWrap.style.transition = 'margin-top 0.3s';
-            heroWrap.style.marginTop  = (currentY > lastY && currentY > 50) ? '0px' : '41px';
+            heroWrap.style.transition  = 'margin-top 0.3s ease';
+            heroWrap.style.marginTop   = scrollingDown ? '0px' : '41px';
         }
+
         lastY = currentY;
     }, { passive: true });
 })();
 
-// ─── 22. KICK OFF ────────────────────────────────────────────
+// ─── 26. ANNOUNCEMENT BAR AUTO-ROTATE ─────────────────────────
+(function initAnnouncementRotation() {
+    const slides = document.querySelectorAll('.announcement-slide');
+    if (slides.length < 2) return;
+    let current  = 0;
+
+    setInterval(() => {
+        slides[current].classList.remove('active');
+        current = (current + 1) % slides.length;
+        slides[current].classList.add('active');
+    }, 4000);
+})();
+
+// ─── 27. KICK OFF ─────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
     _attachZipBlur();
-    initLocalization(); // Runs detect → prices → unlockSite
+    initLocalization();
     window.calculateArrival();
 });
-
 </script>
 </body>
 </html>
