@@ -3,280 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MINIMISTY | Full System Sandbox</title>
+    <title>MINIMISTY | Live Bridge Tester</title>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;700&display=swap" rel="stylesheet">
-    
     <style>
-        :root {
-            --bold-border: 3px solid #000;
-            --shadow: 6px 6px 0px #000;
-            --accent: #5856d6;
-            --success: #32d74b;
-        }
-
-        body {
-            font-family: 'Fredoka', sans-serif;
-            background: #f7f7f9;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        /* Test Banner */
-        .test-banner {
-            background: #ff9500;
-            color: #000;
-            padding: 10px 20px;
-            border: var(--bold-border);
-            box-shadow: var(--shadow);
-            border-radius: 12px;
-            margin-bottom: 30px;
-            text-align: center;
-            max-width: 600px;
-        }
-
-        /* Main Container */
-        .app-container {
-            width: 100%;
-            max-width: 500px;
-            background: #fff;
-            border: var(--bold-border);
-            border-radius: 24px;
-            box-shadow: var(--shadow);
-            overflow: hidden;
-            padding: 25px;
-        }
-
-        h2 { text-transform: uppercase; margin-top: 0; font-size: 20px; }
-
-        /* Form Styling */
-        .form-section { display: none; flex-direction: column; }
-        .form-section.active { display: flex; }
-
-        label { font-weight: 700; margin: 10px 0 5px 0; font-size: 13px; color: #555; }
-        input, select {
-            padding: 14px;
-            border: var(--bold-border);
-            border-radius: 12px;
-            font-family: inherit;
-            font-size: 15px;
-            background: #fdfdfd;
-        }
-
-        /* Bundle/Variant Selectors */
-        .selector-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-        .choice-card {
-            border: var(--bold-border);
-            border-radius: 12px;
-            padding: 10px;
-            text-align: center;
-            cursor: pointer;
-            transition: 0.2s;
-            font-weight: 700;
-        }
-        .choice-card.active { background: var(--accent); color: white; transform: scale(0.98); }
-
-        /* Buttons */
-        .btn-main {
-            margin-top: 25px;
-            padding: 18px;
-            background: var(--success);
-            border: var(--bold-border);
-            border-radius: 15px;
-            font-weight: 700;
-            font-size: 16px;
-            cursor: pointer;
-            box-shadow: 4px 4px 0px #000;
-            text-transform: uppercase;
-        }
-        .btn-main:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0px #000; }
-
-        /* Modal Overlay */
-        #modal-overlay {
-            position: fixed; top:0; left:0; width:100%; height:100%;
-            background: rgba(0,0,0,0.8); display:none; align-items:center; justify-content:center;
-            z-index: 1000;
-        }
-        .modal {
-            background: #fff; border: var(--bold-border); padding: 30px;
-            border-radius: 20px; width: 80%; max-width: 400px; text-align: center;
-        }
+        :root { --border: 3px solid #000; --shadow: 5px 5px 0px #000; --accent: #5856d6; }
+        body { font-family: 'Fredoka', sans-serif; background: #f4f4f4; padding: 20px; display: flex; justify-content: center; }
+        .card { background: white; border: var(--border); box-shadow: var(--shadow); border-radius: 20px; padding: 25px; width: 100%; max-width: 450px; }
+        input, select { width: 100%; padding: 12px; border: var(--border); border-radius: 10px; margin-bottom: 15px; box-sizing: border-box; font-family: inherit; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .option { border: var(--border); padding: 10px; border-radius: 10px; text-align: center; cursor: pointer; font-weight: 700; transition: 0.2s; }
+        .option.active { background: var(--accent); color: white; transform: translateY(-2px); }
+        .btn-run { width: 100%; padding: 18px; background: #32d74b; border: var(--border); border-radius: 15px; font-weight: 700; cursor: pointer; box-shadow: 4px 4px 0px #000; text-transform: uppercase; }
+        .btn-run:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0px #000; }
+        #console { margin-top: 20px; background: #000; color: #00ff00; padding: 15px; border-radius: 10px; font-family: monospace; font-size: 11px; min-height: 100px; overflow-wrap: break-word; }
     </style>
 </head>
 <body>
 
-    <div class="test-banner">
-        <strong>🛠️ SYSTEM SANDBOX MODE</strong><br>
-        This app sends real orders to CJ via your Vercel backend but bypasses PayPal.
-    </div>
-
-    <div class="app-container">
+    <div class="card">
+        <h2 style="margin-top:0">🚀 Bridge Sandbox</h2>
         
-        <!-- STEP 1: CONFIGURATION -->
-        <div id="step-1" class="form-section active">
-            <h2>1. Configure Order</h2>
-            
-            <label>Quantity Bundle</label>
-            <div class="selector-grid">
-                <div class="choice-card active" onclick="setQty(1, this)">1 UNIT</div>
-                <div class="choice-card" onclick="setQty(2, this)">2 UNITS</div>
-                <div class="choice-card" onclick="setQty(3, this)">3 UNITS</div>
-            </div>
+        <label>Vercel Endpoint</label>
+        <input type="text" id="api-url" value="https://dlsvalue-git-main-franks-projects-9ab45af3.vercel.app/api/dropship">
 
-            <label>Primary Variant</label>
-            <div class="selector-grid">
-                <div class="choice-card active" onclick="setColor('Dark Gray 4000mAh', this)">GRAY</div>
-                <div class="choice-card" onclick="setColor('Blue 4000mAh', this)">BLUE</div>
-                <div class="choice-card" onclick="setColor('Pink 4000mAh', this)">PINK</div>
-                <div class="choice-card" onclick="setColor('White 4000mAh', this)">WHITE</div>
-            </div>
-
-            <label>Vercel API URL</label>
-            <input type="text" id="vercel-url" value="https://your-project.vercel.app/api/cjdropship">
-            
-            <button class="btn-main" onclick="nextStep(2)">Next: Shipping Details</button>
+        <label>Bundle Size</label>
+        <div class="grid">
+            <div class="option active" onclick="setQty(1, this)">1 Unit</div>
+            <div class="option" onclick="setQty(2, this)">2 Units</div>
         </div>
 
-        <!-- STEP 2: SHIPPING -->
-        <div id="step-2" class="form-section">
-            <h2>2. Shipping Info</h2>
-            <input type="text" id="ship-name" placeholder="Full Name">
-            <input type="email" id="ship-email" placeholder="Email Address">
-            <input type="tel" id="ship-phone" placeholder="Phone (e.g. +1 123...)">
-            <input type="text" id="ship-addr" placeholder="Street Address">
-            <input type="text" id="ship-city" placeholder="City">
-            <div class="selector-grid">
-                <input type="text" id="ship-state" placeholder="State/Prov">
-                <input type="text" id="ship-zip" placeholder="Zip/Postal">
-            </div>
-            <select id="ship-country">
-                <option value="US">United States</option>
-                <option value="ZA">South Africa</option>
-                <option value="GB">United Kingdom</option>
-            </select>
-
-            <button class="btn-main" onclick="runSystemTest()">Complete Test Order</button>
-            <button style="border:none; background:none; margin-top:10px; cursor:pointer;" onclick="nextStep(1)">← Back</button>
+        <label>Variant (CJ SKU Map)</label>
+        <div class="grid">
+            <div class="option active" onclick="setColor('Dark Gray 4000mAh', this)">GRAY</div>
+            <div class="option" onclick="setColor('Blue 4000mAh', this)">BLUE</div>
+            <div class="option" onclick="setColor('Pink 4000mAh', this)">PINK</div>
+            <div class="option" onclick="setColor('White 4000mAh', this)">WHITE</div>
         </div>
 
+        <label>Shipping Destination</label>
+        <div class="grid">
+            <input type="text" id="city" value="Johannesburg">
+            <input type="text" id="zip" value="2000">
+        </div>
+        <select id="country">
+            <option value="ZA">South Africa</option>
+            <option value="US">United States</option>
+        </select>
+
+        <button class="btn-run" onclick="executeTest()">Create CJ Order</button>
+        
+        <div id="console">System Ready. Awaiting trigger...</div>
     </div>
 
-    <!-- Modal for Result -->
-    <div id="modal-overlay">
-        <div class="modal">
-            <h3 id="modal-title">Processing...</h3>
-            <p id="modal-body">Talking to Vercel and CJ Dropshipping...</p>
-            <button class="btn-main" style="background:#eee;" onclick="closeModal()">Close</button>
-        </div>
-    </div>
+<script>
+    let currentQty = 1;
+    let currentColor = 'Dark Gray 4000mAh';
 
-    <!-- Firebase Logic (Production Version) -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
-        import { getDatabase, ref, push } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+    function setQty(n, el) { currentQty = n; toggle(el); }
+    function setColor(c, el) { currentColor = c; toggle(el); }
+    function toggle(el) {
+        el.parentElement.querySelectorAll('.option').forEach(o => o.classList.remove('active'));
+        el.classList.add('active');
+    }
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
-            authDomain: "itzhoyoo-f9f7e.firebaseapp.com",
-            databaseURL: "https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com",
-            projectId: "itzhoyoo-f9f7e",
-            databaseURL: "https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com"
-        };
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
+    async function executeTest() {
+        const url = document.getElementById('api-url').value;
+        const consoleLog = document.getElementById('console');
+        consoleLog.innerText = "📡 Contacting Vercel Bridge...";
 
-        // --- STATE ---
-        let qty = 1;
-        let color = 'Dark Gray 4000mAh';
+        // Build the colors object for the SKU_MAP
+        const bundleColors = {};
+        for(let i=1; i<=currentQty; i++) { bundleColors[i] = currentColor; }
 
-        window.setQty = (n, el) => {
-            qty = n;
-            highlight(el);
-        };
-
-        window.setColor = (c, el) => {
-            color = c;
-            highlight(el);
-        };
-
-        function highlight(el) {
-            el.parentElement.querySelectorAll('.choice-card').forEach(c => c.classList.remove('active'));
-            el.classList.add('active');
-        }
-
-        window.nextStep = (n) => {
-            document.querySelectorAll('.form-section').forEach(s => s.classList.remove('active'));
-            document.getElementById(`step-${n}`).classList.add('active');
-        };
-
-        // --- THE REAL SYSTEM TEST ---
-        window.runSystemTest = async function() {
-            const vercelUrl = document.getElementById('vercel-url').value;
-            const modal = document.getElementById('modal-overlay');
-            modal.style.display = 'flex';
-
-            // Collect Data
-            const shipping = {
-                name: document.getElementById('ship-name').value,
-                email: document.getElementById('ship-email').value,
-                phone: document.getElementById('ship-phone').value,
+        const payload = {
+            paypalOrderId: "TEST-SANDBOX-" + Date.now(),
+            bundleColors: bundleColors,
+            shipping: {
                 cjShipping: {
-                    consignee: document.getElementById('ship-name').value,
-                    address: document.getElementById('ship-addr').value,
-                    city: document.getElementById('ship-city').value,
-                    province: document.getElementById('ship-state').value,
-                    zip: document.getElementById('ship-zip').value,
-                    countryCode: document.getElementById('ship-country').value,
-                    phone: document.getElementById('ship-phone').value,
-                    email: document.getElementById('ship-email').value,
+                    consignee: "Sandbox Tester",
+                    address: "123 Test Street",
+                    city: document.getElementById('city').value,
+                    province: "GP",
+                    zip: document.getElementById('zip').value,
+                    countryCode: document.getElementById('country').value,
+                    phone: "0123456789",
+                    email: "test@minimisty.com"
                 }
-            };
-
-            // Build bundleColors map exactly like production
-            const bundleColors = {};
-            for(let i=1; i<=qty; i++) { bundleColors[i] = color; }
-
-            try {
-                // 1. Call Vercel Backend
-                const response = await fetch(`${vercelUrl}/fulfill`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        paypalOrderId: "SANDBOX-" + Date.now(),
-                        bundleColors: bundleColors,
-                        shipping: shipping
-                    })
-                });
-
-                const result = await response.json();
-                console.log("Backend Response:", result);
-
-                if (result.result === true || result.success === true) {
-                    // 2. Log to Firebase if backend succeeded
-                    await push(ref(db, 'orders'), {
-                        status: 'TEST_FULFILLED',
-                        cjOrderId: result.data?.orderId || 'SUCCESS',
-                        shipping: shipping,
-                        timestamp: new Date().toISOString()
-                    });
-
-                    document.getElementById('modal-title').innerText = "✅ Order Success!";
-                    document.getElementById('modal-body').innerText = `Order created in CJ! ID: ${result.data?.orderId || 'Check CJ dashboard'}`;
-                } else {
-                    throw new Error(result.message || "CJ rejected the order. Check Zip/Address.");
-                }
-
-            } catch (err) {
-                document.getElementById('modal-title').innerText = "❌ System Error";
-                document.getElementById('modal-body').innerText = err.message;
             }
         };
 
-        window.closeModal = () => {
-            document.getElementById('modal-overlay').style.display = 'none';
-        };
-    </script>
+        try {
+            const response = await fetch(`${url}/fulfill`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+            
+            if (response.ok) {
+                consoleLog.innerText = "✅ SUCCESS:\n" + JSON.stringify(data, null, 2);
+                console.log("CJ Result:", data);
+            } else {
+                consoleLog.innerText = "❌ ERROR:\n" + (data.error || JSON.stringify(data));
+            }
+        } catch (err) {
+            consoleLog.innerText = "🚨 FAILED TO FETCH:\n" + err.message + "\n\nTip: Ensure your Vercel code handles OPTIONS/CORS.";
+        }
+    }
+</script>
 </body>
 </html>
