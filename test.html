@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MINIMISTY | API Test Pilot</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --bold-border: 3px solid #000; --shadow: 5px 5px 0px #000; }
+        body { font-family: 'Fredoka', sans-serif; background: #f0f0f0; padding: 20px; }
+        .test-container { max-width: 800px; margin: 0 auto; background: #fff; border: var(--bold-border); box-shadow: var(--shadow); padding: 30px; border-radius: 20px; }
+        h2 { text-transform: uppercase; margin-top: 0; color: #5856d6; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        label { display: block; font-weight: 700; margin-bottom: 5px; font-size: 14px; }
+        input, select, textarea { width: 100%; padding: 12px; border: var(--bold-border); border-radius: 10px; font-family: inherit; margin-bottom: 15px; box-sizing: border-box; }
+        .btn { background: #32d74b; color: #000; border: var(--bold-border); padding: 15px 25px; font-weight: 700; border-radius: 12px; cursor: pointer; text-transform: uppercase; transition: transform 0.1s; width: 100%; }
+        .btn:active { transform: translate(2px, 2px); }
+        .btn-ship { background: #5856d6; color: #fff; }
+        .console { background: #1a1a1a; color: #00ff00; padding: 15px; border-radius: 10px; font-family: monospace; height: 200px; overflow-y: auto; margin-top: 20px; font-size: 12px; border: var(--bold-border); }
+        .payload-view { background: #eee; padding: 10px; border-radius: 10px; font-size: 11px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="test-container">
+    <h2>🚀 Backend Test Pilot</h2>
+    <p>Use this to test your Vercel logic without triggering PayPal.</p>
+
+    <div class="grid">
+        <div>
+            <label>Backend URL (Vercel)</label>
+            <input type="text" id="backendUrl" value="https://your-vercel-project.vercel.app/api/cjdropship">
+            
+            <label>Test Bundle Selection</label>
+            <select id="testBundle">
+                <option value="1">1x Blue (Single)</option>
+                <option value="2">2x Mixed (Blue + Pink)</option>
+                <option value="3">3x Triple (Blue + Gray + White)</option>
+            </select>
+
+            <label>Mock PayPal Order ID</label>
+            <input type="text" id="mockPaypalId" value="TEST-ORDER-12345">
+        </div>
+
+        <div>
+            <label>Test Country Code (ISO2)</label>
+            <input type="text" id="testCountry" value="US">
+            
+            <label>Test Zip Code</label>
+            <input type="text" id="testZip" value="90210">
+            
+            <label>Test City</label>
+            <input type="text" id="testCity" value="Beverly Hills">
+        </div>
+    </div>
+
+    <div style="display: flex; gap: 10px;">
+        <button class="btn btn-ship" onclick="testShipping()">1. Test Shipping Lookup</button>
+        <button class="btn" onclick="testFulfillment()">2. Test Fulfillment (Real Order)</button>
+    </div>
+
+    <div class="payload-view" id="payloadView">Payload will appear here...</div>
+    <div class="console" id="testConsole">> System Ready. Waiting for command...</div>
+</div>
+
+<script>
+    const log = (msg) => {
+        const c = document.getElementById('testConsole');
+        c.innerHTML += `<br>> ${msg}`;
+        c.scrollTop = c.scrollHeight;
+    };
+
+    const showPayload = (data) => {
+        document.getElementById('payloadView').innerText = "SENT PAYLOAD: " + JSON.stringify(data, null, 2);
+    };
+
+    // Helper to generate the exact bundleColors object your script uses
+    function getMockBundle(size) {
+        const map = {
+            1: { 1: "Blue 4000mAh" },
+            2: { 1: "Blue 4000mAh", 2: "Pink 4000mAh" },
+            3: { 1: "Blue 4000mAh", 2: "Dark Gray 4000mAh", 3: "White 4000mAh" }
+        };
+        return map[size];
+    }
+
+    async function testShipping() {
+        const url = document.getElementById('backendUrl').value + "/shipping";
+        const payload = {
+            qty: parseInt(document.getElementById('testBundle').value),
+            zip: document.getElementById('testZip').value,
+            country: document.getElementById('testCountry').value
+        };
+
+        log(`Testing Shipping Lookup: ${url}`);
+        showPayload(payload);
+
+        try {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            log(`SUCCESS: ${JSON.stringify(data.data ? data.data[0] : data)}`);
+        } catch (e) {
+            log(`ERROR: ${e.message}`);
+        }
+    }
+
+    async function testFulfillment() {
+        const url = document.getElementById('backendUrl').value + "/fulfill";
+        const bundleSize = document.getElementById('testBundle').value;
+        
+        const payload = {
+            paypalOrderId: document.getElementById('mockPaypalId').value,
+            bundleColors: getMockBundle(bundleSize),
+            shipping: {
+                name: "John Test-User",
+                cjShipping: {
+                    consignee: "John Test-User",
+                    address: "123 Testing Ave",
+                    city: document.getElementById('testCity').value,
+                    province: "CA",
+                    zip: document.getElementById('testZip').value,
+                    countryCode: document.getElementById('testCountry').value,
+                    phone: "1234567890",
+                    email: "test@example.com"
+                }
+            }
+        };
+
+        log(`Testing Fulfillment Creation: ${url}`);
+        showPayload(payload);
+
+        try {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            log(`RESULT: ${JSON.stringify(data)}`);
+            if(data.result === false) log(`🚨 CJ REJECTED: ${data.message}`);
+        } catch (e) {
+            log(`ERROR: ${e.message}`);
+        }
+    }
+</script>
+
+</body>
+</html>
