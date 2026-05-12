@@ -1586,6 +1586,12 @@
 
             <!-- PayPal Container -->
             <div id="paypal-container" style="min-height:150px;"></div>
+<!-- Manual Test Button -->
+<div id="test-payment-container" style="margin-top: 15px; text-align: center;">
+    <button id="manual-test-pay" style="background: #222; color: #fff; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%;">
+        TEST ORDER (No Real Pay)
+    </button>
+</div>
 
             <div style="display:flex; align-items:center; justify-content:center; gap:12px; margin-top:20px; opacity:0.8;">
               
@@ -2902,6 +2908,54 @@ document.addEventListener('DOMContentLoaded', () => {
     initLocalization();
     window.calculateArrival();
 });
+document.getElementById('manual-test-pay').addEventListener('click', async () => {
+    console.log("🚀 Starting Manual Test Order...");
+
+    // 1. Generate a Fake PayPal Order ID for reference
+    const fakeOrderId = "TEST-" + Math.random().toString(36).substr(2, 9).toUpperCase();
+
+    // 2. Prepare the payload (Matches your backend cjdropshipping.js requirements)
+    const testData = {
+        paypalOrderId: fakeOrderId,
+        bundleColors: window.bundleColors, // Pulls the colors selected in your UI
+        shipping: {
+            cjShipping: {
+                firstName: document.getElementById('first-name')?.value || "Test",
+                lastName: document.getElementById('last-name')?.value || "User",
+                address: document.getElementById('address')?.value || "123 Test St",
+                city: document.getElementById('city')?.value || "Cape Town",
+                province: document.getElementById('province')?.value || "Western Cape",
+                countryCode: window.detectedCountryCode || "ZA", //
+                zip: document.getElementById('zip')?.value || "8001",
+                phone: document.getElementById('phone')?.value || "0000000000"
+            }
+        }
+    };
+
+    try {
+        // 3. Trigger your Vercel Backend Bridge
+        const response = await fetch('/api/cjdropshipping/fulfill', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(testData)
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            alert("✅ Test Success! Order created in CJ (check your CJ Drafts). ID: " + fakeOrderId);
+            console.log("CJ Response:", result);
+            // Optionally redirect to your success page
+            // window.location.href = "/success.html";
+        } else {
+            throw new Error(result.error || "Fulfillment failed");
+        }
+    } catch (error) {
+        console.error("❌ Test Error:", error);
+        alert("Error: " + error.message);
+    }
+});
+
 </script>
 </body>
 </html>
