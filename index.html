@@ -1586,12 +1586,6 @@
 
             <!-- PayPal Container -->
             <div id="paypal-container" style="min-height:150px;"></div>
-<!-- Manual Test Button -->
-<div id="test-payment-container" style="margin-top: 15px; text-align: center;">
-    <button id="manual-test-pay" style="background: #222; color: #fff; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%;">
-        TEST ORDER (No Real Pay)
-    </button>
-</div>
 
             <div style="display:flex; align-items:center; justify-content:center; gap:12px; margin-top:20px; opacity:0.8;">
               
@@ -1638,16 +1632,185 @@
         <p  id="modal-text"   style="font-weight:600;font-size:15px;color:#666;line-height:1.5;"></p>
     </div>
 </div>
+<!-- ═══════════════════════════════════════════════════════════
+     ORDER SUCCESS OVERLAY
+════════════════════════════════════════════════════════════ -->
+<div id="order-success-overlay" style="display:none;position:fixed;inset:0;z-index:99999;background:#fff;overflow-y:auto;font-family:'Fredoka',sans-serif;">
+  <style>
+    @keyframes fadeInOverlay { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes checkPop { 0%{transform:scale(0)} 70%{transform:scale(1.15)} 100%{transform:scale(1)} }
+    @keyframes xPop     { 0%{transform:scale(0)} 70%{transform:scale(1.15)} 100%{transform:scale(1)} }
+    .ord-overlay-inner  { width:100%;max-width:520px;padding:32px 20px 60px;margin:0 auto;animation:fadeInOverlay 0.35s ease; }
+    .ord-card  { background:#f9fafb;border:2px solid #000;border-radius:16px;padding:20px 24px;margin-bottom:14px; }
+    .ord-row   { display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #eee; }
+    .ord-row:last-child { border-bottom:none; }
+    .ord-label { font-size:12px;color:#666;font-weight:700;text-transform:uppercase;letter-spacing:.5px; }
+    .ord-value { font-size:14px;font-weight:900;color:#111;text-align:right; }
+    .ord-badge { display:inline-block;background:#22c55e;color:#fff;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:900;letter-spacing:.5px; }
+    .ord-badge-red { display:inline-block;background:#ef4444;color:#fff;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:900;letter-spacing:.5px; }
+  </style>
+  <div class="ord-overlay-inner">
+
+    <!-- Header -->
+    <div style="text-align:center;margin-bottom:28px;">
+      <div style="width:72px;height:72px;background:#22c55e;border-radius:50%;border:3px solid #000;
+                  display:flex;align-items:center;justify-content:center;margin:0 auto 16px;
+                  box-shadow:0 4px 0 #000;animation:checkPop .5s cubic-bezier(.34,1.56,.64,1) .1s both;">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <div style="font-size:26px;font-weight:900;color:#111;letter-spacing:-0.5px;">Order Confirmed!</div>
+      <div style="font-size:14px;color:#555;font-weight:700;margin-top:6px;">
+        Thank you, <span id="os-firstname">friend</span>. Your MINIMISTY is on its way.
+      </div>
+    </div>
+
+    <!-- Order Reference -->
+    <div class="ord-card">
+      <div style="font-size:11px;font-weight:900;color:#22c55e;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">Order Reference</div>
+      <div class="ord-row"><span class="ord-label">Order ID</span>    <span class="ord-value" id="os-orderid"  style="font-family:monospace;">—</span></div>
+      <div class="ord-row"><span class="ord-label">PayPal ID</span>   <span class="ord-value" id="os-paypalid" style="font-family:monospace;font-size:12px;">—</span></div>
+      <div class="ord-row"><span class="ord-label">Placed</span>      <span class="ord-value" id="os-placed">—</span></div>
+      <div class="ord-row"><span class="ord-label">Status</span>      <span class="ord-badge">✓ PAID &amp; FULFILLED</span></div>
+    </div>
+
+    <!-- Order Items -->
+    <div class="ord-card">
+      <div style="font-size:11px;font-weight:900;color:#22c55e;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">Items Ordered</div>
+      <div class="ord-row"><span class="ord-label">Product</span>   <span class="ord-value">MINIMISTY Turbo Mist</span></div>
+      <div class="ord-row"><span class="ord-label">Colours</span>   <span class="ord-value" id="os-colours">—</span></div>
+      <div class="ord-row"><span class="ord-label">Quantity</span>  <span class="ord-value" id="os-quantity">—</span></div>
+      <div class="ord-row"><span class="ord-label">Shipping</span>  <span class="ord-value" id="os-shipmethod">—</span></div>
+    </div>
+
+    <!-- Shipping Address -->
+    <div class="ord-card">
+      <div style="font-size:11px;font-weight:900;color:#22c55e;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">Shipping Address</div>
+      <div class="ord-row"><span class="ord-label">Name</span>     <span class="ord-value" id="os-name">—</span></div>
+      <div class="ord-row"><span class="ord-label">Email</span>    <span class="ord-value" id="os-email" style="font-size:12px;">—</span></div>
+      <div class="ord-row"><span class="ord-label">Address</span>  <span class="ord-value" id="os-address" style="max-width:60%;text-align:right;">—</span></div>
+      <div class="ord-row"><span class="ord-label">Country</span>  <span class="ord-value" id="os-country">—</span></div>
+    </div>
+
+    <!-- Payment Summary -->
+    <div class="ord-card">
+      <div style="font-size:11px;font-weight:900;color:#22c55e;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">Payment Summary</div>
+      <div class="ord-row"><span class="ord-label">Subtotal</span> <span class="ord-value" id="os-subtotal">—</span></div>
+      <div class="ord-row"><span class="ord-label">Shipping</span> <span class="ord-value" id="os-shipping">—</span></div>
+      <div class="ord-row"><span class="ord-label">Tax</span>      <span class="ord-value" id="os-tax">—</span></div>
+      <div class="ord-row" style="border-top:2px solid #000;margin-top:4px;padding-top:10px;">
+        <span style="font-size:15px;font-weight:900;color:#111;">Total Charged</span>
+        <span style="font-size:18px;font-weight:900;color:#111;" id="os-total">—</span>
+      </div>
+    </div>
+
+    <!-- ETA -->
+    <div style="background:#f0fdf4;border:2px solid #22c55e;border-radius:16px;padding:18px 24px;margin-bottom:14px;text-align:center;">
+      <div style="font-size:11px;font-weight:900;color:#22c55e;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">Estimated Delivery</div>
+      <div style="font-size:20px;font-weight:900;color:#111;" id="os-eta">—</div>
+      <div style="font-size:12px;color:#555;font-weight:700;margin-top:4px;">
+        A tracking link will be emailed to <span id="os-eta-email">you</span>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <button onclick="document.getElementById('order-success-overlay').style.display='none'; window.unlockScroll && window.unlockScroll();"
+            style="width:100%;padding:16px;background:#111;color:#fff;border:2px solid #000;border-radius:14px;
+                   font-family:'Fredoka',sans-serif;font-size:16px;font-weight:900;cursor:pointer;
+                   box-shadow:0 4px 0 #000;letter-spacing:.5px;">
+      Continue Shopping
+    </button>
+
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     ORDER ERROR OVERLAY
+════════════════════════════════════════════════════════════ -->
+<div id="order-error-overlay" style="display:none;position:fixed;inset:0;z-index:99999;background:#fff;overflow-y:auto;font-family:'Fredoka',sans-serif;">
+  <div class="ord-overlay-inner">
+
+    <!-- Header -->
+    <div style="text-align:center;margin-bottom:28px;">
+      <div style="width:72px;height:72px;background:#ef4444;border-radius:50%;border:3px solid #000;
+                  display:flex;align-items:center;justify-content:center;margin:0 auto 16px;
+                  box-shadow:0 4px 0 #000;animation:xPop .5s cubic-bezier(.34,1.56,.64,1) .1s both;">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round">
+          <path d="M18 6L6 18M6 6l12 12"/>
+        </svg>
+      </div>
+      <div style="font-size:26px;font-weight:900;color:#111;letter-spacing:-0.5px;">Order Failed</div>
+      <div style="font-size:13px;color:#ef4444;font-weight:900;margin-top:6px;letter-spacing:.5px;">
+        ERROR 405 — FULFILLMENT REJECTED
+      </div>
+    </div>
+
+    <!-- Error Details -->
+    <div class="ord-card" style="border-color:#ef4444;">
+      <div style="font-size:11px;font-weight:900;color:#ef4444;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">Incident Report</div>
+      <div class="ord-row"><span class="ord-label">Cancel Ref</span> <span class="ord-value" id="oe-cancelref" style="font-family:monospace;color:#ef4444;">—</span></div>
+      <div class="ord-row"><span class="ord-label">PayPal ID</span>  <span class="ord-value" id="oe-paypalid"  style="font-family:monospace;font-size:12px;">—</span></div>
+      <div class="ord-row"><span class="ord-label">Time</span>       <span class="ord-value" id="oe-time">—</span></div>
+      <div class="ord-row"><span class="ord-label">Status</span>     <span class="ord-badge-red">✗ FULFILLMENT FAILED</span></div>
+      <div class="ord-row"><span class="ord-label">Reason</span>     <span class="ord-value" id="oe-reason" style="color:#ef4444;max-width:60%;text-align:right;font-size:12px;">—</span></div>
+    </div>
+
+    <!-- Customer Details -->
+    <div class="ord-card">
+      <div style="font-size:11px;font-weight:900;color:#666;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">Your Details</div>
+      <div class="ord-row"><span class="ord-label">Name</span>   <span class="ord-value" id="oe-name">—</span></div>
+      <div class="ord-row"><span class="ord-label">Email</span>  <span class="ord-value" id="oe-email" style="font-size:12px;">—</span></div>
+      <div class="ord-row"><span class="ord-label">Amount</span> <span class="ord-value" id="oe-total">—</span></div>
+    </div>
+
+    <!-- What Happens Next -->
+    <div style="background:#fef2f2;border:2px solid #ef4444;border-radius:16px;padding:18px 24px;margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:900;color:#ef4444;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">What Happens Next</div>
+      <div style="font-size:13px;font-weight:700;color:#333;line-height:1.7;">
+        ① Your payment was captured by PayPal.<br>
+        ② Our team has been automatically notified.<br>
+        ③ A full refund or manual fulfillment will be processed within <strong>2 business hours</strong>.<br>
+        ④ You will be contacted at <strong id="oe-contact-email">your email</strong>.
+      </div>
+    </div>
+
+    <!-- Support -->
+    <div class="ord-card" style="text-align:center;">
+      <div style="font-size:12px;color:#555;font-weight:700;">Need immediate help? Quote your Cancel Ref:</div>
+      <div style="font-size:18px;font-weight:900;color:#ef4444;font-family:monospace;margin:8px 0;" id="oe-cancelref-big">—</div>
+      <div style="font-size:12px;color:#888;font-weight:700;">support@minimisty.com</div>
+    </div>
+
+    <!-- CTAs -->
+    <div style="display:flex;gap:12px;margin-top:4px;">
+      <button onclick="window.goToStep(1); document.getElementById('order-error-overlay').style.display='none'; window.unlockScroll && window.unlockScroll();"
+              style="flex:1;padding:14px;background:#fff;color:#111;border:2px solid #000;border-radius:14px;
+                     font-family:'Fredoka',sans-serif;font-size:14px;font-weight:900;cursor:pointer;box-shadow:0 3px 0 #000;">
+        Try Again
+      </button>
+      <button onclick="document.getElementById('order-error-overlay').style.display='none'; window.unlockScroll && window.unlockScroll();"
+              style="flex:1;padding:14px;background:#111;color:#fff;border:2px solid #000;border-radius:14px;
+                     font-family:'Fredoka',sans-serif;font-size:14px;font-weight:900;cursor:pointer;box-shadow:0 3px 0 #000;">
+        Close
+      </button>
+    </div>
+
+  </div>
+</div>
 <script type="module">
 // ============================================================
-//  MINIMISTY — UNIFIED PRODUCTION SCRIPT v2.0
-//  Firebase Analytics · PayPal · CJ Dropshipping · Localization
-//  All functions complete and wired — no stubs, no TODOs
+//  MINIMISTY — UNIFIED PRODUCTION SCRIPT v3.0
+//  STEALTH FULFILLMENT EDITION
+//  Firebase · PayPal · CJ Dropshipping V3 · Localization
 // ============================================================
 
 // ─── 1. FIREBASE ─────────────────────────────────────────────
-import { initializeApp }                  from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
-import { getDatabase, ref, set, push, get, remove } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+// ⚠️  SECURITY: Move these to a backend proxy before going live.
+//     Exposing Firebase credentials in client JS is a known risk.
+import { initializeApp }                              from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+import { getDatabase, ref, set, push, get, update, remove } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
 
 const firebaseConfig = {
     apiKey:            "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
@@ -1663,53 +1826,67 @@ const app = initializeApp(firebaseConfig);
 const db  = getDatabase(app);
 
 // ─── 2. CONSTANTS ─────────────────────────────────────────────
-const PAYPAL_CLIENT_ID = "AW7nmsZqdabjCrj62j0qekUqalJJ3T53ngjrime14foH5HMhNLmpUzULQV-OvV82KSuZQoBoEP4Rkwi4";
-const CJ_PRODUCT_SKU   = "CJYD239388104DW";
-const BASE_PRICE_USD   = 39.50;
-const BASE_OLD_PRICE   = 59.95;
-const TAX_RATE         = 0.05;
-const SHIPPING_FALLBACK= 5.00; // fallback if CJ lookup fails
+// ⚠️  SECURITY: Move PAYPAL_CLIENT_ID to a server-side token endpoint.
+const PAYPAL_CLIENT_ID  = "AW7nmsZqdabjCrj62j0qekUqalJJ3T53ngjrime14foH5HMhNLmpUzULQV-OvV82KSuZQoBoEP4Rkwi4";
+const BASE_PRICE_USD    = 39.50;
+const BASE_OLD_PRICE    = 59.95;
+const TAX_RATE          = 0.05;
+
+// Fixed shipping tiers — no CJ freight lookup
+const SHIPPING_TIERS = {
+    Standard: { fee: 0.99,  label: "Standard Shipping (5–12 days)", days: "5–12 days" },
+    Priority: { fee: 4.99,  label: "Priority Shipping (3–7 days)",  days: "3–7 days"  },
+    Express:  { fee: 9.99,  label: "Express Shipping (1–3 days)",   days: "1–3 days"  }
+};
 
 // Bundle unit prices (USD per unit)
 const BUNDLE_PRICES = { 1: 39.50, 2: 37.45, 3: 34.95 };
 
-// CJ variant image map — keyed to selectedVariantName
-const VARIANT_IMAGES = {
-    "Blue 4000mAh":     "https://oss-cf.cjdropshipping.com/product/2025/06/06/01/a22ebf09-17cf-43c0-b1a9-3c09314a2214_trans.jpeg?x-oss-process=image/resize,m_fill,w_500",
-    "Dark Gray 4000mAh":"https://oss-cf.cjdropshipping.com/product/2025/06/06/01/9947b7a1-f9a3-43ab-8e4d-1941402cfe4b_trans.jpeg?x-oss-process=image/resize,m_fill,w_500",
-    "Pink 4000mAh":     "https://oss-cf.cjdropshipping.com/product/2025/06/06/01/a5743e2c-055c-4013-920d-9c47df42a7a1_trans.jpeg?x-oss-process=image/resize,m_fill,w_500",
-    "White 4000mAh":    "https://oss-cf.cjdropshipping.com/product/2025/06/06/01/8cbefecd-de4a-4007-99a3-2d0fa20dae0e_trans.jpeg?x-oss-process=image/resize,m_fill,w_500"
+// Master SKU map — CJ V3 variant SKUs
+const VARIANT_SKUS = {
+    "Blue 4000mAh":      "CJYD239388104DW",
+    "Dark Gray 4000mAh": "CJYD239388103CX",
+    "Pink 4000mAh":      "CJYD239388102BY",
+    "White 4000mAh":     "CJYD239388101AZ"
 };
 
-// Bundle slot image map (slot images per variant for stacked bundle UI)
+// Variant image map
+const VARIANT_IMAGES = {
+    "Blue 4000mAh":      "https://oss-cf.cjdropshipping.com/product/2025/06/06/01/a22ebf09-17cf-43c0-b1a9-3c09314a2214_trans.jpeg?x-oss-process=image/resize,m_fill,w_500",
+    "Dark Gray 4000mAh": "https://oss-cf.cjdropshipping.com/product/2025/06/06/01/9947b7a1-f9a3-43ab-8e4d-1941402cfe4b_trans.jpeg?x-oss-process=image/resize,m_fill,w_500",
+    "Pink 4000mAh":      "https://oss-cf.cjdropshipping.com/product/2025/06/06/01/a5743e2c-055c-4013-920d-9c47df42a7a1_trans.jpeg?x-oss-process=image/resize,m_fill,w_500",
+    "White 4000mAh":     "https://oss-cf.cjdropshipping.com/product/2025/06/06/01/8cbefecd-de4a-4007-99a3-2d0fa20dae0e_trans.jpeg?x-oss-process=image/resize,m_fill,w_500"
+};
+
+// Bundle slot images (full-res for cart slots)
 const BUNDLE_SLOT_IMGS = {
-    "Blue 4000mAh":     "https://oss-cf.cjdropshipping.com/product/2025/06/06/01/a22ebf09-17cf-43c0-b1a9-3c09314a2214_trans.jpeg",
-    "Dark Gray 4000mAh":"https://oss-cf.cjdropshipping.com/product/2025/06/06/01/9947b7a1-f9a3-43ab-8e4d-1941402cfe4b_trans.jpeg",
-    "Pink 4000mAh":     "https://oss-cf.cjdropshipping.com/product/2025/06/06/01/a5743e2c-055c-4013-920d-9c47df42a7a1_trans.jpeg",
-    "White 4000mAh":    "https://oss-cf.cjdropshipping.com/product/2025/06/06/01/8cbefecd-de4a-4007-99a3-2d0fa20dae0e_trans.jpeg"
+    "Blue 4000mAh":      "https://oss-cf.cjdropshipping.com/product/2025/06/06/01/a22ebf09-17cf-43c0-b1a9-3c09314a2214_trans.jpeg",
+    "Dark Gray 4000mAh": "https://oss-cf.cjdropshipping.com/product/2025/06/06/01/9947b7a1-f9a3-43ab-8e4d-1941402cfe4b_trans.jpeg",
+    "Pink 4000mAh":      "https://oss-cf.cjdropshipping.com/product/2025/06/06/01/a5743e2c-055c-4013-920d-9c47df42a7a1_trans.jpeg",
+    "White 4000mAh":     "https://oss-cf.cjdropshipping.com/product/2025/06/06/01/8cbefecd-de4a-4007-99a3-2d0fa20dae0e_trans.jpeg"
 };
 
 // ─── 3. GLOBAL STATE ──────────────────────────────────────────
-let userCurrency       = "USD";
-let userCurrencySymbol = "$";
-let exchangeRate       = 1;
-let userCountryCode    = "US";
-let userCountryCode3   = "USA";
-let userCountryName    = "United States";
-let userRegion         = "";
-let userCity           = "";
-let userPostal         = "";
-let userCallingCode    = "+1";
-let deviceType         = /Mobi|Android/i.test(navigator.userAgent) ? "mobile" : "desktop";
+let userCurrency        = "USD";
+let userCurrencySymbol  = "$";
+let exchangeRate        = 1;
+let userCountryCode     = "US";
+let userCountryCode3    = "USA";
+let userCountryName     = "United States";
+let userRegion          = "";
+let userCity            = "";
+let userPostal          = "";
+let userCallingCode     = "+1";
+let deviceType          = /Mobi|Android/i.test(navigator.userAgent) ? "mobile" : "desktop";
 
-let selectedVariantName = "Dark Gray 4000mAh";
-let selectedShippingFee = 0.99; // Default standard shipping
+let selectedVariantName    = "Dark Gray 4000mAh";
+let selectedShippingFee    = SHIPPING_TIERS.Standard.fee;
 let selectedShippingMethod = "Standard";
-let paypalRendered      = false;
-let sessionId           = "S-" + Math.random().toString(36).substr(2, 12).toUpperCase();
-let currentLeadId       = null; // Firebase key for the current lead — used for data migration
+let paypalRendered         = false;
+let sessionId              = "S-" + Math.random().toString(36).substr(2, 12).toUpperCase();
+let currentLeadId          = null; // Firebase key — used for status migration after payment
 
-// Per-bundle color selections: { bundleSize: { slot: variantName } }
+// Per-bundle color selections: { bundleSize: { slotIndex: variantName } }
 let bundleColors = {
     1: { 1: "Dark Gray 4000mAh" },
     2: { 1: "Dark Gray 4000mAh", 2: "Dark Gray 4000mAh" },
@@ -1718,19 +1895,13 @@ let bundleColors = {
 
 let cartData = { bundleSize: 1 };
 
-// Grab persistent DOM refs
+// Persistent DOM references
 const cartModel = document.getElementById('cart-model');
 
 // ─── 4. ANALYTICS ENGINE ──────────────────────────────────────
-/**
- * trackEvent — logs any named event with metadata to Firebase events/
- * @param {string} name  - e.g. "ADD_TO_CART", "VARIANT_CHANGE"
- * @param {object} data  - any extra payload
- */
 window.trackEvent = async function(name, data = {}) {
     try {
-        const eventsRef = ref(db, 'events');
-        await push(eventsRef, {
+        await push(ref(db, 'events'), {
             event:     name,
             sessionId,
             country:   userCountryCode,
@@ -1740,18 +1911,14 @@ window.trackEvent = async function(name, data = {}) {
             ...data
         });
     } catch (e) {
-        // Analytics must never break checkout — silent fail
-        console.warn("trackEvent failed silently:", name, e);
+        // Analytics must never interrupt checkout — silent fail only
+        console.warn("trackEvent silent fail:", name, e.message);
     }
 };
 
-/**
- * logVisit — fires once on initLocalization to record the session
- */
 async function _logVisit() {
     try {
-        const visitsRef = ref(db, 'visits');
-        await push(visitsRef, {
+        await push(ref(db, 'visits'), {
             sessionId,
             timestamp:   new Date().toISOString(),
             country:     userCountryCode,
@@ -1764,9 +1931,8 @@ async function _logVisit() {
             referrer:    document.referrer || "direct",
             url:         window.location.href
         });
-        console.log("Visit logged:", sessionId);
     } catch (e) {
-        console.warn("Visit log failed silently:", e);
+        console.warn("Visit log silent fail:", e.message);
     }
 }
 
@@ -1782,26 +1948,49 @@ function unlockSite() {
     }
 }
 window.unlockSite = unlockSite;
-setTimeout(unlockSite, 5000); // Safety fallback
 
-// ─── 6. LOCALIZATION ──────────────────────────────────────────
-/**
- * Fetch all countries from REST Countries API and populate the shipping dropdown.
- */
+// Safety fallback — never leave site locked
+setTimeout(unlockSite, 5000);
+
+// ─── 6. SCROLL LOCK UTILITIES ─────────────────────────────────
+function lockScroll() {
+    if (document.body.dataset.scrollLocked === 'true') return;
+    const scrollY = window.scrollY;
+    document.body.style.overflow   = 'hidden';
+    document.body.style.position   = 'fixed';
+    document.body.style.width      = '100%';
+    document.body.style.top        = `-${scrollY}px`;
+    document.body.dataset.scrollLocked = 'true';
+}
+
+function unlockScroll() {
+    if (document.body.dataset.scrollLocked !== 'true') return;
+    const scrollY = document.body.style.top;
+    document.body.style.overflow   = '';
+    document.body.style.position   = '';
+    document.body.style.width      = '';
+    document.body.style.top        = '';
+    document.body.dataset.scrollLocked = 'false';
+    if (scrollY) {
+        window.scrollTo(0, Math.abs(parseInt(scrollY || '0', 10)));
+    }
+}
+
+// ─── 7. LOCALIZATION ──────────────────────────────────────────
 async function populateCountries() {
     const countryEl = document.getElementById('inCountry');
     if (!countryEl) return;
 
     try {
-        const res = await fetch('https://restcountries.com/v3.1/all?fields=name,cca2,cca3');
-        if (!res.ok) throw new Error("Country API not OK");
+        const res  = await fetch('https://restcountries.com/v3.1/all?fields=name,cca2,cca3');
+        if (!res.ok) throw new Error("Country API error");
         const data = await res.json();
 
         data.sort((a, b) => a.name.common.localeCompare(b.name.common));
         countryEl.innerHTML = '<option value="" disabled selected>Select Country</option>';
 
         data.forEach(c => {
-            const opt = document.createElement('option');
+            const opt          = document.createElement('option');
             opt.value          = c.cca2;
             opt.dataset.code3  = c.cca3;
             opt.textContent    = c.name.common;
@@ -1809,9 +1998,8 @@ async function populateCountries() {
         });
 
         if (userCountryCode) countryEl.value = userCountryCode;
-        console.log("Countries populated.");
     } catch (e) {
-        console.error("Country API failed, using fallback:", e);
+        // Fallback country list — covers most of our traffic
         countryEl.innerHTML = `
             <option value="" disabled selected>Select Country</option>
             <option value="US"  data-code3="USA">United States</option>
@@ -1823,49 +2011,66 @@ async function populateCountries() {
             <option value="FR"  data-code3="FRA">France</option>
             <option value="NG"  data-code3="NGA">Nigeria</option>
             <option value="BR"  data-code3="BRA">Brazil</option>
-            <option value="IN"  data-code3="IND">India</option>`;
+            <option value="IN"  data-code3="IND">India</option>
+            <option value="AE"  data-code3="ARE">United Arab Emirates</option>
+            <option value="SG"  data-code3="SGP">Singapore</option>
+            <option value="NZ"  data-code3="NZL">New Zealand</option>
+            <option value="MX"  data-code3="MEX">Mexico</option>`;
+        console.warn("Country API fallback used:", e.message);
     }
 }
 
-/**
- * Detect user location, currency, exchange rate. Sync UI. Fire visit log.
- */
 async function initLocalization() {
     const countriesLoaded = populateCountries();
 
     try {
         const locRes = await fetch('https://ipapi.co/json/');
-        const loc    = await locRes.json();
+        if (!locRes.ok) throw new Error("IP API error");
+        const loc = await locRes.json();
 
-        userCurrency      = loc.currency            || "USD";
-        userCountryCode   = loc.country_code         || "US";
-        userCountryCode3  = loc.country_code_iso3    || "USA";
-        userCountryName   = loc.country_name         || "United States";
-        userRegion        = loc.region               || "";
-        userCity          = loc.city                 || "";
-        userPostal        = loc.postal               || "";
-        userCallingCode   = loc.country_calling_code || "+1";
+        userCurrency     = loc.currency             || "USD";
+        userCountryCode  = loc.country_code          || "US";
+        userCountryCode3 = loc.country_code_iso3     || "USA";
+        userCountryName  = loc.country_name          || "United States";
+        userRegion       = loc.region                || "";
+        userCity         = loc.city                  || "";
+        userPostal       = loc.postal                || "";
+        userCallingCode  = loc.country_calling_code  || "+1";
+
+        // Ensure calling code always starts with +
+        if (!userCallingCode.startsWith('+')) {
+            userCallingCode = '+' + userCallingCode;
+        }
 
         await countriesLoaded;
+
         const countryEl = document.getElementById('inCountry');
         if (countryEl) countryEl.value = userCountryCode;
 
-        // Exchange rate
-        const rateRes  = await fetch(`https://api.exchangerate-api.com/v4/latest/USD`);
-        const rateData = await rateRes.json();
-        exchangeRate   = rateData.rates[userCurrency] || 1;
+        // Exchange rate fetch
+        try {
+            const rateRes  = await fetch(`https://api.exchangerate-api.com/v4/latest/USD`);
+            const rateData = await rateRes.json();
+            exchangeRate   = rateData.rates[userCurrency] || 1;
+        } catch (_) {
+            exchangeRate = 1; // USD fallback — non-critical
+        }
 
         // Currency symbol via Intl
-        userCurrencySymbol = (0).toLocaleString(navigator.language, {
-            style: 'currency', currency: userCurrency,
-            minimumFractionDigits: 0, maximumFractionDigits: 0
-        }).replace(/[\d\s.,]/g, '').trim() || "$";
+        try {
+            userCurrencySymbol = (0).toLocaleString(navigator.language, {
+                style: 'currency', currency: userCurrency,
+                minimumFractionDigits: 0, maximumFractionDigits: 0
+            }).replace(/[\d\s.,]/g, '').trim() || "$";
+        } catch (_) {
+            userCurrencySymbol = "$";
+        }
 
-        // Update flag images
+        // Flag images
         const cc = userCountryCode.toLowerCase();
         document.querySelectorAll('#flagImg, #ship-flag').forEach(img => {
-            img.src            = `https://flagcdn.com/w40/${cc}.png`;
-            img.style.display  = 'block';
+            img.src           = `https://flagcdn.com/w40/${cc}.png`;
+            img.style.display = 'block';
         });
 
         // Currency labels
@@ -1874,28 +2079,25 @@ async function initLocalization() {
             el.style.display = 'inline';
         });
 
-        // Hide currency skeleton shimmer
+        // Hide currency skeleton
         const skeleton = document.getElementById('currency-skeleton');
         if (skeleton) skeleton.style.display = 'none';
 
-        // Auto-fill phone prefix
-        const phoneInput = document.getElementById('cj-phone') || document.getElementById('inPhone');
-        if (phoneInput && !phoneInput.value) {
-            phoneInput.value = userCallingCode + " ";
-        }
-
+        // Install phone shield now that we have the calling code
+        _installPhoneShield();
         _prefillShipping();
 
-        // Log the visit analytics AFTER we have the location data
+        // Log visit after location data is ready
         _logVisit();
 
     } catch (e) {
-        console.warn("Localization failed — using USD defaults:", e);
+        console.warn("Localization failed — USD defaults:", e.message);
         const skeleton = document.getElementById('currency-skeleton');
         if (skeleton) skeleton.style.display = 'none';
         const code = document.getElementById('currencyCode');
         if (code) { code.innerText = "USD"; code.style.display = 'inline'; }
         await countriesLoaded;
+        _installPhoneShield(); // Still install with default +1
     }
 
     window.updatePrices();
@@ -1903,9 +2105,61 @@ async function initLocalization() {
     unlockSite();
 }
 
+// ─── 8. PHONE SHIELD (CJ V3 REQUIREMENT) ─────────────────────
 /**
- * Pre-fill detected city/zip into shipping form fields
+ * _installPhoneShield
+ * Sets the calling code prefix in the phone field.
+ * Only blocks Backspace/Delete when the cursor is AT or WITHIN the prefix.
+ * Everything else — typing digits, selecting, pasting — works normally.
  */
+function _installPhoneShield() {
+    const phoneIds = ['cj-phone', 'inPhone'];
+
+    phoneIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el || el._shieldInstalled) return;
+        el._shieldInstalled = true;
+
+        const prefix = userCallingCode + " ";
+
+        // Set initial prefix if field is empty or doesn't already have it
+        if (!el.value || !el.value.startsWith(userCallingCode)) {
+            el.value = prefix;
+        }
+
+        // Only intercept Backspace/Delete when cursor would eat into the prefix
+        el.addEventListener('keydown', function(e) {
+            const p = userCallingCode + " ";
+            if (e.key === 'Backspace' && el.selectionStart <= p.length && el.selectionEnd <= p.length) {
+                e.preventDefault();
+                return;
+            }
+            if (e.key === 'Delete' && el.selectionStart < p.length && el.selectionEnd <= p.length) {
+                e.preventDefault();
+                return;
+            }
+        });
+
+        // If the user somehow clears the whole field, restore the prefix
+        el.addEventListener('input', function() {
+            const p = userCallingCode + " ";
+            if (!el.value.startsWith(userCallingCode)) {
+                const saved = el.value;
+                el.value = p + saved.replace(/^\+?\d*\s?/, '');
+            }
+        });
+
+        // On focus, nudge cursor to end of prefix only if it landed before it
+        el.addEventListener('focus', function() {
+            const p = userCallingCode + " ";
+            if (el.selectionStart < p.length && el.value === p) {
+                setTimeout(() => el.setSelectionRange(p.length, p.length), 0);
+            }
+        });
+    });
+}
+
+// ─── 9. PREFILL SHIPPING FIELDS ───────────────────────────────
 function _prefillShipping() {
     const map = {
         'cj-city': userCity,
@@ -1919,7 +2173,7 @@ function _prefillShipping() {
     });
 }
 
-// ─── 7. PRICE FORMATTING ──────────────────────────────────────
+// ─── 10. PRICE FORMATTING ─────────────────────────────────────
 window.formatPrice = function(usdAmount) {
     const local = usdAmount * exchangeRate;
     try {
@@ -1931,25 +2185,23 @@ window.formatPrice = function(usdAmount) {
     }
 };
 
-// ─── 8. PRICING ENGINE ────────────────────────────────────────
+// ─── 11. PRICING ENGINE ───────────────────────────────────────
 window.updatePrices = function() {
     const safeSet = (id, val) => {
         const el = document.getElementById(id);
         if (el) el.innerText = val;
     };
 
-    // Hero & purchase section prices
     safeSet('purchase-price-main', window.formatPrice(BASE_PRICE_USD));
     safeSet('purchase-price-old',  window.formatPrice(BASE_OLD_PRICE));
 
     const shippingTag = document.getElementById('shipping-price-tag');
-    if (shippingTag) shippingTag.innerText = window.formatPrice(0.99);
+    if (shippingTag) shippingTag.innerText = window.formatPrice(SHIPPING_TIERS.Standard.fee);
 
-    // All .local-price elements across the page
+    // All .local-price elements
     document.querySelectorAll('.local-price').forEach(el => {
         const usd = parseFloat(el.getAttribute('data-usd'));
         if (!isNaN(usd)) {
-            // Preserve inner /ea label if present
             const labelEl = el.querySelector('span');
             const suffix  = labelEl ? ` <span style="font-size:11px;color:#888;">/ ea</span>` : '';
             el.innerHTML  = window.formatPrice(usd) + suffix;
@@ -1958,26 +2210,25 @@ window.updatePrices = function() {
 
     // Cart calculations
     const unitPrice = BUNDLE_PRICES[cartData.bundleSize] || BASE_PRICE_USD;
-    const origSub   = BASE_PRICE_USD * cartData.bundleSize;
-    const actualSub = unitPrice      * cartData.bundleSize;
-    const discount  = origSub - actualSub;
-    const tax       = actualSub * TAX_RATE;
-    const total     = actualSub + selectedShippingFee + tax;
+    const origSub   = parseFloat((BASE_PRICE_USD * cartData.bundleSize).toFixed(2));
+    const actualSub = parseFloat((unitPrice * cartData.bundleSize).toFixed(2));
+    const discount  = parseFloat((origSub - actualSub).toFixed(2));
+    const tax       = parseFloat((actualSub * TAX_RATE).toFixed(2));
+    const total     = parseFloat((actualSub + selectedShippingFee + tax).toFixed(2));
 
-    safeSet('calc-subtotal', window.formatPrice(origSub));
-    safeSet('calc-tax',      window.formatPrice(tax));
-    safeSet('calc-total',    window.formatPrice(total));
-    safeSet('subT',          window.formatPrice(actualSub));
-    safeSet('feeT',          window.formatPrice(tax));
-    safeSet('totalT',        window.formatPrice(total));
+    safeSet('calc-subtotal',    window.formatPrice(origSub));
+    safeSet('calc-tax',         window.formatPrice(tax));
+    safeSet('calc-total',       window.formatPrice(total));
+    safeSet('subT',             window.formatPrice(actualSub));
+    safeSet('feeT',             window.formatPrice(tax));
+    safeSet('totalT',           window.formatPrice(total));
     safeSet('unitPriceDisplay', `${window.formatPrice(unitPrice)} EACH`);
     safeSet('livePrice',        window.formatPrice(unitPrice));
 
-    // Shipping display in step 3
+    // Shipping displays
     const s3ship = document.getElementById('calc-shipping-step3');
     if (s3ship) s3ship.innerText = window.formatPrice(selectedShippingFee);
 
-    // Shipping in cart
     const shippingLabel = document.getElementById('calc-shipping');
     if (shippingLabel) {
         shippingLabel.innerText = selectedShippingFee > 0
@@ -1985,14 +2236,14 @@ window.updatePrices = function() {
             : 'FREE';
     }
 
-    // Discount row visibility
+    // Discount row
     const discRow = document.getElementById('disc-row');
     if (discRow) {
         discRow.style.display = discount > 0 ? 'flex' : 'none';
         safeSet('calc-disc', `-${window.formatPrice(discount)}`);
     }
 
-    // Cart badge & count label
+    // Cart badge and count
     const badge = document.getElementById('badgeCount');
     if (badge) badge.innerText = cartData.bundleSize;
 
@@ -2001,36 +2252,36 @@ window.updatePrices = function() {
         countDisplay.innerText = `${cartData.bundleSize} ${cartData.bundleSize > 1 ? 'UNITS' : 'UNIT'}`;
     }
 
-    // Stepper count
     const qCount = document.getElementById('qCount');
     if (qCount) qCount.innerText = cartData.bundleSize;
 
-    // Step 3 final summary bar
     _updateFinalSummaryBar();
 };
 
-// ─── 9. BUNDLE SELECTION ──────────────────────────────────────
+// ─── 12. BUNDLE SELECTION ─────────────────────────────────────
 window.setBundle = function(num) {
     cartData.bundleSize = num;
 
-    // Remove active from all boxes, add to the selected one
     document.querySelectorAll('.bundle-box').forEach(el => el.classList.remove('active'));
     const active = document.getElementById('b-' + num);
     if (active) active.classList.add('active');
 
     window.updatePrices();
-    paypalRendered = false; // force PayPal re-render with new amount
+    paypalRendered = false;
 
     window.trackEvent('BUNDLE_SELECT', { bundleSize: num, pricePerUnit: BUNDLE_PRICES[num] });
 };
 
-// Sidebar quantity shortcuts
 window.updateQtyDirect = function(num) {
     window.setBundle(num);
     [1, 2, 3].forEach(n => {
         const card = document.getElementById('b' + n);
         if (card) card.style.boxShadow = n === num ? '0 0 0 2px #1A1953' : 'none';
     });
+    // Sync bundle-box active class (restored from v2)
+    document.querySelectorAll('.bundle-box').forEach(el => el.classList.remove('active'));
+    const bx = document.getElementById('b-' + num);
+    if (bx) bx.classList.add('active');
 };
 
 window.updateQty = function(delta) {
@@ -2038,16 +2289,8 @@ window.updateQty = function(delta) {
     window.updateQtyDirect(newQty);
 };
 
-// ─── 10. BUNDLE COLOR PICKER ──────────────────────────────────
-/**
- * updateBundleColor — handles per-slot color picking in the cart overlay
- * @param {number} bundleSize  - 1, 2, or 3
- * @param {number} slot        - which unit slot (1-based)
- * @param {string} colorLabel  - e.g. "Pink"
- * @param {Element} el         - the clicked mini-swatch element
- */
+// ─── 13. BUNDLE COLOR PICKER ──────────────────────────────────
 window.updateBundleColor = function(bundleSize, slot, colorLabel, el) {
-    // Map color label to full variant name
     const nameMap = {
         "Blue":      "Blue 4000mAh",
         "Dark Gray": "Dark Gray 4000mAh",
@@ -2056,70 +2299,74 @@ window.updateBundleColor = function(bundleSize, slot, colorLabel, el) {
     };
     const variantName = nameMap[colorLabel] || "Dark Gray 4000mAh";
 
-    // Update state
     if (!bundleColors[bundleSize]) bundleColors[bundleSize] = {};
     bundleColors[bundleSize][slot] = variantName;
 
-    // Update primary selectedVariantName from slot 1 of active bundle
+    // Keep selectedVariantName in sync with slot 1 of the active bundle
     if (slot === 1 && bundleSize === cartData.bundleSize) {
         selectedVariantName = variantName;
     }
 
-    // Update swatch active state within this picker group
+    // Update swatch active state inside this picker
     const parentPicker = el.closest('.bundle-color-picker');
     if (parentPicker) {
         parentPicker.querySelectorAll('.mini-swatch').forEach(s => s.classList.remove('active'));
         el.classList.add('active');
     }
 
-    // Update the bundle box image slot
+    // Update bundle box image for this slot — enforce 1:1 aspect ratio
     const imgEl = document.getElementById(`img-slot-${bundleSize}-${slot}`);
-    if (imgEl) imgEl.src = BUNDLE_SLOT_IMGS[variantName] || imgEl.src;
+    if (imgEl) {
+        imgEl.src              = BUNDLE_SLOT_IMGS[variantName] || imgEl.src;
+        imgEl.style.aspectRatio = '1/1';
+        imgEl.style.objectFit  = 'contain';
+    }
 
-    // Sync the step 3 summary bar
     _updateFinalSummaryBar();
-
     window.trackEvent('VARIANT_CHANGE', { bundleSize, slot, variant: variantName });
 };
 
-/**
- * Builds the "Blue / Pink / Gray" summary string for the step 3 bar
- */
 function _updateFinalSummaryBar() {
     const summaryEl = document.getElementById('final-variant-summary');
     if (!summaryEl) return;
     const colors = bundleColors[cartData.bundleSize] || {};
-    const parts   = Object.values(colors).map(v => v.replace(' 4000mAh', ''));
+    const parts  = Object.values(colors).map(v => v.replace(' 4000mAh', ''));
     summaryEl.innerText = parts.join(' / ') || selectedVariantName.replace(' 4000mAh', '');
 }
 
-// ─── 11. VARIANT PICKER (PRODUCT PAGE) ───────────────────────
+// ─── 14. VARIANT PICKER (PRODUCT PAGE) ───────────────────────
 window.updatePurchaseVariant = function(element, imgSrc, colorName) {
     selectedVariantName = colorName || "Dark Gray 4000mAh";
 
-    // Also update slot 1 of the active bundle
     if (bundleColors[cartData.bundleSize]) {
         bundleColors[cartData.bundleSize][1] = selectedVariantName;
     }
 
-    // Fade-swap all primary images
+    // Fade-swap primary images
     ['purchase-main-img', 'hero-main-img', 'cartItemImg'].forEach(id => {
         const img = document.getElementById(id);
         if (img) {
-            img.style.opacity = '0.3';
+            img.style.opacity    = '0.3';
             img.style.transition = 'opacity 0.15s ease';
+            // Enforce 1:1 aspect ratio on all product images
+            img.style.aspectRatio = '1/1';
+            img.style.objectFit  = 'contain';
             setTimeout(() => {
-                img.src = imgSrc;
+                img.src           = imgSrc;
                 img.style.opacity = '1';
             }, 150);
         }
     });
 
-    // Also sync first slot of the active bundle box in the cart
+    // Sync slot 1 image in cart
     const firstSlotImg = document.getElementById(`img-slot-${cartData.bundleSize}-1`);
-    if (firstSlotImg) firstSlotImg.src = BUNDLE_SLOT_IMGS[selectedVariantName] || imgSrc;
+    if (firstSlotImg) {
+        firstSlotImg.src             = BUNDLE_SLOT_IMGS[selectedVariantName] || imgSrc;
+        firstSlotImg.style.aspectRatio = '1/1';
+        firstSlotImg.style.objectFit  = 'contain';
+    }
 
-    // Sync swatch outline states on product page
+    // Update swatch outlines
     document.querySelectorAll('.swatch-wrapper').forEach(opt => {
         opt.classList.remove('active');
         opt.style.outline = 'none';
@@ -2130,15 +2377,12 @@ window.updatePurchaseVariant = function(element, imgSrc, colorName) {
         element.style.outline = '2px solid #1A1953';
     }
 
-    // Update cart item name display
+    // Cart item name
     const nameEl = document.getElementById('cartItemName');
     if (nameEl) nameEl.innerText = `MINIMISTY ${colorName}`;
 
     _updateFinalSummaryBar();
-
-    // PayPal description must update too — force re-render on next open
     paypalRendered = false;
-
     window.trackEvent('VARIANT_CHANGE', { slot: 1, variant: colorName });
 };
 
@@ -2146,146 +2390,81 @@ window.selectVariant = function(imgSrc, colorName) {
     window.updatePurchaseVariant(null, imgSrc, colorName || selectedVariantName);
 };
 
-// ─── 12. ARRIVAL DATE ─────────────────────────────────────────
+// ─── 15. ARRIVAL DATE ─────────────────────────────────────────
 window.calculateArrival = function() {
     const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
     const now    = new Date();
     const minD   = new Date(); minD.setDate(now.getDate() + 5);
     const maxD   = new Date(); maxD.setDate(now.getDate() + 12);
     const el     = document.getElementById('date-range');
-    if (el) el.innerText =
-        `${minD.getDate()} ${months[minD.getMonth()]} – ${maxD.getDate()} ${months[maxD.getMonth()]}`;
+    if (el) el.innerText = `${minD.getDate()} ${months[minD.getMonth()]} – ${maxD.getDate()} ${months[maxD.getMonth()]}`;
 };
 
-// ─── 13. SHIPPING METHOD SELECTOR ─────────────────────────────
+// ─── 16. SHIPPING METHOD SELECTOR ─────────────────────────────
+/**
+ * setShippingMethod — matches your HTML onclick signature exactly:
+ *   onclick="setShippingMethod(0.99, 'Standard', '8-16 days', this)"
+ *   onclick="setShippingMethod(2.95, 'Prime', '5-12 days', this)"
+ */
 window.setShippingMethod = function(fee, methodName, estDays, el) {
-    selectedShippingFee    = fee;
-    selectedShippingMethod = methodName;
+    selectedShippingFee    = parseFloat(fee) || 0.99;
+    selectedShippingMethod = methodName || 'Standard';
 
-    // Update active card styles
     document.querySelectorAll('.shipping-method-card').forEach(c => c.classList.remove('active'));
     if (el) el.classList.add('active');
 
-    // Update step 3 method name label
     const methodLabel = document.getElementById('shipping-method-name');
-    if (methodLabel) methodLabel.innerText = `${methodName} Shipping (${estDays})`;
+    if (methodLabel) methodLabel.innerText = methodName + ' Shipping (' + estDays + ')';
 
     window.updatePrices();
+    paypalRendered = false;
 };
 
-// ─── 14. CJ SHIPPING LOOKUP ───────────────────────────────────
 /**
- * Gatekeeper: fetches CJ shipping rates.
- * On failure → uses $5.00 fallback and logs to Firebase.
+ * _autoSelectShipping
+ * Activates #ship-standard on step entry so there is always a visible selection.
  */
-window.lookupCJShipping = async function() {
-    const zipEl     = document.getElementById('cj-zip')     || document.getElementById('inZip');
-    const countryEl = document.getElementById('inCountry');
-    const zip       = zipEl     ? zipEl.value.trim()     : userPostal;
-    const country   = countryEl ? countryEl.value.trim() : userCountryCode;
-
-    if (!zip || !country) return;
-
-    try {
-        const res  = await fetch('/api/cjdropship/shipping', {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                sku:     CJ_PRODUCT_SKU,
-                zip,
-                country,
-                qty:     cartData.bundleSize
-            })
-        });
-
-        if (!res.ok) throw new Error(`CJ Shipping HTTP ${res.status}`);
-        const data = await res.json();
-
-        const options = data.shippingOptions || data.data || [];
-        // Prefer USPS, fallback to first option
-        const usps = options.find(o =>
-            (o.name || o.serviceName || '').toUpperCase().includes('USPS')
-        ) || options[0];
-
-        if (usps) {
-            selectedShippingFee = parseFloat(usps.price || usps.amount || 0);
-            window.updatePrices();
-            console.log("CJ Shipping:", usps.name || 'USPS', selectedShippingFee);
-        }
-    } catch (e) {
-        console.warn("CJ shipping lookup failed — applying fallback $5.00:", e);
-        selectedShippingFee = SHIPPING_FALLBACK;
-        window.updatePrices();
-
-        // Log shipping failure to Firebase for monitoring
-        try {
-            await push(ref(db, 'errors'), {
-                type:      'SHIPPING_LOOKUP_FAILED',
-                sessionId,
-                country,
-                zip,
-                error:     e.message,
-                timestamp: new Date().toISOString()
-            });
-        } catch (_) { /* silent */ }
+function _autoSelectShipping() {
+    const standardCard = document.getElementById('ship-standard');
+    if (standardCard) {
+        document.querySelectorAll('.shipping-method-card').forEach(c => c.classList.remove('active'));
+        standardCard.classList.add('active');
     }
-};
-
-function _attachZipBlur() {
-    ['cj-zip', 'inZip'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el && !el._cjBlurAttached) {
-            el.addEventListener('blur', window.lookupCJShipping);
-            el._cjBlurAttached = true;
-        }
-    });
+    selectedShippingFee    = 0.99;
+    selectedShippingMethod = 'Standard';
+    const methodLabel = document.getElementById('shipping-method-name');
+    if (methodLabel) methodLabel.innerText = 'Standard Shipping (8-16 days)';
 }
 
-// ─── 15. PAYPAL SDK LOADER ────────────────────────────────────
+// ─── 17. PAYPAL SDK LOADER ────────────────────────────────────
 function _loadPayPalScript() {
     return new Promise((resolve, reject) => {
-        // 1. SDK already ready — resolve immediately
-        if (window.paypal) {
-            return resolve();
-        }
+        if (window.paypal) return resolve();
 
-        // 2. Head script exists but may still be loading
         const existing = document.getElementById('paypal-sdk');
         if (existing) {
-            // If it already fired load but window.paypal isn't set yet, something is wrong
             if (existing.dataset.loaded === 'true') {
-                return reject(new Error("PayPal SDK loaded but window.paypal unavailable."));
+                return window.paypal ? resolve() : reject(new Error("PayPal SDK loaded flag set but window.paypal missing."));
             }
-            existing.addEventListener('load', () => {
-                existing.dataset.loaded = 'true';
-                resolve();
-            });
-            existing.addEventListener('error', () => {
-                reject(new Error("PayPal SDK failed to load from head."));
-            });
+            existing.addEventListener('load', () => { existing.dataset.loaded = 'true'; resolve(); });
+            existing.addEventListener('error', () => reject(new Error("PayPal SDK failed from existing tag.")));
             return;
         }
 
-        // 3. Fallback — inject fresh (should never happen if head tag is present)
         const script    = document.createElement('script');
         script.id       = 'paypal-sdk';
         script.src      = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD&intent=capture`;
-        script.onload   = resolve;
+        script.onload   = () => { script.dataset.loaded = 'true'; resolve(); };
         script.onerror  = () => reject(new Error("PayPal SDK injection failed."));
         document.head.appendChild(script);
     });
 }
 
-
-// ─── 16. PAYPAL BUTTON RENDERER ───────────────────────────────
+// ─── 18. PAYPAL BUTTON RENDERER ───────────────────────────────
 window.renderPayPalButton = async function() {
     const container = document.getElementById('paypal-container');
-    if (!container) return;
+    if (!container || paypalRendered) return;
 
-    // Guard: don't double-render
-    if (paypalRendered) return;
-
-    // Set AFTER confirmed render, not here — moved to .then() below
     container.innerHTML = `
         <div style="display:flex;align-items:center;justify-content:center;padding:30px;gap:10px;color:#888;">
             <div style="width:20px;height:20px;border:3px solid #eee;border-top:3px solid #5856d6;
@@ -2301,13 +2480,10 @@ window.renderPayPalButton = async function() {
         console.error("PayPal SDK load error:", err);
         container.innerHTML = `
             <div style="padding:20px;text-align:center;font-family:'Fredoka',sans-serif;">
-                <p style="color:#ff3b30;font-weight:700;margin-bottom:10px;">
-                    ⚠️ PayPal failed to load.
-                </p>
+                <p style="color:#ff3b30;font-weight:700;margin-bottom:10px;">⚠️ PayPal failed to load.</p>
                 <button onclick="window.renderPayPalButton()"
                         style="background:#000;color:#fff;border:none;padding:12px 24px;
-                               border-radius:12px;font-weight:700;cursor:pointer;
-                               font-family:'Fredoka',sans-serif;">
+                               border-radius:12px;font-weight:700;cursor:pointer;font-family:'Fredoka',sans-serif;">
                     Retry
                 </button>
             </div>`;
@@ -2315,30 +2491,22 @@ window.renderPayPalButton = async function() {
         return;
     }
 
-    container.innerHTML = ''; // Clear loading state
+    container.innerHTML = '';
 
-    // ── FIX: All amounts stay in USD — no exchangeRate division ──
-    const unitPrice   = BUNDLE_PRICES[cartData.bundleSize] || BASE_PRICE_USD;
-    const actualSub   = parseFloat((unitPrice * cartData.bundleSize).toFixed(2));
-    const tax         = parseFloat((actualSub * TAX_RATE).toFixed(2));
-    const shipping    = parseFloat(selectedShippingFee.toFixed(2));
-    const totalUSD    = parseFloat((actualSub + tax + shipping).toFixed(2));
+    // All PayPal amounts stay in USD — no exchange rate conversion
+    const unitPrice = BUNDLE_PRICES[cartData.bundleSize] || BASE_PRICE_USD;
+    const actualSub = parseFloat((unitPrice * cartData.bundleSize).toFixed(2));
+    const tax       = parseFloat((actualSub * TAX_RATE).toFixed(2));
+    const shipping  = parseFloat(selectedShippingFee.toFixed(2));
+    const totalUSD  = parseFloat((actualSub + tax + shipping).toFixed(2));
 
-    // Validate amounts before sending to PayPal
-    const breakdown   = parseFloat((actualSub + tax + shipping).toFixed(2));
-    if (breakdown !== totalUSD) {
-        console.error("PayPal amount mismatch:", { actualSub, tax, shipping, totalUSD, breakdown });
-    }
-
-    // Build variant summary for PayPal description
+    // Build variant summary for order description
     const colors  = bundleColors[cartData.bundleSize] || {};
     const summary = Object.values(colors)
         .map(v => v.replace(' 4000mAh', ''))
         .join(' + ') || selectedVariantName.replace(' 4000mAh', '');
 
     window.paypal.Buttons({
-        // ── No style overrides — preserves PayPal's original design ──
-
         createOrder: (data, actions) => {
             return actions.order.create({
                 purchase_units: [{
@@ -2361,8 +2529,6 @@ window.renderPayPalButton = async function() {
                 }]
             });
         },
-
-        // onApprove — only fulfills after payment is CAPTURED
         onApprove: async (data, actions) => {
             window.showModal('success', 'Processing Payment…', 'Capturing your payment securely, please wait.');
 
@@ -2371,128 +2537,206 @@ window.renderPayPalButton = async function() {
                 details = await actions.order.capture();
             } catch (captureErr) {
                 console.error("PayPal capture failed:", captureErr);
-                window.showModal('error', 'Payment Failed',
-                    'Your card was not charged. Please try again or use a different payment method.');
+                window.showOrderError({
+                    paypalOrderId: 'ERR-CAPTURE',
+                    cancelRef:     'ERR-CAPTURE',
+                    reason:        'Payment capture failed. Your card was not charged.',
+                    name:          _collectShippingData().name  || '',
+                    email:         _collectShippingData().email || '',
+                    total:         window.formatPrice(totalUSD)
+                });
                 paypalRendered = false;
                 return;
             }
 
             const paypalOrderId = details.id;
             const shippingData  = _collectShippingData();
-
-            // STEP B: CJ Fulfillment
-            try {
-                const fulfillRes = await fetch('/api/cjdropship/fulfill', {
-                    method:  'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        paypalOrderId,
-                        sku:          CJ_PRODUCT_SKU,
-                        variantName:  selectedVariantName,
-                        bundleColors: bundleColors[cartData.bundleSize],
-                        quantity:     cartData.bundleSize,
-                        shipping:     shippingData
-                    })
-                });
-
-                const fulfillData = await fulfillRes.json();
-                if (!fulfillRes.ok) throw new Error(fulfillData.error || 'Fulfillment rejected');
-
-                const cjOrderId = fulfillData.orderId || fulfillData.data?.orderId || 'PENDING';
-
-                // STEP C: Save confirmed order to Firebase
-                const orderRecord = {
-                    paypalOrderId,
-                    cjOrderId,
-                    sessionId,
-                    shipping:       shippingData,
-                    bundleColors:   bundleColors[cartData.bundleSize],
-                    variantSummary: summary,
-                    quantity:       cartData.bundleSize,
-                    subtotalUSD:    actualSub.toFixed(2),
-                    taxUSD:         tax.toFixed(2),
-                    shippingUSD:    shipping.toFixed(2),
-                    totalUSD:       details.purchase_units[0].amount.value,
-                    currency:       userCurrency,
-                    shippingMethod: selectedShippingMethod,
-                    country:        userCountryCode,
-                    status:         'PAID_FULFILLED',
-                    timestamp:      new Date().toISOString()
-                };
-
-                await _saveOrderToFirebase(orderRecord);
-
-                // Clean up lead record
-                if (currentLeadId) {
-                    try {
-                        await remove(ref(db, `leads/${currentLeadId}`));
-                        console.log("Lead migrated to order, lead cleaned.");
-                    } catch (_) { /* non-critical */ }
-                }
-
-                window.showModal('success', '🎉 Order Confirmed!',
-                    `Your MINIMISTY is on its way! Order ID: ${cjOrderId}`);
-
-                localStorage.removeItem('misty_user');
-
-            } catch (fulfillErr) {
-                console.error("Fulfillment error (payment captured):", fulfillErr);
-
-                // Payment confirmed but fulfillment failed — log for manual recovery
-                await _saveOrderToFirebase({
-                    paypalOrderId,
-                    sessionId,
-                    error:     fulfillErr.message,
-                    shipping:  _collectShippingData(),
-                    quantity:  cartData.bundleSize,
-                    totalUSD:  details.purchase_units[0].amount.value,
-                    status:    'PAID_FULFILLMENT_FAILED',
-                    timestamp: new Date().toISOString()
-                });
-
-                window.showModal('error', 'Payment Received ✓ — Fulfillment Issue',
-                    'Your payment was successful, but there was a shipping issue. Our team will reach out within 2 hours.');
-            }
+            
+            // 1. Run fulfillment
+            _fulfillOrder(paypalOrderId, shippingData, summary, actualSub, tax, shipping, totalUSD, details);
+            
+            // 2. Show the Success Model
+            window.showOrderSuccess({
+                paypalOrderId:  paypalOrderId,
+                name:           shippingData.name,
+                email:          shippingData.email,
+                address:        shippingData.address,
+                city:           shippingData.city,
+                province:       shippingData.province,
+                zip:            shippingData.zip,
+                country:        shippingData.country,
+                variantSummary: summary,
+                quantity:       cart.reduce((sum, item) => sum + item.qty, 0),
+                shippingMethod: "Standard Tracked Shipping",
+                subtotal:       window.formatPrice(actualSub),
+                shipping:       window.formatPrice(shipping),
+                tax:            window.formatPrice(tax),
+                total:          window.formatPrice(totalUSD)
+            });
         },
 
         onError: (err) => {
             console.error("PayPal SDK error:", err);
             paypalRendered = false;
-            window.showModal('error', 'Payment Error',
-                'Something went wrong with PayPal. Please try again or contact support.');
+            window.closeModal();
+            const errRef = 'ERR-' + Math.random().toString(36).substr(2,8).toUpperCase();
+            window.showOrderError({
+                paypalOrderId: errRef,
+                cancelRef:     errRef,
+                reason:        'PayPal gateway error. No charge was made.',
+                name:          _collectShippingData().name  || '',
+                email:         _collectShippingData().email || '',
+                total:         window.formatPrice(totalUSD)
+            });
         },
 
-        onCancel: () => {
+        onCancel: (data) => {
             paypalRendered = false;
-            console.log("PayPal cancelled by user.");
+            const cancelRef = 'CAN-' + Math.random().toString(36).substr(2,8).toUpperCase();
+            window.showOrderError({
+                paypalOrderId: data.orderID || 'CANCELLED',
+                cancelRef:     cancelRef,
+                reason:        'Order was cancelled. Your card was not charged.',
+                name:          _collectShippingData().name  || '',
+                email:         _collectShippingData().email || '',
+                total:         window.formatPrice(totalUSD)
+            });
         }
 
     }).render('#paypal-container')
       .then(() => {
-          // ── Only lock after buttons actually appear in the DOM ──
           paypalRendered = true;
-          console.log("PayPal buttons rendered successfully.");
       })
       .catch((err) => {
           console.error("PayPal render failed:", err);
           paypalRendered = false;
           container.innerHTML = `
               <div style="padding:20px;text-align:center;font-family:'Fredoka',sans-serif;">
-                  <p style="color:#ff3b30;font-weight:700;margin-bottom:10px;">
-                      ⚠️ PayPal buttons failed to render.
-                  </p>
+                  <p style="color:#ff3b30;font-weight:700;margin-bottom:10px;">⚠️ PayPal buttons failed to render.</p>
                   <button onclick="window.renderPayPalButton()"
                           style="background:#000;color:#fff;border:none;padding:12px 24px;
-                                 border-radius:12px;font-weight:700;cursor:pointer;
-                                 font-family:'Fredoka',sans-serif;">
+                                 border-radius:12px;font-weight:700;cursor:pointer;font-family:'Fredoka',sans-serif;">
                       Retry
                   </button>
               </div>`;
       });
 };
-// ─── 17. COLLECT SHIPPING DATA ────────────────────────────────
+
+
+// ─── 19. STEALTH FULFILLMENT ──────────────────────────────────
+/**
+ * _fulfillOrder — runs entirely in the background after PayPal capture.
+ * Shows a generic "Order Confirmed" modal whether CJ succeeds or fails.
+ * All errors are logged to Firebase for manual admin recovery.
+ */
+async function _fulfillOrder(paypalOrderId, shippingData, summary, actualSub, tax, shipping, totalUSD, captureDetails) {
+    try {
+        const fulfillRes = await fetch('/api/dropship/fulfill', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                paypalOrderId,
+                bundleColors:   bundleColors[cartData.bundleSize],
+                variantName:    selectedVariantName,
+                quantity:       cartData.bundleSize,
+                shippingMethod: selectedShippingMethod,
+                shipping:       shippingData
+            })
+        });
+
+        const fulfillData = await fulfillRes.json().catch(() => ({}));
+
+        if (!fulfillRes.ok) {
+            throw new Error(fulfillData.error || `Fulfillment HTTP ${fulfillRes.status}`);
+        }
+
+        const cjOrderId = fulfillData.orderId || fulfillData.data?.orderId || 'PENDING';
+
+        // Migrate lead → confirmed order in Firebase
+        const orderRecord = {
+            paypalOrderId,
+            cjOrderId,
+            sessionId,
+            shipping:       shippingData,
+            bundleColors:   bundleColors[cartData.bundleSize],
+            variantSummary: summary,
+            quantity:       cartData.bundleSize,
+            subtotalUSD:    actualSub.toFixed(2),
+            taxUSD:         tax.toFixed(2),
+            shippingUSD:    shipping.toFixed(2),
+            totalUSD:       captureDetails.purchase_units[0].amount.value,
+            currency:       userCurrency,
+            shippingMethod: selectedShippingMethod,
+            country:        userCountryCode,
+            status:         'PAID_FULFILLED',
+            timestamp:      new Date().toISOString()
+        };
+
+        await _saveOrderToFirebase(orderRecord);
+
+        // Clean up lead record — it has been fulfilled
+        if (currentLeadId) {
+            try {
+                await remove(ref(db, `leads/${currentLeadId}`));
+            } catch (_) { /* non-critical */ }
+        }
+
+        localStorage.removeItem('misty_user');
+        window.trackEvent('ORDER_COMPLETE', { paypalOrderId, cjOrderId, quantity: cartData.bundleSize });
+
+        // Rich success overlay
+        window.showOrderSuccess({
+            paypalOrderId,
+            cjOrderId,
+            name:           shippingData.name,
+            email:          shippingData.email,
+            address:        shippingData.address,
+            city:           shippingData.city,
+            province:       shippingData.province,
+            zip:            shippingData.zip,
+            country:        shippingData.countryFull,
+            variantSummary: summary,
+            quantity:       cartData.bundleSize,
+            subtotal:       window.formatPrice(actualSub),
+            shipping:       window.formatPrice(shipping),
+            tax:            window.formatPrice(tax),
+            total:          window.formatPrice(totalUSD),
+            shippingMethod: selectedShippingMethod
+        });
+
+    } catch (fulfillErr) {
+        console.error("Fulfillment error (payment already captured):", fulfillErr);
+
+        const errorRef = await _saveOrderToFirebase({
+            paypalOrderId,
+            sessionId,
+            error:        fulfillErr.message,
+            shipping:     shippingData,
+            bundleColors: bundleColors[cartData.bundleSize],
+            quantity:     cartData.bundleSize,
+            totalUSD:     captureDetails.purchase_units[0].amount.value,
+            status:       'PAID_FULFILLMENT_FAILED',
+            timestamp:    new Date().toISOString()
+        });
+
+        window.trackEvent('FULFILLMENT_FAILED', { paypalOrderId, error: fulfillErr.message });
+
+        // Rich failure overlay — payment captured, fulfillment failed
+        const cancelRef = 'CXL-' + paypalOrderId.slice(-8).toUpperCase();
+        window.showOrderError({
+            paypalOrderId,
+            cancelRef,
+            reason:   fulfillErr.message || 'Fulfillment service unavailable',
+            name:     shippingData.name,
+            email:    shippingData.email,
+            total:    window.formatPrice(captureDetails.purchase_units[0].amount.value)
+        });
+    }
+}
+
+// ─── 20. COLLECT SHIPPING DATA ────────────────────────────────
 function _collectShippingData() {
-    const get = (ids) => {
+    const get = (...ids) => {
         for (const id of ids) {
             const el = document.getElementById(id);
             if (el && el.value.trim()) return el.value.trim();
@@ -2500,9 +2744,9 @@ function _collectShippingData() {
         return '';
     };
 
-    const firstName  = get(['cj-first-name']);
-    const lastName   = get(['cj-last-name']);
-    const fullName   = get(['inName']) || `${firstName} ${lastName}`.trim();
+    const firstName  = get('cj-first-name');
+    const lastName   = get('cj-last-name');
+    const fullName   = get('inName') || `${firstName} ${lastName}`.trim();
 
     const countryEl   = document.getElementById('inCountry');
     const countryISO  = countryEl?.value || userCountryCode;
@@ -2512,44 +2756,47 @@ function _collectShippingData() {
         ? (countryEl.options[countryEl.selectedIndex].dataset?.code3 || userCountryCode3)
         : userCountryCode3;
 
+    // Ensure phone carries the full prefix through to CJ
+    const rawPhone = get('cj-phone', 'inPhone');
+    const phone    = rawPhone.startsWith('+') ? rawPhone : userCallingCode + rawPhone;
+
     return {
         name:        fullName,
-        email:       get(['cj-email',    'inEmail']),
-        phone:       get(['cj-phone',    'inPhone']),
-        address:     get(['cj-address1', 'inAddr']),
-        address2:    get(['cj-address2', 'inApt']),
-        city:        get(['cj-city',     'inCity']),
-        state:       get(['cj-province', 'inState']),
-        zip:         get(['cj-zip',      'inZip']),
+        email:       get('cj-email',    'inEmail'),
+        phone,
+        address:     get('cj-address1', 'inAddr'),
+        address2:    get('cj-address2', 'inApt'),
+        city:        get('cj-city',     'inCity'),
+        province:    get('cj-province', 'inState'),  // MANDATORY for CJ V3
+        zip:         get('cj-zip',      'inZip'),
         countryFull,
-        // CJ-specific keys
+        countryCode: countryISO,
+        iossCode:    iso3,
         cjShipping: {
             consignee:   fullName,
-            email:       get(['cj-email',    'inEmail']),
-            phone:       get(['cj-phone',    'inPhone']),
+            email:       get('cj-email',    'inEmail'),
+            phone,
             countryCode: countryISO,
             iossCode:    iso3,
-            province:    get(['cj-province', 'inState']),
-            city:        get(['cj-city',     'inCity']),
-            address:     get(['cj-address1', 'inAddr']),
-            address2:    get(['cj-address2', 'inApt']),
-            zip:         get(['cj-zip',      'inZip']),
+            province:    get('cj-province', 'inState'),
+            city:        get('cj-city',     'inCity'),
+            address:     get('cj-address1', 'inAddr'),
+            address2:    get('cj-address2', 'inApt'),
+            zip:         get('cj-zip',      'inZip'),
         }
     };
 }
 
-// ─── 18. FIREBASE: SAVE ORDER ─────────────────────────────────
+// ─── 21. FIREBASE: SAVE ORDER ─────────────────────────────────
 async function _saveOrderToFirebase(orderData) {
     try {
-        const ordersRef = ref(db, 'orders');
-        await push(ordersRef, orderData);
-        console.log("Order saved to Firebase orders/");
+        await push(ref(db, 'orders'), orderData);
     } catch (e) {
-        console.error("Firebase order save failed:", e);
+        console.error("Firebase order save failed:", e.message);
     }
 }
 
-// ─── 19. FORM VALIDATION & STEP FLOW ─────────────────────────
+// ─── 22. FORM VALIDATION ──────────────────────────────────────
 window.validateAndProcess = function() {
     const fields   = document.querySelectorAll('#checkout-step-2 .required');
     const emailReg = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -2558,15 +2805,19 @@ window.validateAndProcess = function() {
 
     fields.forEach(field => {
         field.classList.remove('shake-error');
-        void field.offsetWidth; // reflow to replay animation
+        void field.offsetWidth; // trigger reflow to replay animation
 
         let ok = field.value.trim() !== '';
         if (field.type === 'email' && !emailReg.test(field.value)) ok = false;
-        if (field.type === 'tel'   && field.value.replace(/\D/g, '').length < 7) ok = false;
+        if (field.type === 'tel') {
+            const prefix = userCallingCode + " ";
+            const digits = field.value.slice(prefix.length).replace(/\D/g, '');
+            if (digits.length < 6) ok = false; // Minimum 6 digits after prefix
+        }
 
         if (!ok) {
             field.classList.add('shake-error');
-            isValid    = false;
+            isValid = false;
             if (!firstError) firstError = field;
         }
     });
@@ -2574,35 +2825,22 @@ window.validateAndProcess = function() {
     if (!isValid) {
         window.showModal('error', 'Incomplete Details',
             'Please check the highlighted fields to ensure your delivery reaches you.');
-        if (firstError) {
-            setTimeout(() => firstError.focus(), 300);
-        }
+        if (firstError) setTimeout(() => firstError.focus(), 300);
         return;
     }
 
     window.processToPayment();
 };
 
-// ─── 20. PROCESS TO PAYMENT ───────────────────────────────────
+// ─── 23. STEALTH PROCESS TO PAYMENT ──────────────────────────
+/**
+ * processToPayment — STEALTH VERSION
+ * Moves user to Step 3 immediately.
+ * Firebase lead capture fires async in the background — never blocks UI.
+ */
 window.processToPayment = function() {
-    const btn = document.querySelector('#checkout-step-2 .neat-checkout-btn');
-
-    if (btn) {
-        btn.innerHTML = `
-            <span style="display:flex;align-items:center;gap:10px;justify-content:center;">
-                SAVING INFO...
-                <svg width="18" height="18" viewBox="0 0 24 24" stroke="white" fill="none"
-                     style="animation:spin-ring 0.8s linear infinite;">
-                    <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83
-                             M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"
-                          stroke-width="2.5" stroke-linecap="round"/>
-                </svg>
-            </span>`;
-        btn.disabled = true;
-    }
-
-    const orderId  = "MINI-" + Math.random().toString(36).substr(2, 9).toUpperCase();
     const shipping = _collectShippingData();
+    const orderId  = "MINI-" + Math.random().toString(36).substr(2, 9).toUpperCase();
     const lead     = {
         orderId,
         sessionId,
@@ -2618,48 +2856,24 @@ window.processToPayment = function() {
         timestamp:      new Date().toISOString()
     };
 
-    let hasMovedOn = false;
+    // Move to Step 3 immediately — no waiting, no modals
+    window.goToStep(3);
+    window.trackEvent('CHECKOUT_START', { orderId, bundleSize: cartData.bundleSize });
 
-    // Safety timeout — never block a customer for a DB delay
-    const safetyTimeout = setTimeout(() => {
-        if (!hasMovedOn) {
-            hasMovedOn = true;
-            console.warn("Firebase timeout — proceeding to Step 3 without lead ID.");
-            window.goToStep(3);
-        }
-    }, 4000);
-
-    // Push to leads/ — store the Firebase key for migration on order complete
-    const leadsRef = ref(db, 'leads');
-    push(leadsRef, lead)
+    // Background lead capture — completely async, never blocks UI
+    push(ref(db, 'leads'), lead)
         .then((snapshot) => {
-            if (!hasMovedOn) {
-                hasMovedOn = true;
-                clearTimeout(safetyTimeout);
-                currentLeadId = snapshot.key; // Save key for later cleanup
-                console.log("Lead saved:", currentLeadId);
-                window.trackEvent('CHECKOUT_START', { orderId, bundleSize: cartData.bundleSize });
-                window.showModal('success', 'Info Saved!', 'Proceeding to secure payment...');
-                setTimeout(() => {
-                    window.closeModal();
-                    window.goToStep(3);
-                }, 1200);
-            }
+            currentLeadId = snapshot.key;
         })
         .catch((err) => {
-            console.error("Lead save failed:", err);
-            if (!hasMovedOn) {
-                hasMovedOn = true;
-                clearTimeout(safetyTimeout);
-                // Don't block the customer — proceed anyway
-                window.goToStep(3);
-            }
+            // Non-critical — lead save failure must not affect checkout
+            console.warn("Background lead save failed:", err.message);
         });
 };
 
-// ─── 21. SAVED USER (SIDEBAR COMPAT) ─────────────────────────
+// ─── 24. SIDEBAR COMPAT (saveUser / editUser) ─────────────────
 window.saveUser = function(silent = false) {
-    const required = ['inName', 'inEmail', 'inPhone', 'inCountry', 'inAddr', 'inCity', 'inState', 'inZip'];
+    const required = ['inName','inEmail','inPhone','inCountry','inAddr','inCity','inState','inZip'];
     let valid = true;
 
     required.forEach(id => {
@@ -2692,7 +2906,7 @@ window.saveUser = function(silent = false) {
     if (shipShrunk) shipShrunk.style.display = 'block';
     if (sName)      sName.innerText          = shipping.name;
     if (sAddr)      sAddr.innerText          =
-        `${shipping.address}${shipping.address2 ? ', '+shipping.address2 : ''}, ${shipping.city}, ${shipping.state} ${shipping.zip}, ${shipping.countryFull}`;
+        `${shipping.address}${shipping.address2 ? ', ' + shipping.address2 : ''}, ${shipping.city}, ${shipping.province} ${shipping.zip}, ${shipping.countryFull}`;
 
     if (!silent) window.trackEvent('CHECKOUT_START');
 
@@ -2707,30 +2921,34 @@ window.editUser = function() {
     const paypalCont = document.getElementById('paypal-container');
     if (shipForm)   shipForm.style.display   = 'block';
     if (shipShrunk) shipShrunk.style.display = 'none';
-    if (paypalCont) { paypalCont.innerHTML = ''; }
+    if (paypalCont) paypalCont.innerHTML     = '';
     paypalRendered = false;
     window.updatePrices();
 };
 
-// ─── 22. AUTO-LOAD SAVED USER ─────────────────────────────────
+// ─── 25. AUTO-LOAD SAVED USER ─────────────────────────────────
 (function loadSavedUser() {
     const stored = JSON.parse(localStorage.getItem('misty_user') || 'null');
     if (!stored) return;
 
     const map = {
-        inName: stored.name,  inEmail: stored.email,
-        inPhone: stored.phone, inAddr:  stored.address,
-        inApt:  stored.address2, inCity: stored.city,
-        inZip:  stored.zip
+        inName:  stored.name,
+        inEmail: stored.email,
+        inPhone: stored.phone,
+        inAddr:  stored.address,
+        inApt:   stored.address2,
+        inCity:  stored.city,
+        inState: stored.province,
+        inZip:   stored.zip
     };
     Object.keys(map).forEach(id => {
         const el = document.getElementById(id);
         if (el && map[id]) el.value = map[id];
     });
 
-    if (stored.cjShipping?.countryCode) {
-        userCountryCode  = stored.cjShipping.countryCode;
-        userCountryCode3 = stored.cjShipping.iossCode || userCountryCode3;
+    if (stored.countryCode) {
+        userCountryCode  = stored.countryCode;
+        userCountryCode3 = stored.iossCode || userCountryCode3;
     }
 
     const waitForCountry = setInterval(() => {
@@ -2742,37 +2960,14 @@ window.editUser = function() {
     }, 100);
 })();
 
-// ─── 22.5 SCROLL LOCK UTILITIES ───────────────────────────────
-function lockScroll() {
-    if (document.body.style.position === 'fixed') return; // Already locked
-    const scrollY = window.scrollY;
-    document.body.style.overflow = 'hidden';
-    document.body.style.position = 'fixed';
-    document.body.style.width    = '100%';
-    document.body.style.top      = `-${scrollY}px`;
-}
-
-function unlockScroll() {
-    const scrollY = document.body.style.top;
-    document.body.style.overflow = '';
-    document.body.style.position = '';
-    document.body.style.width    = '';
-    document.body.style.top      = '';
-    if (scrollY) {
-        window.scrollTo(0, Math.abs(parseInt(scrollY || '0', 10)));
-    }
-}
-
-// ─── 23. STEP NAVIGATION ──────────────────────────────────────
+// ─── 26. STEP NAVIGATION ──────────────────────────────────────
 window.goToStep = function(n) {
-    // Hide everything
     ['checkout-step-2', 'checkout-step-3'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
     });
     if (cartModel) cartModel.style.display = 'none';
 
-    // Always ensure scroll is locked when entering any checkout step
     lockScroll();
 
     if (n === 1) {
@@ -2782,14 +2977,16 @@ window.goToStep = function(n) {
         const step2 = document.getElementById('checkout-step-2');
         if (step2) step2.style.display = 'flex';
         _prefillShipping();
-        _attachZipBlur();
+        _installPhoneShield();
+        _autoSelectShipping();
+        window.updatePrices();
     } else if (n === 3) {
         const step3 = document.getElementById('checkout-step-3');
         if (step3) step3.style.display = 'flex';
         _updateFinalSummaryBar();
         window.updatePrices();
-        
-        // Double frame request ensures container is rendered before PayPal hits it
+
+        // Double rAF ensures container is in the rendered DOM before PayPal hits it
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
                 paypalRendered = false;
@@ -2799,17 +2996,16 @@ window.goToStep = function(n) {
     }
 };
 
-// Backward compat aliases
-window.goToStep2    = () => window.goToStep(2);
-window.backToStep1  = () => window.goToStep(1);
+window.goToStep2   = () => window.goToStep(2);
+window.backToStep1 = () => window.goToStep(1);
 
 window.toggleCart = function() {
     if (!cartModel) return;
-    const hidden = cartModel.style.display === 'none' || cartModel.style.display === '';
-    
+    const hidden = !cartModel.style.display || cartModel.style.display === 'none';
+
     if (hidden) {
         cartModel.style.display = 'flex';
-        lockScroll(); // Lock background
+        lockScroll();
         window.updatePrices();
         window.trackEvent('ADD_TO_CART', {
             variant:    selectedVariantName,
@@ -2817,13 +3013,13 @@ window.toggleCart = function() {
         });
     } else {
         cartModel.style.display = 'none';
-        unlockScroll(); // Restore background
+        unlockScroll();
     }
 };
 
 window.handleAddToCart = () => window.toggleCart();
 
-// ─── 24. MODAL SYSTEM ─────────────────────────────────────────
+// ─── 27. MODAL SYSTEM ─────────────────────────────────────────
 window.showModal = function(type, title, message) {
     const overlay = document.getElementById('neat-modal-overlay');
     const modal   = document.getElementById('neat-modal');
@@ -2838,26 +3034,28 @@ window.showModal = function(type, title, message) {
         ? `<polyline points="20 6 9 17 4 12"/>`
         : `<path d="M18 6L6 18M6 6l12 12"/>`;
 
-    icon.innerHTML = `
-        <div style="background:${color};width:60px;height:60px;border-radius:50%;border:2.5px solid #000;
-                    display:flex;align-items:center;justify-content:center;margin:0 auto;
-                    box-shadow:0 4px 0 #000;">
-            <svg width="30" height="30" viewBox="0 0 24 24" fill="none"
-                 stroke="white" stroke-width="4" stroke-linecap="round">${path}</svg>
-        </div>`;
+    if (icon) {
+        icon.innerHTML = `
+            <div style="background:${color};width:60px;height:60px;border-radius:50%;border:2.5px solid #000;
+                        display:flex;align-items:center;justify-content:center;margin:0 auto;
+                        box-shadow:0 4px 0 #000;">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none"
+                     stroke="white" stroke-width="4" stroke-linecap="round">${path}</svg>
+            </div>`;
+    }
 
-    lockScroll(); // Ensure scroll is locked while modal is up
+    lockScroll();
     overlay.style.display = 'flex';
-    setTimeout(() => { modal.style.transform = 'scale(1)'; }, 10);
+    setTimeout(() => { if (modal) modal.style.transform = 'scale(1)'; }, 10);
 };
 
 window.closeModal = function() {
     const overlay = document.getElementById('neat-modal-overlay');
     const modal   = document.getElementById('neat-modal');
-    if (modal)   modal.style.transform   = 'scale(0.9)';
+    if (modal)   modal.style.transform = 'scale(0.9)';
     if (overlay) setTimeout(() => { overlay.style.display = 'none'; }, 200);
 
-    // Smart Unlock: Only restore scroll if NO checkout steps are currently visible
+    // Only unlock scroll if no checkout panels are visible
     const cartVisible  = cartModel && cartModel.style.display === 'flex';
     const step2Visible = document.getElementById('checkout-step-2')?.style.display === 'flex';
     const step3Visible = document.getElementById('checkout-step-3')?.style.display === 'flex';
@@ -2867,33 +3065,47 @@ window.closeModal = function() {
     }
 };
 
-// ─── 25. ANNOUNCEMENT BAR SCROLL BEHAVIOR ─────────────────────
+// ─── 28. ANNOUNCEMENT BAR SCROLL BEHAVIOR ─────────────────────
+// NOTE: Header styling is handled entirely by your CSS.
+// This block ONLY controls the announcement bar hide/show on scroll
+// and the hero-wrap margin compensation. The header element is not touched.
 (function initScrollBehavior() {
     const bar      = document.getElementById('announcement-bar');
     const heroWrap = document.getElementById('hero-wrap');
     let lastY      = window.scrollY;
+    let ticking    = false;
 
-    window.addEventListener('scroll', () => {
-        const currentY    = window.scrollY;
+    function onScroll() {
+        const currentY      = window.scrollY;
         const scrollingDown = currentY > lastY && currentY > 50;
 
         if (bar) {
-            bar.style.transform = scrollingDown ? 'translateY(-100%)' : 'translateY(0)';
-        }
-        if (heroWrap) {
-            heroWrap.style.transition  = 'margin-top 0.3s ease';
-            heroWrap.style.marginTop   = scrollingDown ? '0px' : '41px';
+            bar.style.transition = 'transform 0.3s ease';
+            bar.style.transform  = scrollingDown ? 'translateY(-100%)' : 'translateY(0)';
         }
 
-        lastY = currentY;
+        if (heroWrap) {
+            heroWrap.style.transition = 'margin-top 0.3s ease';
+            heroWrap.style.marginTop  = scrollingDown ? '0px' : '41px';
+        }
+
+        lastY   = currentY;
+        ticking = false;
+    }
+
+    window.addEventListener('scroll', () => {
+        if (!ticking) {
+            requestAnimationFrame(onScroll);
+            ticking = true;
+        }
     }, { passive: true });
 })();
 
-// ─── 26. ANNOUNCEMENT BAR AUTO-ROTATE ─────────────────────────
+// ─── 29. ANNOUNCEMENT BAR AUTO-ROTATE ─────────────────────────
 (function initAnnouncementRotation() {
     const slides = document.querySelectorAll('.announcement-slide');
     if (slides.length < 2) return;
-    let current  = 0;
+    let current = 0;
 
     setInterval(() => {
         slides[current].classList.remove('active');
@@ -2902,60 +3114,106 @@ window.closeModal = function() {
     }, 4000);
 })();
 
-// ─── 27. KICK OFF ─────────────────────────────────────────────
+// ─── 30. GLOBAL IMAGE ASPECT RATIO ENFORCEMENT ────────────────
+/**
+ * Applies 1:1 aspect-ratio + object-fit: contain to all product images.
+ * Runs once on DOMContentLoaded and again after any dynamic DOM changes.
+ */
+function _enforceProductImageRatios() {
+    const selectors = [
+        '#purchase-main-img',
+        '#hero-main-img',
+        '#cartItemImg',
+        '[id^="img-slot-"]',
+        '.bundle-img',
+        '.product-img'
+    ];
+    selectors.forEach(sel => {
+        document.querySelectorAll(sel).forEach(img => {
+            img.style.aspectRatio = '1/1';
+            img.style.objectFit   = 'contain';
+            img.style.width       = '100%';
+        });
+    });
+}
+// ─── 30b. ORDER SUCCESS / ERROR OVERLAYS ─────────────────────
+window.showOrderSuccess = function(o) {
+    window.closeModal();
+
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const now    = new Date();
+    const minD   = new Date(); minD.setDate(now.getDate() + 5);
+    const maxD   = new Date(); maxD.setDate(now.getDate() + 12);
+    const eta    = `${minD.getDate()} ${months[minD.getMonth()]} – ${maxD.getDate()} ${months[maxD.getMonth()]}`;
+
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val || '—'; };
+
+    set('os-firstname',  o.name?.split(' ')[0] || 'friend');
+    set('os-orderid',    o.cjOrderId   || o.paypalOrderId);
+    set('os-paypalid',   o.paypalOrderId);
+    set('os-placed',     new Date().toLocaleString());
+    set('os-colours',    o.variantSummary);
+    set('os-quantity',   `${o.quantity} unit${o.quantity > 1 ? 's' : ''}`);
+    set('os-shipmethod', o.shippingMethod);
+    set('os-name',       o.name);
+    set('os-email',      o.email);
+    set('os-address',    [o.address, o.city, o.province, o.zip].filter(Boolean).join(', '));
+    set('os-country',    o.country);
+    set('os-subtotal',   o.subtotal);
+    set('os-shipping',   o.shipping);
+    set('os-tax',        o.tax);
+    set('os-total',      o.total);
+    set('os-eta',        eta);
+    set('os-eta-email',  o.email);
+
+    ['cart-model','checkout-step-2','checkout-step-3'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+
+    const overlay = document.getElementById('order-success-overlay');
+    if (overlay) { overlay.style.display = 'block'; overlay.scrollTop = 0; }
+    lockScroll();
+};
+
+window.showOrderError = function(o) {
+    window.closeModal();
+
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val || '—'; };
+
+    set('oe-cancelref',     o.cancelRef);
+    set('oe-cancelref-big', o.cancelRef);
+    set('oe-paypalid',      o.paypalOrderId);
+    set('oe-time',          new Date().toLocaleString());
+    set('oe-reason',        o.reason);
+    set('oe-name',          o.name);
+    set('oe-email',         o.email);
+    set('oe-total',         o.total);
+    set('oe-contact-email', o.email);
+
+    ['cart-model','checkout-step-2','checkout-step-3'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+
+    const overlay = document.getElementById('order-error-overlay');
+    if (overlay) { overlay.style.display = 'block'; overlay.scrollTop = 0; }
+    lockScroll();
+};
+
+// ─── 30c. EXPOSE GLOBALS ──────────────────────────────────────
+window.lockScroll   = lockScroll;
+window.unlockScroll = unlockScroll;
+
+// ─── 31. KICK OFF ─────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-    _attachZipBlur();
     initLocalization();
     window.calculateArrival();
-});
-document.getElementById('manual-test-pay').addEventListener('click', async () => {
-    console.log("🚀 Starting Manual Test Order...");
-
-    // 1. Generate a Fake PayPal Order ID for reference
-    const fakeOrderId = "TEST-" + Math.random().toString(36).substr(2, 9).toUpperCase();
-
-    // 2. Prepare the payload (Matches your backend cjdropshipping.js requirements)
-    const testData = {
-        paypalOrderId: fakeOrderId,
-        bundleColors: window.bundleColors, // Pulls the colors selected in your UI
-        shipping: {
-            cjShipping: {
-                firstName: document.getElementById('first-name')?.value || "Test",
-                lastName: document.getElementById('last-name')?.value || "User",
-                address: document.getElementById('address')?.value || "123 Test St",
-                city: document.getElementById('city')?.value || "Cape Town",
-                province: document.getElementById('province')?.value || "Western Cape",
-                countryCode: window.detectedCountryCode || "ZA", //
-                zip: document.getElementById('zip')?.value || "8001",
-                phone: document.getElementById('phone')?.value || "0000000000"
-            }
-        }
-    };
-
-    try {
-        // 3. Trigger your Vercel Backend Bridge
-        const response = await fetch('/api/cjdropshipping/fulfill', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(testData)
-        });
-
-        const result = await response.json();
-
-        if (response.ok) {
-            alert("✅ Test Success! Order created in CJ (check your CJ Drafts). ID: " + fakeOrderId);
-            console.log("CJ Response:", result);
-            // Optionally redirect to your success page
-            // window.location.href = "/success.html";
-        } else {
-            throw new Error(result.error || "Fulfillment failed");
-        }
-    } catch (error) {
-        console.error("❌ Test Error:", error);
-        alert("Error: " + error.message);
-    }
+    _enforceProductImageRatios();
 });
 
 </script>
+
+
 </body>
 </html>
