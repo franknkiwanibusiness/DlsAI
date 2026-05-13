@@ -1828,19 +1828,19 @@ const db  = getDatabase(app);
 // ─── 2. CONSTANTS ─────────────────────────────────────────────
 // ⚠️  SECURITY: Move PAYPAL_CLIENT_ID to a server-side token endpoint.
 const PAYPAL_CLIENT_ID  = "AW7nmsZqdabjCrj62j0qekUqalJJ3T53ngjrime14foH5HMhNLmpUzULQV-OvV82KSuZQoBoEP4Rkwi4";
-const BASE_PRICE_USD    = 39.50;
+const BASE_PRICE_USD    = 0.01;
 const BASE_OLD_PRICE    = 59.95;
-const TAX_RATE          = 0.05;
+const TAX_RATE          = 0.00;
 
 // Fixed shipping tiers — no CJ freight lookup
 const SHIPPING_TIERS = {
-    Standard: { fee: 0.99,  label: "Standard Shipping (5–12 days)", days: "5–12 days" },
+    Standard: { fee: 0.00,  label: "Standard Shipping (5–12 days)", days: "5–12 days" },
     Priority: { fee: 4.99,  label: "Priority Shipping (3–7 days)",  days: "3–7 days"  },
     Express:  { fee: 9.99,  label: "Express Shipping (1–3 days)",   days: "1–3 days"  }
 };
 
 // Bundle unit prices (USD per unit)
-const BUNDLE_PRICES = { 1: 39.50, 2: 37.45, 3: 34.95 };
+const BUNDLE_PRICES = { 1: 0.01, 2: 37.45, 3: 34.95 };
 
 // Master SKU map — CJ V3 variant SKUs
 const VARIANT_SKUS = {
@@ -2400,41 +2400,6 @@ window.calculateArrival = function() {
     if (el) el.innerText = `${minD.getDate()} ${months[minD.getMonth()]} – ${maxD.getDate()} ${months[maxD.getMonth()]}`;
 };
 
-// ─── 16. SHIPPING METHOD SELECTOR ─────────────────────────────
-/**
- * setShippingMethod — matches your HTML onclick signature exactly:
- *   onclick="setShippingMethod(0.99, 'Standard', '8-16 days', this)"
- *   onclick="setShippingMethod(2.95, 'Prime', '5-12 days', this)"
- */
-window.setShippingMethod = function(fee, methodName, estDays, el) {
-    selectedShippingFee    = parseFloat(fee) || 0.99;
-    selectedShippingMethod = methodName || 'Standard';
-
-    document.querySelectorAll('.shipping-method-card').forEach(c => c.classList.remove('active'));
-    if (el) el.classList.add('active');
-
-    const methodLabel = document.getElementById('shipping-method-name');
-    if (methodLabel) methodLabel.innerText = methodName + ' Shipping (' + estDays + ')';
-
-    window.updatePrices();
-    paypalRendered = false;
-};
-
-/**
- * _autoSelectShipping
- * Activates #ship-standard on step entry so there is always a visible selection.
- */
-function _autoSelectShipping() {
-    const standardCard = document.getElementById('ship-standard');
-    if (standardCard) {
-        document.querySelectorAll('.shipping-method-card').forEach(c => c.classList.remove('active'));
-        standardCard.classList.add('active');
-    }
-    selectedShippingFee    = 0.99;
-    selectedShippingMethod = 'Standard';
-    const methodLabel = document.getElementById('shipping-method-name');
-    if (methodLabel) methodLabel.innerText = 'Standard Shipping (8-16 days)';
-}
 
 // ─── 17. PAYPAL SDK LOADER ────────────────────────────────────
 function _loadPayPalScript() {
@@ -2459,7 +2424,6 @@ function _loadPayPalScript() {
         document.head.appendChild(script);
     });
 }
-
 // ─── 18. PAYPAL BUTTON RENDERER ───────────────────────────────
 window.renderPayPalButton = async function() {
     const container = document.getElementById('paypal-container');
@@ -2493,12 +2457,16 @@ window.renderPayPalButton = async function() {
 
     container.innerHTML = '';
 
-    // All PayPal amounts stay in USD — no exchange rate conversion
-    const unitPrice = BUNDLE_PRICES[cartData.bundleSize] || BASE_PRICE_USD;
-    const actualSub = parseFloat((unitPrice * cartData.bundleSize).toFixed(2));
-    const tax       = parseFloat((actualSub * TAX_RATE).toFixed(2));
-    const shipping  = parseFloat(selectedShippingFee.toFixed(2));
-    const totalUSD  = parseFloat((actualSub + tax + shipping).toFixed(2));
+    // ─── TEST MODE: charges $0.01 only ───────────────────────
+    const TEST_MODE = false; // ← set to false when going live
+
+    const unitPrice    = BUNDLE_PRICES[cartData.bundleSize] || BASE_PRICE_USD;
+    const actualSub    = TEST_MODE ? 0.01 : parseFloat((unitPrice * cartData.bundleSize).toFixed(2));
+    const tax          = TEST_MODE ? 0.00 : parseFloat((actualSub * TAX_RATE).toFixed(2));
+    const shipping     = TEST_MODE ? 0.00 : parseFloat(selectedShippingFee.toFixed(2));
+    const totalUSD     = parseFloat((actualSub + tax + shipping).toFixed(2));
+    // In test mode the per-unit amount must also be $0.01 or PayPal rejects the breakdown
+    const displayUnit  = TEST_MODE ? 0.01 : unitPrice;
 
     // Build variant summary for order description
     const colors  = bundleColors[cartData.bundleSize] || {};
@@ -2510,7 +2478,7 @@ window.renderPayPalButton = async function() {
         createOrder: (data, actions) => {
             return actions.order.create({
                 purchase_units: [{
-                    description: `MINIMISTY x${cartData.bundleSize} — ${summary}`,
+                    description: `MINIMISTY x${cartData.bundleSize} — ${summary}${TEST_MODE ? ' [TEST]' : ''}`,
                     amount: {
                         currency_code: "USD",
                         value: totalUSD.toFixed(2),
@@ -2522,13 +2490,14 @@ window.renderPayPalButton = async function() {
                     },
                     items: [{
                         name:        `MINIMISTY TURBO MIST — ${summary}`,
-                        unit_amount: { currency_code: "USD", value: unitPrice.toFixed(2) },
+                        unit_amount: { currency_code: "USD", value: displayUnit.toFixed(2) },
                         quantity:    String(cartData.bundleSize),
                         category:    "PHYSICAL_GOODS"
                     }]
                 }]
             });
         },
+
         onApprove: async (data, actions) => {
             window.showModal('success', 'Processing Payment…', 'Capturing your payment securely, please wait.');
 
@@ -2537,6 +2506,7 @@ window.renderPayPalButton = async function() {
                 details = await actions.order.capture();
             } catch (captureErr) {
                 console.error("PayPal capture failed:", captureErr);
+                window.closeModal();
                 window.showOrderError({
                     paypalOrderId: 'ERR-CAPTURE',
                     cancelRef:     'ERR-CAPTURE',
@@ -2551,27 +2521,28 @@ window.renderPayPalButton = async function() {
 
             const paypalOrderId = details.id;
             const shippingData  = _collectShippingData();
-            
-            // 1. Run fulfillment
+
+            // Fire fulfillment in background
             _fulfillOrder(paypalOrderId, shippingData, summary, actualSub, tax, shipping, totalUSD, details);
-            
-            // 2. Show the Success Model
+
+            // Show success overlay immediately — don't wait for fulfillment
             window.showOrderSuccess({
                 paypalOrderId:  paypalOrderId,
+                cjOrderId:      null,
                 name:           shippingData.name,
                 email:          shippingData.email,
                 address:        shippingData.address,
                 city:           shippingData.city,
                 province:       shippingData.province,
                 zip:            shippingData.zip,
-                country:        shippingData.country,
+                country:        shippingData.countryFull,  // ← fixed: was shippingData.country
                 variantSummary: summary,
-                quantity:       cart.reduce((sum, item) => sum + item.qty, 0),
-                shippingMethod: "Standard Tracked Shipping",
-                subtotal:       window.formatPrice(actualSub),
-                shipping:       window.formatPrice(shipping),
-                tax:            window.formatPrice(tax),
-                total:          window.formatPrice(totalUSD)
+                quantity:       cartData.bundleSize,        // ← fixed: was cart.reduce(...)
+                shippingMethod: selectedShippingMethod,
+                subtotal:       window.formatPrice(TEST_MODE ? unitPrice * cartData.bundleSize : actualSub),
+                shipping:       window.formatPrice(TEST_MODE ? selectedShippingFee : shipping),
+                tax:            window.formatPrice(TEST_MODE ? (unitPrice * cartData.bundleSize * TAX_RATE) : tax),
+                total:          window.formatPrice(TEST_MODE ? (unitPrice * cartData.bundleSize + selectedShippingFee + (unitPrice * cartData.bundleSize * TAX_RATE)) : totalUSD)
             });
         },
 
