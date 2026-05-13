@@ -58,9 +58,6 @@ module.exports = async function handler(req, res) {
         console.log('[fulfill] CJ token acquired.');
 
         // ── Build product list ───────────────────────────────────────────────
-        // CJ V1 createOrder requires products as an array of objects with
-        // exactly these two keys: { vid: string, quantity: number }
-        // where `vid` is the variant SKU string, NOT a numeric product ID.
         const merged = {};
         Object.values(bundleColors).forEach(variantName => {
             const vid = SKU_MAP[variantName] || SKU_MAP["Dark Gray 4000mAh"];
@@ -68,34 +65,28 @@ module.exports = async function handler(req, res) {
         });
 
         const products = Object.entries(merged).map(([vid, qty]) => ({
-            vid,                    // string — variant SKU
-            quantity: qty           // number — CJ rejects strings here
+            vid,
+            quantity: qty
         }));
 
         const cj = shipping.cjShipping;
 
         // ── Sanitise address fields ─────────────────────────────────────────
-        // CJ rejects null/undefined values — replace with empty strings.
-        // province is mandatory; if blank CJ will 405/16900205.
         const sanitise = (v) => (v || '').toString().trim();
 
-        // ── Build the order payload ─────────────────────────────────────────
-        // Field names must match CJ V1 spec exactly (camelCase).
+        // ── Build the order payload (flat — CJ rejects nested objects) ──────
         const orderPayload = {
-            orderNumber:   sanitise(paypalOrderId),  // your reference
-            shippingAddress: {
-                consignee:    sanitise(cj.consignee),
-                email:        sanitise(cj.email),
-                phone:        sanitise(cj.phone),
-                countryCode:  sanitise(cj.countryCode),
-                province:     sanitise(cj.province),   // REQUIRED — never blank
-                city:         sanitise(cj.city),
-                address:      sanitise(cj.address),
-                address2:     sanitise(cj.address2),
-                zip:          sanitise(cj.zip)
-            },
+            orderNumber:          sanitise(paypalOrderId),
+            shippingCustomerName: sanitise(cj.consignee),
+            shippingEmail:        sanitise(cj.email),
+            shippingPhone:        sanitise(cj.phone),
+            shippingCountryCode:  sanitise(cj.countryCode),
+            shippingProvince:     sanitise(cj.province),
+            shippingCity:         sanitise(cj.city),
+            shippingAddress:      sanitise(cj.address),
+            shippingAddress2:     sanitise(cj.address2 || ''),
+            shippingZip:          sanitise(cj.zip),
             products,
-            // Optional but helpful for support traces
             remark: `PayPal:${sanitise(paypalOrderId)}|Ship:${sanitise(shippingMethod) || 'Standard'}`
         };
 
