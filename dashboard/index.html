@@ -1,1729 +1,1590 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" id="html-root" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>MINIMISTY — NIGHTHAWK OS</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&family=DM+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-
+<title>MINIMISTY — Command Center</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
+/* ══════════════════════════════════════════════
+   THEME VARIABLES
+══════════════════════════════════════════════ */
 :root {
-  --black: #000;
-  --white: #fff;
-  --purple: #5856d6;
-  --lime: #32d74b;
-  --red: #ff3b30;
-  --yellow: #FFD60A;
-  --orange: #FF9F0A;
-  --blue: #007AFF;
-  --bg: #0a0a0a;
-  --surface: #111;
-  --surface2: #1a1a1a;
-  --border: #222;
-  --muted: #666;
-  --text: #f0f0f0;
-  --font-display: 'Bebas Neue', sans-serif;
-  --font-body: 'DM Sans', sans-serif;
-  --font-mono: 'Space Mono', monospace;
-  --tab-h: 72px;
-  --header-h: 64px;
+  --purple:#5856d6; --lime:#32d74b; --red:#ff3b30;
+  --yellow:#ffd60a; --blue:#007aff; --orange:#ff9f0a;
+  --bg:#0c0c0e; --surface:#141416; --surface2:#1c1c20;
+  --surface3:#242428; --border:#2a2a30; --border2:#38383f;
+  --text:#f2f2f7; --text2:#9898a8; --text3:#55555f;
+  --font:'Sora',sans-serif; --mono:'JetBrains Mono',monospace;
+  --tab-h:64px; --header-h:58px;
+  --r:14px; --r-sm:9px; --r-lg:22px;
+}
+[data-theme="light"] {
+  --bg:#f2f2f7; --surface:#ffffff; --surface2:#f7f7fb;
+  --surface3:#ebebf0; --border:#dcdce4; --border2:#c8c8d0;
+  --text:#111114; --text2:#5c5c66; --text3:#aaaabc;
 }
 
-* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+/* ══════════════════════════════════════════════
+   RESET & BASE
+══════════════════════════════════════════════ */
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:var(--font);background:var(--bg);color:var(--text);
+     height:100dvh;overflow:hidden;transition:background .25s,color .25s;
+     -webkit-font-smoothing:antialiased}
+button,input,select{font-family:var(--font)}
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 
-body {
-  font-family: var(--font-body);
-  background: var(--bg);
-  color: var(--text);
-  overflow-x: hidden;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
+/* ══════════════════════════════════════════════
+   AUTH SCREEN
+══════════════════════════════════════════════ */
+#auth-screen{
+  position:fixed;inset:0;z-index:9999;background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;
 }
+.auth-logo{font-size:38px;font-weight:900;letter-spacing:-1.5px;margin-bottom:4px}
+.auth-logo em{color:var(--purple);font-style:normal}
+.auth-sub{font-size:11px;font-weight:600;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:36px}
+.auth-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r-lg);
+           padding:24px;width:100%;max-width:340px}
+.auth-label{font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:7px}
+.auth-input{width:100%;background:var(--surface2);border:1.5px solid var(--border);
+            border-radius:var(--r-sm);padding:13px 14px;color:var(--text);
+            font-size:15px;font-weight:600;outline:none;transition:border-color .2s;margin-bottom:12px}
+.auth-input:focus{border-color:var(--purple)}
+.auth-remember{display:flex;align-items:center;gap:8px;margin-bottom:16px;cursor:pointer}
+.auth-check{width:18px;height:18px;border:1.5px solid var(--border2);border-radius:5px;
+            background:var(--surface2);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:.15s}
+.auth-check.checked{background:var(--purple);border-color:var(--purple)}
+.auth-remember-label{font-size:12px;font-weight:600;color:var(--text2)}
+.auth-err{color:var(--red);font-size:12px;font-weight:700;text-align:center;margin-top:10px;display:none}
 
-/* SCROLLBAR */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
-
-/* ── HEADER ── */
-.header {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-  height: var(--header-h);
-  background: rgba(10,10,10,0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 20px;
+/* ══════════════════════════════════════════════
+   HEADER
+══════════════════════════════════════════════ */
+.header{
+  position:fixed;top:0;left:0;right:0;z-index:200;height:var(--header-h);
+  background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;padding:0 14px;
 }
-
-.header-logo {
-  font-family: var(--font-display);
-  font-size: 26px;
-  letter-spacing: 2px;
-  color: var(--white);
-}
-.header-logo span { color: var(--purple); }
-
-.header-right { display: flex; align-items: center; gap: 12px; }
-
-.live-dot {
-  display: flex; align-items: center; gap: 6px;
-  background: rgba(50,215,75,0.1); border: 1px solid rgba(50,215,75,0.3);
-  padding: 6px 12px; border-radius: 20px;
-  font-size: 11px; font-weight: 700; color: var(--lime);
-}
-.live-dot::before {
-  content: '';
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--lime);
-  animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-  0%,100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.8); }
-}
-
-.avatar-btn {
-  width: 36px; height: 36px; border-radius: 50%;
-  background: var(--purple); border: 2px solid var(--white);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 14px; font-weight: 900; cursor: pointer;
-}
-
-/* ── MAIN CONTENT ── */
-.main {
-  margin-top: var(--header-h);
-  margin-bottom: var(--tab-h);
-  flex: 1;
-  overflow: hidden;
-}
-
-.view {
-  display: none;
-  height: calc(100vh - var(--header-h) - var(--tab-h));
-  overflow-y: auto;
-  padding: 16px;
-  animation: fadeIn 0.2s ease;
-}
-.view.active { display: block; }
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* ── BOTTOM TAB BAR ── */
-.tab-bar {
-  position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
-  height: var(--tab-h);
-  background: rgba(10,10,10,0.95);
-  backdrop-filter: blur(20px);
-  border-top: 1px solid var(--border);
-  display: flex; align-items: center;
-  padding-bottom: env(safe-area-inset-bottom, 0);
-}
-
-.tab-item {
-  flex: 1; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 4px;
-  cursor: pointer; transition: all 0.2s;
-  padding: 8px 0;
-  position: relative;
-}
-
-.tab-icon {
-  width: 24px; height: 24px;
-  display: flex; align-items: center; justify-content: center;
-}
-
-.tab-label {
-  font-size: 10px; font-weight: 700;
-  color: var(--muted); transition: color 0.2s;
-  text-transform: uppercase; letter-spacing: 0.5px;
-}
-
-.tab-item.active .tab-label { color: var(--purple); }
-.tab-item.active .tab-icon svg { stroke: var(--purple); }
-.tab-item:not(.active) .tab-icon svg { stroke: var(--muted); }
-
-.tab-badge {
-  position: absolute; top: 4px; right: calc(50% - 18px);
-  background: var(--red); color: #fff;
-  font-size: 9px; font-weight: 900;
-  min-width: 16px; height: 16px;
-  border-radius: 8px; padding: 0 4px;
-  display: flex; align-items: center; justify-content: center;
-}
-
-/* ── CARDS ── */
-.card {
-  background: var(--surface);
-  border: 1.5px solid var(--border);
-  border-radius: 18px;
-  padding: 16px;
-  margin-bottom: 12px;
-}
-
-.card-neo {
-  background: var(--surface);
-  border: 2.5px solid var(--white);
-  border-radius: 16px;
-  padding: 16px;
-  margin-bottom: 12px;
-  box-shadow: 4px 4px 0 var(--white);
-}
-
-.section-label {
-  font-size: 10px; font-weight: 800;
-  color: var(--muted); letter-spacing: 2px;
-  text-transform: uppercase;
-  margin-bottom: 12px;
-  display: flex; align-items: center; gap: 8px;
-}
-.section-label::after {
-  content: ''; flex: 1; height: 1px; background: var(--border);
-}
-
-/* ── STAT CARDS ── */
-.stats-grid {
-  display: grid; grid-template-columns: 1fr 1fr;
-  gap: 10px; margin-bottom: 16px;
-}
-
-.stat-card {
-  background: var(--surface);
-  border: 1.5px solid var(--border);
-  border-radius: 16px;
-  padding: 14px;
-  position: relative; overflow: hidden;
-}
-
-.stat-card::before {
-  content: '';
-  position: absolute; top: 0; left: 0; right: 0; height: 2px;
-}
-.stat-card.purple::before { background: var(--purple); }
-.stat-card.lime::before   { background: var(--lime); }
-.stat-card.yellow::before { background: var(--yellow); }
-.stat-card.red::before    { background: var(--red); }
-
-.stat-label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
-.stat-value { font-family: var(--font-display); font-size: 32px; color: var(--white); margin: 4px 0; line-height: 1; }
-.stat-sub   { font-size: 11px; color: var(--muted); font-weight: 600; }
-.stat-up    { color: var(--lime); }
-.stat-dn    { color: var(--red); }
-
-/* ── LIVE FEED ── */
-.feed-item {
-  display: flex; align-items: center; gap: 12px;
-  padding: 12px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  margin-bottom: 8px;
-  animation: slideIn 0.3s ease;
-}
-
-@keyframes slideIn {
-  from { opacity: 0; transform: translateX(-10px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-.feed-icon {
-  width: 38px; height: 38px; border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 18px; flex-shrink: 0;
-}
-
-.feed-body { flex: 1; min-width: 0; }
-.feed-title { font-size: 13px; font-weight: 700; color: var(--white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.feed-sub   { font-size: 11px; color: var(--muted); font-weight: 600; }
-.feed-amount { font-family: var(--font-mono); font-size: 13px; color: var(--lime); font-weight: 700; text-align: right; }
-.feed-time   { font-size: 10px; color: var(--muted); text-align: right; }
-
-/* ── STATUS BADGES ── */
-.badge {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 4px 10px; border-radius: 20px;
-  font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;
-}
-.badge-red    { background: rgba(255,59,48,0.15);   color: var(--red);    border: 1px solid rgba(255,59,48,0.3); }
-.badge-yellow { background: rgba(255,214,10,0.15);  color: var(--yellow); border: 1px solid rgba(255,214,10,0.3); }
-.badge-green  { background: rgba(50,215,75,0.15);   color: var(--lime);   border: 1px solid rgba(50,215,75,0.3); }
-.badge-purple { background: rgba(88,86,214,0.15);   color: var(--purple); border: 1px solid rgba(88,86,214,0.3); }
-
-/* ── ORDERS TABLE ── */
-.order-row {
-  display: flex; align-items: center; gap: 12px;
-  padding: 14px 14px;
-  background: var(--surface);
-  border: 1.5px solid var(--border);
-  border-radius: 14px;
-  margin-bottom: 8px;
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
-}
-.order-row:active { background: var(--surface2); border-color: var(--purple); }
-
-.order-avatar {
-  width: 42px; height: 42px; border-radius: 12px;
-  background: linear-gradient(135deg, var(--purple) 0%, #8b5cf6 100%);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 16px; font-weight: 900; color: #fff;
-  flex-shrink: 0; font-family: var(--font-display);
-}
-
-.order-info { flex: 1; min-width: 0; }
-.order-name  { font-size: 14px; font-weight: 700; color: var(--white); }
-.order-id    { font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
-.order-right { text-align: right; flex-shrink: 0; }
-.order-price { font-family: var(--font-mono); font-size: 14px; color: var(--white); font-weight: 700; }
-
-/* ── SEARCH BAR ── */
-.search-bar {
-  display: flex; align-items: center; gap: 10px;
-  background: var(--surface); border: 1.5px solid var(--border);
-  border-radius: 14px; padding: 12px 16px;
-  margin-bottom: 14px;
-}
-.search-bar input {
-  flex: 1; background: transparent; border: none; outline: none;
-  color: var(--white); font-family: var(--font-body);
-  font-size: 14px; font-weight: 600;
-}
-.search-bar input::placeholder { color: var(--muted); }
-
-/* ── MODAL ── */
-.modal-overlay {
-  position: fixed; inset: 0; z-index: 500;
-  background: rgba(0,0,0,0.75);
-  backdrop-filter: blur(8px);
-  display: none; align-items: flex-end; justify-content: center;
-}
-.modal-overlay.open { display: flex; }
-
-.modal-sheet {
-  background: var(--surface);
-  border: 1.5px solid var(--border);
-  border-radius: 28px 28px 0 0;
-  width: 100%; max-height: 90vh;
-  overflow-y: auto;
-  animation: sheetUp 0.3s cubic-bezier(0.17,0.89,0.32,1.1);
-  padding: 20px;
-  padding-bottom: max(20px, env(safe-area-inset-bottom));
-}
-
-@keyframes sheetUp {
-  from { transform: translateY(100%); }
-  to   { transform: translateY(0); }
-}
-
-.sheet-handle {
-  width: 40px; height: 4px; background: var(--border);
-  border-radius: 2px; margin: 0 auto 20px;
-}
-
-/* ── CHAT UI ── */
-.chat-container {
-  height: calc(100vh - var(--header-h) - var(--tab-h) - 80px);
-  display: flex; flex-direction: column;
-}
-
-.chat-list {
-  flex: 1; overflow-y: auto; padding-bottom: 10px;
-}
-
-.chat-thread {
-  display: flex; align-items: center; gap: 12px;
-  padding: 14px;
-  border-bottom: 1px solid var(--border);
-  cursor: pointer; transition: background 0.15s;
-}
-.chat-thread:active { background: var(--surface2); }
-
-.chat-avatar {
-  width: 46px; height: 46px; border-radius: 50%;
-  background: linear-gradient(135deg, #f9a8d4, #a78bfa);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 18px; font-weight: 900; color: #fff;
-  flex-shrink: 0; font-family: var(--font-display);
-}
-
-.chat-info { flex: 1; min-width: 0; }
-.chat-name    { font-size: 14px; font-weight: 800; color: var(--white); }
-.chat-preview { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.chat-meta    { text-align: right; flex-shrink: 0; }
-.chat-time    { font-size: 11px; color: var(--muted); }
-.chat-unread  { background: var(--purple); color: #fff; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 10px; margin-top: 4px; display: inline-block; }
-
-/* ── MINI WORLD MAP (SVG) ── */
-.world-section {
-  background: var(--surface); border: 1.5px solid var(--border);
-  border-radius: 18px; padding: 16px; margin-bottom: 12px;
-  overflow: hidden;
-}
-
-/* ── INPUT STYLES ── */
-.neo-input {
-  width: 100%; background: var(--surface2);
-  border: 1.5px solid var(--border);
-  border-radius: 12px; padding: 14px 16px;
-  color: var(--white); font-family: var(--font-body);
-  font-size: 14px; font-weight: 600; outline: none;
-  transition: border-color 0.2s;
-}
-.neo-input:focus { border-color: var(--purple); }
-.neo-input::placeholder { color: var(--muted); }
-
-.neo-btn {
-  width: 100%; background: var(--purple); color: #fff;
-  border: none; border-radius: 14px; padding: 16px;
-  font-family: var(--font-body); font-size: 15px; font-weight: 800;
-  cursor: pointer; transition: all 0.15s;
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-}
-.neo-btn:active { transform: scale(0.97); }
-.neo-btn.black  { background: var(--black); border: 2px solid var(--white); }
-.neo-btn.lime   { background: var(--lime); color: var(--black); }
-
-/* ── CHART BARS ── */
-.bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 80px; margin: 12px 0; }
-.bar {
-  flex: 1; border-radius: 6px 6px 0 0;
-  background: var(--purple); opacity: 0.7;
-  transition: height 0.8s cubic-bezier(0.4,0,0.2,1), opacity 0.2s;
-  min-height: 4px; cursor: pointer;
-}
-.bar:hover { opacity: 1; }
-.bar.lime { background: var(--lime); }
-
-.bar-labels { display: flex; gap: 6px; }
-.bar-label  { flex: 1; text-align: center; font-size: 9px; color: var(--muted); font-weight: 700; }
-
-/* ── TOGGLE ── */
-.toggle-wrap { display: flex; align-items: center; justify-content: space-between; }
-.toggle {
-  width: 50px; height: 28px; border-radius: 14px;
-  background: var(--border); position: relative;
-  cursor: pointer; transition: background 0.2s;
-}
-.toggle.on { background: var(--lime); }
-.toggle::after {
-  content: ''; position: absolute;
-  top: 3px; left: 3px;
-  width: 22px; height: 22px;
-  border-radius: 50%; background: #fff;
-  transition: transform 0.2s;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-}
-.toggle.on::after { transform: translateX(22px); }
-
-/* ── COUNTRY FLAG ROW ── */
-.country-row {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 0; border-bottom: 1px solid var(--border);
-}
-.country-flag { font-size: 20px; }
-.country-name { flex: 1; font-size: 13px; font-weight: 700; color: var(--white); }
-.country-bar-wrap { width: 80px; height: 6px; background: var(--border); border-radius: 3px; }
-.country-bar-fill { height: 100%; border-radius: 3px; background: var(--purple); }
-.country-count { font-size: 12px; color: var(--muted); font-weight: 700; font-family: var(--font-mono); width: 30px; text-align: right; }
-
-/* ── FULFILLMENT CARD ── */
-.fulfill-btn {
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  background: var(--lime); color: var(--black);
-  border: none; border-radius: 12px; padding: 12px 20px;
-  font-family: var(--font-body); font-size: 13px; font-weight: 800;
-  cursor: pointer; transition: all 0.15s;
-}
-.fulfill-btn:active { transform: scale(0.97); }
-.fulfill-btn.disabled { background: var(--border); color: var(--muted); cursor: default; }
-
-/* ── PROFIT CALC ── */
-.profit-row {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 10px 0; border-bottom: 1px solid var(--border);
-  font-size: 13px;
-}
-.profit-row:last-child { border-bottom: none; }
-.profit-label { color: var(--muted); font-weight: 600; }
-.profit-val   { font-family: var(--font-mono); font-weight: 700; color: var(--white); }
-.profit-val.green { color: var(--lime); }
-.profit-val.red   { color: var(--red); }
-
-/* ── CHAT WINDOW ── */
-.chat-window { display: none; }
-.chat-window.open { display: flex; flex-direction: column; height: calc(100vh - var(--header-h) - var(--tab-h)); }
-
-.chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
-
-.msg-bubble {
-  max-width: 75%; padding: 10px 14px; border-radius: 18px;
-  font-size: 13px; font-weight: 600; line-height: 1.4;
-}
-.msg-in  { background: var(--surface2); color: var(--text); border-radius: 18px 18px 18px 4px; align-self: flex-start; }
-.msg-out { background: var(--purple); color: #fff; border-radius: 18px 18px 4px 18px; align-self: flex-end; }
-.msg-time { font-size: 10px; color: var(--muted); text-align: center; margin: 4px 0; }
-
-.chat-input-bar {
-  padding: 12px 16px;
-  border-top: 1px solid var(--border);
-  display: flex; gap: 10px; align-items: center;
-  background: var(--surface);
-}
-
-.chat-input-bar input {
-  flex: 1; background: var(--surface2);
-  border: 1.5px solid var(--border);
-  border-radius: 22px; padding: 10px 16px;
-  color: var(--white); font-family: var(--font-body);
-  font-size: 14px; font-weight: 600; outline: none;
-}
-
-.send-btn {
-  width: 40px; height: 40px; border-radius: 50%;
-  background: var(--purple); border: none;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; flex-shrink: 0;
-}
-
-/* ── NOTIFICATION TOAST ── */
-.toast {
-  position: fixed; top: calc(var(--header-h) + 10px);
-  left: 16px; right: 16px; z-index: 999;
-  background: var(--surface);
-  border: 1.5px solid var(--lime);
-  border-radius: 16px; padding: 14px 16px;
-  display: flex; align-items: center; gap: 12px;
-  animation: toastIn 0.3s ease;
-  display: none;
-}
-.toast.show { display: flex; }
-
-@keyframes toastIn {
-  from { opacity: 0; transform: translateY(-20px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-/* ── AUTH SCREEN ── */
-#auth-screen {
-  position: fixed; inset: 0; z-index: 999;
-  background: var(--bg);
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  padding: 32px;
-}
-
-.auth-logo {
-  font-family: var(--font-display);
-  font-size: 52px; letter-spacing: 4px;
-  color: var(--white); margin-bottom: 6px;
-}
-.auth-logo span { color: var(--purple); }
-.auth-tagline { font-size: 13px; color: var(--muted); font-weight: 600; margin-bottom: 48px; letter-spacing: 1px; }
-
-.auth-card {
-  background: var(--surface); border: 1.5px solid var(--border);
-  border-radius: 24px; padding: 28px; width: 100%;
-}
-
-.auth-label { font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
-.auth-input-wrap { margin-bottom: 16px; }
-
-/* ── SETTINGS ROWS ── */
-.setting-row {
-  display: flex; align-items: center; gap: 14px;
-  padding: 14px; background: var(--surface);
-  border: 1.5px solid var(--border); border-radius: 14px;
-  margin-bottom: 8px; cursor: pointer;
-}
-.setting-icon {
-  width: 38px; height: 38px; border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-.setting-info { flex: 1; }
-.setting-title { font-size: 14px; font-weight: 700; color: var(--white); }
-.setting-sub   { font-size: 12px; color: var(--muted); font-weight: 600; }
-
-/* ── FILTER PILLS ── */
-.filter-row { display: flex; gap: 8px; margin-bottom: 14px; overflow-x: auto; padding-bottom: 4px; }
-.filter-row::-webkit-scrollbar { display: none; }
-.pill {
-  flex-shrink: 0; padding: 6px 14px; border-radius: 20px;
-  font-size: 12px; font-weight: 700; cursor: pointer;
-  border: 1.5px solid var(--border); color: var(--muted);
-  white-space: nowrap; transition: all 0.15s;
-}
-.pill.active { background: var(--purple); color: #fff; border-color: var(--purple); }
-
-/* EMPTY STATE */
-.empty-state {
-  text-align: center; padding: 40px 20px;
-  color: var(--muted); font-weight: 600; font-size: 14px;
-}
-.empty-state div:first-child { font-size: 40px; margin-bottom: 12px; }
-
-/* SPINNER */
-.spinner {
-  width: 24px; height: 24px;
-  border: 3px solid rgba(255,255,255,0.1);
-  border-top-color: var(--purple);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.loading-state {
-  display: flex; flex-direction: column; align-items: center;
-  justify-content: center; padding: 40px; gap: 14px;
-  color: var(--muted); font-size: 13px; font-weight: 700;
-}
+.logo{font-size:17px;font-weight:900;letter-spacing:-.5px}
+.logo em{color:var(--purple);font-style:normal}
+.header-right{display:flex;align-items:center;gap:8px}
+.live-pill{display:flex;align-items:center;gap:5px;background:rgba(50,215,75,.1);
+           border:1px solid rgba(50,215,75,.25);padding:5px 10px;border-radius:20px;
+           font-size:10px;font-weight:800;color:var(--lime);letter-spacing:.5px}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--lime);animation:pulse-dot 1.5s infinite}
+@keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+.icon-btn{width:34px;height:34px;border-radius:var(--r-sm);background:var(--surface2);
+          border:1px solid var(--border);display:flex;align-items:center;justify-content:center;
+          cursor:pointer;transition:all .15s}
+.icon-btn:active{transform:scale(.93)}
+.icon-btn svg{stroke:var(--text2)}
+
+/* ══════════════════════════════════════════════
+   MAIN / VIEWS
+══════════════════════════════════════════════ */
+.main{margin-top:var(--header-h);margin-bottom:var(--tab-h);
+      height:calc(100dvh - var(--header-h) - var(--tab-h));overflow:hidden}
+.view{display:none;height:100%;overflow-y:auto;padding:12px;animation:fadein .2s ease}
+.view.active{display:block}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* ══════════════════════════════════════════════
+   TAB BAR
+══════════════════════════════════════════════ */
+.tab-bar{position:fixed;bottom:0;left:0;right:0;z-index:200;height:var(--tab-h);
+         background:var(--surface);border-top:1px solid var(--border);
+         display:flex;align-items:center;padding-bottom:env(safe-area-inset-bottom,0)}
+.tab-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+          gap:3px;cursor:pointer;padding:7px 2px;position:relative}
+.tab-icon{width:22px;height:22px;display:flex;align-items:center;justify-content:center}
+.tab-icon svg{transition:stroke .2s}
+.tab-item:not(.active) .tab-icon svg{stroke:var(--text3)}
+.tab-item.active .tab-icon svg{stroke:var(--purple)}
+.tab-label{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;
+           color:var(--text3);transition:color .2s}
+.tab-item.active .tab-label{color:var(--purple)}
+.tab-badge{position:absolute;top:5px;right:calc(50% - 18px);background:var(--red);color:#fff;
+           font-size:9px;font-weight:800;min-width:15px;height:15px;border-radius:8px;
+           padding:0 4px;display:none;align-items:center;justify-content:center}
+.tab-badge.show{display:flex}
+
+/* ══════════════════════════════════════════════
+   CARDS & SECTIONS
+══════════════════════════════════════════════ */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:9px}
+.section-label{font-size:9px;font-weight:800;color:var(--text3);letter-spacing:1.5px;
+               text-transform:uppercase;margin-bottom:10px;
+               display:flex;align-items:center;gap:8px}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* ══════════════════════════════════════════════
+   STAT CARDS
+══════════════════════════════════════════════ */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:9px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+           padding:14px 12px;position:relative;overflow:hidden}
+.stat-accent{position:absolute;top:0;left:0;right:0;height:2px}
+.stat-label{font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px}
+.stat-value{font-size:24px;font-weight:900;color:var(--text);line-height:1;letter-spacing:-.5px}
+.stat-value.mono{font-family:var(--mono);font-size:18px;letter-spacing:-1px}
+.stat-sub{font-size:10px;color:var(--text2);font-weight:600;margin-top:4px}
+.stat-up{color:var(--lime)}.stat-dn{color:var(--red)}
+
+/* ══════════════════════════════════════════════
+   METRICS ROW (3-col)
+══════════════════════════════════════════════ */
+.metrics-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:9px}
+.metric-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);
+             padding:11px 8px;text-align:center}
+.metric-val{font-size:16px;font-weight:900;color:var(--text);letter-spacing:-.3px}
+.metric-val.mono{font-family:var(--mono);font-size:14px}
+.metric-lbl{font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-top:3px}
+
+/* ══════════════════════════════════════════════
+   BADGES
+══════════════════════════════════════════════ */
+.badge{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:20px;
+       font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.3px}
+.badge-green {background:rgba(50,215,75,.12) ;color:var(--lime)  ;border:1px solid rgba(50,215,75,.2)}
+.badge-yellow{background:rgba(255,214,10,.12);color:var(--yellow);border:1px solid rgba(255,214,10,.2)}
+.badge-red   {background:rgba(255,59,48,.12) ;color:var(--red)   ;border:1px solid rgba(255,59,48,.2)}
+.badge-purple{background:rgba(88,86,214,.12) ;color:var(--purple);border:1px solid rgba(88,86,214,.2)}
+.badge-blue  {background:rgba(0,122,255,.12) ;color:var(--blue)  ;border:1px solid rgba(0,122,255,.2)}
+
+/* ══════════════════════════════════════════════
+   BUTTONS
+══════════════════════════════════════════════ */
+.btn{display:flex;align-items:center;justify-content:center;gap:7px;padding:13px 18px;
+     border-radius:var(--r-sm);font-family:var(--font);font-size:13px;font-weight:800;
+     cursor:pointer;border:none;transition:all .15s;letter-spacing:.2px}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--purple);color:#fff}
+.btn-success{background:var(--lime);color:#000}
+.btn-danger {background:var(--red);color:#fff}
+.btn-ghost  {background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.btn-sm     {padding:8px 13px;font-size:12px;border-radius:8px}
+.btn-full   {width:100%}
+
+/* ══════════════════════════════════════════════
+   BAR CHART
+══════════════════════════════════════════════ */
+.bar-chart-wrap{display:flex;align-items:flex-end;gap:4px;height:72px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.bar{width:100%;border-radius:4px 4px 0 0;background:rgba(88,86,214,.5);min-height:3px;
+     transition:height .8s cubic-bezier(.4,0,.2,1);cursor:pointer;position:relative}
+.bar.today{background:var(--lime)}
+.bar.active{background:var(--purple)}
+.bar-tip{display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);
+          background:var(--surface3);color:var(--text);font-family:var(--mono);font-size:9px;font-weight:700;
+          padding:3px 6px;border-radius:5px;white-space:nowrap;pointer-events:none;border:1px solid var(--border)}
+.bar:hover .bar-tip{display:block}
+.bar-lbl{font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase}
+
+/* ══════════════════════════════════════════════
+   LIVE FEED
+══════════════════════════════════════════════ */
+.feed-item{display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface2);
+           border:1px solid var(--border);border-radius:var(--r-sm);margin-bottom:6px;
+           animation:slide-in .25s ease}
+@keyframes slide-in{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+.feed-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.feed-body{flex:1;min-width:0}
+.feed-title{font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.feed-sub  {font-size:10px;color:var(--text2);font-weight:600;margin-top:1px}
+.feed-right{text-align:right;flex-shrink:0}
+.feed-amount{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--lime)}
+.feed-time  {font-size:10px;color:var(--text3);margin-top:2px}
+
+/* ══════════════════════════════════════════════
+   ORDER ROWS
+══════════════════════════════════════════════ */
+.order-row{display:flex;align-items:center;gap:11px;padding:11px;background:var(--surface);
+           border:1px solid var(--border);border-radius:var(--r-sm);margin-bottom:6px;
+           cursor:pointer;transition:border-color .15s,background .15s}
+.order-row:active{background:var(--surface2);border-color:var(--purple)}
+.order-avatar{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;
+              justify-content:center;font-size:13px;font-weight:900;color:#fff;flex-shrink:0}
+.order-info{flex:1;min-width:0}
+.order-name  {font-size:13px;font-weight:700;color:var(--text)}
+.order-id    {font-size:10px;color:var(--text3);font-family:var(--mono);margin-top:2px}
+.order-right {text-align:right;flex-shrink:0}
+.order-amount{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text)}
+.order-time  {font-size:10px;color:var(--text3);margin-top:2px}
+
+/* ══════════════════════════════════════════════
+   SEARCH & FILTERS
+══════════════════════════════════════════════ */
+.search-wrap{display:flex;align-items:center;gap:9px;background:var(--surface);
+             border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 13px;margin-bottom:9px}
+.search-wrap svg{stroke:var(--text3);flex-shrink:0}
+.search-wrap input{flex:1;background:none;border:none;outline:none;color:var(--text);
+                   font-family:var(--font);font-size:14px;font-weight:600}
+.search-wrap input::placeholder{color:var(--text3)}
+.filter-row{display:flex;gap:6px;margin-bottom:9px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.filter-row::-webkit-scrollbar{display:none}
+.pill{flex-shrink:0;padding:6px 12px;border-radius:20px;font-size:11px;font-weight:700;
+      cursor:pointer;border:1px solid var(--border);color:var(--text2);white-space:nowrap;transition:all .15s}
+.pill.active{background:var(--purple);color:#fff;border-color:var(--purple)}
+
+/* ══════════════════════════════════════════════
+   MODAL SHEET
+══════════════════════════════════════════════ */
+.modal-overlay{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.65);
+               backdrop-filter:blur(6px);display:none;align-items:flex-end;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal-sheet{background:var(--surface);border:1px solid var(--border);
+             border-radius:var(--r-lg) var(--r-lg) 0 0;width:100%;max-width:520px;
+             max-height:92dvh;overflow-y:auto;
+             animation:sheet-up .3s cubic-bezier(.17,.89,.32,1.1);
+             padding:14px 14px max(14px,env(safe-area-inset-bottom))}
+@keyframes sheet-up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.sheet-handle{width:34px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 14px}
+
+/* ══════════════════════════════════════════════
+   INPUTS
+══════════════════════════════════════════════ */
+.neo-input{width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--r-sm);
+           padding:12px 13px;color:var(--text);font-family:var(--font);font-size:14px;
+           font-weight:600;outline:none;transition:border-color .2s}
+.neo-input:focus{border-color:var(--purple)}
+.neo-input::placeholder{color:var(--text3)}
+.input-label{font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;
+             letter-spacing:1px;margin-bottom:6px;display:block}
+
+/* ══════════════════════════════════════════════
+   TOGGLE
+══════════════════════════════════════════════ */
+.toggle{width:44px;height:25px;border-radius:13px;background:var(--border2);
+        position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+.toggle.on{background:var(--lime)}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:19px;height:19px;
+               border-radius:50%;background:#fff;transition:transform .2s;
+               box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.toggle.on::after{transform:translateX(19px)}
+
+/* ══════════════════════════════════════════════
+   COUNTRY ROWS
+══════════════════════════════════════════════ */
+.country-row{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--border)}
+.country-row:last-child{border-bottom:none}
+.flag-code{font-size:10px;font-weight:800;color:var(--text2);font-family:var(--mono);min-width:24px}
+.country-name-lbl{flex:1;font-size:12px;font-weight:700;color:var(--text)}
+.country-bar-wrap{width:56px;height:5px;background:var(--surface3);border-radius:3px}
+.country-bar-fill{height:100%;border-radius:3px;background:var(--purple);transition:width .6s}
+.country-count-lbl{font-size:10px;color:var(--text2);font-family:var(--mono);font-weight:700;min-width:26px;text-align:right}
+
+/* ══════════════════════════════════════════════
+   PROFIT ROWS
+══════════════════════════════════════════════ */
+.profit-row{display:flex;justify-content:space-between;align-items:center;
+            padding:9px 0;border-bottom:1px solid var(--border);font-size:13px}
+.profit-row:last-child{border-bottom:none}
+.profit-label{color:var(--text2);font-weight:600}
+.profit-val  {font-family:var(--mono);font-weight:700;color:var(--text)}
+.profit-val.green{color:var(--lime)}.profit-val.red{color:var(--red)}
+
+/* ══════════════════════════════════════════════
+   SETTING ROWS
+══════════════════════════════════════════════ */
+.setting-row{display:flex;align-items:center;gap:11px;padding:12px;background:var(--surface);
+             border:1px solid var(--border);border-radius:var(--r-sm);margin-bottom:6px;cursor:pointer}
+.setting-row:active{background:var(--surface2)}
+.setting-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;
+              justify-content:center;flex-shrink:0}
+.setting-info{flex:1}
+.setting-title{font-size:13px;font-weight:700;color:var(--text)}
+.setting-sub  {font-size:11px;color:var(--text2);font-weight:600;margin-top:2px}
+
+/* ══════════════════════════════════════════════
+   CHAT
+══════════════════════════════════════════════ */
+.chat-thread{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.chat-avatar{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;
+             justify-content:center;font-size:15px;font-weight:900;color:#fff;flex-shrink:0}
+.chat-info{flex:1;min-width:0}
+.chat-name   {font-size:13px;font-weight:700;color:var(--text)}
+.chat-preview{font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.chat-meta   {text-align:right;flex-shrink:0}
+.chat-time   {font-size:10px;color:var(--text3)}
+.chat-unread {background:var(--purple);color:#fff;font-size:9px;font-weight:800;
+              padding:2px 6px;border-radius:7px;display:inline-block;margin-top:3px}
+.chat-window{display:none;flex-direction:column;height:100%}
+.chat-window.open{display:flex}
+.chat-messages{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
+.msg{max-width:78%;padding:9px 12px;border-radius:14px;font-size:13px;font-weight:600;line-height:1.4}
+.msg-in {background:var(--surface2);color:var(--text);border-radius:14px 14px 14px 3px;align-self:flex-start}
+.msg-out{background:var(--purple);color:#fff;border-radius:14px 14px 3px 14px;align-self:flex-end}
+.msg-time{font-size:10px;color:var(--text3);text-align:center}
+.chat-input-bar{padding:10px 12px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:center;background:var(--surface)}
+.chat-input-bar input{flex:1;background:var(--surface2);border:1px solid var(--border);
+                       border-radius:20px;padding:10px 13px;color:var(--text);
+                       font-family:var(--font);font-size:14px;font-weight:600;outline:none}
+.send-btn{width:36px;height:36px;border-radius:50%;background:var(--purple);border:none;
+          display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+
+/* ══════════════════════════════════════════════
+   ANALYTICS
+══════════════════════════════════════════════ */
+.funnel-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
+.funnel-row:last-child{border-bottom:none}
+.funnel-bar-wrap{flex:1;height:8px;background:var(--surface3);border-radius:4px;overflow:hidden}
+.funnel-bar-fill{height:100%;border-radius:4px;transition:width .8s cubic-bezier(.4,0,.2,1)}
+.funnel-label{font-size:12px;font-weight:700;color:var(--text2);min-width:54px}
+.funnel-val  {font-family:var(--mono);font-size:12px;font-weight:700;color:var(--text);min-width:32px;text-align:right}
+.variant-row{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--border)}
+.variant-row:last-child{border-bottom:none}
+.variant-swatch{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--border2);flex-shrink:0}
+.variant-name-lbl{flex:1;font-size:12px;font-weight:700;color:var(--text)}
+.variant-bar-wrap{width:60px;height:5px;background:var(--surface3);border-radius:3px}
+.variant-bar-fill{height:100%;border-radius:3px;background:var(--purple)}
+.variant-count-lbl{font-size:10px;font-family:var(--mono);font-weight:700;color:var(--text2);min-width:24px;text-align:right}
+.bundle-bars{display:flex;gap:6px;align-items:flex-end;height:50px;margin:10px 0}
+.bundle-bar{flex:1;border-radius:5px 5px 0 0;display:flex;align-items:flex-end;justify-content:center;min-height:3px;position:relative}
+.bundle-bar-val{position:absolute;top:-18px;font-size:9px;font-weight:800;font-family:var(--mono);color:var(--text2)}
+.bundle-bar-lbl{font-size:9px;font-weight:800;color:var(--text3);text-align:center;margin-top:4px}
+
+/* ══════════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════════ */
+.toast{position:fixed;top:calc(var(--header-h) + 8px);left:12px;right:12px;z-index:999;
+       background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+       padding:11px 13px;display:none;align-items:center;gap:11px;
+       box-shadow:0 8px 24px rgba(0,0,0,.35);animation:toast-in .25s ease}
+.toast.show{display:flex}
+@keyframes toast-in{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+.toast-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.toast-body{flex:1}
+.toast-title{font-size:13px;font-weight:800;color:var(--text)}
+.toast-sub  {font-size:11px;color:var(--text2);font-weight:600;margin-top:1px}
+
+/* ══════════════════════════════════════════════
+   SPINNER
+══════════════════════════════════════════════ */
+.spinner{width:20px;height:20px;border:2.5px solid var(--border);border-top-color:var(--purple);
+         border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-state{display:flex;flex-direction:column;align-items:center;justify-content:center;
+               padding:40px 20px;gap:12px;color:var(--text3);font-size:13px;font-weight:700}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text3);font-size:13px;font-weight:600}
+
+/* ══════════════════════════════════════════════
+   MISC
+══════════════════════════════════════════════ */
+.divider{height:1px;background:var(--border);margin:12px 0}
+.insight-row{display:flex;align-items:center;gap:11px;padding:10px;background:var(--surface2);
+             border:1px solid var(--border);border-radius:var(--r-sm);margin-bottom:6px}
+.insight-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.insight-body{flex:1;min-width:0}
+.insight-title{font-size:12px;font-weight:800;color:var(--text)}
+.insight-sub  {font-size:10px;color:var(--text2);font-weight:600;margin-top:2px}
+.insight-val  {font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text);text-align:right;flex-shrink:0}
 </style>
 </head>
 <body>
 
-<!-- ──────────────────────────────────────────── -->
-<!-- AUTH SCREEN                                   -->
-<!-- ──────────────────────────────────────────── -->
+<!-- ══════════════════════════════════════
+     AUTH SCREEN
+══════════════════════════════════════ -->
 <div id="auth-screen">
-  <div class="auth-logo">MINI<span>MISTY</span></div>
-  <div class="auth-tagline">NIGHTHAWK OS · COMMAND CENTER</div>
-
+  <div class="auth-logo">MINI<em>MISTY</em></div>
+  <div class="auth-sub">Command Center · Secured</div>
   <div class="auth-card">
-    <div class="auth-input-wrap">
-      <div class="auth-label">Password</div>
-      <input id="auth-pass" type="password" class="neo-input" placeholder="Enter access code" autocomplete="current-password">
+    <label class="auth-label">Access Code</label>
+    <input id="auth-pass" type="password" class="auth-input" placeholder="Enter password" autocomplete="current-password">
+    <div class="auth-remember" onclick="toggleRemember()">
+      <div class="auth-check" id="remember-check"></div>
+      <span class="auth-remember-label">Remember this device for 30 days</span>
     </div>
-    <button class="neo-btn" onclick="checkAuth()" id="auth-btn">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-      ENTER DASHBOARD
+    <button class="btn btn-primary btn-full" onclick="attemptLogin()" id="auth-btn" style="border-radius:var(--r-sm)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      UNLOCK DASHBOARD
     </button>
-    <p id="auth-err" style="color:var(--red);font-size:12px;font-weight:700;text-align:center;margin-top:12px;display:none;">
-      ❌ Invalid access code
-    </p>
+    <div class="auth-err" id="auth-err">Incorrect access code. Try again.</div>
   </div>
-
-  <p style="margin-top:24px;font-size:11px;color:var(--muted);font-weight:600;text-align:center;">
-    MINIMISTY HQ · Secured by Firebase Auth
-  </p>
+  <p style="margin-top:20px;font-size:11px;color:var(--text3);font-weight:600;text-align:center">MINIMISTY HQ · v2.0</p>
 </div>
 
-<!-- ──────────────────────────────────────────── -->
-<!-- TOAST                                         -->
-<!-- ──────────────────────────────────────────── -->
+<!-- ══════════════════════════════════════
+     TOAST
+══════════════════════════════════════ -->
 <div class="toast" id="toast">
-  <span style="font-size:20px" id="toast-icon">🔔</span>
-  <div style="flex:1">
-    <div id="toast-title" style="font-weight:800;font-size:13px;"></div>
-    <div id="toast-sub"   style="font-size:11px;color:var(--muted);font-weight:600;"></div>
+  <div class="toast-icon" id="toast-icon-wrap"></div>
+  <div class="toast-body">
+    <div class="toast-title" id="toast-title"></div>
+    <div class="toast-sub"   id="toast-sub"></div>
   </div>
-  <button onclick="closeToast()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;">×</button>
+  <button onclick="closeToast()" style="background:none;border:none;color:var(--text3);cursor:pointer;padding:4px;line-height:1">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+  </button>
 </div>
 
-<!-- ──────────────────────────────────────────── -->
-<!-- HEADER                                        -->
-<!-- ──────────────────────────────────────────── -->
+<!-- ══════════════════════════════════════
+     HEADER
+══════════════════════════════════════ -->
 <div class="header" id="main-header" style="display:none">
-  <div class="header-logo">MINI<span>MISTY</span></div>
+  <div class="logo">MINI<em>MISTY</em></div>
   <div class="header-right">
-    <div class="live-dot">LIVE</div>
-    <div class="avatar-btn" onclick="showView('settings')">M</div>
+    <div class="live-pill"><div class="live-dot"></div>LIVE</div>
+    <div class="icon-btn" onclick="toggleTheme()" id="theme-btn" title="Toggle Theme">
+      <svg id="theme-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </div>
+    <div class="icon-btn" onclick="showView('settings')" title="Settings">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </div>
   </div>
 </div>
 
-<!-- ──────────────────────────────────────────── -->
-<!-- VIEWS                                         -->
-<!-- ──────────────────────────────────────────── -->
+<!-- ══════════════════════════════════════
+     MAIN VIEWS
+══════════════════════════════════════ -->
 <div class="main" id="main-app" style="display:none">
 
-  <!-- ═══════════════════════════════════ -->
-  <!-- VIEW: HOME (PULSE)                  -->
-  <!-- ═══════════════════════════════════ -->
+  <!-- ═══════════════ HOME ═══════════════ -->
   <div id="view-home" class="view active">
-
-    <!-- GREETING -->
-    <div style="margin-bottom:16px;">
-      <div style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:1px;text-transform:uppercase" id="home-date"></div>
-      <div style="font-family:var(--font-display);font-size:28px;color:var(--white);line-height:1.1">GOOD <span id="home-greeting" style="color:var(--purple)">MORNING</span> 👋</div>
+    <div id="home-greeting" style="margin-bottom:12px">
+      <div style="font-size:10px;font-weight:700;color:var(--text3);letter-spacing:1px;text-transform:uppercase" id="home-date"></div>
+      <div style="font-size:22px;font-weight:900;letter-spacing:-.5px;margin-top:2px">Good <span id="home-part" style="color:var(--purple)">Morning</span></div>
     </div>
 
-    <!-- STATS GRID -->
+    <!-- KPI GRID -->
     <div class="stats-grid">
-      <div class="stat-card purple">
+      <div class="stat-card">
+        <div class="stat-accent" style="background:var(--purple)"></div>
         <div class="stat-label">Revenue</div>
-        <div class="stat-value" id="stat-revenue">$0</div>
-        <div class="stat-sub stat-up">↑ Today</div>
+        <div class="stat-value mono" id="stat-revenue">$0.00</div>
+        <div class="stat-sub" id="stat-revenue-sub">Fulfilled orders</div>
       </div>
-      <div class="stat-card lime">
+      <div class="stat-card">
+        <div class="stat-accent" style="background:var(--lime)"></div>
         <div class="stat-label">Net Profit</div>
-        <div class="stat-value" id="stat-profit">$0</div>
-        <div class="stat-sub stat-up" id="stat-margin">—</div>
+        <div class="stat-value mono" id="stat-profit">$0.00</div>
+        <div class="stat-sub" id="stat-margin-sub">0.0% margin</div>
       </div>
-      <div class="stat-card yellow">
+      <div class="stat-card">
+        <div class="stat-accent" style="background:var(--yellow)"></div>
         <div class="stat-label">Orders</div>
         <div class="stat-value" id="stat-orders">0</div>
-        <div class="stat-sub">Total paid</div>
+        <div class="stat-sub">Paid &amp; fulfilled</div>
       </div>
-      <div class="stat-card red">
+      <div class="stat-card">
+        <div class="stat-accent" style="background:var(--blue)"></div>
         <div class="stat-label">Visitors</div>
         <div class="stat-value" id="stat-visits">0</div>
-        <div class="stat-sub">Sessions</div>
+        <div class="stat-sub" id="stat-conv">0.0% conv. rate</div>
+      </div>
+    </div>
+
+    <!-- QUICK METRICS -->
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-val mono" id="m-aov">$0.00</div>
+        <div class="metric-lbl">Avg Order</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-val mono" id="m-units">0</div>
+        <div class="metric-lbl">Units Sold</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-val" id="m-leads">0</div>
+        <div class="metric-lbl">Active Leads</div>
       </div>
     </div>
 
     <!-- REVENUE CHART -->
-    <div class="card" style="margin-bottom:12px;">
-      <div class="section-label">7-Day Revenue</div>
-      <div class="bar-chart" id="rev-chart"></div>
-      <div class="bar-labels" id="rev-labels"></div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div class="section-label" style="margin-bottom:0">7-Day Revenue</div>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--text3);font-weight:700" id="chart-total-label"></span>
+      </div>
+      <div class="bar-chart-wrap" id="rev-chart"></div>
+      <div style="display:flex;gap:4px;margin-top:5px" id="rev-labels"></div>
     </div>
 
-    <!-- PROFIT CALCULATOR -->
-    <div class="card" style="margin-bottom:12px;">
+    <!-- PROFIT BREAKDOWN -->
+    <div class="card">
       <div class="section-label">Profit Breakdown</div>
-      <div class="profit-row"><span class="profit-label">Gross Revenue</span><span class="profit-val green" id="pc-revenue">$0.00</span></div>
-      <div class="profit-row"><span class="profit-label">Product Cost (est. $12/unit)</span><span class="profit-val red" id="pc-cogs">-$0.00</span></div>
-      <div class="profit-row"><span class="profit-label">Shipping (avg $0.99)</span><span class="profit-val red" id="pc-ship">-$0.00</span></div>
-      <div class="profit-row"><span class="profit-label">Platform / Fees (5%)</span><span class="profit-val red" id="pc-fees">-$0.00</span></div>
-      <div class="profit-row" style="border-top:1px solid var(--border);margin-top:4px;padding-top:14px;">
-        <span style="font-weight:800;font-size:15px;color:var(--white)">NET PROFIT</span>
-        <span class="profit-val green" id="pc-net" style="font-size:18px;">$0.00</span>
+      <div class="profit-row">
+        <span class="profit-label">Gross Revenue</span>
+        <span class="profit-val green" id="pc-revenue">$0.00</span>
+      </div>
+      <div class="profit-row">
+        <span class="profit-label">Product Cost ($20.00 / unit)</span>
+        <span class="profit-val red" id="pc-cogs">-$0.00</span>
+      </div>
+      <div class="profit-row">
+        <span class="profit-label">Shipping Collected</span>
+        <span class="profit-val green" id="pc-ship-in">+$0.00</span>
+      </div>
+      <div class="profit-row">
+        <span class="profit-label">Shipping Paid Out</span>
+        <span class="profit-val red" id="pc-ship-out">-$0.00</span>
+      </div>
+      <div class="profit-row">
+        <span class="profit-label">Platform &amp; Processing (5%)</span>
+        <span class="profit-val red" id="pc-fees">-$0.00</span>
+      </div>
+      <div class="profit-row">
+        <span class="profit-label">Tax Collected (pass-through)</span>
+        <span class="profit-val" id="pc-tax" style="color:var(--text2)">$0.00</span>
+      </div>
+      <div style="height:1.5px;background:var(--border);margin:10px 0"></div>
+      <div class="profit-row" style="border:none">
+        <span style="font-size:14px;font-weight:900;color:var(--text)">NET PROFIT</span>
+        <span style="font-family:var(--mono);font-size:16px;font-weight:900" id="pc-net" class="profit-val green">$0.00</span>
+      </div>
+      <div class="profit-row" style="border:none;padding-top:4px">
+        <span style="font-size:11px;font-weight:700;color:var(--text3)">* Only fulfilled orders counted in COGS</span>
       </div>
     </div>
 
     <!-- LIVE FEED -->
-    <div class="section-label">Live Activity Feed</div>
-    <div id="live-feed">
-      <div class="loading-state"><div class="spinner"></div>Loading real-time data...</div>
-    </div>
+    <div class="section-label">Live Activity</div>
+    <div id="live-feed"><div class="loading-state"><div class="spinner"></div>Loading feed...</div></div>
 
-    <!-- VISITOR COUNTRIES -->
-    <div class="card" style="margin-top:12px;">
+    <!-- COUNTRY BREAKDOWN -->
+    <div class="card" style="margin-top:9px">
       <div class="section-label">Visitors by Country</div>
-      <div id="country-list">
-        <div class="loading-state"><div class="spinner"></div></div>
-      </div>
+      <div id="country-list"><div class="loading-state"><div class="spinner"></div></div></div>
     </div>
-
   </div>
 
-  <!-- ═══════════════════════════════════ -->
-  <!-- VIEW: ORDERS (VAULT)                -->
-  <!-- ═══════════════════════════════════ -->
+  <!-- ═══════════════ ORDERS ═══════════════ -->
   <div id="view-orders" class="view">
-
     <div class="section-label">Order Vault</div>
-
-    <div class="search-bar">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <input type="text" placeholder="Search orders, names, emails..." id="order-search" oninput="filterOrders()">
+    <div class="search-wrap">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" placeholder="Search name, email, order ID..." id="order-search" oninput="filterOrders()">
     </div>
-
     <div class="filter-row">
-      <div class="pill active" data-filter="all"   onclick="setFilter(this,'all')">All</div>
-      <div class="pill" data-filter="PAID_FULFILLED"  onclick="setFilter(this,'PAID_FULFILLED')">Fulfilled ✅</div>
-      <div class="pill" data-filter="LEAD_CAPTURED"   onclick="setFilter(this,'LEAD_CAPTURED')">Leads 🔴</div>
-      <div class="pill" data-filter="PAID_FULFILLMENT_FAILED" onclick="setFilter(this,'PAID_FULFILLMENT_FAILED')">Failed ⚠️</div>
+      <div class="pill active" onclick="setFilter(this,'all')">All</div>
+      <div class="pill" onclick="setFilter(this,'PAID_FULFILLED')">Fulfilled</div>
+      <div class="pill" onclick="setFilter(this,'PAID_FULFILLMENT_FAILED')">Failed</div>
+      <div class="pill" onclick="setFilter(this,'LEAD_CAPTURED')">Leads</div>
+      <div class="pill" onclick="setFilter(this,'PROCESSING')">Processing</div>
     </div>
-
-    <div id="orders-list">
-      <div class="loading-state"><div class="spinner"></div>Loading orders...</div>
-    </div>
-
+    <div id="orders-list"><div class="loading-state"><div class="spinner"></div>Loading orders...</div></div>
   </div>
 
-  <!-- ═══════════════════════════════════ -->
-  <!-- VIEW: INBOX                         -->
-  <!-- ═══════════════════════════════════ -->
-  <div id="view-inbox" class="view" style="padding:0;">
+  <!-- ═══════════════ ANALYTICS ═══════════════ -->
+  <div id="view-analytics" class="view">
+    <div class="section-label">Conversion Funnel</div>
+    <div class="card">
+      <div id="funnel-chart"></div>
+    </div>
 
-    <!-- Thread List -->
-    <div id="chat-list-view" style="padding:16px;">
-      <div class="section-label" style="padding:0 0 4px">Conversations</div>
-      <div class="search-bar" style="margin-bottom:12px;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <div class="section-label">Bundle Distribution</div>
+    <div class="card">
+      <div class="bundle-bars" id="bundle-chart"></div>
+      <div style="display:flex;gap:6px" id="bundle-labels"></div>
+    </div>
+
+    <div class="section-label">Colour Popularity</div>
+    <div class="card">
+      <div id="variant-chart"></div>
+    </div>
+
+    <div class="section-label">Key Insights</div>
+    <div id="insights-list"></div>
+
+    <div class="section-label">Device Breakdown</div>
+    <div class="card">
+      <div id="device-chart"></div>
+    </div>
+
+    <div class="section-label">Country Revenue</div>
+    <div class="card">
+      <div id="country-revenue-list"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ INBOX ═══════════════ -->
+  <div id="view-inbox" class="view" style="padding:0">
+    <div id="chat-list-view" style="padding:12px">
+      <div class="section-label">Conversations</div>
+      <div class="search-wrap" style="margin-bottom:10px">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
         <input type="text" placeholder="Search customers...">
       </div>
-      <div id="inbox-threads">
-        <div class="loading-state"><div class="spinner"></div>Loading inbox...</div>
-      </div>
+      <div id="inbox-threads"><div class="loading-state"><div class="spinner"></div></div></div>
     </div>
-
-    <!-- Chat Window -->
-    <div id="chat-window-view" class="chat-window" style="height:calc(100vh - var(--header-h) - var(--tab-h));">
-      <!-- Chat header -->
-      <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;background:var(--surface);">
-        <button onclick="closeChatWindow()" style="background:none;border:none;cursor:pointer;color:var(--white);padding:4px;">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m15 18-6-6 6-6"/></svg>
+    <div id="chat-window-view" class="chat-window" style="height:calc(100dvh - var(--header-h) - var(--tab-h))">
+      <div style="padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:11px;background:var(--surface)">
+        <button onclick="closeChatWindow()" style="background:none;border:none;color:var(--text);cursor:pointer;padding:3px;line-height:1">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m15 18-6-6 6-6"/></svg>
         </button>
-        <div id="chat-header-avatar" class="chat-avatar" style="width:38px;height:38px;font-size:14px;"></div>
-        <div style="flex:1">
-          <div id="chat-header-name" style="font-weight:800;font-size:15px;color:var(--white)"></div>
-          <div id="chat-header-email" style="font-size:11px;color:var(--muted);font-weight:600;"></div>
+        <div id="chat-hdr-avatar" class="chat-avatar" style="width:34px;height:34px;font-size:12px"></div>
+        <div style="flex:1;min-width:0">
+          <div id="chat-hdr-name"  style="font-size:14px;font-weight:800;color:var(--text)"></div>
+          <div id="chat-hdr-email" style="font-size:10px;color:var(--text2);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
         </div>
-        <button onclick="sendTemplate('tracking')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--lime);padding:6px 12px;font-size:11px;font-weight:800;cursor:pointer;">📦 TRACK</button>
+        <button onclick="sendTemplate()" class="btn btn-ghost btn-sm" style="font-size:10px;gap:4px">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+          TRACK
+        </button>
       </div>
-
       <div class="chat-messages" id="chat-messages"></div>
-
-      <!-- Image preview -->
-      <div id="img-preview-bar" style="display:none;padding:8px 16px;background:var(--surface2);border-top:1px solid var(--border);">
-        <img id="img-preview-thumb" style="height:60px;border-radius:8px;object-fit:cover;">
-        <button onclick="clearImgPreview()" style="background:var(--red);border:none;border-radius:6px;color:#fff;padding:4px 8px;font-size:11px;font-weight:800;cursor:pointer;margin-left:8px;">✕ Remove</button>
-      </div>
-
-      <!-- Input bar -->
       <div class="chat-input-bar">
-        <label for="img-upload" style="cursor:pointer;padding:4px;color:var(--muted);">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-        </label>
-        <input type="file" id="img-upload" accept="image/*" style="display:none" onchange="handleImgSelect(this)">
         <input id="chat-input" type="text" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendMessage()">
         <button class="send-btn" onclick="sendMessage()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
         </button>
       </div>
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════ -->
-  <!-- VIEW: INVENTORY / FULFILLMENT       -->
-  <!-- ═══════════════════════════════════ -->
-  <div id="view-inventory" class="view">
-
-    <div class="section-label">Inventory & Fulfillment</div>
-
-    <!-- Auto-Fulfill Toggle -->
-    <div class="card" style="margin-bottom:12px;">
-      <div class="toggle-wrap">
-        <div>
-          <div style="font-weight:800;font-size:15px;color:var(--white)">Auto-Fulfill</div>
-          <div style="font-size:12px;color:var(--muted);font-weight:600;margin-top:2px">Push paid orders to CJ automatically</div>
-        </div>
-        <div class="toggle" id="auto-fulfill-toggle" onclick="toggleAutoFulfill(this)"></div>
-      </div>
-    </div>
-
-    <!-- CJ Stock Card -->
-    <div class="card" style="margin-bottom:12px;">
-      <div class="section-label">CJ Product</div>
-      <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;">
-        <img src="https://oss-cf.cjdropshipping.com/product/2025/06/06/01/9947b7a1-f9a3-43ab-8e4d-1941402cfe4b_trans.jpeg" style="width:64px;height:64px;border-radius:12px;object-fit:cover;border:1.5px solid var(--border);">
-        <div>
-          <div style="font-weight:800;font-size:14px;color:var(--white)">MINIMISTY™ TURBO MIST</div>
-          <div style="font-size:11px;color:var(--muted);font-weight:700;font-family:var(--font-mono)">CJYD239388104DW</div>
-          <div class="badge badge-green" style="margin-top:6px;">IN STOCK</div>
-        </div>
-      </div>
-      <div style="display:flex;gap:8px;">
-        <div style="flex:1;background:var(--surface2);border-radius:12px;padding:12px;text-align:center;">
-          <div style="font-size:10px;color:var(--muted);font-weight:700">UNIT COST</div>
-          <div style="font-family:var(--font-display);font-size:24px;color:var(--red);">$12.00</div>
-        </div>
-        <div style="flex:1;background:var(--surface2);border-radius:12px;padding:12px;text-align:center;">
-          <div style="font-size:10px;color:var(--muted);font-weight:700">SELL PRICE</div>
-          <div style="font-family:var(--font-display);font-size:24px;color:var(--lime);">$39.50</div>
-        </div>
-        <div style="flex:1;background:var(--surface2);border-radius:12px;padding:12px;text-align:center;">
-          <div style="font-size:10px;color:var(--muted);font-weight:700">MARGIN</div>
-          <div style="font-family:var(--font-display);font-size:24px;color:var(--purple);">70%</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Unfulfilled orders that need manual push -->
-    <div class="section-label">Needs Fulfillment</div>
-    <div id="unfulfilled-list">
-      <div class="loading-state"><div class="spinner"></div>Scanning orders...</div>
-    </div>
-
-  </div>
-
-  <!-- ═══════════════════════════════════ -->
-  <!-- VIEW: SETTINGS                      -->
-  <!-- ═══════════════════════════════════ -->
+  <!-- ═══════════════ SETTINGS ═══════════════ -->
   <div id="view-settings" class="view">
-
-    <div style="text-align:center;padding:20px 0 30px;">
-      <div style="width:70px;height:70px;border-radius:50%;background:var(--purple);margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:32px;color:#fff;border:3px solid #fff;">M</div>
-      <div style="font-family:var(--font-display);font-size:22px;color:var(--white)">MINIMISTY ADMIN</div>
-      <div style="font-size:12px;color:var(--muted);font-weight:600;">Nighthawk OS v1.0</div>
+    <div style="text-align:center;padding:20px 0 24px">
+      <div style="width:64px;height:64px;border-radius:50%;background:var(--purple);margin:0 auto 12px;
+                  display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;color:#fff;border:2px solid var(--border)">M</div>
+      <div style="font-size:18px;font-weight:900;color:var(--text)">MINIMISTY ADMIN</div>
+      <div style="font-size:11px;color:var(--text3);font-weight:600;margin-top:3px">Command Center v2.0</div>
     </div>
 
-    <div class="section-label">Firebase</div>
-    <div class="setting-row">
-      <div class="setting-icon" style="background:rgba(255,159,10,0.15);">🔥</div>
+    <div class="section-label">Appearance</div>
+    <div class="setting-row" style="cursor:default">
+      <div class="setting-icon" style="background:rgba(88,86,214,.15)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      </div>
       <div class="setting-info">
-        <div class="setting-title">Database</div>
+        <div class="setting-title">Dark Mode</div>
+        <div class="setting-sub">Toggle light / dark theme</div>
+      </div>
+      <div class="toggle on" id="theme-toggle" onclick="toggleTheme()"></div>
+    </div>
+
+    <div class="section-label" style="margin-top:14px">Security</div>
+    <div class="setting-row" onclick="showChangePassword()">
+      <div class="setting-icon" style="background:rgba(255,159,10,.15)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <div class="setting-info">
+        <div class="setting-title">Change Password</div>
+        <div class="setting-sub">Update your access code</div>
+      </div>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2.5" stroke-linecap="round"><path d="m9 18 6-6-6-6"/></svg>
+    </div>
+    <div class="setting-row" onclick="forgetDevice()">
+      <div class="setting-icon" style="background:rgba(255,59,48,.12)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </div>
+      <div class="setting-info">
+        <div class="setting-title">Forget This Device</div>
+        <div class="setting-sub" id="device-status">Not remembered</div>
+      </div>
+    </div>
+
+    <div class="section-label" style="margin-top:14px">Status</div>
+    <div class="setting-row" style="cursor:default">
+      <div class="setting-icon" style="background:rgba(255,159,10,.15)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      </div>
+      <div class="setting-info">
+        <div class="setting-title">Firebase</div>
         <div class="setting-sub" id="fb-status">Connecting...</div>
       </div>
       <div class="badge badge-green" id="fb-badge">LIVE</div>
     </div>
-
-    <div class="section-label" style="margin-top:16px;">CJ Dropshipping</div>
-    <div class="setting-row">
-      <div class="setting-icon" style="background:rgba(50,215,75,0.15);">📦</div>
-      <div class="setting-info">
-        <div class="setting-title">CJ API</div>
-        <div class="setting-sub">CJYD239388104DW</div>
+    <div class="setting-row" style="cursor:default">
+      <div class="setting-icon" style="background:rgba(50,215,75,.12)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--lime)" stroke-width="2" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
       </div>
-      <div class="badge badge-yellow">API</div>
+      <div class="setting-info">
+        <div class="setting-title">CJ Dropshipping</div>
+        <div class="setting-sub">Connected · CJYD23938810x</div>
+      </div>
+      <div class="badge badge-purple">API</div>
     </div>
 
-    <div class="section-label" style="margin-top:16px;">Notifications</div>
-    <div class="setting-row" style="cursor:default;">
-      <div class="setting-icon" style="background:rgba(88,86,214,0.15);">🔔</div>
-      <div class="setting-info">
-        <div class="setting-title">New Order Alerts</div>
-        <div class="setting-sub">Push to browser</div>
-      </div>
-      <div class="toggle on" id="notif-toggle" onclick="this.classList.toggle('on')"></div>
-    </div>
-
-    <div class="section-label" style="margin-top:16px;">Data</div>
+    <div class="section-label" style="margin-top:14px">Data</div>
     <div class="setting-row" onclick="refreshAll()">
-      <div class="setting-icon" style="background:rgba(0,122,255,0.15);">🔄</div>
+      <div class="setting-icon" style="background:rgba(0,122,255,.12)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      </div>
       <div class="setting-info">
         <div class="setting-title">Refresh All Data</div>
         <div class="setting-sub">Pull latest from Firebase</div>
       </div>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2.5" stroke-linecap="round"><path d="m9 18 6-6-6-6"/></svg>
     </div>
 
-    <div class="setting-row" onclick="signOutDash()" style="margin-top:20px;">
-      <div class="setting-icon" style="background:rgba(255,59,48,0.15);">🚪</div>
+    <div class="setting-row" onclick="signOut()" style="margin-top:4px">
+      <div class="setting-icon" style="background:rgba(255,59,48,.12)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </div>
       <div class="setting-info">
         <div class="setting-title" style="color:var(--red)">Sign Out</div>
       </div>
     </div>
-
   </div>
 
-</div><!-- end main-app -->
+</div><!-- /main -->
 
-<!-- ──────────────────────────────────────────── -->
-<!-- BOTTOM TAB BAR                               -->
-<!-- ──────────────────────────────────────────── -->
+<!-- ══════════════════════════════════════
+     TAB BAR
+══════════════════════════════════════ -->
 <div class="tab-bar" id="tab-bar" style="display:none">
-
   <div class="tab-item active" id="tab-home" onclick="showView('home')">
-    <div class="tab-icon">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round">
-        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-        <polyline points="9 22 9 12 15 12 15 22"/>
-      </svg>
-    </div>
+    <div class="tab-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
     <div class="tab-label">Home</div>
   </div>
-
   <div class="tab-item" id="tab-orders" onclick="showView('orders')">
-    <div class="tab-icon">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round">
-        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/>
-        <line x1="3" y1="6" x2="21" y2="6"/>
-        <path d="M16 10a4 4 0 0 1-8 0"/>
-      </svg>
-    </div>
+    <div class="tab-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
     <div class="tab-label">Orders</div>
-    <div class="tab-badge" id="tab-orders-badge" style="display:none">0</div>
+    <div class="tab-badge" id="tab-orders-badge">0</div>
   </div>
-
+  <div class="tab-item" id="tab-analytics" onclick="showView('analytics')">
+    <div class="tab-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+    <div class="tab-label">Analytics</div>
+  </div>
   <div class="tab-item" id="tab-inbox" onclick="showView('inbox')">
-    <div class="tab-icon">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round">
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-      </svg>
-    </div>
+    <div class="tab-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
     <div class="tab-label">Inbox</div>
-    <div class="tab-badge" id="tab-inbox-badge" style="display:none">0</div>
+    <div class="tab-badge" id="tab-inbox-badge">0</div>
   </div>
-
-  <div class="tab-item" id="tab-inventory" onclick="showView('inventory')">
-    <div class="tab-icon">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round">
-        <line x1="8" y1="6" x2="21" y2="6"/>
-        <line x1="8" y1="12" x2="21" y2="12"/>
-        <line x1="8" y1="18" x2="21" y2="18"/>
-        <line x1="3" y1="6" x2="3.01" y2="6"/>
-        <line x1="3" y1="12" x2="3.01" y2="12"/>
-        <line x1="3" y1="18" x2="3.01" y2="18"/>
-      </svg>
-    </div>
-    <div class="tab-label">Fulfill</div>
-  </div>
-
   <div class="tab-item" id="tab-settings" onclick="showView('settings')">
-    <div class="tab-icon">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round">
-        <circle cx="12" cy="12" r="3"/>
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-      </svg>
-    </div>
+    <div class="tab-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
     <div class="tab-label">Settings</div>
   </div>
-
 </div>
 
-<!-- ──────────────────────────────────────────── -->
-<!-- ORDER DETAIL MODAL                           -->
-<!-- ──────────────────────────────────────────── -->
+<!-- ══════════════════════════════════════
+     ORDER DETAIL MODAL
+══════════════════════════════════════ -->
 <div class="modal-overlay" id="order-modal">
   <div class="modal-sheet">
     <div class="sheet-handle"></div>
     <div id="order-modal-content"></div>
-    <div style="margin-top:20px;display:flex;flex-direction:column;gap:10px;" id="order-modal-actions"></div>
-    <button onclick="closeModal('order-modal')" style="margin-top:12px;width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:14px;padding:14px;color:var(--muted);font-weight:800;font-size:14px;cursor:pointer;font-family:var(--font-body);">Close</button>
+    <div id="order-modal-actions" style="margin-top:14px;display:flex;flex-direction:column;gap:8px"></div>
+    <button onclick="closeModal('order-modal')" class="btn btn-ghost btn-full" style="margin-top:8px;border-radius:var(--r-sm)">Close</button>
   </div>
 </div>
 
-<!-- ──────────────────────────────────────────── -->
-<!-- FIREBASE + LOGIC                             -->
-<!-- ──────────────────────────────────────────── -->
+<!-- ══════════════════════════════════════
+     CHANGE PASSWORD MODAL
+══════════════════════════════════════ -->
+<div class="modal-overlay" id="pw-modal">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <div style="font-size:17px;font-weight:900;color:var(--text);margin-bottom:16px">Change Password</div>
+    <label class="input-label">Current Password</label>
+    <input type="password" id="pw-current" class="neo-input" placeholder="Current password" style="margin-bottom:10px">
+    <label class="input-label">New Password</label>
+    <input type="password" id="pw-new" class="neo-input" placeholder="New password" style="margin-bottom:10px">
+    <label class="input-label">Confirm New Password</label>
+    <input type="password" id="pw-confirm" class="neo-input" placeholder="Confirm new password" style="margin-bottom:14px">
+    <div id="pw-err" style="color:var(--red);font-size:12px;font-weight:700;margin-bottom:10px;display:none"></div>
+    <div style="display:flex;gap:8px">
+      <button onclick="closeModal('pw-modal')" class="btn btn-ghost" style="flex:1;border-radius:var(--r-sm)">Cancel</button>
+      <button onclick="savePassword()" class="btn btn-primary" style="flex:1;border-radius:var(--r-sm)">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     FIREBASE + LOGIC
+══════════════════════════════════════ -->
 <script type="module">
-import { initializeApp }                    from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
-import { getDatabase, ref, onValue, push, update, get, query, limitToLast, orderByChild }
-                                             from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+import { getDatabase, ref, onValue, push, update, remove, get }
+  from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
 
 const firebaseConfig = {
-  apiKey:            "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
-  authDomain:        "itzhoyoo-f9f7e.firebaseapp.com",
-  databaseURL:       "https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com",
-  projectId:         "itzhoyoo-f9f7e",
-  storageBucket:     "itzhoyoo-f9f7e.filestorage.app",
-  messagingSenderId: "1094792075584",
-  appId:             "1:1094792075584:web:d49e9c3f899d3cd31082a5"
+  apiKey:"AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
+  authDomain:"itzhoyoo-f9f7e.firebaseapp.com",
+  databaseURL:"https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com",
+  projectId:"itzhoyoo-f9f7e",
+  storageBucket:"itzhoyoo-f9f7e.filestorage.app",
+  messagingSenderId:"1094792075584",
+  appId:"1:1094792075584:web:d49e9c3f899d3cd31082a5"
 };
-
 const fbApp = initializeApp(firebaseConfig);
 const db    = getDatabase(fbApp);
 
-// ── IMGUR ──
+// ─── CONSTANTS ───────────────────────────────────────
+const PRODUCT_COST    = 20.00;
+const PLATFORM_FEE    = 0.05;
+const SHIP_STANDARD   = 0.99;
+const SHIP_PRIME      = 3.45;
+const SALE_PRICE      = 39.99;
 const IMGUR_CLIENT_ID = "891e5bb4aa94282";
-const PRODUCT_COST_PER_UNIT = 40;
-const SHIPPING_COST = 0.99;
 
-// ── GLOBAL STATE ──
+const PASSCODE_KEY   = 'minimisty_pw_hash';
+const AUTH_TOKEN_KEY = 'minimisty_auth_token';
+const AUTH_EXP_KEY   = 'minimisty_auth_exp';
+const THEME_KEY      = 'minimisty_theme';
+const DEFAULT_HASH   = djb2('DADDYHOYOO');
+
+// ─── STATE ───────────────────────────────────────────
 let allOrders  = [];
 let allVisits  = [];
 let allLeads   = [];
-let allMessages = {};
-let currentFilter  = 'all';
-let currentChatCustomer = null;
-let selectedImgData = null;
-let autoFulfillEnabled = localStorage.getItem('autoFulfill') === 'true';
+let allMessages= {};
+let currentFilter     = 'all';
+let currentChatUser   = null;
+let allOrdersFiltered = [];
+let rememberDevice    = false;
 
-// Expose to window for onclick handlers
-window._db = db;
-window._ref = ref;
-window._push = push;
-window._update = update;
-window._fbGet = get;
-window.IMGUR_CLIENT_ID = IMGUR_CLIENT_ID;
+// ─── HASH ────────────────────────────────────────────
+function djb2(s) {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
+  return h.toString(36);
+}
 
-// ──────────────────────────────────────────
-// AUTH
-// ──────────────────────────────────────────
-const ACCESS_CODE = "DADDYHOYOO"; // Change this to your real password
+// ─── FORMAT ──────────────────────────────────────────
+const $$ = (id) => document.getElementById(id);
+const fmt = (n) => isNaN(n) ? '$0.00' : new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:2}).format(n);
+const fmtN = (n) => isNaN(n) ? '0' : n.toLocaleString('en-US');
+const fmtPct = (n) => isNaN(n) ? '0.0%' : n.toFixed(1) + '%';
 
-window.checkAuth = function() {
-  const pass = document.getElementById('auth-pass').value;
-  const btn  = document.getElementById('auth-btn');
-  const err  = document.getElementById('auth-err');
+function timeAgo(ts) {
+  if (!ts) return '—';
+  const d = Date.now() - new Date(ts).getTime();
+  const m = Math.floor(d/60000), h = Math.floor(m/60), dd = Math.floor(h/24);
+  if (dd>0) return dd+'d ago'; if (h>0) return h+'h ago'; if (m>0) return m+'m ago'; return 'now';
+}
 
-  if (pass === ACCESS_CODE) {
-    err.style.display = 'none';
-    btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;border-width:2px;"></div> UNLOCKING...';
-    setTimeout(launchDashboard, 800);
-  } else {
-    err.style.display = 'block';
-    document.getElementById('auth-pass').style.borderColor = 'var(--red)';
+function hashColor(s) {
+  const c=['#5856d6','#007AFF','#FF9F0A','#FF2D55','#32d74b','#AF52DE','#FF6B6B','#4ECDC4'];
+  let h=0; for(let i=0;i<s.length;i++) h=s.charCodeAt(i)+((h<<5)-h);
+  return c[Math.abs(h)%c.length];
+}
+
+function getFlagEmoji(cc) {
+  if (!cc||cc.length!==2) return '';
+  return String.fromCodePoint(...[...cc.toUpperCase()].map(c=>0x1F1E0+c.charCodeAt(0)-65));
+}
+
+function initials(name) {
+  return (name||'?').split(' ').map(w=>w[0]||'').join('').substring(0,2).toUpperCase();
+}
+
+// ─── AUTH ────────────────────────────────────────────
+function checkAutoAuth() {
+  // Theme
+  const saved = localStorage.getItem(THEME_KEY)||'dark';
+  document.getElementById('html-root').setAttribute('data-theme', saved);
+  $$('theme-toggle')?.classList.toggle('on', saved==='dark');
+
+  const token  = localStorage.getItem(AUTH_TOKEN_KEY);
+  const expiry = localStorage.getItem(AUTH_EXP_KEY);
+  if (token && expiry && Date.now() < parseInt(expiry)) {
+    launchDashboard();
+  }
+}
+
+window.toggleRemember = function() {
+  rememberDevice = !rememberDevice;
+  const el = $$('remember-check');
+  if (el) {
+    el.classList.toggle('checked', rememberDevice);
+    el.innerHTML = rememberDevice
+      ? `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="4" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>`
+      : '';
   }
 };
 
-document.getElementById('auth-pass').addEventListener('keydown', e => {
-  if (e.key === 'Enter') window.checkAuth();
-});
+window.attemptLogin = function() {
+  const pass = $$('auth-pass')?.value;
+  const btn  = $$('auth-btn');
+  const err  = $$('auth-err');
+  const savedHash = localStorage.getItem(PASSCODE_KEY) || DEFAULT_HASH;
+  if (djb2(pass) === savedHash) {
+    err.style.display = 'none';
+    btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;border-top-color:#fff;border-color:rgba(255,255,255,.3)"></div> UNLOCKING…';
+    if (rememberDevice) {
+      const exp = Date.now() + 30*24*60*60*1000;
+      localStorage.setItem(AUTH_TOKEN_KEY, djb2(Date.now().toString()));
+      localStorage.setItem(AUTH_EXP_KEY, exp.toString());
+    }
+    setTimeout(launchDashboard, 600);
+  } else {
+    err.style.display = 'block';
+    $$('auth-pass').style.borderColor = 'var(--red)';
+    $$('auth-pass').value = '';
+  }
+};
+$$('auth-pass').addEventListener('keydown', e => { if(e.key==='Enter') window.attemptLogin(); });
 
 function launchDashboard() {
-  document.getElementById('auth-screen').style.display   = 'none';
-  document.getElementById('main-header').style.display   = 'flex';
-  document.getElementById('main-app').style.display      = 'block';
-  document.getElementById('tab-bar').style.display       = 'flex';
-  document.getElementById('fb-status').textContent       = 'itzhoyoo-f9f7e.firebaseio.com';
-
-  initHomeGreeting();
-  subscribeToOrders();
-  subscribeToVisits();
-  subscribeToLeads();
-  subscribeToMessages();
-  buildRevenueChart();
+  $$('auth-screen').style.display     = 'none';
+  $$('main-header').style.display     = 'flex';
+  $$('main-app').style.display        = 'block';
+  $$('tab-bar').style.display         = 'flex';
+  $$('fb-status').textContent         = 'itzhoyoo-f9f7e · Connected';
+  updateDeviceStatus();
+  initGreeting();
+  subscribeOrders();
+  subscribeVisits();
+  subscribeLeads();
+  subscribeMessages();
   requestNotificationPermission();
-
-  if (autoFulfillEnabled) document.getElementById('auto-fulfill-toggle').classList.add('on');
 }
 
-window.signOutDash = function() {
-  location.reload();
+window.signOut = function() { location.reload(); };
+
+window.forgetDevice = function() {
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+  localStorage.removeItem(AUTH_EXP_KEY);
+  updateDeviceStatus();
+  showToast('var(--text3)', svgIcon('lock'), 'Device Forgotten', 'You will be asked for your password next time');
 };
 
-// ──────────────────────────────────────────
-// NAVIGATION
-// ──────────────────────────────────────────
+function updateDeviceStatus() {
+  const exp = localStorage.getItem(AUTH_EXP_KEY);
+  const el = $$('device-status');
+  if (el) {
+    if (exp && Date.now() < parseInt(exp)) {
+      const d = new Date(parseInt(exp));
+      el.textContent = 'Remembered until ' + d.toLocaleDateString();
+    } else {
+      el.textContent = 'Not currently remembered';
+    }
+  }
+}
+
+// ─── PASSWORD CHANGE ─────────────────────────────────
+window.showChangePassword = function() {
+  ['pw-current','pw-new','pw-confirm'].forEach(id => { const el=$$(id); if(el) el.value=''; });
+  $$('pw-err').style.display='none';
+  document.getElementById('pw-modal').classList.add('open');
+};
+
+window.savePassword = function() {
+  const cur  = $$('pw-current')?.value;
+  const nw   = $$('pw-new')?.value;
+  const conf = $$('pw-confirm')?.value;
+  const savedHash = localStorage.getItem(PASSCODE_KEY) || DEFAULT_HASH;
+  const errEl = $$('pw-err');
+  errEl.style.display = 'none';
+  if (djb2(cur) !== savedHash) { errEl.textContent='Current password incorrect.'; errEl.style.display='block'; return; }
+  if (nw.length < 6)           { errEl.textContent='New password must be at least 6 characters.'; errEl.style.display='block'; return; }
+  if (nw !== conf)              { errEl.textContent='Passwords do not match.'; errEl.style.display='block'; return; }
+  localStorage.setItem(PASSCODE_KEY, djb2(nw));
+  closeModal('pw-modal');
+  showToast('var(--lime)', svgIcon('check'), 'Password Updated', 'Your new access code is now active');
+};
+
+// ─── THEME ───────────────────────────────────────────
+window.toggleTheme = function() {
+  const root = $$('html-root');
+  const isDark = root.getAttribute('data-theme') === 'dark';
+  const next = isDark ? 'light' : 'dark';
+  root.setAttribute('data-theme', next);
+  localStorage.setItem(THEME_KEY, next);
+  $$('theme-toggle')?.classList.toggle('on', next==='dark');
+};
+
+// ─── NAV ─────────────────────────────────────────────
 window.showView = function(name) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
-  document.getElementById('view-' + name).classList.add('active');
-  const tab = document.getElementById('tab-' + name);
-  if (tab) tab.classList.add('active');
-
+  $$('view-'+name)?.classList.add('active');
+  $$('tab-'+name)?.classList.add('active');
   if (name === 'inbox') renderInboxList();
-  if (name === 'inventory') renderUnfulfilled();
+  if (name === 'analytics') renderAnalytics();
 };
 
-// ──────────────────────────────────────────
-// HOME GREETING
-// ──────────────────────────────────────────
-function initHomeGreeting() {
+// ─── GREETING ────────────────────────────────────────
+function initGreeting() {
   const h = new Date().getHours();
-  const g = h < 12 ? 'MORNING' : h < 17 ? 'AFTERNOON' : 'EVENING';
-  document.getElementById('home-greeting').textContent = g;
-  const d = new Date();
-  document.getElementById('home-date').textContent =
-    d.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' }).toUpperCase();
+  const part = h<12?'Morning':h<17?'Afternoon':'Evening';
+  $$('home-part').textContent = part;
+  $$('home-date').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}).toUpperCase();
 }
 
-// ──────────────────────────────────────────
-// FIREBASE SUBSCRIPTIONS
-// ──────────────────────────────────────────
-function subscribeToOrders() {
-  onValue(ref(db, 'orders'), snap => {
+// ─── FIREBASE SUBS ───────────────────────────────────
+function subscribeOrders() {
+  onValue(ref(db,'orders'), snap => {
     allOrders = [];
-    snap.forEach(child => {
-      allOrders.push({ id: child.key, ...child.val() });
-    });
+    snap.forEach(c => allOrders.push({id:c.key,...c.val()}));
     allOrders.reverse();
-    renderStats();
-    renderLiveFeed();
-    renderOrdersList();
-    renderProfitCalc();
-    buildRevenueChart();
-    updateUnfulfilledBadge();
+    renderStats(); renderLiveFeed(); renderOrdersList(); buildRevenueChart();
+    const unf = allOrders.filter(o=>o.status==='PAID_FULFILLMENT_FAILED'||o.status==='PROCESSING').length;
+    const badge = $$('tab-orders-badge');
+    if(badge){badge.textContent=unf;badge.classList.toggle('show',unf>0);}
   });
 }
-
-function subscribeToLeads() {
-  onValue(ref(db, 'leads'), snap => {
+function subscribeLeads() {
+  onValue(ref(db,'leads'), snap => {
     allLeads = [];
-    snap.forEach(child => {
-      allLeads.push({ id: child.key, ...child.val() });
-    });
+    snap.forEach(c => allLeads.push({id:c.key,...c.val()}));
     allLeads.reverse();
-    updateInboxBadge();
+    $$('m-leads').textContent = fmtN(allLeads.length);
+    renderLiveFeed();
   });
 }
-
-function subscribeToVisits() {
-  onValue(ref(db, 'visits'), snap => {
+function subscribeVisits() {
+  onValue(ref(db,'visits'), snap => {
     allVisits = [];
-    snap.forEach(child => {
-      allVisits.push({ id: child.key, ...child.val() });
-    });
+    snap.forEach(c => allVisits.push({id:c.key,...c.val()}));
     allVisits.reverse();
-    document.getElementById('stat-visits').textContent = allVisits.length.toLocaleString();
+    $$('stat-visits').textContent = fmtN(allVisits.length);
     renderCountryList();
   });
 }
-
-function subscribeToMessages() {
-  onValue(ref(db, 'messages'), snap => {
+function subscribeMessages() {
+  onValue(ref(db,'messages'), snap => {
     allMessages = {};
-    snap.forEach(child => {
-      allMessages[child.key] = { id: child.key, ...child.val() };
-    });
+    snap.forEach(c => { allMessages[c.key]={id:c.key,...c.val()}; });
     updateInboxBadge();
-    if (currentChatCustomer) renderChatMessages(currentChatCustomer);
+    if(currentChatUser) renderChatMessages(currentChatUser);
   });
 }
 
-// ──────────────────────────────────────────
-// STATS
-// ──────────────────────────────────────────
+// ─── STATS ───────────────────────────────────────────
 function renderStats() {
-  const paidOrders = allOrders.filter(o => o.status === 'PAID_FULFILLED' || o.totalUSD);
-  const revenue    = paidOrders.reduce((s,o) => s + (parseFloat(o.totalUSD || o.revenue || 0)), 0);
-  const units      = paidOrders.reduce((s,o) => s + (parseInt(o.quantity || o.bundleSize || 1)), 0);
-  const cogs       = units * PRODUCT_COST_PER_UNIT;
-  const shippingC  = paidOrders.length * SHIPPING_COST;
-  const fees       = revenue * 0.05;
-  const profit     = revenue - cogs - shippingC - fees;
-  const margin     = revenue > 0 ? ((profit/revenue)*100).toFixed(0) : 0;
+  const fulfilled = allOrders.filter(o => o.status==='PAID_FULFILLED');
+  const allPaid   = allOrders.filter(o => o.paypalOrderId||o.totalUSD);
 
-  document.getElementById('stat-revenue').textContent = '$' + revenue.toFixed(0);
-  document.getElementById('stat-profit').textContent  = '$' + Math.max(0,profit).toFixed(0);
-  document.getElementById('stat-margin').textContent  = `${margin}% margin`;
-  document.getElementById('stat-orders').textContent  = paidOrders.length;
+  const revenue      = fulfilled.reduce((s,o) => s + parseFloat(o.subtotalUSD||o.totalUSD||0), 0);
+  const units        = fulfilled.reduce((s,o) => s + parseInt(o.quantity||o.bundleSize||1), 0);
+  const cogs         = units * PRODUCT_COST;
+  const shippingIn   = fulfilled.reduce((s,o) => s + parseFloat(o.shippingUSD||0), 0);
+  const taxCollected = fulfilled.reduce((s,o) => s + parseFloat(o.taxUSD||0), 0);
 
-  window._revenueData = { revenue, units, cogs, shippingC, fees, profit };
-  renderProfitCalc();
+  // Shipping paid out: use actual method stored, fallback to standard rate
+  const shippingOut  = fulfilled.reduce((s,o) => {
+    const m = (o.shippingMethod||'').toLowerCase();
+    return s + (m.includes('prime')||m.includes('fast') ? SHIP_PRIME : SHIP_STANDARD);
+  }, 0);
+
+  const platformFees = revenue * PLATFORM_FEE;
+  const netProfit    = revenue + shippingIn - cogs - shippingOut - platformFees;
+  const margin       = revenue > 0 ? (netProfit/revenue)*100 : 0;
+  const aov          = allPaid.length > 0 ? fulfilled.reduce((s,o)=>s+parseFloat(o.totalUSD||0),0)/Math.max(allPaid.length,1) : 0;
+  const convRate     = allVisits.length > 0 ? (allPaid.length/allVisits.length)*100 : 0;
+
+  const set = (id,val) => { const el=$$(id); if(el) el.textContent=val; };
+  set('stat-revenue', fmt(revenue));
+  set('stat-profit',  fmt(netProfit));
+  set('stat-margin-sub', fmtPct(margin)+' margin');
+  set('stat-revenue-sub', fmtN(fulfilled.length)+' orders');
+  set('stat-orders', fmtN(allPaid.length));
+  set('stat-conv',   fmtPct(convRate)+' conv. rate');
+  set('m-aov',   fmt(aov));
+  set('m-units', fmtN(units));
+  set('pc-revenue',  fmt(revenue));
+  set('pc-cogs',    '-'+fmt(cogs));
+  set('pc-ship-in', '+'+fmt(shippingIn));
+  set('pc-ship-out','-'+fmt(shippingOut));
+  set('pc-fees',    '-'+fmt(platformFees));
+  set('pc-tax',      fmt(taxCollected));
+  const netEl = $$('pc-net');
+  if(netEl){netEl.textContent=fmt(netProfit);netEl.className='profit-val '+(netProfit>=0?'green':'red');}
+
+  window._stats = {revenue,units,cogs,shippingIn,shippingOut,platformFees,netProfit,margin,aov,convRate,fulfilled,allPaid};
 }
 
-function renderProfitCalc() {
-  const d = window._revenueData;
-  if (!d) return;
-  document.getElementById('pc-revenue').textContent = '$' + d.revenue.toFixed(2);
-  document.getElementById('pc-cogs').textContent    = '-$' + d.cogs.toFixed(2);
-  document.getElementById('pc-ship').textContent    = '-$' + d.shippingC.toFixed(2);
-  document.getElementById('pc-fees').textContent    = '-$' + d.fees.toFixed(2);
-  document.getElementById('pc-net').textContent     = '$' + Math.max(0,d.profit).toFixed(2);
-}
-
-// ──────────────────────────────────────────
-// LIVE FEED
-// ──────────────────────────────────────────
-function renderLiveFeed() {
-  const feed    = document.getElementById('live-feed');
-  const recent  = [...allOrders, ...allLeads].sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0,15);
-
-  if (!recent.length) {
-    feed.innerHTML = `<div class="empty-state"><div>📭</div>No activity yet. Waiting for orders...</div>`;
-    return;
+// ─── REVENUE CHART ───────────────────────────────────
+function buildRevenueChart() {
+  const days=7, chartEl=$$('rev-chart'), labelsEl=$$('rev-labels');
+  if(!chartEl) return;
+  const data=[], labels=[], dates=[];
+  for(let i=days-1;i>=0;i--){
+    const d=new Date(); d.setDate(d.getDate()-i);
+    dates.push(d.toDateString());
+    labels.push(d.toLocaleDateString('en',{weekday:'short'}).toUpperCase());
+    data.push(allOrders.filter(o=>o.totalUSD&&new Date(o.timestamp).toDateString()===d.toDateString())
+                        .reduce((s,o)=>s+parseFloat(o.totalUSD||0),0));
   }
+  const max=Math.max(...data,1);
+  const totalWeek=data.reduce((a,b)=>a+b,0);
+  if($$('chart-total-label')) $$('chart-total-label').textContent='7d: '+fmt(totalWeek);
+  chartEl.innerHTML=data.map((v,i)=>`
+    <div class="bar-col">
+      <div class="bar ${i===days-1?'today':''}" style="height:${Math.max(4,(v/max)*100).toFixed(0)}%">
+        <div class="bar-tip">${fmt(v)}</div>
+      </div>
+    </div>`).join('');
+  labelsEl.innerHTML=labels.map(l=>`<div class="bar-lbl" style="flex:1;text-align:center">${l}</div>`).join('');
+}
 
-  feed.innerHTML = recent.map(item => {
-    const isPaid   = item.status === 'PAID_FULFILLED';
-    const isLead   = item.status === 'LEAD_CAPTURED';
-    const isFailed = item.status?.includes('FAILED');
-    const name     = item.shipping?.name || item.name || 'Unknown';
-    const country  = item.country || item.shipping?.cjShipping?.countryCode || '??';
-    const flag     = getFlagEmoji(country);
-    const amount   = item.totalUSD ? '$' + parseFloat(item.totalUSD).toFixed(2) : item.revenue ? '$' + item.revenue : '—';
-    const ts       = timeAgo(item.timestamp);
-    const icon     = isPaid ? '💳' : isLead ? '🎯' : isFailed ? '⚠️' : '👁️';
-    const bg       = isPaid ? 'rgba(50,215,75,0.15)' : isLead ? 'rgba(255,214,10,0.15)' : 'rgba(255,59,48,0.15)';
-
+// ─── LIVE FEED ───────────────────────────────────────
+function renderLiveFeed() {
+  const el=$$('live-feed'); if(!el) return;
+  const recent=[...allOrders,...allLeads]
+    .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,12);
+  if(!recent.length){el.innerHTML=`<div class="empty-state"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="color:var(--text3);margin-bottom:8px"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><div>No activity yet</div></div>`;return;}
+  el.innerHTML=recent.map(item=>{
+    const paid=item.status==='PAID_FULFILLED', failed=item.status?.includes('FAILED'), lead=item.status==='LEAD_CAPTURED';
+    const name=item.shipping?.name||item.name||'Unknown';
+    const country=item.country||item.shipping?.cjShipping?.countryCode||'';
+    const amount=item.totalUSD?fmt(parseFloat(item.totalUSD)):null;
+    const bg=paid?'rgba(50,215,75,.12)':failed?'rgba(255,59,48,.12)':lead?'rgba(255,214,10,.12)':'rgba(88,86,214,.12)';
+    const iconStroke=paid?'var(--lime)':failed?'var(--red)':lead?'var(--yellow)':'var(--purple)';
+    const icon=paid
+      ?`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${iconStroke}" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>`
+      :failed
+      ?`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${iconStroke}" stroke-width="2.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`
+      :lead
+      ?`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${iconStroke}" stroke-width="2.5" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`
+      :`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${iconStroke}" stroke-width="2.5" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
     return `<div class="feed-item">
       <div class="feed-icon" style="background:${bg}">${icon}</div>
       <div class="feed-body">
-        <div class="feed-title">${flag} ${name}</div>
-        <div class="feed-sub">${item.status || 'Visit'} · ${country}</div>
+        <div class="feed-title">${getFlagEmoji(country)} ${name}</div>
+        <div class="feed-sub">${item.status||'Visit'} · ${country||'—'}</div>
       </div>
-      <div>
-        <div class="feed-amount">${amount}</div>
-        <div class="feed-time">${ts}</div>
+      <div class="feed-right">
+        ${amount?`<div class="feed-amount">${amount}</div>`:''}
+        <div class="feed-time">${timeAgo(item.timestamp)}</div>
       </div>
     </div>`;
   }).join('');
 }
 
-// ──────────────────────────────────────────
-// COUNTRY LIST
-// ──────────────────────────────────────────
+// ─── COUNTRY LIST ────────────────────────────────────
 function renderCountryList() {
-  const counts = {};
-  allVisits.forEach(v => {
-    const cc = v.country || v.countryCode || 'Unknown';
-    counts[cc] = (counts[cc]||0) + 1;
-  });
-
-  const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]).slice(0,8);
-  const max    = sorted[0]?.[1] || 1;
-
-  const el = document.getElementById('country-list');
-  if (!sorted.length) { el.innerHTML = '<div class="empty-state"><div>🌍</div>No visitor data yet</div>'; return; }
-
-  el.innerHTML = sorted.map(([code, count]) => `
+  const el=$$('country-list'); if(!el) return;
+  const counts={};
+  allVisits.forEach(v=>{ const cc=v.country||'??'; counts[cc]=(counts[cc]||0)+1; });
+  const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const mx=sorted[0]?.[1]||1;
+  if(!sorted.length){el.innerHTML='<div class="empty-state">No visitor data yet</div>';return;}
+  el.innerHTML=sorted.map(([cc,n])=>`
     <div class="country-row">
-      <div class="country-flag">${getFlagEmoji(code)}</div>
-      <div class="country-name">${code}</div>
-      <div class="country-bar-wrap"><div class="country-bar-fill" style="width:${(count/max*100).toFixed(0)}%"></div></div>
-      <div class="country-count">${count}</div>
+      <span class="flag-code">${cc}</span>
+      <span class="country-name-lbl">${getFlagEmoji(cc)} ${cc}</span>
+      <div class="country-bar-wrap"><div class="country-bar-fill" style="width:${(n/mx*100).toFixed(0)}%"></div></div>
+      <span class="country-count-lbl">${n}</span>
     </div>`).join('');
 }
 
-// ──────────────────────────────────────────
-// REVENUE CHART
-// ──────────────────────────────────────────
-function buildRevenueChart() {
-  const days  = 7;
-  const data  = [];
-  const labels = [];
-
-  for (let i = days-1; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    const key = d.toDateString();
-    labels.push(d.toLocaleDateString('en', { weekday: 'short' }).toUpperCase());
-    const dayRevenue = allOrders
-      .filter(o => o.totalUSD && new Date(o.timestamp).toDateString() === key)
-      .reduce((s,o) => s + parseFloat(o.totalUSD||0), 0);
-    data.push(dayRevenue);
-  }
-
-  const max = Math.max(...data, 1);
-  const chartEl  = document.getElementById('rev-chart');
-  const labelsEl = document.getElementById('rev-labels');
-
-  chartEl.innerHTML  = data.map((v,i) => `
-    <div class="bar ${i === days-1 ? 'lime' : ''}" style="height:${Math.max(4, (v/max)*100).toFixed(0)}%" title="$${v.toFixed(2)}"></div>`
-  ).join('');
-
-  labelsEl.innerHTML = labels.map(l => `<div class="bar-label">${l}</div>`).join('');
-}
-
-// ──────────────────────────────────────────
-// ORDERS VIEW
-// ──────────────────────────────────────────
-let allOrdersFiltered = [];
-
+// ─── ORDERS ──────────────────────────────────────────
 function renderOrdersList() {
-  const search = (document.getElementById('order-search')?.value || '').toLowerCase();
-  const combined = [...allOrders, ...allLeads];
-  
-  allOrdersFiltered = combined.filter(o => {
-    const matchFilter = currentFilter === 'all' || o.status === currentFilter;
-    const name  = (o.shipping?.name || o.name || '').toLowerCase();
-    const email = (o.shipping?.email || o.email || '').toLowerCase();
-    const oid   = (o.orderId || o.id || '').toLowerCase();
-    const matchSearch = !search || name.includes(search) || email.includes(search) || oid.includes(search);
-    return matchFilter && matchSearch;
-  }).sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+  const search=($$('order-search')?.value||'').toLowerCase();
+  const combined=[...allOrders,...allLeads];
+  allOrdersFiltered=combined.filter(o=>{
+    const mf=currentFilter==='all'||o.status===currentFilter;
+    const name=(o.shipping?.name||o.name||'').toLowerCase();
+    const email=(o.shipping?.email||o.email||'').toLowerCase();
+    const oid=(o.orderId||o.id||'').toLowerCase();
+    const ms=!search||name.includes(search)||email.includes(search)||oid.includes(search);
+    return mf&&ms;
+  }).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
 
-  const el = document.getElementById('orders-list');
-  if (!allOrdersFiltered.length) {
-    el.innerHTML = `<div class="empty-state"><div>📦</div>No orders match this filter</div>`;
+  const el=$$('orders-list'); if(!el) return;
+  if(!allOrdersFiltered.length){
+    el.innerHTML='<div class="empty-state"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="color:var(--text3);margin-bottom:8px;display:block;margin:0 auto 8px"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>No orders match</div>';
     return;
   }
-
-  el.innerHTML = allOrdersFiltered.map((order, idx) => {
-    const name    = order.shipping?.name || order.name || 'Unknown Customer';
-    const status  = order.status || 'LEAD_CAPTURED';
-    const amount  = order.totalUSD ? '$' + parseFloat(order.totalUSD).toFixed(2) : '—';
-    const country = order.country || order.shipping?.cjShipping?.countryCode || '??';
-    const initials = name.split(' ').map(w=>w[0]||'').join('').substring(0,2).toUpperCase();
-    const bClass  = status === 'PAID_FULFILLED' ? 'badge-green' :
-                    status === 'LEAD_CAPTURED'  ? 'badge-yellow' :
-                    status?.includes('FAILED')  ? 'badge-red' : 'badge-purple';
-    const bText   = status === 'PAID_FULFILLED' ? '✅ Fulfilled' :
-                    status === 'LEAD_CAPTURED'  ? '🔴 Lead' :
-                    status?.includes('FAILED')  ? '⚠️ Failed' : status;
-
-    return `<div class="order-row" onclick="openOrderDetail(${idx})">
-      <div class="order-avatar" style="background:${hashColor(name)}">${initials}</div>
+  el.innerHTML=allOrdersFiltered.map((o,i)=>{
+    const name=o.shipping?.name||o.name||'Unknown';
+    const status=o.status||'LEAD_CAPTURED';
+    const amount=o.totalUSD?fmt(parseFloat(o.totalUSD)):'—';
+    const country=o.country||o.shipping?.cjShipping?.countryCode||'';
+    const bClass=status==='PAID_FULFILLED'?'badge-green':status==='LEAD_CAPTURED'?'badge-yellow':status?.includes('FAILED')?'badge-red':'badge-purple';
+    const bText=status==='PAID_FULFILLED'?'Fulfilled':status==='LEAD_CAPTURED'?'Lead':status?.includes('FAILED')?'Failed':status;
+    return `<div class="order-row" onclick="openOrderDetail(${i})">
+      <div class="order-avatar" style="background:${hashColor(name)}">${initials(name)}</div>
       <div class="order-info">
         <div class="order-name">${name}</div>
-        <div class="order-id">${order.orderId || order.id?.substring(0,12) || '—'}</div>
-        <div class="badge ${bClass}" style="margin-top:4px;">${bText}</div>
+        <div class="order-id">${o.orderId||o.id?.substring(0,14)||'—'}</div>
+        <div class="badge ${bClass}" style="margin-top:4px">${bText}</div>
       </div>
       <div class="order-right">
-        <div class="order-price">${amount}</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px;">${getFlagEmoji(country)} ${timeAgo(order.timestamp)}</div>
+        <div class="order-amount">${amount}</div>
+        <div class="order-time">${getFlagEmoji(country)} ${timeAgo(o.timestamp)}</div>
       </div>
     </div>`;
   }).join('');
-
-  // Badge for unfulfilled count
-  const unf = allOrders.filter(o => o.status !== 'PAID_FULFILLED').length + allLeads.length;
-  const badge = document.getElementById('tab-orders-badge');
-  if (badge) {
-    badge.textContent = unf > 0 ? unf : '';
-    badge.style.display = unf > 0 ? 'flex' : 'none';
-  }
 }
 
-window.setFilter = function(el, filter) {
-  currentFilter = filter;
-  document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+window.setFilter = function(el, f) {
+  currentFilter=f;
+  document.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));
   el.classList.add('active');
   renderOrdersList();
 };
-
 window.filterOrders = renderOrdersList;
 
 window.openOrderDetail = function(idx) {
-  const order = allOrdersFiltered[idx];
-  if (!order) return;
+  const o=allOrdersFiltered[idx]; if(!o) return;
+  const s=o.shipping||{}, cj=s.cjShipping||{};
+  const status=o.status||'—';
+  const amount=o.totalUSD?fmt(parseFloat(o.totalUSD)):'—';
+  const colors=o.bundleColors?Object.values(o.bundleColors).join(' / '):o.variant||'—';
+  const isFulfilled=status==='PAID_FULFILLED';
+  const canFulfill=(o.paypalOrderId||o.totalUSD)&&!isFulfilled;
+  const qty=parseInt(o.quantity||o.bundleSize||1);
+  const unitRevenue=parseFloat(o.subtotalUSD||0)/qty;
+  const profit=(unitRevenue-PRODUCT_COST)*qty;
 
-  const s = order.shipping || {};
-  const cj = s.cjShipping || {};
-  const status = order.status || '—';
-  const amount  = order.totalUSD ? '$' + parseFloat(order.totalUSD).toFixed(2) : '—';
-  const colors  = order.bundleColors ? Object.values(order.bundleColors).join(' / ') : order.variant || '—';
-  const isFulfilled = status === 'PAID_FULFILLED';
-  const isPaid      = order.paypalOrderId || order.totalUSD;
-
-  document.getElementById('order-modal-content').innerHTML = `
-    <div style="margin-bottom:20px;">
-      <div style="font-family:var(--font-display);font-size:24px;color:var(--white);">${s.name || 'Unknown'}</div>
-      <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-top:2px;">${order.orderId || order.id || '—'}</div>
+  $$('order-modal-content').innerHTML=`
+    <div style="margin-bottom:14px">
+      <div style="font-size:20px;font-weight:900;color:var(--text)">${s.name||'Unknown Customer'}</div>
+      <div style="font-size:11px;color:var(--text3);font-family:var(--mono);margin-top:2px">${o.orderId||o.id||'—'}</div>
     </div>
-
-    <div class="card" style="margin-bottom:12px;">
+    <div class="card" style="margin-bottom:9px">
       <div class="section-label">Order Details</div>
-      <div class="profit-row"><span class="profit-label">Status</span><span class="profit-val">${status}</span></div>
-      <div class="profit-row"><span class="profit-label">Amount</span><span class="profit-val green">${amount}</span></div>
-      <div class="profit-row"><span class="profit-label">Bundle</span><span class="profit-val">x${order.quantity || order.bundleSize || 1}</span></div>
-      <div class="profit-row"><span class="profit-label">Colors</span><span class="profit-val" style="font-size:11px;">${colors}</span></div>
-      <div class="profit-row"><span class="profit-label">Shipping</span><span class="profit-val">${order.shippingMethod || 'Standard'}</span></div>
-      <div class="profit-row"><span class="profit-label">PayPal ID</span><span class="profit-val" style="font-size:11px;">${order.paypalOrderId || '—'}</span></div>
-      <div class="profit-row"><span class="profit-label">CJ Order</span><span class="profit-val" style="font-size:11px;">${order.cjOrderId || '—'}</span></div>
-      <div class="profit-row"><span class="profit-label">Date</span><span class="profit-val" style="font-size:11px;">${order.timestamp ? new Date(order.timestamp).toLocaleString() : '—'}</span></div>
+      <div class="profit-row"><span class="profit-label">Status</span><span class="profit-val"><span class="badge ${status==='PAID_FULFILLED'?'badge-green':status?.includes('FAILED')?'badge-red':'badge-yellow'}">${status}</span></span></div>
+      <div class="profit-row"><span class="profit-label">Total Paid</span><span class="profit-val green">${amount}</span></div>
+      <div class="profit-row"><span class="profit-label">Subtotal</span><span class="profit-val">${fmt(parseFloat(o.subtotalUSD||0))}</span></div>
+      <div class="profit-row"><span class="profit-label">Tax</span><span class="profit-val">${fmt(parseFloat(o.taxUSD||0))}</span></div>
+      <div class="profit-row"><span class="profit-label">Shipping Charged</span><span class="profit-val">${fmt(parseFloat(o.shippingUSD||0))}</span></div>
+      <div class="profit-row"><span class="profit-label">Units</span><span class="profit-val">×${qty}</span></div>
+      <div class="profit-row"><span class="profit-label">Colours</span><span class="profit-val" style="font-size:11px;text-align:right;max-width:60%">${colors}</span></div>
+      <div class="profit-row"><span class="profit-label">Shipping Method</span><span class="profit-val">${o.shippingMethod||'Standard'}</span></div>
+      <div class="profit-row"><span class="profit-label">PayPal ID</span><span class="profit-val" style="font-size:10px;font-family:var(--mono)">${o.paypalOrderId||'—'}</span></div>
+      <div class="profit-row"><span class="profit-label">CJ Order ID</span><span class="profit-val" style="font-size:10px;font-family:var(--mono)">${o.cjOrderId||'—'}</span></div>
+      <div class="profit-row"><span class="profit-label">Date</span><span class="profit-val" style="font-size:11px">${o.timestamp?new Date(o.timestamp).toLocaleString():'—'}</span></div>
+      ${isFulfilled?`<div class="profit-row"><span class="profit-label">Est. Profit</span><span class="profit-val ${profit>=0?'green':'red'}">${fmt(profit)}</span></div>`:''}
     </div>
-
-    <div class="card" style="margin-bottom:12px;">
+    <div class="card" style="margin-bottom:9px">
       <div class="section-label">Shipping Address</div>
-      <div class="profit-row"><span class="profit-label">Email</span><span class="profit-val" style="font-size:11px;">${s.email || '—'}</span></div>
-      <div class="profit-row"><span class="profit-label">Phone</span><span class="profit-val" style="font-size:11px;">${s.phone || '—'}</span></div>
-      <div class="profit-row"><span class="profit-label">Address</span><span class="profit-val" style="font-size:11px;text-align:right;max-width:55%;">${[cj.address||s.address, cj.city||s.city, cj.province||s.state, cj.zip||s.zip, cj.countryCode||s.countryFull].filter(Boolean).join(', ')}</span></div>
+      <div class="profit-row"><span class="profit-label">Email</span><span class="profit-val" style="font-size:11px">${s.email||'—'}</span></div>
+      <div class="profit-row"><span class="profit-label">Phone</span><span class="profit-val" style="font-size:11px">${s.phone||cj.phone||'—'}</span></div>
+      <div class="profit-row"><span class="profit-label">Address</span><span class="profit-val" style="font-size:11px;max-width:56%;text-align:right">${[cj.address||s.address,cj.city||s.city,cj.province||s.province,cj.zip||s.zip,cj.countryCode||s.countryCode].filter(Boolean).join(', ')||'—'}</span></div>
     </div>`;
 
-  const actionsEl = document.getElementById('order-modal-actions');
-  actionsEl.innerHTML = '';
-
-  if (!isFulfilled && isPaid) {
-    actionsEl.innerHTML = `
-      <button class="fulfill-btn" onclick="manualFulfillOrder('${order.id}', ${idx})" style="width:100%;justify-content:center;">
-        📦 Push to CJ Dropshipping
-      </button>`;
+  const actions=$$('order-modal-actions');
+  actions.innerHTML='';
+  if(canFulfill) {
+    actions.innerHTML+=`<button class="btn btn-success btn-full" onclick="manualFulfill('${o.id}',${idx})" style="border-radius:var(--r-sm)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+      PUSH TO CJ DROPSHIPPING
+    </button>`;
   }
-
-  if (s.email) {
-    actionsEl.innerHTML += `
-      <button onclick="openChatFromOrder('${order.id}', '${s.name||'Customer'}', '${s.email||''}');closeModal('order-modal')" 
-              class="neo-btn black" style="width:100%;margin-top:0;">
-        💬 Message Customer
-      </button>`;
+  if(s.email) {
+    actions.innerHTML+=`<button class="btn btn-ghost btn-full" onclick="openChatFromOrder('${o.id}','${(s.name||'Customer').replace(/'/g,"\\'")}','${s.email}');closeModal('order-modal')" style="border-radius:var(--r-sm)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Message Customer
+    </button>`;
   }
-
-  document.getElementById('order-modal').classList.add('open');
+  $$('order-modal').classList.add('open');
 };
 
-// ──────────────────────────────────────────
-// FULFILLMENT
-// ──────────────────────────────────────────
-window.toggleAutoFulfill = function(el) {
-  el.classList.toggle('on');
-  autoFulfillEnabled = el.classList.contains('on');
-  localStorage.setItem('autoFulfill', autoFulfillEnabled);
-  showToast('⚙️', 'Auto-Fulfill ' + (autoFulfillEnabled ? 'Enabled' : 'Disabled'), autoFulfillEnabled ? 'New paid orders will be pushed to CJ automatically' : 'Manual fulfillment mode');
+// ─── MANUAL FULFILL ──────────────────────────────────
+window.manualFulfill = async function(orderId, idx) {
+  const o = allOrdersFiltered[idx] || allOrders.find(x=>x.id===orderId);
+  if(!o) return;
+  showToast('var(--purple)', svgIcon('box'), 'Sending to CJ…', 'Please wait, contacting fulfillment');
+  closeModal('order-modal');
+
+  const s  = o.shipping || {};
+  const cj = s.cjShipping || {};
+
+  // Build cjShipping from available data
+  const cjShipping = {
+    consignee:   cj.consignee || s.name || '',
+    email:       cj.email     || s.email || '',
+    phone:       cj.phone     || s.phone || '',
+    countryCode: cj.countryCode || s.countryCode || o.country || 'US',
+    province:    cj.province  || s.province || '',
+    city:        cj.city      || s.city || '',
+    address:     cj.address   || s.address || '',
+    address2:    cj.address2  || s.address2 || '',
+    zip:         cj.zip       || s.zip || '',
+  };
+
+  // Update status to PROCESSING immediately
+  await update(ref(db, 'orders/'+orderId), { status:'PROCESSING', manualFulfillAt:new Date().toISOString() });
+
+  try {
+    const res = await fetch('/api/dropship/fulfill', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        paypalOrderId:  o.paypalOrderId || orderId,
+        bundleColors:   o.bundleColors || {1: o.variant || 'Dark Gray 4000mAh'},
+        quantity:       parseInt(o.quantity||o.bundleSize||1),
+        shippingMethod: o.shippingMethod || 'Standard',
+        shipping:       { ...s, cjShipping }
+      })
+    });
+    const data = await res.json().catch(()=>({}));
+    if (!res.ok) throw new Error(data.error||`HTTP ${res.status}`);
+
+    const cjOrderId = data.orderId || 'PENDING';
+    await update(ref(db,'orders/'+orderId), { status:'PAID_FULFILLED', cjOrderId, manualFulfilledAt:new Date().toISOString() });
+    showToast('var(--lime)', svgIcon('check'), 'Order Fulfilled!', 'CJ Order: '+cjOrderId);
+  } catch(err) {
+    await update(ref(db,'orders/'+orderId), { status:'PAID_FULFILLMENT_FAILED', fulfillError:err.message });
+    showToast('var(--red)', svgIcon('x'), 'Fulfillment Failed', err.message.substring(0,60));
+  }
 };
 
-function renderUnfulfilled() {
-  const unf = allOrders.filter(o => o.status !== 'PAID_FULFILLED' && (o.paypalOrderId || o.totalUSD));
-  const el  = document.getElementById('unfulfilled-list');
-  
-  if (!unf.length) {
-    el.innerHTML = `<div class="empty-state"><div>🎉</div>All paid orders fulfilled!</div>`;
-    return;
-  }
+// ─── ANALYTICS ───────────────────────────────────────
+function renderAnalytics() {
+  renderFunnel();
+  renderBundleChart();
+  renderVariantChart();
+  renderInsights();
+  renderDeviceChart();
+  renderCountryRevenue();
+}
 
-  el.innerHTML = unf.map((order, idx) => {
-    const name = order.shipping?.name || 'Customer';
-    return `<div class="card" style="margin-bottom:10px;">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-        <div class="order-avatar" style="background:${hashColor(name)};width:42px;height:42px;">${name.substring(0,2).toUpperCase()}</div>
-        <div style="flex:1;">
-          <div style="font-weight:800;font-size:14px;color:var(--white);">${name}</div>
-          <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);">${order.orderId || '—'}</div>
+function renderFunnel() {
+  const el=$$('funnel-chart'); if(!el) return;
+  const visits=allVisits.length;
+  const leads=allLeads.length;
+  const paid=allOrders.filter(o=>o.paypalOrderId||o.totalUSD).length;
+  const fulfilled=allOrders.filter(o=>o.status==='PAID_FULFILLED').length;
+  const max=Math.max(visits,1);
+  const rows=[
+    ['Visitors', visits, 'var(--blue)', 1],
+    ['Leads',    leads,  'var(--yellow)', leads/Math.max(visits,1)],
+    ['Paid',     paid,   'var(--purple)', paid/Math.max(visits,1)],
+    ['Fulfilled',fulfilled,'var(--lime)', fulfilled/Math.max(visits,1)],
+  ];
+  el.innerHTML=rows.map(([lbl,n,col,pct])=>`
+    <div class="funnel-row">
+      <span class="funnel-label">${lbl}</span>
+      <div class="funnel-bar-wrap"><div class="funnel-bar-fill" style="width:${(pct*100).toFixed(0)}%;background:${col}"></div></div>
+      <span class="funnel-val">${fmtN(n)}</span>
+    </div>`).join('');
+}
+
+function renderBundleChart() {
+  const chartEl=$$('bundle-chart'), lblEl=$$('bundle-labels'); if(!chartEl) return;
+  const fulfilled=allOrders.filter(o=>o.status==='PAID_FULFILLED');
+  const counts={1:0,2:0,3:0};
+  fulfilled.forEach(o=>{ const s=parseInt(o.bundleSize||o.quantity||1); counts[Math.min(s,3)]=(counts[Math.min(s,3)]||0)+1; });
+  const mx=Math.max(...Object.values(counts),1);
+  const colors=['var(--purple)','var(--blue)','var(--lime)'];
+  chartEl.innerHTML=Object.entries(counts).map(([k,v],i)=>`
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+      <div style="width:100%;height:50px;display:flex;align-items:flex-end">
+        <div style="width:100%;height:${Math.max(4,(v/mx)*100).toFixed(0)}%;border-radius:5px 5px 0 0;background:${colors[i]};position:relative;min-height:3px">
+          <div style="position:absolute;bottom:calc(100%+2px);left:50%;transform:translateX(-50%);font-size:10px;font-weight:900;font-family:var(--mono);color:var(--text2)">${v}</div>
         </div>
-        <div class="badge badge-red">Unfulfilled</div>
       </div>
-      <button class="fulfill-btn" onclick="manualFulfillOrder('${order.id}', -1)" style="width:100%;justify-content:center;">
-        📦 Push to CJ · ${order.quantity || order.bundleSize || 1} unit(s)
-      </button>
+      <div style="font-size:10px;font-weight:800;color:var(--text3)">×${k} Pack</div>
+    </div>`).join('');
+  lblEl.innerHTML='';
+}
+
+function renderVariantChart() {
+  const el=$$('variant-chart'); if(!el) return;
+  const colors={'Blue 4000mAh':{bg:'#5856d6',label:'Blue'},'Dark Gray 4000mAh':{bg:'#3a3a3c',label:'Gray'},'Pink 4000mAh':{bg:'#FFD1DC',label:'Pink'},'White 4000mAh':{bg:'#e5e5ea',label:'White'}};
+  const counts={};
+  allOrders.filter(o=>o.status==='PAID_FULFILLED').forEach(o=>{
+    if(o.bundleColors) { Object.values(o.bundleColors).forEach(v=>{counts[v]=(counts[v]||0)+1;}); }
+    else if(o.variant) { counts[o.variant]=(counts[o.variant]||0)+1; }
+  });
+  const mx=Math.max(...Object.values(counts),1);
+  if(!Object.keys(counts).length){el.innerHTML='<div class="empty-state" style="padding:16px 0">No fulfilled orders yet</div>';return;}
+  el.innerHTML=Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([v,n])=>{
+    const info=colors[v]||{bg:'var(--purple)',label:v.replace(' 4000mAh','')};
+    return `<div class="variant-row">
+      <div class="variant-swatch" style="background:${info.bg}"></div>
+      <span class="variant-name-lbl">${info.label}</span>
+      <div class="variant-bar-wrap"><div class="variant-bar-fill" style="width:${(n/mx*100).toFixed(0)}%;background:${info.bg}"></div></div>
+      <span class="variant-count-lbl">${n}</span>
     </div>`;
   }).join('');
 }
 
-function updateUnfulfilledBadge() {
-  const unf = allOrders.filter(o => o.status !== 'PAID_FULFILLED').length;
-  // Update badge on fulfill tab if needed
+function renderInsights() {
+  const el=$$('insights-list'); if(!el) return;
+  const s=window._stats;
+  if(!s){el.innerHTML='';return;}
+  const aovStr=fmt(s.aov);
+  const convStr=fmtPct(s.convRate);
+  const marginStr=fmtPct(s.margin);
+  const bestDay=(()=>{
+    const byDay={};
+    allOrders.filter(o=>o.totalUSD).forEach(o=>{
+      const d=new Date(o.timestamp).toLocaleDateString('en',{weekday:'short'});
+      byDay[d]=(byDay[d]||0)+parseFloat(o.totalUSD||0);
+    });
+    const sorted=Object.entries(byDay).sort((a,b)=>b[1]-a[1]);
+    return sorted[0]?sorted[0][0]+'s ('+fmt(sorted[0][1])+')':'—';
+  })();
+  const unfulfilledCount=allOrders.filter(o=>o.status==='PAID_FULFILLMENT_FAILED').length;
+
+  el.innerHTML=[
+    ['var(--purple)','trending','Conversion Rate',`${convStr} visitors purchase`,convStr],
+    ['var(--lime)','dollar','Avg Order Value','Per fulfilled transaction',aovStr],
+    ['var(--yellow)','percent','Profit Margin','After all costs',marginStr],
+    ['var(--blue)','calendar','Best Sales Day','Highest revenue day',bestDay],
+    unfulfilledCount>0?['var(--red)','alert','Failed Fulfillments','Needs manual attention',fmtN(unfulfilledCount)+' orders']:null,
+  ].filter(Boolean).map(([col,ico,title,sub,val])=>`
+    <div class="insight-row">
+      <div class="insight-icon" style="background:${col}20">${svgIcon(ico,col)}</div>
+      <div class="insight-body">
+        <div class="insight-title">${title}</div>
+        <div class="insight-sub">${sub}</div>
+      </div>
+      <div class="insight-val">${val}</div>
+    </div>`).join('');
 }
 
-window.manualFulfillOrder = async function(orderId, idx) {
-  showToast('📦', 'Pushing to CJ...', 'This may take a moment');
-  try {
-    // Update status in Firebase to indicate manual processing
-    await update(ref(db, 'orders/' + orderId), {
-      status: 'PROCESSING',
-      manualFulfillAt: new Date().toISOString()
-    });
-    showToast('✅', 'Order Queued', 'Status updated to PROCESSING. Connect your CJ API endpoint to auto-fulfill.');
-    closeModal('order-modal');
-  } catch(e) {
-    showToast('❌', 'Error', e.message);
-  }
-};
+function renderDeviceChart() {
+  const el=$$('device-chart'); if(!el) return;
+  const counts={Mobile:0,Desktop:0};
+  allVisits.forEach(v=>{ if((v.deviceType||v.device||'').toLowerCase()==='mobile') counts.Mobile++; else counts.Desktop++; });
+  const total=Math.max(counts.Mobile+counts.Desktop,1);
+  el.innerHTML=`
+    <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;gap:2px;margin-bottom:10px">
+      <div style="flex:${counts.Mobile};background:var(--purple);border-radius:4px;min-width:${counts.Mobile>0?3:0}px"></div>
+      <div style="flex:${counts.Desktop};background:var(--blue);border-radius:4px;min-width:${counts.Desktop>0?3:0}px"></div>
+    </div>
+    <div style="display:flex;gap:16px">
+      <div style="display:flex;align-items:center;gap:6px"><div style="width:10px;height:10px;border-radius:50%;background:var(--purple)"></div><span style="font-size:12px;font-weight:700;color:var(--text2)">Mobile ${((counts.Mobile/total)*100).toFixed(0)}%</span></div>
+      <div style="display:flex;align-items:center;gap:6px"><div style="width:10px;height:10px;border-radius:50%;background:var(--blue)"></div><span style="font-size:12px;font-weight:700;color:var(--text2)">Desktop ${((counts.Desktop/total)*100).toFixed(0)}%</span></div>
+    </div>`;
+}
 
-// ──────────────────────────────────────────
-// INBOX / CHAT
-// ──────────────────────────────────────────
-function renderInboxList() {
-  const el = document.getElementById('inbox-threads');
-  
-  // Build threads from leads + orders with emails
-  const emailMap = {};
-  [...allLeads, ...allOrders].forEach(o => {
-    const email = o.shipping?.email || o.email;
-    const name  = o.shipping?.name || o.name;
-    if (email && !emailMap[email]) {
-      emailMap[email] = { email, name, orderId: o.orderId || o.id, timestamp: o.timestamp, id: o.id };
-    }
+function renderCountryRevenue() {
+  const el=$$('country-revenue-list'); if(!el) return;
+  const revMap={};
+  allOrders.filter(o=>o.status==='PAID_FULFILLED'&&o.totalUSD).forEach(o=>{
+    const cc=o.country||o.shipping?.cjShipping?.countryCode||'??';
+    revMap[cc]=(revMap[cc]||0)+parseFloat(o.totalUSD||0);
   });
+  const sorted=Object.entries(revMap).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  if(!sorted.length){el.innerHTML='<div class="empty-state" style="padding:14px 0">No revenue data yet</div>';return;}
+  const mx=sorted[0][1];
+  el.innerHTML=sorted.map(([cc,rev])=>`
+    <div class="country-row">
+      <span class="flag-code">${cc}</span>
+      <span class="country-name-lbl">${getFlagEmoji(cc)} ${cc}</span>
+      <div class="country-bar-wrap"><div class="country-bar-fill" style="width:${(rev/mx*100).toFixed(0)}%;background:var(--lime)"></div></div>
+      <span class="country-count-lbl">${fmt(rev).replace('$','').split('.')[0]}</span>
+    </div>`).join('');
+}
 
-  const threads = Object.values(emailMap).sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-  if (!threads.length) {
-    el.innerHTML = `<div class="empty-state"><div>💬</div>No customer conversations yet</div>`;
-    return;
-  }
-
-  el.innerHTML = threads.map(t => {
-    const initials = (t.name||'?').split(' ').map(w=>w[0]||'').join('').substring(0,2).toUpperCase();
-    const msgThread = Object.values(allMessages).find(m => m.email === t.email);
-    const lastMsg   = msgThread?.messages ? Object.values(msgThread.messages).pop() : null;
-    const hasUnread = lastMsg && lastMsg.from === 'customer' && !lastMsg.read;
-
-    return `<div class="chat-thread" onclick="openChatWindow('${t.id}', '${t.name?.replace(/'/g, "\\'")||'Customer'}', '${t.email}')">
-      <div class="chat-avatar" style="background:${hashColor(t.name||'')};font-family:var(--font-display);width:46px;height:46px;">${initials}</div>
+// ─── INBOX / CHAT ─────────────────────────────────────
+function renderInboxList() {
+  const el=$$('inbox-threads'); if(!el) return;
+  const emailMap={};
+  [...allLeads,...allOrders].forEach(o=>{
+    const email=o.shipping?.email||o.email, name=o.shipping?.name||o.name;
+    if(email&&!emailMap[email]) emailMap[email]={email,name,orderId:o.orderId||o.id,timestamp:o.timestamp,id:o.id};
+  });
+  const threads=Object.values(emailMap).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
+  if(!threads.length){el.innerHTML='<div class="empty-state">No conversations yet</div>';return;}
+  el.innerHTML=threads.map(t=>{
+    const key=t.email.replace(/[.#$[\]]/g,'_');
+    const thread=allMessages[key];
+    const msgs=thread?.messages?Object.values(thread.messages):[];
+    const last=msgs.sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp)).pop();
+    const unread=last&&last.from==='customer'&&!last.read;
+    return `<div class="chat-thread" onclick="openChatWindow('${t.id}','${(t.name||'Customer').replace(/'/g,"\\'")}','${t.email}')">
+      <div class="chat-avatar" style="background:${hashColor(t.name||'')}">${initials(t.name||'?')}</div>
       <div class="chat-info">
-        <div class="chat-name">${t.name || 'Customer'}</div>
-        <div class="chat-preview">${lastMsg ? lastMsg.text : t.email}</div>
+        <div class="chat-name">${t.name||'Customer'}</div>
+        <div class="chat-preview">${last?last.text:t.email}</div>
       </div>
       <div class="chat-meta">
-        <div class="chat-time">${timeAgo(lastMsg?.timestamp || t.timestamp)}</div>
-        ${hasUnread ? '<div class="chat-unread">NEW</div>' : ''}
+        <div class="chat-time">${timeAgo(last?.timestamp||t.timestamp)}</div>
+        ${unread?'<div class="chat-unread">NEW</div>':''}
       </div>
     </div>`;
   }).join('');
 }
 
-window.openChatFromOrder = function(orderId, name, email) {
-  showView('inbox');
-  setTimeout(() => openChatWindow(orderId, name, email), 200);
-};
+function updateInboxBadge() {
+  const unread=Object.values(allMessages).filter(m=>{
+    const msgs=m.messages?Object.values(m.messages):[];
+    return msgs.some(msg=>msg.from==='customer'&&!msg.read);
+  }).length;
+  const badge=$$('tab-inbox-badge');
+  if(badge){badge.textContent=unread;badge.classList.toggle('show',unread>0);}
+}
 
-window.openChatWindow = function(orderId, name, email) {
-  currentChatCustomer = { orderId, name, email, threadKey: email.replace(/[.#$[\]]/g, '_') };
-  document.getElementById('chat-list-view').style.display   = 'none';
-  document.getElementById('chat-window-view').style.display = 'flex';
+window.openChatFromOrder = function(orderId,name,email) { showView('inbox'); setTimeout(()=>openChatWindow(orderId,name,email),200); };
 
-  document.getElementById('chat-header-name').textContent  = name;
-  document.getElementById('chat-header-email').textContent = email;
-  const initials = name.split(' ').map(w=>w[0]||'').join('').substring(0,2).toUpperCase();
-  document.getElementById('chat-header-avatar').textContent = initials;
-  document.getElementById('chat-header-avatar').style.background = hashColor(name);
-
-  renderChatMessages(currentChatCustomer);
+window.openChatWindow = function(orderId,name,email) {
+  const key=email.replace(/[.#$[\]]/g,'_');
+  currentChatUser={orderId,name,email,key};
+  $$('chat-list-view').style.display='none';
+  const cw=$$('chat-window-view'); cw.style.display='flex'; cw.classList.add('open');
+  $$('chat-hdr-name').textContent=name;
+  $$('chat-hdr-email').textContent=email;
+  $$('chat-hdr-avatar').textContent=initials(name);
+  $$('chat-hdr-avatar').style.background=hashColor(name);
+  renderChatMessages(currentChatUser);
 };
 
 window.closeChatWindow = function() {
-  document.getElementById('chat-list-view').style.display   = 'block';
-  document.getElementById('chat-window-view').style.display = 'none';
-  currentChatCustomer = null;
-  selectedImgData = null;
+  $$('chat-list-view').style.display='block';
+  $$('chat-window-view').style.display='none';
+  $$('chat-window-view').classList.remove('open');
+  currentChatUser=null;
 };
 
-function renderChatMessages(customer) {
-  if (!customer) return;
-  const thread = allMessages[customer.threadKey];
-  const msgs   = thread?.messages ? Object.values(thread.messages) : [];
-  const el     = document.getElementById('chat-messages');
-
-  if (!msgs.length) {
-    el.innerHTML = `
-      <div style="text-align:center;padding:30px;color:var(--muted);">
-        <div style="font-size:32px;margin-bottom:8px;">💬</div>
-        <div style="font-weight:700;font-size:13px;">No messages yet</div>
-        <div style="font-size:12px;margin-top:4px;">Send a message to start the conversation</div>
-      </div>`;
-    return;
-  }
-
-  el.innerHTML = msgs.sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp)).map(m => {
-    const isOut  = m.from === 'admin';
-    const cls    = isOut ? 'msg-out' : 'msg-in';
-    const img    = m.imageUrl ? `<br><img src="${m.imageUrl}" style="max-width:100%;border-radius:10px;margin-top:6px;max-height:200px;object-fit:cover;">` : '';
-    return `<div class="msg-bubble ${cls}">${m.text || ''}${img}</div>`;
+function renderChatMessages(cu) {
+  const el=$$('chat-messages'); if(!el) return;
+  const thread=allMessages[cu.key];
+  const msgs=thread?.messages?Object.values(thread.messages).sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp)):[];
+  if(!msgs.length){el.innerHTML='<div class="empty-state" style="color:var(--text3)">No messages yet.<br>Send one below.</div>';return;}
+  el.innerHTML=msgs.map(m=>{
+    const out=m.from==='admin';
+    return `<div class="msg ${out?'msg-out':'msg-in'}">${m.text||''}${m.imageUrl?`<br><img src="${m.imageUrl}" style="max-width:100%;border-radius:8px;margin-top:6px;max-height:180px;object-fit:cover">`:''}</div>`;
   }).join('');
-  el.scrollTop = el.scrollHeight;
+  el.scrollTop=el.scrollHeight;
 }
 
 window.sendMessage = async function() {
-  if (!currentChatCustomer) return;
-  const inp  = document.getElementById('chat-input');
-  const text = inp.value.trim();
-  if (!text && !selectedImgData) return;
-
-  inp.value = '';
-  let imageUrl = null;
-
-  // Upload image to Imgur if selected
-  if (selectedImgData) {
-    try {
-      const formData = new FormData();
-      formData.append('image', selectedImgData.replace(/^data:image\/[a-z]+;base64,/, ''));
-      const res  = await fetch('https://api.imgur.com/3/image', {
-        method: 'POST',
-        headers: { Authorization: 'Client-ID ' + IMGUR_CLIENT_ID },
-        body: formData
-      });
-      const data = await res.json();
-      imageUrl   = data.data?.link;
-    } catch(e) { console.error('Imgur upload failed', e); }
-    clearImgPreview();
-  }
-
-  const msg = {
-    from: 'admin',
-    text: text || '',
-    imageUrl: imageUrl || null,
-    timestamp: new Date().toISOString(),
-    read: true
-  };
-
-  const threadRef = ref(db, 'messages/' + currentChatCustomer.threadKey + '/messages');
-  await push(threadRef, msg);
-
-  // Also update meta
-  await update(ref(db, 'messages/' + currentChatCustomer.threadKey), {
-    email:    currentChatCustomer.email,
-    name:     currentChatCustomer.name,
-    orderId:  currentChatCustomer.orderId,
-    lastMsg:  text || '📷 Image',
-    updatedAt: new Date().toISOString()
-  });
+  if(!currentChatUser) return;
+  const inp=$$('chat-input'), text=inp.value.trim();
+  if(!text) return;
+  inp.value='';
+  const msg={from:'admin',text,timestamp:new Date().toISOString(),read:true};
+  await push(ref(db,'messages/'+currentChatUser.key+'/messages'), msg);
+  await update(ref(db,'messages/'+currentChatUser.key), {email:currentChatUser.email,name:currentChatUser.name,updatedAt:new Date().toISOString()});
 };
 
-window.sendTemplate = function(type) {
-  const inp = document.getElementById('chat-input');
-  if (type === 'tracking') {
-    inp.value = "Hi! Your MINIMISTY order has been shipped! You can track your package at: [tracking link]. It should arrive within 8-16 business days. Let us know if you need anything! 😊";
-  } else if (type === 'refund') {
-    inp.value = "We offer a full 30-day money-back guarantee. Please reply with your order ID and reason, and we'll process your refund within 24 hours. Sorry for any inconvenience!";
-  }
-  inp.focus();
+window.sendTemplate = function() {
+  const inp=$$('chat-input');
+  if(inp) { inp.value="Hi! Your MINIMISTY order has been shipped. It will arrive in 8–16 business days. A tracking link will be emailed to you. Thank you for your order!"; inp.focus(); }
 };
 
-function updateInboxBadge() {
-  // Count unread threads
-  const unread = Object.values(allMessages).filter(m => {
-    const msgs = m.messages ? Object.values(m.messages) : [];
-    return msgs.some(msg => msg.from === 'customer' && !msg.read);
-  }).length;
+// ─── MODAL ───────────────────────────────────────────
+window.closeModal = function(id) { $$(id)?.classList.remove('open'); };
+$$('order-modal').addEventListener('click', e=>{ if(e.target===$$('order-modal')) closeModal('order-modal'); });
+$$('pw-modal').addEventListener('click', e=>{ if(e.target===$$('pw-modal')) closeModal('pw-modal'); });
 
-  const badge = document.getElementById('tab-inbox-badge');
-  if (badge) {
-    badge.textContent = unread || '';
-    badge.style.display = unread > 0 ? 'flex' : 'none';
-  }
-}
-
-window.handleImgSelect = function(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    selectedImgData = e.target.result;
-    const bar   = document.getElementById('img-preview-bar');
-    const thumb = document.getElementById('img-preview-thumb');
-    if (bar && thumb) {
-      bar.style.display = 'flex';
-      thumb.src = selectedImgData;
-    }
-  };
-  reader.readAsDataURL(file);
-};
-
-window.clearImgPreview = function() {
-  selectedImgData = null;
-  const bar = document.getElementById('img-preview-bar');
-  if (bar) bar.style.display = 'none';
-  const inp = document.getElementById('img-upload');
-  if (inp) inp.value = '';
-};
-
-// ──────────────────────────────────────────
-// MODAL
-// ──────────────────────────────────────────
-window.closeModal = function(id) {
-  document.getElementById(id)?.classList.remove('open');
-};
-
-document.getElementById('order-modal').addEventListener('click', function(e) {
-  if (e.target === this) closeModal('order-modal');
-});
-
-// ──────────────────────────────────────────
-// TOAST
-// ──────────────────────────────────────────
-let _toastTimeout;
-window.showToast = function(icon, title, sub) {
-  const t = document.getElementById('toast');
-  document.getElementById('toast-icon').textContent  = icon;
-  document.getElementById('toast-title').textContent = title;
-  document.getElementById('toast-sub').textContent   = sub;
+// ─── TOAST ───────────────────────────────────────────
+let _toastTm;
+window.showToast = function(color, iconHtml, title, sub) {
+  const t=$$('toast');
+  const iw=$$('toast-icon-wrap');
+  if(iw){iw.style.background=color+'20';iw.innerHTML=iconHtml;}
+  if($$('toast-title')) $$('toast-title').textContent=title;
+  if($$('toast-sub'))   $$('toast-sub').textContent=sub;
   t.classList.add('show');
-  clearTimeout(_toastTimeout);
-  _toastTimeout = setTimeout(() => t.classList.remove('show'), 4000);
+  clearTimeout(_toastTm);
+  _toastTm=setTimeout(()=>t.classList.remove('show'),4500);
 };
-window.closeToast = function() {
-  document.getElementById('toast').classList.remove('show');
-};
+window.closeToast = function() { $$('toast')?.classList.remove('show'); };
 
-// ──────────────────────────────────────────
-// NOTIFICATIONS
-// ──────────────────────────────────────────
+// ─── SVG HELPER ──────────────────────────────────────
+function svgIcon(name, stroke='currentColor') {
+  const icons={
+    check:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${stroke}" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+    x:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${stroke}" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>`,
+    lock:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${stroke}" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`,
+    box:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${stroke}" stroke-width="2.5" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>`,
+    trending:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${stroke}" stroke-width="2.5" stroke-linecap="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>`,
+    dollar:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${stroke}" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
+    percent:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${stroke}" stroke-width="2.5" stroke-linecap="round"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>`,
+    calendar:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${stroke}" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
+    alert:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${stroke}" stroke-width="2.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+  };
+  return icons[name]||icons.check;
+}
+
+// ─── NOTIFICATIONS ───────────────────────────────────
 function requestNotificationPermission() {
-  if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission();
-  }
+  if('Notification' in window && Notification.permission==='default') Notification.requestPermission();
 }
 
-function sendBrowserNotif(title, body) {
-  if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification(title, { body, icon: '🌪️' });
-  }
-}
-
-// ──────────────────────────────────────────
-// SETTINGS
-// ──────────────────────────────────────────
+// ─── MISC ────────────────────────────────────────────
 window.refreshAll = function() {
-  showToast('🔄', 'Refreshing...', 'Pulling latest data from Firebase');
+  showToast('var(--blue)', svgIcon('trending','var(--blue)'), 'Refreshing…', 'Pulling latest from Firebase');
 };
 
-// ──────────────────────────────────────────
-// HELPERS
-// ──────────────────────────────────────────
-function timeAgo(ts) {
-  if (!ts) return '—';
-  const diff = Date.now() - new Date(ts).getTime();
-  const m = Math.floor(diff / 60000);
-  const h = Math.floor(m / 60);
-  const d = Math.floor(h / 24);
-  if (d > 0)  return `${d}d ago`;
-  if (h > 0)  return `${h}h ago`;
-  if (m > 0)  return `${m}m ago`;
-  return 'just now';
-}
-
-function getFlagEmoji(code) {
-  if (!code || code.length !== 2) return '🌍';
-  return String.fromCodePoint(...[...code.toUpperCase()].map(c => 0x1F1E0 + c.charCodeAt(0) - 65));
-}
-
-function hashColor(str) {
-  const colors = ['#5856d6','#007AFF','#FF9F0A','#FF2D55','#32d74b','#AF52DE','#FF6B6B','#4ECDC4'];
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash<<5) - hash);
-  return colors[Math.abs(hash) % colors.length];
-}
-
+// ─── KICK OFF ────────────────────────────────────────
+checkAutoAuth();
 </script>
 </body>
 </html>
