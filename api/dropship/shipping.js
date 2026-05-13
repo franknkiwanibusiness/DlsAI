@@ -1,28 +1,30 @@
 const axios = require('axios');
 
 const CJ_API_KEY = process.env.DROPSHIP_API_KEY;
-const CJ_API_URL = 'https://api.cjdropshipping.com/api2.0/v1';
+const CJ_BASE    = 'https://developers.cjdropshipping.com/api2.0/v1';
 
 async function getCJToken() {
-    const response = await axios.post(
-        `${CJ_API_URL}/authentication/getAccessToken`,
-        { apiKey: CJ_API_KEY }
+    const res = await axios.post(
+        `${CJ_BASE}/authentication/getAccessToken`,
+        { apiKey: CJ_API_KEY },
+        { headers: { 'Content-Type': 'application/json' } }
     );
-    const token = response.data?.data?.accessToken;
-    if (!token) throw new Error('CJ Auth Failed: No accessToken');
+    const token = res.data?.data?.accessToken;
+    if (!token) throw new Error(`CJ Auth Failed: ${JSON.stringify(res.data)}`);
     return token;
 }
 
 module.exports = async function handler(req, res) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Origin',  '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST')   return res.status(405).json({ error: 'Method not allowed' });
-    if (!CJ_API_KEY)             return res.status(500).json({ error: 'DROPSHIP_API_KEY not set' });
+    if (!CJ_API_KEY)             return res.status(500).json({ error: 'DROPSHIP_API_KEY env variable is not set' });
 
     const { zip, country, qty } = req.body;
+
     console.log('[shipping] Lookup:', { zip, country, qty });
 
     if (!zip || !country) {
@@ -30,23 +32,29 @@ module.exports = async function handler(req, res) {
     }
 
     try {
-        const token    = await getCJToken();
-        const response = await axios.post(
-            `${CJ_API_URL}/logistic/freightCalculate`,
+        console.log('[shipping] Getting CJ token...');
+        const token = await getCJToken();
+        console.log('[shipping] CJ token acquired.');
+
+        const cjRes = await axios.post(
+            `${CJ_BASE}/logistic/freightCalculate`,
             {
                 quantity:    qty || 1,
                 productSku:  "CJYD239388103CX",
                 zipCode:     zip,
                 countryCode: country
             },
-            { headers: { 'CJ-Access-Token': token } }
+            { headers: { 'CJ-Access-Token': token, 'Content-Type': 'application/json' } }
         );
 
-        console.log('[shipping] CJ response:', JSON.stringify(response.data, null, 2));
-        return res.status(200).json(response.data);
+        console.log('[shipping] CJ response:', JSON.stringify(cjRes.data, null, 2));
+        return res.status(200).json(cjRes.data);
 
     } catch (error) {
-        console.error('[shipping] ERROR:', error.message);
-        return res.status(500).json({ error: error.message });
+        console.error('[shipping] ERROR:', error.message, error.response?.data || '');
+        return res.status(500).json({
+            error:   error.message,
+            details: error.response?.data || null
+        });
     }
 };
