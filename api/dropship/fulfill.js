@@ -1,7 +1,7 @@
 const axios = require('axios');
 
 const CJ_API_KEY = process.env.DROPSHIP_API_KEY;
-const CJ_API_URL = 'https://api.cjdropshipping.com/api2.0/v1';
+const CJ_BASE    = 'https://developers.cjdropshipping.com/api2.0/v1';
 
 const SKU_MAP = {
     "Blue 4000mAh":      "CJYD239388104DW",
@@ -11,27 +11,27 @@ const SKU_MAP = {
 };
 
 async function getCJToken() {
-    const response = await axios.post(
-        `${CJ_API_URL}/authentication/getAccessToken`,
-        { apiKey: CJ_API_KEY }
+    const res = await axios.post(
+        `${CJ_BASE}/authentication/getAccessToken`,
+        { apiKey: CJ_API_KEY },
+        { headers: { 'Content-Type': 'application/json' } }
     );
-    const token = response.data?.data?.accessToken;
-    if (!token) throw new Error(`CJ Auth Failed: No accessToken — ${JSON.stringify(response.data)}`);
+    const token = res.data?.data?.accessToken;
+    if (!token) throw new Error(`CJ Auth Failed: ${JSON.stringify(res.data)}`);
     return token;
 }
 
 module.exports = async function handler(req, res) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Origin',  '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST')   return res.status(405).json({ error: 'Method not allowed' });
-    if (!CJ_API_KEY)             return res.status(500).json({ error: 'DROPSHIP_API_KEY not set' });
+    if (!CJ_API_KEY)             return res.status(500).json({ error: 'DROPSHIP_API_KEY env variable is not set' });
 
     const { paypalOrderId, bundleColors, quantity, shippingMethod, shipping } = req.body;
 
-    // Log everything received — visible in Vercel logs
     console.log('[fulfill] Received:', JSON.stringify({
         paypalOrderId,
         bundleColors,
@@ -44,7 +44,11 @@ module.exports = async function handler(req, res) {
         console.error('[fulfill] Missing required fields');
         return res.status(400).json({
             error: 'paypalOrderId, bundleColors, and shipping.cjShipping are required',
-            received: { paypalOrderId: !!paypalOrderId, bundleColors: !!bundleColors, cjShipping: !!shipping?.cjShipping }
+            received: {
+                paypalOrderId: !!paypalOrderId,
+                bundleColors:  !!bundleColors,
+                cjShipping:    !!shipping?.cjShipping
+            }
         });
     }
 
@@ -57,7 +61,11 @@ module.exports = async function handler(req, res) {
         const merged = {};
         Object.values(bundleColors).forEach(variantName => {
             const vid = SKU_MAP[variantName] || SKU_MAP["Dark Gray 4000mAh"];
-            merged[vid] = merged[vid] ? { vid, quantity: merged[vid].quantity + 1 } : { vid, quantity: 1 };
+            if (merged[vid]) {
+                merged[vid].quantity += 1;
+            } else {
+                merged[vid] = { vid, quantity: 1 };
+            }
         });
 
         const cj = shipping.cjShipping;
@@ -69,10 +77,10 @@ module.exports = async function handler(req, res) {
                 email:       cj.email,
                 phone:       cj.phone,
                 countryCode: cj.countryCode,
-                province:    cj.province,
+                province:    cj.province   || '',
                 city:        cj.city,
                 address:     cj.address,
-                address2:    cj.address2 || '',
+                address2:    cj.address2   || '',
                 zip:         cj.zip
             },
             products: Object.values(merged),
@@ -81,22 +89,22 @@ module.exports = async function handler(req, res) {
 
         console.log('[fulfill] Sending to CJ:', JSON.stringify(orderPayload, null, 2));
 
-        const response = await axios.post(
-            `${CJ_API_URL}/shopping/order/createOrder`,
+        const cjRes = await axios.post(
+            `${CJ_BASE}/shopping/order/createOrder`,
             orderPayload,
-            { headers: { 'CJ-Access-Token': token } }
+            { headers: { 'CJ-Access-Token': token, 'Content-Type': 'application/json' } }
         );
 
-        console.log('[fulfill] CJ response:', JSON.stringify(response.data, null, 2));
+        console.log('[fulfill] CJ response:', JSON.stringify(cjRes.data, null, 2));
 
-        if (response.data?.code !== 200) {
-            throw new Error(`CJ rejected: ${response.data?.message} (code ${response.data?.code})`);
+        if (cjRes.data?.code !== 200) {
+            throw new Error(`CJ rejected order: ${cjRes.data?.message} (code ${cjRes.data?.code})`);
         }
 
         return res.status(200).json({
             success: true,
-            orderId: response.data?.data?.orderId || 'PENDING',
-            cjRaw:   response.data
+            orderId: cjRes.data?.data?.orderId || 'PENDING',
+            cjRaw:   cjRes.data
         });
 
     } catch (error) {
