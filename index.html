@@ -2556,39 +2556,29 @@ window.renderPayPalButton = async function() {
             // 4. Hide spinner
             _hideProcessing();
 
-            // 5. Show exactly ONE overlay based on what happened
-            if (result.success) {
-                window.showOrderSuccess({
-                    paypalOrderId:  paypalOrderId,
-                    cjOrderId:      result.cjOrderId || null,
-                    name:           shippingData.name,
-                    email:          shippingData.email,
-                    address:        shippingData.address,
-                    city:           shippingData.city,
-                    province:       shippingData.province,
-                    zip:            shippingData.zip,
-                    country:        shippingData.countryFull,
-                    variantSummary: summary,
-                    quantity:       cartData.bundleSize,
-                    shippingMethod: selectedShippingMethod,
-                    subtotal:       window.formatPrice(actualSub),
-                    shipping:       window.formatPrice(shipping),
-                    tax:            window.formatPrice(tax),
-                    total:          window.formatPrice(totalUSD)
-                });
-            } else {
-                const cancelRef = 'CXL-' + paypalOrderId.slice(-8).toUpperCase();
-                window.showOrderError({
-                    paypalOrderId,
-                    cancelRef,
-                    reason:   result.error || 'Fulfillment service unavailable',
-                    name:     shippingData.name,
-                    email:    shippingData.email,
-                    total:    window.formatPrice(totalUSD)
-                });
-            }
+    // 5. Show exactly ONE overlay based on what happened
+            // Payment was captured — always show success to the customer.
+            // If CJ fulfillment failed, the order is still logged in Firebase
+            // with status PAID_FULFILLMENT_FAILED for manual processing.
+            window.showOrderSuccess({
+                paypalOrderId:  paypalOrderId,
+                cjOrderId:      result.cjOrderId || null,
+                name:           shippingData.name,
+                email:          shippingData.email,
+                address:        shippingData.address,
+                city:           shippingData.city,
+                province:       shippingData.province,
+                zip:            shippingData.zip,
+                country:        shippingData.countryFull,
+                variantSummary: summary,
+                quantity:       cartData.bundleSize,
+                shippingMethod: selectedShippingMethod,
+                subtotal:       window.formatPrice(actualSub),
+                shipping:       window.formatPrice(shipping),
+                tax:            window.formatPrice(tax),
+                total:          window.formatPrice(totalUSD)
+            });
         },
-
         onError: (err) => {
             console.error("PayPal SDK error:", err);
             paypalRendered = false;
