@@ -2425,6 +2425,35 @@ function _loadPayPalScript() {
     });
 }
 // ─── 18. PAYPAL BUTTON RENDERER ───────────────────────────────
+
+function _insertProcessingOverlay() {
+    if (document.getElementById('order-processing-overlay')) return;
+    document.body.insertAdjacentHTML('beforeend', `
+        <div id="order-processing-overlay"
+             style="display:none;position:fixed;inset:0;z-index:99998;background:#fff;
+                    font-family:'Fredoka',sans-serif;align-items:center;justify-content:center;
+                    flex-direction:column;gap:20px;">
+            <div style="width:56px;height:56px;border:5px solid #f2f2f7;border-top:5px solid #5856d6;
+                        border-radius:50%;animation:spin-ring 0.9s linear infinite;"></div>
+            <div style="text-align:center;">
+                <div style="font-size:20px;font-weight:900;color:#111;letter-spacing:-0.3px;">Placing your order…</div>
+                <div style="font-size:13px;font-weight:700;color:#888;margin-top:6px;">Please keep this page open</div>
+            </div>
+        </div>`);
+}
+
+function _showProcessing() {
+    _insertProcessingOverlay();
+    const el = document.getElementById('order-processing-overlay');
+    if (el) el.style.display = 'flex';
+    lockScroll();
+}
+
+function _hideProcessing() {
+    const el = document.getElementById('order-processing-overlay');
+    if (el) el.style.display = 'none';
+}
+
 window.renderPayPalButton = async function() {
     const container = document.getElementById('paypal-container');
     if (!container || paypalRendered) return;
@@ -2457,18 +2486,12 @@ window.renderPayPalButton = async function() {
 
     container.innerHTML = '';
 
-    // ─── TEST MODE: charges $0.01 only ───────────────────────
-    const TEST_MODE = false; // ← set to false when going live
+    const unitPrice  = BUNDLE_PRICES[cartData.bundleSize] || BASE_PRICE_USD;
+    const actualSub  = parseFloat((unitPrice * cartData.bundleSize).toFixed(2));
+    const tax        = parseFloat((actualSub * TAX_RATE).toFixed(2));
+    const shipping   = parseFloat(selectedShippingFee.toFixed(2));
+    const totalUSD   = parseFloat((actualSub + tax + shipping).toFixed(2));
 
-    const unitPrice    = BUNDLE_PRICES[cartData.bundleSize] || BASE_PRICE_USD;
-    const actualSub    = TEST_MODE ? 0.01 : parseFloat((unitPrice * cartData.bundleSize).toFixed(2));
-    const tax          = TEST_MODE ? 0.00 : parseFloat((actualSub * TAX_RATE).toFixed(2));
-    const shipping     = TEST_MODE ? 0.00 : parseFloat(selectedShippingFee.toFixed(2));
-    const totalUSD     = parseFloat((actualSub + tax + shipping).toFixed(2));
-    // In test mode the per-unit amount must also be $0.01 or PayPal rejects the breakdown
-    const displayUnit  = TEST_MODE ? 0.01 : unitPrice;
-
-    // Build variant summary for order description
     const colors  = bundleColors[cartData.bundleSize] || {};
     const summary = Object.values(colors)
         .map(v => v.replace(' 4000mAh', ''))
@@ -2478,7 +2501,7 @@ window.renderPayPalButton = async function() {
         createOrder: (data, actions) => {
             return actions.order.create({
                 purchase_units: [{
-                    description: `MINIMISTY x${cartData.bundleSize} — ${summary}${TEST_MODE ? ' [TEST]' : ''}`,
+                    description: `MINIMISTY x${cartData.bundleSize} — ${summary}`,
                     amount: {
                         currency_code: "USD",
                         value: totalUSD.toFixed(2),
@@ -2490,7 +2513,7 @@ window.renderPayPalButton = async function() {
                     },
                     items: [{
                         name:        `MINIMISTY TURBO MIST — ${summary}`,
-                        unit_amount: { currency_code: "USD", value: displayUnit.toFixed(2) },
+                        unit_amount: { currency_code: "USD", value: unitPrice.toFixed(2) },
                         quantity:    String(cartData.bundleSize),
                         category:    "PHYSICAL_GOODS"
                     }]
@@ -2499,51 +2522,71 @@ window.renderPayPalButton = async function() {
         },
 
         onApprove: async (data, actions) => {
-            window.showModal('success', 'Processing Payment…', 'Capturing your payment securely, please wait.');
-
+            // 1. Capture payment first
             let details;
             try {
                 details = await actions.order.capture();
             } catch (captureErr) {
                 console.error("PayPal capture failed:", captureErr);
-                window.closeModal();
+                paypalRendered = false;
+                const errRef = 'ERR-CAPTURE-' + Math.random().toString(36).substr(2,6).toUpperCase();
                 window.showOrderError({
-                    paypalOrderId: 'ERR-CAPTURE',
-                    cancelRef:     'ERR-CAPTURE',
+                    paypalOrderId: errRef,
+                    cancelRef:     errRef,
                     reason:        'Payment capture failed. Your card was not charged.',
                     name:          _collectShippingData().name  || '',
                     email:         _collectShippingData().email || '',
                     total:         window.formatPrice(totalUSD)
                 });
-                paypalRendered = false;
                 return;
             }
 
             const paypalOrderId = details.id;
             const shippingData  = _collectShippingData();
 
-            // Fire fulfillment in background
-            _fulfillOrder(paypalOrderId, shippingData, summary, actualSub, tax, shipping, totalUSD, details);
+            // 2. Show spinner while contacting CJ
+            _showProcessing();
 
-            // Show success overlay immediately — don't wait for fulfillment
-            window.showOrderSuccess({
-                paypalOrderId:  paypalOrderId,
-                cjOrderId:      null,
-                name:           shippingData.name,
-                email:          shippingData.email,
-                address:        shippingData.address,
-                city:           shippingData.city,
-                province:       shippingData.province,
-                zip:            shippingData.zip,
-                country:        shippingData.countryFull,  // ← fixed: was shippingData.country
-                variantSummary: summary,
-                quantity:       cartData.bundleSize,        // ← fixed: was cart.reduce(...)
-                shippingMethod: selectedShippingMethod,
-                subtotal:       window.formatPrice(TEST_MODE ? unitPrice * cartData.bundleSize : actualSub),
-                shipping:       window.formatPrice(TEST_MODE ? selectedShippingFee : shipping),
-                tax:            window.formatPrice(TEST_MODE ? (unitPrice * cartData.bundleSize * TAX_RATE) : tax),
-                total:          window.formatPrice(TEST_MODE ? (unitPrice * cartData.bundleSize + selectedShippingFee + (unitPrice * cartData.bundleSize * TAX_RATE)) : totalUSD)
-            });
+            // 3. Await fulfillment — never fire-and-forget
+            const result = await _fulfillOrder(
+                paypalOrderId, shippingData, summary,
+                actualSub, tax, shipping, totalUSD, details
+            );
+
+            // 4. Hide spinner
+            _hideProcessing();
+
+            // 5. Show exactly ONE overlay based on what happened
+            if (result.success) {
+                window.showOrderSuccess({
+                    paypalOrderId:  paypalOrderId,
+                    cjOrderId:      result.cjOrderId || null,
+                    name:           shippingData.name,
+                    email:          shippingData.email,
+                    address:        shippingData.address,
+                    city:           shippingData.city,
+                    province:       shippingData.province,
+                    zip:            shippingData.zip,
+                    country:        shippingData.countryFull,
+                    variantSummary: summary,
+                    quantity:       cartData.bundleSize,
+                    shippingMethod: selectedShippingMethod,
+                    subtotal:       window.formatPrice(actualSub),
+                    shipping:       window.formatPrice(shipping),
+                    tax:            window.formatPrice(tax),
+                    total:          window.formatPrice(totalUSD)
+                });
+            } else {
+                const cancelRef = 'CXL-' + paypalOrderId.slice(-8).toUpperCase();
+                window.showOrderError({
+                    paypalOrderId,
+                    cancelRef,
+                    reason:   result.error || 'Fulfillment service unavailable',
+                    name:     shippingData.name,
+                    email:    shippingData.email,
+                    total:    window.formatPrice(totalUSD)
+                });
+            }
         },
 
         onError: (err) => {
@@ -2593,13 +2636,8 @@ window.renderPayPalButton = async function() {
       });
 };
 
+// ─── 19. FULFILLMENT ──────────────────────────────────────────
 
-// ─── 19. STEALTH FULFILLMENT ──────────────────────────────────
-/**
- * _fulfillOrder — runs entirely in the background after PayPal capture.
- * Shows a generic "Order Confirmed" modal whether CJ succeeds or fails.
- * All errors are logged to Firebase for manual admin recovery.
- */
 async function _fulfillOrder(paypalOrderId, shippingData, summary, actualSub, tax, shipping, totalUSD, captureDetails) {
     try {
         const fulfillRes = await fetch('/api/dropship/fulfill', {
@@ -2623,8 +2661,7 @@ async function _fulfillOrder(paypalOrderId, shippingData, summary, actualSub, ta
 
         const cjOrderId = fulfillData.orderId || fulfillData.data?.orderId || 'PENDING';
 
-        // Migrate lead → confirmed order in Firebase
-        const orderRecord = {
+        await _saveOrderToFirebase({
             paypalOrderId,
             cjOrderId,
             sessionId,
@@ -2641,44 +2678,21 @@ async function _fulfillOrder(paypalOrderId, shippingData, summary, actualSub, ta
             country:        userCountryCode,
             status:         'PAID_FULFILLED',
             timestamp:      new Date().toISOString()
-        };
+        });
 
-        await _saveOrderToFirebase(orderRecord);
-
-        // Clean up lead record — it has been fulfilled
         if (currentLeadId) {
-            try {
-                await remove(ref(db, `leads/${currentLeadId}`));
-            } catch (_) { /* non-critical */ }
+            try { await remove(ref(db, `leads/${currentLeadId}`)); } catch (_) {}
         }
 
         localStorage.removeItem('misty_user');
         window.trackEvent('ORDER_COMPLETE', { paypalOrderId, cjOrderId, quantity: cartData.bundleSize });
 
-        // Rich success overlay
-        window.showOrderSuccess({
-            paypalOrderId,
-            cjOrderId,
-            name:           shippingData.name,
-            email:          shippingData.email,
-            address:        shippingData.address,
-            city:           shippingData.city,
-            province:       shippingData.province,
-            zip:            shippingData.zip,
-            country:        shippingData.countryFull,
-            variantSummary: summary,
-            quantity:       cartData.bundleSize,
-            subtotal:       window.formatPrice(actualSub),
-            shipping:       window.formatPrice(shipping),
-            tax:            window.formatPrice(tax),
-            total:          window.formatPrice(totalUSD),
-            shippingMethod: selectedShippingMethod
-        });
+        return { success: true, cjOrderId };
 
     } catch (fulfillErr) {
         console.error("Fulfillment error (payment already captured):", fulfillErr);
 
-        const errorRef = await _saveOrderToFirebase({
+        await _saveOrderToFirebase({
             paypalOrderId,
             sessionId,
             error:        fulfillErr.message,
@@ -2692,19 +2706,9 @@ async function _fulfillOrder(paypalOrderId, shippingData, summary, actualSub, ta
 
         window.trackEvent('FULFILLMENT_FAILED', { paypalOrderId, error: fulfillErr.message });
 
-        // Rich failure overlay — payment captured, fulfillment failed
-        const cancelRef = 'CXL-' + paypalOrderId.slice(-8).toUpperCase();
-        window.showOrderError({
-            paypalOrderId,
-            cancelRef,
-            reason:   fulfillErr.message || 'Fulfillment service unavailable',
-            name:     shippingData.name,
-            email:    shippingData.email,
-            total:    window.formatPrice(captureDetails.purchase_units[0].amount.value)
-        });
+        return { success: false, error: fulfillErr.message };
     }
 }
-
 // ─── 20. COLLECT SHIPPING DATA ────────────────────────────────
 function _collectShippingData() {
     const get = (...ids) => {
