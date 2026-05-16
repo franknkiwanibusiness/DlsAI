@@ -246,7 +246,7 @@ tr:hover td{background:var(--bg2)}
   </div>
   <div class="auth-box">
     <div class="auth-logo">Secure<span>Access</span></div>
-    <div class="auth-sub">Credentials via environment config</div>
+    <div class="auth-sub">Enter your Firebase account credentials</div>
     <div class="auth-label">Email Address</div>
     <input class="auth-input" id="login-email" type="email" placeholder="admin@minimisty.co.za" autocomplete="username"/>
     <div class="auth-label">Password</div>
@@ -499,11 +499,6 @@ const auth = getAuth(app);
 // Expose to global scope for non-module handlers
 window._fb = { db, auth, ref, set, update, push, onValue };
 
-// ── LOGIN CREDENTIALS FROM ENV (Vercel server-side)
-const LOGIN_EMAIL    = ENV.LOGIN_EMAIL    || '';
-const LOGIN_PASSWORD = ENV.LOGIN_PASSWORD || '';
-window._loginEmail    = LOGIN_EMAIL;
-window._loginPassword = LOGIN_PASSWORD;
 
 // ── AUTH STATE
 onAuthStateChanged(auth, user => {
@@ -540,18 +535,14 @@ const PP_FLAT      = 1.30;  // USD flat → convert
 // AUTH
 // ═══════════════════════════════════════════════
 async function doLogin() {
-  const emailInput = document.getElementById('login-email').value.trim();
-  const passInput  = document.getElementById('login-pass').value;
-  const btn        = document.getElementById('login-btn');
-  const errEl      = document.getElementById('auth-err');
+  const email  = document.getElementById('login-email').value.trim();
+  const pass   = document.getElementById('login-pass').value;
+  const btn    = document.getElementById('login-btn');
+  const errEl  = document.getElementById('auth-err');
   errEl.textContent = '';
 
-  // Use env credentials if fields are empty (auto-fill from env)
-  const email = emailInput || window._loginEmail;
-  const pass  = passInput  || window._loginPassword;
-
   if (!email || !pass) {
-    errEl.textContent = 'Enter credentials or configure LOGIN_EMAIL / LOGIN_PASSWORD env vars.';
+    errEl.textContent = 'Please enter your email and password.';
     return;
   }
   btn.disabled = true;
