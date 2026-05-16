@@ -3,114 +3,115 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MINIMISTY | Live Bridge Tester</title>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;700&display=swap" rel="stylesheet">
+    <title>MINIMISTY Live Chat</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root { --border: 3px solid #000; --shadow: 5px 5px 0px #000; --accent: #5856d6; }
-        body { font-family: 'Fredoka', sans-serif; background: #f4f4f4; padding: 20px; display: flex; justify-content: center; }
-        .card { background: white; border: var(--border); box-shadow: var(--shadow); border-radius: 20px; padding: 25px; width: 100%; max-width: 450px; }
-        input, select { width: 100%; padding: 12px; border: var(--border); border-radius: 10px; margin-bottom: 15px; box-sizing: border-box; font-family: inherit; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-        .option { border: var(--border); padding: 10px; border-radius: 10px; text-align: center; cursor: pointer; font-weight: 700; transition: 0.2s; }
-        .option.active { background: var(--accent); color: white; transform: translateY(-2px); }
-        .btn-run { width: 100%; padding: 18px; background: #32d74b; border: var(--border); border-radius: 15px; font-weight: 700; cursor: pointer; box-shadow: 4px 4px 0px #000; text-transform: uppercase; }
-        .btn-run:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0px #000; }
-        #console { margin-top: 20px; background: #000; color: #00ff00; padding: 15px; border-radius: 10px; font-family: monospace; font-size: 11px; min-height: 100px; overflow-wrap: break-word; }
+        .brand-border { border: 2.5px solid #000000; }
+        .brand-shadow { box-shadow: 4px 4px 0px #000000; }
     </style>
 </head>
-<body>
+<body class="bg-gray-100 min-h-screen font-sans p-4">
 
-    <div class="card">
-        <h2 style="margin-top:0">🚀 Bridge Sandbox</h2>
+    <!-- FLOATING CHAT WIDGET -->
+    <div class="fixed bottom-6 right-6 z-50 flex flex-col items-end">
         
-        <label>Vercel Endpoint</label>
-        <input type="text" id="api-url" value="https://dlsvalue-git-main-franks-projects-9ab45af3.vercel.app/api/dropship">
+        <!-- Chat Window (Hidden by default) -->
+        <div id="chat-window" class="hidden w-80 sm:w-96 h-[450px] bg-white brand-border brand-shadow rounded-2xl flex flex-col overflow-hidden mb-4">
+            
+            <!-- Header -->
+            <div class="bg-black text-white p-4 flex justify-between items-center border-b-2 border-black">
+                <div class="flex items-center space-x-2">
+                    <div class="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse"></div>
+                    <span class="font-bold text-sm">MINIMISTY Support AI</span>
+                </div>
+                <button onclick="toggleChat()" class="text-gray-400 hover:text-white font-black text-lg">&times;</button>
+            </div>
 
-        <label>Bundle Size</label>
-        <div class="grid">
-            <div class="option active" onclick="setQty(1, this)">1 Unit</div>
-            <div class="option" onclick="setQty(2, this)">2 Units</div>
+            <!-- Messages Box -->
+            <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-3 bg-gray-50 text-sm">
+                <div class="flex flex-col items-start">
+                    <div class="bg-white border-2 border-black text-black px-3 py-2 rounded-lg max-w-[85%] font-medium">
+                        Hey! Ask me anything about your FrostBlade Pro order, shipping status, or stock availability!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading State -->
+            <div id="chat-loading" class="hidden px-4 py-2 bg-gray-50 border-t border-gray-100 text-xs text-gray-500 italic">
+                AI is checking Firebase...
+            </div>
+
+            <!-- Input Bar -->
+            <form id="chat-form" onsubmit="sendMessage(event)" class="p-3 bg-white border-t-2 border-black flex items-center space-x-2">
+                <input type="text" id="chat-input" placeholder="Ask about your order..." class="flex-1 px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-black" required autocomplete="off">
+                <button type="submit" class="bg-black text-white px-4 py-2 rounded-lg font-bold text-sm border border-black hover:bg-gray-800">Send</button>
+            </form>
         </div>
 
-        <label>Variant (CJ SKU Map)</label>
-        <div class="grid">
-            <div class="option active" onclick="setColor('Dark Gray 4000mAh', this)">GRAY</div>
-            <div class="option" onclick="setColor('Blue 4000mAh', this)">BLUE</div>
-            <div class="option" onclick="setColor('Pink 4000mAh', this)">PINK</div>
-            <div class="option" onclick="setColor('White 4000mAh', this)">WHITE</div>
-        </div>
-
-        <label>Shipping Destination</label>
-        <div class="grid">
-            <input type="text" id="city" value="Johannesburg">
-            <input type="text" id="zip" value="2000">
-        </div>
-        <select id="country">
-            <option value="ZA">South Africa</option>
-            <option value="US">United States</option>
-        </select>
-
-        <button class="btn-run" onclick="executeTest()">Create CJ Order</button>
-        
-        <div id="console">System Ready. Awaiting trigger...</div>
+        <!-- Floating Action Button -->
+        <button onclick="toggleChat()" class="bg-black text-white p-4 rounded-full font-black shadow-lg border-2 border-black hover:bg-gray-900 active:scale-95 transition-transform flex items-center space-x-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+            <span class="text-xs uppercase font-extrabold tracking-widest hidden sm:inline">Chat With AI</span>
+        </button>
     </div>
 
-<script>
-    let currentQty = 1;
-    let currentColor = 'Dark Gray 4000mAh';
+    <script>
+        const chatWindow = document.getElementById('chat-window');
+        const chatMessages = document.getElementById('chat-messages');
+        const chatInput = document.getElementById('chat-input');
+        const chatLoading = document.getElementById('chat-loading');
+        let conversations = [];
 
-    function setQty(n, el) { currentQty = n; toggle(el); }
-    function setColor(c, el) { currentColor = c; toggle(el); }
-    function toggle(el) {
-        el.parentElement.querySelectorAll('.option').forEach(o => o.classList.remove('active'));
-        el.classList.add('active');
-    }
-
-    async function executeTest() {
-        const url = document.getElementById('api-url').value;
-        const consoleLog = document.getElementById('console');
-        consoleLog.innerText = "📡 Contacting Vercel Bridge...";
-
-        // Build the colors object for the SKU_MAP
-        const bundleColors = {};
-        for(let i=1; i<=currentQty; i++) { bundleColors[i] = currentColor; }
-
-        const payload = {
-            paypalOrderId: "TEST-SANDBOX-" + Date.now(),
-            bundleColors: bundleColors,
-            shipping: {
-                cjShipping: {
-                    consignee: "Sandbox Tester",
-                    address: "123 Test Street",
-                    city: document.getElementById('city').value,
-                    province: "GP",
-                    zip: document.getElementById('zip').value,
-                    countryCode: document.getElementById('country').value,
-                    phone: "0123456789",
-                    email: "test@minimisty.com"
-                }
-            }
-        };
-
-        try {
-            const response = await fetch(`${url}/fulfill`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            const data = await response.json();
-            
-            if (response.ok) {
-                consoleLog.innerText = "✅ SUCCESS:\n" + JSON.stringify(data, null, 2);
-                console.log("CJ Result:", data);
-            } else {
-                consoleLog.innerText = "❌ ERROR:\n" + (data.error || JSON.stringify(data));
-            }
-        } catch (err) {
-            consoleLog.innerText = "🚨 FAILED TO FETCH:\n" + err.message + "\n\nTip: Ensure your Vercel code handles OPTIONS/CORS.";
+        function toggleChat() {
+            chatWindow.classList.toggle('hidden');
+            if (!chatWindow.classList.contains('hidden')) chatInput.focus();
         }
-    }
-</script>
+
+        async function sendMessage(e) {
+            e.preventDefault();
+            const messageText = chatInput.value.trim();
+            if (!messageText) return;
+
+            appendMessage(messageText, 'user');
+            chatInput.value = '';
+            chatLoading.classList.remove('hidden');
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            conversations.push({ role: 'user', parts: [{ text: messageText }] });
+
+            try {
+                // Hits your secure Vercel bridge file directly
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ messageHistory: conversations })
+                });
+                
+                const data = await response.json();
+                chatLoading.classList.add('hidden');
+                
+                if (data.reply) {
+                    appendMessage(data.reply, 'ai');
+                    conversations.push({ role: 'model', parts: [{ text: data.reply }] });
+                } else {
+                    appendMessage("Sorry, I had trouble processing that request.", 'ai');
+                }
+            } catch (error) {
+                chatLoading.classList.add('hidden');
+                appendMessage("Could not connect to the support server right now.", 'ai');
+            }
+        }
+
+        function appendMessage(text, sender) {
+            const wrapper = document.createElement('div');
+            wrapper.className = `flex flex-col ${sender === 'user' ? 'items-end' : 'items-start'}`;
+            const bubble = document.createElement('div');
+            bubble.className = sender === 'user' ? 'bg-black text-white px-3 py-2 rounded-lg max-w-[85%] font-medium' : 'bg-white border-2 border-black text-black px-3 py-2 rounded-lg max-w-[85%] font-medium';
+            bubble.textContent = text;
+            wrapper.appendChild(bubble);
+            chatMessages.appendChild(wrapper);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+    </script>
 </body>
 </html>
