@@ -1,7 +1,7 @@
-import { GoogleGenAI } from "@google/genai";
 import { initializeApp } from "firebase/app";
 import { getDatabase, ref, get } from "firebase/database";
 
+// Initialize Firebase with your environment tokens
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
@@ -10,66 +10,72 @@ const firebaseConfig = {
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getDatabase(firebaseApp);
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
     const { messageHistory } = req.body;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash-lite",
-      contents: messageHistory,
-      config: {
-        systemInstruction: "You are the automated chat agent for MINIMISTY. You help customers look up FrostBlade Pro orders using tools to pull real data from Firebase. If information isn't found or unrelated, politely ask them to email official store support.",
-        tools: [{
-          functionDeclarations: [{
-            name: "fetchCustomerOrder",
-            description: "Looks up order status, tracking updates, and items from the Firebase Realtime Database using a customer email or order ID string.",
-            parameters: {
-              type: "OBJECT",
-              properties: {
-                emailOrId: { type: "STRING", description: "The customer's order ID or email address." }
-              },
-              required: ["emailOrId"]
-            }
-          }]
-        }]
+    // Turn 1: Call Google's official API using your GEMINI_API_KEY to hit Gemma 27B
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: messageHistory,
+          systemInstruction: {
+            parts: [{ text: "You are the automated chat agent for MINIMISTY. You help customers look up FrostBlade Pro orders. If information isn't found or unrelated, politely ask them to email official store support." }]
+          }
+        })
       }
-    });
+    );
 
-    const functionCalls = response.functionCalls;
+    const data = await response.json();
+    
+    if (!data.candidates || data.candidates.length === 0) {
+      return res.status(500).json({ error: "Google API returned an empty tracking payload." });
+    }
 
-    if (functionCalls && functionCalls.length > 0) {
-      const call = functionCalls[0];
+    const replyText = data.candidates[0].content.parts[0].text;
 
-      if (call.name === "fetchCustomerOrder") {
-        const targetKey = call.args.emailOrId.replace(/[.#$\[\]]/g, "_");
-        const orderRef = ref(db, `orders/${targetKey}`);
-        const snapshot = await get(orderRef);
-        const toolResult = snapshot.exists() ? snapshot.val() : { error: "No order record discovered." };
+    // Scan the user's input for an email or order target string to trigger the Firebase check
+    const lastUserMessage = messageHistory[messageHistory.length - 1]?.content || "";
+    if (lastUserMessage.includes("@") || lastUserMessage.match(/#\d+/)) {
+      
+      const targetKey = lastUserMessage.replace(/[.#$\[\]]/g, "_").trim();
+      const orderRef = ref(db, `orders/${targetKey}`);
+      const snapshot = await get(orderRef);
 
-        const finalResponse = await ai.models.generateContent({
-          model: "gemini-3.1-flash-lite",
-          contents: [
-            ...messageHistory,
-            response.candidates[0].content,
-            {
-              role: "tool",
-              parts: [{ functionResponse: { name: "fetchCustomerOrder", response: toolResult } }]
-            }
-          ]
-        });
+      if (snapshot.exists()) {
+        // Turn 2: Inject the live order object data back into Gemma 27B for a clean summary
+        const followUpResponse = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key=${process.env.GEMINI_API_KEY}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [
+                ...messageHistory,
+                { role: "model", parts: [{ text: replyText }] },
+                { 
+                  role: "user", 
+                  parts: [{ text: `System Database Update: Found order details: ${JSON.stringify(snapshot.val())}. Summarize this tracking state cleanly to the customer.` }] 
+                }
+              ]
+            })
+          }
+        );
 
-        return res.status(200).json({ reply: finalResponse.text });
+        const finalData = await followUpResponse.json();
+        return res.status(200).json({ reply: finalData.candidates[0].content.parts[0].text });
       }
     }
 
-    return res.status(200).json({ reply: response.text });
+    return res.status(200).json({ reply: replyText });
 
   } catch (error) {
-    console.error("Backend Error Details:", error);
+    console.error("Gemma API Handler Error:", error);
     return res.status(500).json({ error: "Internal backend bridge malfunction." });
   }
 }
