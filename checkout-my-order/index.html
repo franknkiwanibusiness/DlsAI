@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Checkout</title>
+    <style>
+        :root {
+            --bg-pure-black: #000000;
+            --surface-card: #121214;
+            --border-line: #242427;
+            --text-primary: #ffffff;
+            --text-secondary: #8e8e93;
+            --ios-blue: #007af5;
+            --input-bg: #1c1c1e;
+            --ios-red: #ff453a;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            background-color: var(--bg-pure-black);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .wrapper {
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 80px 16px 110px 16px;
+            box-sizing: border-box;
+        }
+
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background-color: rgba(0, 0, 0, 0.75);
+            -webkit-backdrop-filter: blur(20px);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-line);
+        }
+
+        .header-container {
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 14px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-sizing: border-box;
+        }
+
+        .title {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin: 0;
+        }
+
+        .order-badge {
+            font-family: -apple-system-font, monospace;
+            font-size: 12px;
+            color: var(--text-secondary);
+            background-color: var(--input-bg);
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border-line);
+        }
+
+        .section-title {
+            font-size: 13px;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            letter-spacing: 0.4px;
+            margin: 0 0 8px 4px;
+            font-weight: 500;
+        }
+
+        .card {
+            background-color: var(--surface-card);
+            border: 1px solid var(--border-line);
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .form-row-3 {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1.2fr;
+            gap: 12px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: var(--text-secondary);
+            padding-left: 2px;
+        }
+
+        input[type="text"], 
+        input[type="email"], 
+        input[type="tel"], 
+        select {
+            width: 100%;
+            height: 44px;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-line);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 16px;
+            padding: 0 12px;
+            box-sizing: border-box;
+            -webkit-appearance: none;
+            appearance: none;
+            transition: border-color 0.2s ease, background-color 0.2s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--ios-blue);
+        }
+
+        select:disabled {
+            opacity: 0.5;
+        }
+
+        .select-wrapper {
+            position: relative;
+        }
+
+        .select-wrapper::after {
+            content: "";
+            position: absolute;
+            right: 14px;
+            top: 19px;
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 5px solid var(--text-secondary);
+            pointer-events: none;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 15px;
+            margin-bottom: 12px;
+        }
+
+        .summary-item:last-of-type {
+            margin-bottom: 0;
+        }
+
+        .summary-total {
+            border-top: 1px solid var(--border-line);
+            padding-top: 14px;
+            margin-top: 14px;
+            font-size: 17px;
+            font-weight: 600;
+        }
+
+        .sticky-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background-color: rgba(18, 18, 20, 0.94);
+            -webkit-backdrop-filter: blur(20px);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border-line);
+            padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+        }
+
+        .footer-container {
+            max-width: 480px;
+            margin: 0 auto;
+        }
+
+        .btn-action {
+            width: 100%;
+            height: 50px;
+            background-color: var(--ios-blue);
+            color: var(--text-primary);
+            border: none;
+            border-radius: 12px;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.15s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn-action:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-action:not(:disabled):active {
+            opacity: 0.8;
+        }
+
+        .secure-notice {
+            text-align: center;
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+            letter-spacing: -0.1px;
+        }
+
+        /* Clean State Layout Error views */
+        #error-view {
+            display: none;
+            text-align: center;
+            padding: 60px 16px;
+        }
+
+        #error-view p {
+            color: var(--text-secondary);
+            font-size: 16px;
+            margin: 0;
+        }
+
+        /* iOS Input Error State & Shake Keyframes */
+        .input-error {
+            border-color: var(--ios-red) !important;
+            animation: shake 0.35s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-6px); }
+            40%, 80% { transform: translateX(6px); }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-container">
+            <h1 class="title">Shipping</h1>
+            <span class="order-badge" id="display-order-id"></span>
+        </div>
+    </header>
+
+    <div class="wrapper">
+        <!-- Error tracking layout wrapper -->
+        <div id="error-view">
+            <p>No order found</p>
+        </div>
+
+        <main id="main-checkout-content">
+            <form id="cj-shipping-form" novalidate>
+                <input type="hidden" id="hidden-order-id" name="orderNumber" value="">
+
+                <div class="section-title">Customer Info</div>
+                <div class="card">
+                    <div class="form-group">
+                        <label for="shippingCustomerName">Full Name</label>
+                        <input type="text" id="shippingCustomerName" name="shippingCustomerName" required autocomplete="name">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" name="email" required autocomplete="email">
+                        </div>
+                        <div class="form-group">
+                            <label for="shippingPhone">Phone</label>
+                            <input type="tel" id="shippingPhone" name="shippingPhone" required autocomplete="tel">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-title">Delivery Address</div>
+                <div class="card">
+                    <div class="form-group">
+                        <label for="shippingAddress">Street Address</label>
+                        <input type="text" id="shippingAddress" name="shippingAddress" required autocomplete="address-line1">
+                    </div>
+                    <div class="form-group">
+                        <label for="shippingAddress2">Apartment, Suite, Unit</label>
+                        <input type="text" id="shippingAddress2" name="shippingAddress2" autocomplete="address-line2">
+                    </div>
+                    <div class="form-row-3">
+                        <div class="form-group">
+                            <label for="shippingCity">City</label>
+                            <input type="text" id="shippingCity" name="shippingCity" required autocomplete="address-level2">
+                        </div>
+                        <div class="form-group">
+                            <label for="shippingProvince">State</label>
+                            <input type="text" id="shippingProvince" name="shippingProvince" required autocomplete="address-level1">
+                        </div>
+                        <div class="form-group">
+                            <label for="shippingZip">ZIP</label>
+                            <input type="text" id="shippingZip" name="shippingZip" required autocomplete="postal-code">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="shippingCountryCode">Country Code</label>
+                            <div class="select-wrapper">
+                                <select id="shippingCountryCode" name="shippingCountryCode" required disabled>
+                                    <option value="" disabled selected>Loading...</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="shippingCountry">Country</label>
+                            <input type="text" id="shippingCountry" name="shippingCountry" value="" readonly style="opacity: 0.7; cursor: not-allowed;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-title">Order Overview</div>
+                <div class="card">
+                    <div class="summary-item">
+                        <span style="color: var(--text-secondary);">Item</span>
+                        <span id="summary-item-name">Loading...</span>
+                    </div>
+                    <div class="summary-item">
+                        <span style="color: var(--text-secondary);">Shipping</span>
+                        <span>Standard (Free)</span>
+                    </div>
+                    <div class="summary-item summary-total">
+                        <span>Total</span>
+                        <span id="summary-item-total">...</span>
+                    </div>
+                </div>
+
+                <div class="sticky-footer">
+                    <div class="footer-container">
+                        <button type="submit" id="submit-btn" class="btn-action">Proceed to Payment</button>
+                        <div class="secure-notice">Encrypted Transmission</div>
+                    </div>
+                </div>
+            </form>
+        </main>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+        import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
+            authDomain: "itzhoyoo-f9f7e.firebaseapp.com",
+            databaseURL: "https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com",
+            projectId: "itzhoyoo-f9f7e",
+            storageBucket: "itzhoyoo-f9f7e.filestorage.app",
+            messagingSenderId: "1094792075584",
+            appId: "1:1094792075584:web:d49e9c3f899d3cd31082a5",
+            measurementId: "G-LLT6F9WRKH"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        document.addEventListener("DOMContentLoaded", function() {
+            // --- 1. Route Order ID Tracking & Guard Rails ---
+            const path = window.location.pathname;
+            const match = path.match(/checkout-my-order=([^/]+)/);
+            const urlParams = new URLSearchParams(window.location.search);
+            const queryOrder = urlParams.get('order');
+
+            let orderId = "";
+            if (match && match[1]) {
+                orderId = match[1];
+            } else if (queryOrder) {
+                orderId = queryOrder;
+            }
+
+            const mainContent = document.getElementById('main-checkout-content');
+            const errorView = document.getElementById('error-view');
+
+            if (!orderId) {
+                mainContent.style.display = "none";
+                errorView.style.display = "block";
+                return;
+            }
+
+            document.getElementById('display-order-id').textContent = orderId;
+            document.getElementById('hidden-order-id').value = orderId;
+
+            // --- 2. Live Order Overview Fetching from Firebase ---
+            get(ref(db, 'orders/' + orderId)).then((snapshot) => {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    document.getElementById('summary-item-name').textContent = data.itemName || "Portable Fan";
+                    document.getElementById('summary-item-total').textContent = data.amountTotal || "$29.99";
+                } else {
+                    // Fallback baseline info if tracked ID doesn't contain variables yet
+                    document.getElementById('summary-item-name').textContent = "Portable Fan";
+                    document.getElementById('summary-item-total').textContent = "$29.99";
+                }
+            }).catch(() => {
+                document.getElementById('summary-item-name').textContent = "Portable Fan";
+                document.getElementById('summary-item-total').textContent = "$29.99";
+            });
+
+            let globalCountryMatrix = {};
+            const countrySelect = document.getElementById('shippingCountryCode');
+            const countryInput = document.getElementById('shippingCountry');
+            const phoneInput = document.getElementById('shippingPhone');
+
+            // --- 3. Country Layout Syncing ---
+            function handleCountryChange(isoCode) {
+                const countryData = globalCountryMatrix[isoCode];
+                if (!countryData) return;
+
+                countrySelect.value = isoCode;
+                countryInput.value = countryData.name;
+
+                let currentPhone = phoneInput.value.trim();
+                const standardPrefixes = Object.values(globalCountryMatrix).map(c => c.phonePrefix);
+                const hasExistingPrefix = standardPrefixes.some(p => p && currentPhone.startsWith(p));
+
+                if (currentPhone === '' || hasExistingPrefix) {
+                    phoneInput.value = countryData.phonePrefix ? countryData.phonePrefix + " " : "";
+                }
+            }
+
+            countrySelect.addEventListener('change', function() {
+                handleCountryChange(this.value);
+            });
+
+            // --- 4. Countries API List Engine ---
+            fetch('https://restcountries.com/v3.1/all?fields=cca2,name,idd')
+                .then(res => res.json())
+                .then(data => {
+                    countrySelect.innerHTML = '';
+                    const formatted = data.map(item => {
+                        let prefix = '';
+                        if (item.idd && item.idd.root) {
+                            prefix = item.idd.root + (item.idd.suffixes ? item.idd.suffixes[0] : '');
+                        }
+                        return { iso: item.cca2, name: item.name.common, phonePrefix: prefix };
+                    }).sort((a, b) => a.name.localeCompare(b.name));
+
+                    formatted.forEach(c => {
+                        globalCountryMatrix[c.iso] = c;
+                        let opt = document.createElement('option');
+                        opt.value = c.iso;
+                        opt.textContent = `${c.iso} - ${c.name}`;
+                        countrySelect.appendChild(opt);
+                    });
+
+                    countrySelect.disabled = false;
+                    return fetch('https://ipapi.co/json/');
+                })
+                .then(res => res.json())
+                .then(geo => {
+                    if (geo && geo.country_code && globalCountryMatrix[geo.country_code]) {
+                        handleCountryChange(geo.country_code);
+                    } else {
+                        handleCountryChange('US');
+                    }
+                })
+                .catch(() => {
+                    countrySelect.disabled = false;
+                    handleCountryChange('US');
+                });
+
+            // --- 5. Clean CJ Characters Sanitizer ---
+            function sanitizeField(inputEl) {
+                let val = inputEl.value;
+                val = val.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); 
+                val = val.replace(/[!@#$%^*()_+={}\[\]:;""'<>\?\/\\|`~]/g, ""); 
+                inputEl.value = val.trim();
+            }
+
+            const inputFields = ['shippingCustomerName', 'shippingAddress', 'shippingAddress2', 'shippingCity', 'shippingProvince'];
+            inputFields.forEach(id => {
+                const el = document.getElementById(id);
+                el.addEventListener('blur', function() { sanitizeField(this); });
+                el.addEventListener('input', function() {
+                    if (this.value.trim() !== "") {
+                        this.classList.remove('input-error');
+                    }
+                });
+            });
+
+            phoneInput.addEventListener('input', function() {
+                if (this.value.trim() !== "") this.classList.remove('input-error');
+            });
+            document.getElementById('email').addEventListener('input', function() {
+                if (this.value.trim() !== "") this.classList.remove('input-error');
+            });
+            document.getElementById('shippingZip').addEventListener('input', function() {
+                if (this.value.trim() !== "") this.classList.remove('input-error');
+            });
+
+            // --- 6. Form Submission with Error Shake Effects ---
+            const checkoutForm = document.getElementById('cj-shipping-form');
+            const submitBtn = document.getElementById('submit-btn');
+
+            checkoutForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                // Find all fields marked required in form markup
+                const requiredFields = checkoutForm.querySelectorAll('[required]');
+                let isFormValid = true;
+
+                requiredFields.forEach(field => {
+                    // Check standard value bounds or phone baseline prefix loops
+                    const isPhonePrefixOnly = (field.id === 'shippingPhone' && globalCountryMatrix[countrySelect.value] && field.value.trim() === globalCountryMatrix[countrySelect.value].phonePrefix);
+                    
+                    if (!field.value.trim() || isPhonePrefixOnly) {
+                        isFormValid = false;
+                        field.classList.remove('input-error');
+                        void field.offsetWidth; // Trigger DOM reflow to restart animation execution
+                        field.classList.add('input-error');
+                    } else {
+                        field.classList.remove('input-error');
+                    }
+                });
+
+                if (!isFormValid) return;
+
+                submitBtn.disabled = true;
+                submitBtn.textContent = "Processing...";
+
+                const formData = {
+                    orderNumber: orderId,
+                    shippingCustomerName: document.getElementById('shippingCustomerName').value.trim(),
+                    email: document.getElementById('email').value.trim(),
+                    shippingPhone: phoneInput.value.trim(),
+                    shippingAddress: document.getElementById('shippingAddress').value.trim(),
+                    shippingAddress2: document.getElementById('shippingAddress2').value.trim(),
+                    shippingCity: document.getElementById('shippingCity').value.trim(),
+                    shippingProvince: document.getElementById('shippingProvince').value.trim(),
+                    shippingZip: document.getElementById('shippingZip').value.trim(),
+                    shippingCountryCode: countrySelect.value,
+                    shippingCountry: countryInput.value,
+                    itemName: document.getElementById('summary-item-name').textContent,
+                    amountTotal: document.getElementById('summary-item-total').textContent,
+                    timestamp: new Date().toISOString()
+                };
+
+                set(ref(db, 'orders/' + orderId), formData)
+                    .then(() => {
+                        submitBtn.textContent = "Order Placed!";
+                    })
+                    .catch((error) => {
+                        console.error(error);
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = "Proceed to Payment";
+                    });
+            });
+        });
+    </script>
+</body>
+</html>
