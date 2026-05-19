@@ -809,7 +809,7 @@
       /* Trust bar — 5 per row */
       .trust-section { padding: 64px clamp(40px, 6vw, 100px); }
       .trust-inner { max-width: 1380px; margin: 0 auto; padding: 0; }
-      .trust-grid { grid-template-columns: repeat(5, 1fr); gap: 18px; }
+      .trust-grid { grid-template-columns: repeat(3, 1fr); gap: 18px; }
 
       /* FAQ — 2 columns */
       .faq-section { padding: 80px clamp(40px, 6vw, 100px); }
@@ -853,6 +853,7 @@
       .how-inner   { max-width: 1560px; }
       .trust-section { padding: 80px clamp(60px, 7vw, 120px); }
       .trust-inner   { max-width: 1560px; }
+      .trust-grid    { grid-template-columns: repeat(6, 1fr); gap: 16px; }
       .faq-section   { padding: 100px clamp(60px, 7vw, 120px); }
       .faq-inner     { max-width: 1560px; }
       .reviews-header { padding: 0 clamp(60px, 7vw, 120px); }
@@ -1077,6 +1078,375 @@
     .trust-card h4 { font-size: 0.85rem; font-weight: 700; color: #fff; margin: 0; }
     .trust-card p  { font-size: 0.73rem; color: #555; font-weight: 600; margin: 0; line-height: 1.4; }
 
+
+    /* ══════════════════════════════════════
+       AI CHAT PANEL
+    ══════════════════════════════════════ */
+    .ai-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 8000;
+    }
+    .ai-overlay.open { display: flex; align-items: flex-end; justify-content: center; }
+
+    .ai-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.80);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .ai-drawer {
+      position: relative;
+      width: 100%;
+      max-width: 560px;
+      height: 88dvh;
+      background: #0a0a0a;
+      border: 1px solid #1c1c1c;
+      border-radius: 24px 24px 0 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: slideUp 0.38s cubic-bezier(0.16,1,0.3,1);
+    }
+
+    .ai-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid #1a1a1a;
+      flex-shrink: 0;
+    }
+
+    .ai-avatar {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #00f0ff22, #a3ff1222);
+      border: 1px solid rgba(0,240,255,0.25);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .ai-tabs {
+      display: flex;
+      gap: 6px;
+      padding: 12px 20px 0;
+      flex-shrink: 0;
+    }
+    .ai-tab {
+      flex: 1;
+      padding: 8px 4px;
+      background: #111;
+      border: 1px solid #222;
+      border-radius: 8px;
+      color: #555;
+      font-family: var(--font);
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .ai-tab.active { background: #fff; color: #000; border-color: #fff; }
+
+    .ai-tab-panel { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+    .ai-tab-panel.active { display: flex; }
+
+    /* Chat messages */
+    .ai-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      overscroll-behavior: contain;
+    }
+    .ai-messages::-webkit-scrollbar { display: none; }
+
+    .ai-msg {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .ai-msg.user { flex-direction: row-reverse; }
+
+    .ai-bubble {
+      max-width: 78%;
+      padding: 10px 14px;
+      border-radius: 16px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      line-height: 1.5;
+    }
+    .ai-msg.bot  .ai-bubble { background: #151515; color: #ccc; border-radius: 4px 16px 16px 16px; border: 1px solid #1e1e1e; }
+    .ai-msg.user .ai-bubble { background: #fff; color: #000; border-radius: 16px 4px 16px 16px; }
+
+    .ai-typing .ai-bubble { background: #151515; border: 1px solid #1e1e1e; }
+    .ai-typing .dot {
+      display: inline-block;
+      width: 6px; height: 6px;
+      background: #555;
+      border-radius: 50%;
+      animation: dotBounce 1.2s infinite;
+      margin: 0 2px;
+    }
+    .ai-typing .dot:nth-child(2) { animation-delay: 0.2s; }
+    .ai-typing .dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes dotBounce {
+      0%,80%,100% { transform: translateY(0); }
+      40%          { transform: translateY(-5px); }
+    }
+
+    .ai-input-row {
+      display: flex;
+      gap: 8px;
+      padding: 12px 20px 20px;
+      flex-shrink: 0;
+      border-top: 1px solid #111;
+    }
+    .ai-input {
+      flex: 1;
+      background: #111;
+      border: 1px solid #222;
+      border-radius: 12px;
+      padding: 11px 14px;
+      color: #fff;
+      font-family: var(--font);
+      font-size: 0.85rem;
+      font-weight: 600;
+      resize: none;
+      max-height: 100px;
+      overscroll-behavior: contain;
+    }
+    .ai-input:focus { border-color: #444; }
+    .ai-input::placeholder { color: #333; }
+
+    .ai-send-btn {
+      width: 44px; height: 44px;
+      background: #fff;
+      border: none;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      align-self: flex-end;
+      transition: transform 0.1s;
+    }
+    .ai-send-btn:active { transform: scale(0.93); }
+
+    /* Order tracker panel */
+    .order-track-panel {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      scrollbar-width: none;
+    }
+    .order-track-panel::-webkit-scrollbar { display: none; }
+
+    .order-id-input {
+      width: 100%;
+      background: #111;
+      border: 1px solid #222;
+      border-radius: 12px;
+      padding: 13px 16px;
+      color: #fff;
+      font-family: var(--font);
+      font-size: 0.88rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+      box-sizing: border-box;
+    }
+    .order-id-input:focus { border-color: #444; }
+    .order-id-input::placeholder { color: #333; }
+
+    .order-track-btn {
+      width: 100%;
+      background: #fff;
+      color: #000;
+      border: none;
+      border-radius: 12px;
+      padding: 13px;
+      font-family: var(--font);
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+    .order-track-btn:active { transform: scale(0.97); }
+
+    .order-result {
+      margin-top: 18px;
+      padding: 18px;
+      background: #0d0d0d;
+      border: 1px solid #1a1a1a;
+      border-radius: 16px;
+    }
+    .order-result-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 8px 0;
+      border-bottom: 1px solid #111;
+    }
+    .order-result-row:last-child { border-bottom: none; }
+    .or-key { color: #555; }
+    .or-val { color: #fff; text-align: right; max-width: 60%; word-break: break-word; }
+
+    /* Quick prompts chips */
+    .ai-chips {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      padding: 0 20px 10px;
+      flex-shrink: 0;
+    }
+    .ai-chip {
+      background: #111;
+      border: 1px solid #222;
+      border-radius: 20px;
+      padding: 6px 12px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #666;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .ai-chip:hover, .ai-chip:active { background: #1a1a1a; color: #aaa; border-color: #333; }
+
+    @media (min-width: 1024px) {
+      .ai-drawer {
+        height: 80dvh;
+        max-width: 480px;
+        border-radius: 24px 24px 0 0;
+      }
+    }
+
+    /* ══════════════════════════════════════
+       BELOW-GRID ROW LAYOUT (side by side on desktop)
+    ══════════════════════════════════════ */
+    .below-row {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+    }
+
+    .below-col-left,
+    .below-col-right {
+      width: 100%;
+    }
+
+    /* Hide desktop order CTA on mobile — buy section above handles it */
+    .desktop-order-cta { display: none; }
+
+    /* ══════════════════════════════════════
+       DESKTOP ORDER CTA PANEL (right col in FAQ row)
+    ══════════════════════════════════════ */
+    .doc-badge {
+      display: inline-block;
+      background: rgba(255,59,48,0.12);
+      border: 1px solid rgba(255,59,48,0.25);
+      color: var(--red);
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+      margin-bottom: 14px;
+      letter-spacing: 0.5px;
+    }
+
+    @media (min-width: 1024px) {
+      /* ── Two-column below rows ── */
+      .below-row {
+        flex-direction: row;
+        max-width: 1380px;
+        margin: 0 auto;
+        padding: 0 clamp(40px, 6vw, 100px);
+        box-sizing: border-box;
+        gap: 56px;
+        align-items: flex-start;
+      }
+
+      /* Video + How It Works row */
+      .below-row:not(.below-row-faq) .below-col-left  { flex: 0 0 340px; }
+      .below-row:not(.below-row-faq) .below-col-right { flex: 1; }
+
+      /* FAQ + Order CTA row */
+      .below-row-faq .below-col-left  { flex: 1; min-width: 0; }
+      .below-row-faq .below-col-right { flex: 0 0 380px; }
+
+      /* Remove section padding when inside below-row columns */
+      .below-col-left  .how-section,
+      .below-col-right .how-section  { padding: 60px 0; }
+      .below-col-left  .faq-section,
+      .below-col-right .faq-section  { padding: 60px 0; }
+      .below-col-left  > section[style*="VIDEO"],
+      .below-col-left  > section     { padding-left: 0; padding-right: 0; }
+
+      /* Video section inside col */
+      .below-col-left section { max-width: 100%; }
+
+      /* Show desktop order CTA */
+      .desktop-order-cta {
+        display: block;
+        position: sticky;
+        top: 110px;
+        background: #0a0a0a;
+        border: 1px solid #1a1a1a;
+        border-radius: 20px;
+        padding: 24px;
+        margin-top: 60px;
+      }
+
+      /* FAQ grid in column: single column */
+      .below-col-left .faq-grid {
+        grid-template-columns: 1fr !important;
+      }
+
+      /* Stat grid desktop 4-col stays */
+      /* Mode list already handled */
+
+      /* Reviews stays full bleed — no changes needed */
+
+      /* Trust section stays full width */
+      .trust-section {
+        padding: 64px clamp(40px, 6vw, 100px);
+      }
+
+      /* How-it-works inside right col on desktop */
+      .below-col-right .how-grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+      .below-col-right .how-connector { display: none; }
+      .below-col-right .how-step { flex-direction: row; text-align: left; gap: 16px; }
+      .below-col-right .how-icon-wrap { flex-shrink: 0; }
+      .below-col-right .how-step h4,
+      .below-col-right .how-step p { text-align: left; }
+    }
+
+    @media (min-width: 1600px) {
+      .below-row {
+        max-width: 1560px;
+        gap: 72px;
+      }
+      .below-row-faq .below-col-right { flex: 0 0 420px; }
+    }
+
+    @media (min-width: 1024px) {
+      .video-section { padding: 0 !important; border: none !important; background: transparent !important; }
+      .video-section > div { max-width: 100% !important; }
+      .below-col-left .video-section { display: flex; flex-direction: column; height: 100%; }
+      .below-col-left .video-section > div { flex: 1; }
+      .below-col-left .video-section > div > div { max-width: 100% !important; height: 100%; }
+      .below-col-left .video-section iframe-wrapper { height: 100%; }
+    }
   </style>
 </head>
 <body>
@@ -1098,14 +1468,29 @@
       <span class="brand-name">MINIMISTY</span><span class="brand-suffix">.store</span>
     </div>
   </div>
-  <div class="cart-wrapper" onclick="openCart()">
-    <div class="cart-icon">
-      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M8 8V6C8 3.79086 9.79086 2 12 2C14.2091 2 16 3.79086 16 6V8" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
-        <path d="M4 8H20L18.5 21H5.5L4 8Z" fill="#000" stroke="#fff" stroke-width="3" stroke-linejoin="round"/>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div class="cart-wrapper" onclick="openCart()">
+      <div class="cart-icon">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 8V6C8 3.79086 9.79086 2 12 2C14.2091 2 16 3.79086 16 6V8" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+          <path d="M4 8H20L18.5 21H5.5L4 8Z" fill="#000" stroke="#fff" stroke-width="3" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="item-counter" id="cartCount">0</div>
+    </div>
+    <!-- Profile circle -->
+    <div id="profileBtn" onclick="openAIChat()" style="
+      width:38px;height:38px;border-radius:50%;
+      background:rgba(255,255,255,0.07);
+      border:1.5px solid rgba(255,255,255,0.15);
+      display:flex;align-items:center;justify-content:center;
+      cursor:pointer;flex-shrink:0;
+      transition:background 0.2s,border-color 0.2s;
+    ">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
       </svg>
     </div>
-    <div class="item-counter" id="cartCount">0</div>
   </div>
 </header>
 
@@ -1122,7 +1507,7 @@
       <div class="offer-icon">
         <svg viewBox="0 0 24 24" fill="none"><path d="M8.5 14.5L15.5 7.5M10 8H10.01M14 14H14.01M5 3H12L20 11L13 18L5 10V3Z" stroke="#00ff66" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
-      <div><span class="green-highlight">$1.99 Shipping</span> on Single Order</div>
+      <div><span class="green-highlight" id="shippingPriceLabel">$1.99 Shipping</span> on Single Order</div>
     </div>
     <div class="offer-item">
       <div class="offer-icon">
@@ -1523,6 +1908,8 @@
 </div><!-- /desktop-grid -->
 
 <!-- BELOW-GRID: full width -->
+
+<!-- ── ROW 1: REVIEWS (full bleed) ── -->
 <!-- REVIEWS -->
 <section class="reviews-section">
   <div class="reviews-inner">
@@ -1578,6 +1965,31 @@
 <!-- ══════════════════════════════════════
      TRUST / GUARANTEE SECTION
 ══════════════════════════════════════ -->
+
+<!-- ── ROW 2: VIDEO + HOW IT WORKS side by side ── -->
+<div class="below-row">
+  <div class="below-col-left">
+<!-- VIDEO SHOWCASE -->
+<section class="video-section" style="background:#000;padding:40px 20px;border-top:1px solid #111;border-bottom:1px solid #111;">
+  <div style="max-width:860px;margin:0 auto;">
+    <h2 class="section-heading" style="text-align:center;margin-bottom:6px;">See It In Action</h2>
+    <p class="section-sub" style="text-align:center;margin-bottom:24px;">Watch the FrostBlade Pro live</p>
+    <div style="position:relative;width:100%;max-width:380px;margin:0 auto;border-radius:20px;overflow:hidden;border:1px solid #1a1a1a;background:#0a0a0a;">
+      <div style="aspect-ratio:9/16;width:100%;">
+        <iframe
+          src="https://www.youtube.com/embed/txdkGmBaWqQ?autoplay=1&mute=1&loop=1&playlist=txdkGmBaWqQ&controls=0&playsinline=1&rel=0&modestbranding=1"
+          style="width:100%;height:100%;border:none;display:block;"
+          allow="autoplay;encrypted-media"
+          allowfullscreen
+          loading="lazy"
+          title="FrostBlade Pro showcase"
+        ></iframe>
+      </div>
+    </div>
+  </div>
+</section>
+  </div>
+  <div class="below-col-right">
 <!-- HOW IT WORKS -->
 <section class="how-section">
   <div class="how-inner">
@@ -1630,7 +2042,10 @@
     </div>
   </div>
 </section>
+  </div>
+</div>
 
+<!-- ── ROW 3: TRUST (full width, 6 cards) ── -->
 <section class="trust-section">
   <div class="trust-inner">
     <h2 class="section-heading">Why Thousands Choose FrostBlade</h2>
@@ -1677,6 +2092,14 @@
         <p>SSL-encrypted checkout. We never store your card details.</p>
       </div>
 
+      <div class="trust-card">
+        <div class="trust-icon-wrap" style="background:rgba(163,255,18,0.08)">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#a3ff12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <h4>1,500+ Happy Customers</h4>
+        <p>Rated 4.7 stars across thousands of verified purchases worldwide.</p>
+      </div>
+
     </div>
   </div>
 </section>
@@ -1684,6 +2107,10 @@
 <!-- ══════════════════════════════════════
      FAQ SECTION
 ══════════════════════════════════════ -->
+
+<!-- ── ROW 4: FAQ + REORDER CTA side by side ── -->
+<div class="below-row below-row-faq">
+  <div class="below-col-left">
 <section class="faq-section">
   <div class="faq-inner">
     <h2 class="section-heading">Frequently Asked Questions</h2>
@@ -1757,6 +2184,41 @@
     </div>
   </div>
 </section>
+  </div>
+  <div class="below-col-right">
+    <!-- Reorder / sticky CTA panel for desktop -->
+    <div class="desktop-order-cta" id="desktopOrderCTA">
+      <div class="doc-badge">🔥 Limited Stock</div>
+      <img src="https://i.imgur.com/nilsQQC.jpeg" id="docImg" alt="FrostBlade Pro" style="width:100%;border-radius:16px;margin-bottom:20px;display:block;">
+      <h3 style="font-size:1.3rem;font-weight:700;color:#fff;margin-bottom:6px;">FrostBlade Pro</h3>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:16px;">
+        <div style="color:#ffcc00;font-size:0.85rem;">★★★★★</div>
+        <span style="font-size:0.73rem;color:#555;font-weight:600;">4.7 · 1,500+ reviews</span>
+      </div>
+      <div style="font-size:0.75rem;color:#555;font-weight:600;margin-bottom:18px;">
+        Prices in <span id="docCurrencyLabel">USD ($)</span>
+      </div>
+      <div class="bundle-card active-bundle" onclick="selectBundle(this,39.95,1.99,0,1)" style="margin-bottom:8px;">
+        <div><div class="bundle-name">Single Pack</div><div class="bundle-ship std">Standard Shipping</div></div>
+        <div style="text-align:right"><div class="bundle-price" id="doc-bp-0">$39.95</div></div>
+      </div>
+      <div class="bundle-card" onclick="selectBundle(this,74.95,0,4.95,2)" style="margin-bottom:8px;">
+        <div><div class="bundle-name">Dual Pack · 2 Units</div><div class="bundle-ship">Free Shipping</div></div>
+        <div style="text-align:right"><div class="bundle-price" id="doc-bp-1">$74.95</div><div class="bundle-save">SAVE <span id="doc-bs-1">$5.00</span></div></div>
+      </div>
+      <div class="bundle-card" onclick="selectBundle(this,99.95,0,19.90,3)" style="margin-bottom:18px;">
+        <div><div class="bundle-name">Family Pack · 3 Units</div><div class="bundle-ship">Free Shipping</div></div>
+        <div style="text-align:right"><div class="bundle-price" id="doc-bp-2">$99.95</div><div class="bundle-save">SAVE <span id="doc-bs-2">$19.90</span></div></div>
+      </div>
+      <div class="arrival-bar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+        <span>Arriving: <span id="doc-arrival">---</span></span>
+      </div>
+      <button class="add-to-cart-btn" onclick="addToCart()" style="margin-top:16px;">ADD TO CART</button>
+      <p style="text-align:center;font-size:0.65rem;color:#333;font-weight:600;margin-top:10px;">30-Day Returns · 1-Year Warranty · Secure Checkout</p>
+    </div>
+  </div>
+</div>
 
 <!-- FOOTER -->
 <footer class="footer-section">
@@ -1775,17 +2237,17 @@
       <span class="brand-name" style="font-size:1rem">MINIMISTY</span><span class="brand-suffix" style="font-size:0.75rem">.store</span>
     </div>
     <div class="footer-links">
-      <a href="#">Privacy Policy</a>
-      <a href="#">Terms of Service</a>
-      <a href="#">Refund Policy</a>
-      <a href="#">Shipping Info</a>
-      <a href="#">Contact Us</a>
+      <a href="#" onclick="event.preventDefault();askAIFromFooter('Privacy Policy')">Privacy Policy</a>
+      <a href="#" onclick="event.preventDefault();askAIFromFooter('Terms of Service')">Terms of Service</a>
+      <a href="#" onclick="event.preventDefault();askAIFromFooter('Refund Policy')">Refund Policy</a>
+      <a href="#" onclick="event.preventDefault();askAIFromFooter('How long does shipping take?')">Shipping Info</a>
+      <a href="#" onclick="event.preventDefault();askAIFromFooter('How can I contact support?')">Contact Us</a>
     </div>
     <div class="footer-copy">© 2025 MINIMISTY.store · All rights reserved</div>
   </div>
 </footer>
 
-</main>
+
 
 <!-- ═══ REVEAL MODAL ═══ -->
 <div id="revealModal" class="modal-overlay">
@@ -2108,18 +2570,44 @@
   }
 
   function updateAllPrices() {
-    // Update bundle card prices
+    // Announcement bar shipping
+    const shipLabel = document.getElementById('shippingPriceLabel');
+    if (shipLabel) shipLabel.textContent = fx(1.99) + ' Shipping';
+
+    // Main buy section bundle prices
     const keys = BUNDLE_KEYS;
-    const priceEls = ['bp-0','bp-1','bp-2'];
-    const saveEls  = ['','bs-1','bs-2'];
-    keys.forEach((k, i) => {
-      const el = document.getElementById(priceEls[i]);
-      if (el) el.textContent = fx(PRICES_USD[k]);
-      if (saveEls[i]) {
-        const sel = document.getElementById(saveEls[i]);
-        if (sel) sel.textContent = fx(SAVES_USD[k]);
-      }
+    ['bp-0','bp-1','bp-2'].forEach((id, i) => {
+      const el = document.getElementById(id); if (el) el.textContent = fx(PRICES_USD[keys[i]]);
     });
+    ['','bs-1','bs-2'].forEach((id, i) => {
+      if (id) { const el = document.getElementById(id); if (el) el.textContent = fx(SAVES_USD[keys[i]]); }
+    });
+
+    // Desktop order CTA panel prices
+    ['doc-bp-0','doc-bp-1','doc-bp-2'].forEach((id, i) => {
+      const el = document.getElementById(id); if (el) el.textContent = fx(PRICES_USD[keys[i]]);
+    });
+    ['','doc-bs-1','doc-bs-2'].forEach((id, i) => {
+      if (id) { const el = document.getElementById(id); if (el) el.textContent = fx(SAVES_USD[keys[i]]); }
+    });
+
+    // Currency label in doc panel
+    const docCurr = document.getElementById('docCurrencyLabel');
+    if (docCurr) docCurr.textContent = (window._currency || 'USD') + ' (' + (window._currencySymbol || '$') + ')';
+
+    // Arrival date in doc panel
+    const docArr = document.getElementById('doc-arrival');
+    if (docArr) {
+      const s = new Date(); s.setDate(s.getDate() + 5);
+      const e = new Date(); e.setDate(e.getDate() + 12);
+      const opt = { month:'short', day:'numeric' };
+      docArr.textContent = s.toLocaleDateString('en-US',opt) + ' – ' + e.toLocaleDateString('en-US',opt);
+    }
+
+    // Doc panel variant image tracks current selection
+    const docImg = document.getElementById('docImg');
+    if (docImg) docImg.src = state.currentVariantImg;
+
     updateSummary();
     updateDrawerSummary();
   }
@@ -2187,6 +2675,7 @@
 
   function selectBuyVariant(url, name, el) {
     document.getElementById('mainProductImg').src = url;
+    const di = document.getElementById('docImg'); if (di) di.src = url;
     document.querySelectorAll('#buyVariantRow .variant-btn').forEach(b => b.classList.remove('selected'));
     el.classList.add('selected');
     state.currentVariant = name;
@@ -2305,6 +2794,27 @@
     if (typeof trackClick === 'function') trackClick('add_to_cart', { bundle: k, variant: state.currentVariant });
   }
 
+  function upgradeToBundle() {
+    // Clear cart and add dual pack in the selected variant
+    state.cart = [];
+    const k = 'dual';
+    state.cart.push({
+      id: Date.now(),
+      name: 'FrostBlade Pro',
+      variant: state.currentVariant,
+      img: state.currentVariantImg,
+      bundle: k,
+      qty: 2,
+      priceUSD: PRICES_USD[k],
+      shipUSD: SHIPS_USD[k],
+      discUSD: SAVES_USD[k],
+      priceLocal: fx(PRICES_USD[k])
+    });
+    renderCart();
+    updateCartCount();
+    if (typeof trackClick === 'function') trackClick('cart_upsell_upgrade', { from: 'single', to: 'dual' });
+  }
+
   function removeFromCart(id) {
     state.cart = state.cart.filter(i => i.id !== id);
     renderCart();
@@ -2344,6 +2854,33 @@
         </button>
       </div>
     `).join('');
+
+    // ── Upsell nudge: if only a single-pack, suggest dual for free shipping ──
+    const hasSingleOnly = state.cart.length === 1 && state.cart[0].bundle === 'single';
+    const existing = document.getElementById('cartUpsell');
+    if (existing) existing.remove();
+    if (hasSingleOnly) {
+      const upsell = document.createElement('div');
+      upsell.id = 'cartUpsell';
+      upsell.style.cssText = 'margin:14px 0 0;padding:14px;background:rgba(163,255,18,0.06);border:1px solid rgba(163,255,18,0.18);border-radius:14px;';
+      upsell.innerHTML = `
+        <div style="display:flex;align-items:flex-start;gap:12px;">
+          <div style="flex-shrink:0;margin-top:2px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a3ff12" stroke-width="2" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </div>
+          <div style="flex:1;">
+            <div style="font-size:0.82rem;font-weight:700;color:#fff;margin-bottom:4px;">Add 1 more → unlock FREE shipping + save ${fx(4.95)}</div>
+            <div style="font-size:0.72rem;color:#666;font-weight:600;margin-bottom:10px;">Dual Pack ships free &amp; saves you ${fx(4.95)} vs. buying separately</div>
+            <button onclick="upgradeToBundle()" style="
+              background:var(--lime);color:#000;border:none;
+              padding:9px 16px;border-radius:9px;
+              font-family:var(--font);font-weight:700;font-size:0.8rem;
+              cursor:pointer;width:100%;
+            ">UPGRADE TO DUAL PACK — ${fx(74.95)}</button>
+          </div>
+        </div>`;
+      list.appendChild(upsell);
+    }
 
     updateDrawerSummary();
     summary.style.display = 'block';
@@ -2488,9 +3025,12 @@
       // → hide because user is already at the destination
       const buyOnScreen = buyRect.top < vh * 0.85 && buyRect.bottom > vh * 0.1;
 
-      // Show when: hero is gone AND buy section is not currently visible
-      // This means: show in the middle sections AND show again after scrolling past buy
-      const show = !heroVisible && !buyOnScreen;
+      // Also hide when footer is visible
+      const footer = document.querySelector('.footer-section');
+      const footerVisible = footer ? footer.getBoundingClientRect().top < window.innerHeight * 0.85 : false;
+
+      // Show when: hero gone AND buy not on screen AND footer not visible
+      const show = !heroVisible && !buyOnScreen && !footerVisible;
 
       btn.style.opacity       = show ? '1'                      : '0';
       btn.style.transform     = show ? 'translateY(0) scale(1)' : 'translateY(14px) scale(0.93)';
@@ -2510,6 +3050,237 @@
     window.addEventListener('load', function() { setTimeout(initStickyBtn, 100); });
   }
 
+
+  // ════════════════════════════════
+  //  AI CHAT PANEL
+  // ════════════════════════════════
+  const AI_SYSTEM = `You are the MINIMISTY store assistant. You help customers with questions about the FrostBlade Pro portable fan.
+
+PRODUCT: FrostBlade Pro — Portable Ice-Cold Handheld Electric Fan
+- Colors: Phantom Black, Arctic White, Ice Blue, Sakura Pink (limited)
+- Battery: 4000mAh Li-Ion, up to 16 hours runtime
+- Charging: USB-C Fast Charge (~2 hours)
+- Motor: 20,000 RPM Brushless
+- Speed: 1–100 adjustable with LED display
+- Materials: PP + Aerospace Alloy ice plate
+- Weight: Lightweight, foldable, includes neck lanyard
+
+PRICING (USD base):
+- Single Pack: $39.95 + $1.99 shipping
+- Dual Pack (2 units): $74.95, FREE shipping, save $5
+- Family Pack (3 units): $99.95, FREE shipping, save $19.90
+
+SHIPPING: 7–14 business days, processed within 24 hours
+RETURNS: 30-day risk-free return policy
+WARRANTY: 1-year warranty included
+
+PRIVACY POLICY: We collect only the information needed to process your order (name, address, email). We never sell your personal data to third parties. Your payment is processed securely. You may request deletion of your data at any time by emailing support@minimisty.store.
+
+TERMS OF SERVICE: By purchasing from MINIMISTY.store you agree to our terms. Products are sold as-is with the listed warranty. We reserve the right to refuse orders in cases of suspected fraud.
+
+REFUND POLICY: 30-day no-questions-asked returns. Item must be in original condition. Refunds processed within 5–7 business days to original payment method. Shipping costs non-refundable unless item is defective.
+
+Keep responses concise, friendly, and helpful. Use short paragraphs. If unsure, say so honestly.`;
+
+  let aiChatHistory = [];
+  let aiTyping = false;
+
+  function askAIFromFooter(question) {
+    openAIChat();
+    // Small delay so the drawer is open and DOM is ready
+    setTimeout(function() {
+      // Make sure we are on the chat tab
+      const chatTab = document.querySelector('.ai-tab');
+      const chatPanel = document.getElementById('aiPanel-chat');
+      if (chatTab && chatPanel) {
+        document.querySelectorAll('.ai-tab').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.ai-tab-panel').forEach(p => p.classList.remove('active'));
+        chatTab.classList.add('active');
+        chatPanel.classList.add('active');
+      }
+      // Hide chips since we are sending directly
+      const chips = document.getElementById('aiChips');
+      if (chips) chips.style.display = 'none';
+      // Fire message
+      sendAIMessage(question);
+    }, 350);
+  }
+
+  function openAIChat() {
+    document.getElementById('aiChatOverlay').classList.add('open');
+    document.body.classList.add('no-scroll');
+    window._scrollYAI = window.scrollY;
+    document.body.style.top = '-' + window._scrollYAI + 'px';
+    if (typeof trackClick === 'function') trackClick('ai_chat_open');
+  }
+
+  function closeAIChat() {
+    document.getElementById('aiChatOverlay').classList.remove('open');
+    document.body.classList.remove('no-scroll');
+    document.body.style.top = '';
+    window.scrollTo(0, window._scrollYAI || 0);
+  }
+
+  function switchAITab(tab, btn) {
+    document.querySelectorAll('.ai-tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.ai-tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('aiPanel-' + tab).classList.add('active');
+  }
+
+  function chipPrompt(el) {
+    const msg = el.textContent;
+    el.closest('.ai-chips').style.display = 'none';
+    sendAIMessage(msg);
+  }
+
+  function appendMessage(role, text) {
+    const box = document.getElementById('aiMessages');
+    const wrap = document.createElement('div');
+    wrap.className = 'ai-msg ' + role;
+    if (role === 'bot') {
+      wrap.innerHTML = `
+        <div class="ai-avatar" style="width:28px;height:28px;flex-shrink:0">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00f0ff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+        </div>
+        <div class="ai-bubble">${text.replace(/\n/g,'<br>')}</div>`;
+    } else {
+      wrap.innerHTML = `<div class="ai-bubble">${text}</div>`;
+    }
+    box.appendChild(wrap);
+    box.scrollTop = box.scrollHeight;
+    return wrap;
+  }
+
+  function showTyping() {
+    const box = document.getElementById('aiMessages');
+    const wrap = document.createElement('div');
+    wrap.className = 'ai-msg bot ai-typing';
+    wrap.id = 'aiTypingIndicator';
+    wrap.innerHTML = `
+      <div class="ai-avatar" style="width:28px;height:28px;flex-shrink:0">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00f0ff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4"/></svg>
+      </div>
+      <div class="ai-bubble"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>`;
+    box.appendChild(wrap);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function removeTyping() {
+    const el = document.getElementById('aiTypingIndicator');
+    if (el) el.remove();
+  }
+
+  async function sendAIMessage(overrideText) {
+    if (aiTyping) return;
+    const input = document.getElementById('aiInput');
+    const text = overrideText || input.value.trim();
+    if (!text) return;
+    if (!overrideText) input.value = '';
+
+    appendMessage('user', text);
+    aiChatHistory.push({ role: 'user', content: text });
+
+    aiTyping = true;
+    showTyping();
+
+    try {
+      // Call Vercel serverless function at /api/chat.js
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          system: AI_SYSTEM,
+          messages: aiChatHistory
+        })
+      });
+
+      let reply = '';
+      if (res.ok) {
+        const data = await res.json();
+        reply = data.reply || data.content || data.message || 'Sorry, I could not get a response right now.';
+      } else {
+        // Fallback: local answers for common questions
+        reply = localAIFallback(text);
+      }
+
+      removeTyping();
+      appendMessage('bot', reply);
+      aiChatHistory.push({ role: 'assistant', content: reply });
+    } catch(e) {
+      removeTyping();
+      const reply = localAIFallback(text);
+      appendMessage('bot', reply);
+      aiChatHistory.push({ role: 'assistant', content: reply });
+    }
+
+    aiTyping = false;
+    if (typeof trackClick === 'function') trackClick('ai_chat_message', { q: text.substring(0,60) });
+  }
+
+  function localAIFallback(text) {
+    const t = text.toLowerCase();
+    if (t.includes('color') || t.includes('colour') || t.includes('variant')) return 'The FrostBlade Pro comes in 4 colors: Phantom Black, Arctic White, Ice Blue, and Sakura Pink (limited stock). You can select your color on the product page above!';
+    if (t.includes('ship') || t.includes('deliver') || t.includes('arrival')) return 'We ship worldwide! Delivery takes 7–14 business days. Orders are processed within 24 hours. Bundles of 2+ units ship FREE — single units ship for a small fee.';
+    if (t.includes('return') || t.includes('refund')) return 'We offer a 30-day risk-free return policy. If you are not happy, contact us and we will process your refund within 5-7 business days. No questions asked.';
+    if (t.includes('privacy')) return 'We only collect what we need to fulfil your order (name, shipping address, email). We never sell your data. You can request data deletion anytime at support@minimisty.store.';
+    if (t.includes('terms') || t.includes('service')) return 'By purchasing from MINIMISTY.store, you agree to our terms. Products come with a 1-year warranty. We reserve the right to cancel orders suspected of fraud.';
+    if (t.includes('warrant')) return 'Every FrostBlade Pro includes a 1-year warranty against manufacturing defects. Contact us at support@minimisty.store to make a warranty claim.';
+    if (t.includes('loud') || t.includes('noise') || t.includes('quiet') || t.includes('sound')) return 'The brushless motor is significantly quieter than standard fans. On Eco mode it is nearly silent. Even at Turbo it stays well below 60dB - comfortable for office use.';
+    if (t.includes('water') || t.includes('rain') || t.includes('splash')) return 'The FrostBlade Pro is not waterproof or water-resistant. Keep it away from liquids. It is designed for dry environments and personal cooling use.';
+    if (t.includes('battery') || t.includes('charge') || t.includes('hour')) return 'The 4000mAh Li-Ion battery charges fully in ~2 hours via USB-C and lasts up to 16 hours on Eco mode, 8 hours on Normal, and ~3 hours on Turbo.';
+    if (t.includes('price') || t.includes('cost') || t.includes('how much')) return 'Single Pack starts at $39.95. Dual Pack (2 units) is $74.95 with free shipping. Family Pack (3 units) is $99.95 with free shipping and the most savings. All prices shown in your local currency on the order page!';
+    return 'Great question! The AI server will be connected soon. For immediate help, the full product details are on this page, or email us at support@minimisty.store.';
+  }
+
+  // ── Order Tracker ──
+  async function trackOrder() {
+    const input = document.getElementById('trackOrderInput');
+    const result = document.getElementById('orderResult');
+    const orderId = input.value.trim();
+
+    if (!orderId) {
+      result.style.display = 'block';
+      result.innerHTML = '<p style="color:#ff3b30;font-size:0.8rem;font-weight:600">Please enter an Order ID.</p>';
+      return;
+    }
+
+    result.style.display = 'block';
+    result.innerHTML = '<p style="color:#555;font-size:0.8rem;font-weight:600;text-align:center">Looking up your order…</p>';
+
+    try {
+      // Dynamically import Firebase to read from /orders/{orderId}
+      const { getDatabase, ref: fbRef, get } = await import('https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js');
+      const db2 = getDatabase();
+      const snap = await get(fbRef(db2, 'orders/' + orderId));
+
+      if (!snap.exists()) {
+        result.innerHTML = '<div class="order-result"><p style="color:#ff3b30;font-size:0.82rem;font-weight:700;text-align:center">Order not found.<br><span style="color:#555;font-weight:600">Double-check your Order ID and try again.</span></p></div>';
+        return;
+      }
+
+      const order = snap.val();
+      const items = (order.items || []).map(i => i.qty + 'x ' + i.product + ' (' + i.variant + ')').join(', ');
+      const total = order.pricing ? order.pricing.totalUSD.toFixed(2) : '—';
+      const created = order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-GB') : '—';
+      const status = order.status || 'pending';
+      const statusColor = status === 'pending_checkout' ? '#ffeb3b' : status === 'shipped' ? '#a3ff12' : '#00f0ff';
+
+      result.innerHTML = `
+        <div class="order-result">
+          <div class="order-result-row"><span class="or-key">Order ID</span><span class="or-val" style="font-size:0.7rem;color:#888">${orderId}</span></div>
+          <div class="order-result-row"><span class="or-key">Status</span><span class="or-val" style="color:${statusColor};text-transform:capitalize">${status.replace(/_/g,' ')}</span></div>
+          <div class="order-result-row"><span class="or-key">Items</span><span class="or-val">${items || '—'}</span></div>
+          <div class="order-result-row"><span class="or-key">Total (USD)</span><span class="or-val">$${total}</span></div>
+          <div class="order-result-row"><span class="or-key">Placed</span><span class="or-val">${created}</span></div>
+          <div class="order-result-row"><span class="or-key">Currency</span><span class="or-val">${order.currency || 'USD'}</span></div>
+        </div>`;
+
+      if (typeof trackClick === 'function') trackClick('order_track', { orderId: orderId.substring(0,20) });
+    } catch(e) {
+      result.innerHTML = '<div class="order-result"><p style="color:#555;font-size:0.8rem;font-weight:600;text-align:center">Could not load order. Please try again.</p></div>';
+    }
+  }
 </script>
 
 
@@ -2560,6 +3331,76 @@
     </svg>
     ORDER NOW
   </button>
+</div>
+
+
+<!-- ═══ AI CHAT PANEL ═══ -->
+<div id="aiChatOverlay" class="ai-overlay">
+  <div class="ai-backdrop" onclick="closeAIChat()"></div>
+  <div class="ai-drawer">
+    <!-- Header -->
+    <div class="ai-header">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="ai-avatar">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00f0ff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+        </div>
+        <div>
+          <div style="font-size:0.9rem;font-weight:700;color:#fff">MINIMISTY Assistant</div>
+          <div style="font-size:0.65rem;color:#00f0ff;font-weight:600">● Online</div>
+        </div>
+      </div>
+      <button onclick="closeAIChat()" style="width:32px;height:32px;background:#111;border:1px solid #222;border-radius:50%;color:#555;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem;font-family:var(--font);font-weight:700;">✕</button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="ai-tabs">
+      <button class="ai-tab active" onclick="switchAITab('chat',this)">💬 Ask AI</button>
+      <button class="ai-tab" onclick="switchAITab('track',this)">📦 Track Order</button>
+    </div>
+
+    <!-- Chat Panel -->
+    <div class="ai-tab-panel active" id="aiPanel-chat">
+      <!-- Quick chips -->
+      <div class="ai-chips" id="aiChips">
+        <div class="ai-chip" onclick="chipPrompt(this)">What colors are available?</div>
+        <div class="ai-chip" onclick="chipPrompt(this)">How long does shipping take?</div>
+        <div class="ai-chip" onclick="chipPrompt(this)">What is your return policy?</div>
+        <div class="ai-chip" onclick="chipPrompt(this)">How loud is the fan?</div>
+        <div class="ai-chip" onclick="chipPrompt(this)">Is it waterproof?</div>
+        <div class="ai-chip" onclick="chipPrompt(this)">Privacy Policy</div>
+        <div class="ai-chip" onclick="chipPrompt(this)">Terms of Service</div>
+        <div class="ai-chip" onclick="chipPrompt(this)">Refund Policy</div>
+      </div>
+
+      <!-- Messages -->
+      <div class="ai-messages" id="aiMessages">
+        <div class="ai-msg bot">
+          <div class="ai-avatar" style="width:28px;height:28px;flex-shrink:0">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00f0ff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+          </div>
+          <div class="ai-bubble">Hey! 👋 I'm the MINIMISTY assistant. Ask me anything about the FrostBlade Pro — shipping, features, policies, returns — I've got you covered.</div>
+        </div>
+      </div>
+
+      <!-- Input -->
+      <div class="ai-input-row">
+        <textarea class="ai-input" id="aiInput" rows="1" placeholder="Ask anything…" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAIMessage();}"></textarea>
+        <button class="ai-send-btn" onclick="sendAIMessage()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Track Order Panel -->
+    <div class="ai-tab-panel" id="aiPanel-track">
+      <div class="order-track-panel">
+        <p style="font-size:0.8rem;color:#555;font-weight:600;margin-bottom:16px;line-height:1.5">Enter your Order ID from the confirmation page to track your order status and details.</p>
+        <input class="order-id-input" id="trackOrderInput" type="text" placeholder="e.g. ORD_ABC123XY_DEF" autocomplete="off" spellcheck="false">
+        <button class="order-track-btn" onclick="trackOrder()">TRACK MY ORDER</button>
+        <div id="orderResult" style="display:none"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 </body>
