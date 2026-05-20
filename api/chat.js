@@ -1,81 +1,83 @@
-import { initializeApp } from "firebase/app";
-import { getDatabase, ref, get } from "firebase/database";
-
-// Initialize Firebase with your environment tokens
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-};
-const firebaseApp = initializeApp(firebaseConfig);
-const db = getDatabase(firebaseApp);
-
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const { system, messages } = req.body;
+
+  if (!messages || !Array.isArray(messages)) {
+    return res.status(400).json({ error: 'Invalid messages' });
+  }
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: 'API key not configured' });
+  }
+
+  // Build Gemini contents array — prepend system as first user/model exchange
+  const contents = [];
+
+  // Inject system prompt as a priming exchange Gemini understands
+  if (system) {
+    contents.push({
+      role: 'user',
+      parts: [{ text: `System instructions: ${system}\n\nAcknowledge you understand.` }]
+    });
+    contents.push({
+      role: 'model',
+      parts: [{ text: 'Understood. I am the MINIMISTY store assistant and will follow those instructions.' }]
+    });
+  }
+
+  // Append conversation history
+  for (const msg of messages) {
+    contents.push({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content }]
+    });
+  }
 
   try {
-    const { messageHistory } = req.body;
-
-    // Turn 1: Call Google's official API using your GEMINI_API_KEY to hit Gemma 27B
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key=${apiKey}`,
       {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: messageHistory,
-          systemInstruction: {
-            parts: [{ text: "You are the automated chat agent for MINIMISTY. You help customers look up FrostBlade Pro orders. If information isn't found or unrelated, politely ask them to email official store support." }]
-          }
+          contents,
+          generationConfig: {
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 512,
+          },
+          safetySettings: [
+            { category: 'HARM_CATEGORY_HARASSMENT',        threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_HATE_SPEECH',       threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+          ]
         })
       }
     );
 
+    if (!response.ok) {
+      const err = await response.text();
+      console.error('Gemini API error:', err);
+      return res.status(502).json({ error: 'Upstream API error', detail: err });
+    }
+
     const data = await response.json();
-    
-    if (!data.candidates || data.candidates.length === 0) {
-      return res.status(500).json({ error: "Google API returned an empty tracking payload." });
-    }
 
-    const replyText = data.candidates[0].content.parts[0].text;
+    const reply =
+      data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+      data?.candidates?.[0]?.content?.parts?.map(p => p.text).join('') ||
+      'Sorry, I could not generate a response right now.';
 
-    // Scan the user's input for an email or order target string to trigger the Firebase check
-    const lastUserMessage = messageHistory[messageHistory.length - 1]?.content || "";
-    if (lastUserMessage.includes("@") || lastUserMessage.match(/#\d+/)) {
-      
-      const targetKey = lastUserMessage.replace(/[.#$\[\]]/g, "_").trim();
-      const orderRef = ref(db, `orders/${targetKey}`);
-      const snapshot = await get(orderRef);
+    return res.status(200).json({ reply });
 
-      if (snapshot.exists()) {
-        // Turn 2: Inject the live order object data back into Gemma 27B for a clean summary
-        const followUpResponse = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key=${process.env.GEMINI_API_KEY}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [
-                ...messageHistory,
-                { role: "model", parts: [{ text: replyText }] },
-                { 
-                  role: "user", 
-                  parts: [{ text: `System Database Update: Found order details: ${JSON.stringify(snapshot.val())}. Summarize this tracking state cleanly to the customer.` }] 
-                }
-              ]
-            })
-          }
-        );
-
-        const finalData = await followUpResponse.json();
-        return res.status(200).json({ reply: finalData.candidates[0].content.parts[0].text });
-      }
-    }
-
-    return res.status(200).json({ reply: replyText });
-
-  } catch (error) {
-    console.error("Gemma API Handler Error:", error);
-    return res.status(500).json({ error: "Internal backend bridge malfunction." });
+  } catch (err) {
+    console.error('Handler error:', err);
+    return res.status(500).json({ error: 'Internal server error', detail: err.message });
   }
 }
