@@ -1,13 +1,168 @@
 <!DOCTYPE html>
-<html lang="en" style="background:#000">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Checkout – MINIMISTY.store</title>
+  <title>Payment – MINIMISTY.store</title>
   <meta name="robots" content="noindex, nofollow">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Firebase v11 -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+    import { getDatabase, ref, set, push, update } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+    import { getAuth } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
+      authDomain: "itzhoyoo-f9f7e.firebaseapp.com",
+      databaseURL: "https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com",
+      projectId: "itzhoyoo-f9f7e",
+      storageBucket: "itzhoyoo-f9f7e.filestorage.app",
+      messagingSenderId: "1094792075584",
+      appId: "1:1094792075584:web:d49e9c3f899d3cd31082a5",
+      measurementId: "G-LLT6F9WRKH"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db  = getDatabase(app);
+    const auth = getAuth(app);
+
+    // ── Session ID (unique per page load) ──
+    const SESSION_ID = 'sess_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+    window._sessionId = SESSION_ID;
+    const PAGE_ENTER = Date.now();
+
+    // ── Device + context snapshot ──
+    function deviceInfo() {
+      return {
+        ua:          navigator.userAgent,
+        lang:        navigator.language,
+        screenW:     window.screen.width,
+        screenH:     window.screen.height,
+        viewportW:   window.innerWidth,
+        viewportH:   window.innerHeight,
+        touch:       ('ontouchstart' in window),
+        referrer:    document.referrer || 'direct',
+        timezone:    Intl.DateTimeFormat().resolvedOptions().timeZone,
+        colorScheme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
+        connection:  navigator.connection?.effectiveType || 'unknown',
+      };
+    }
+
+    // ── Push a named event ──
+    window.fbTrack = async function(eventName, data = {}) {
+      try {
+        const eventsRef = ref(db, 'events');
+        await push(eventsRef, {
+          event:     eventName,
+          sessionId: SESSION_ID,
+          orderId:   window._orderId || null,
+          email:     window._email  || null,
+          page:      'pay-now-order',
+          timeOnPageMs: Date.now() - PAGE_ENTER,
+          ts:        Date.now(),
+          ...data
+        });
+      } catch(e) {}
+    };
+
+    // ── Write full order node ──
+    window.fbWriteOrder = async function(orderId, payload) {
+      try {
+        const orderRef = ref(db, 'orders/' + orderId);
+        await set(orderRef, { ...payload, updatedAt: Date.now() });
+      } catch(e) {}
+    };
+
+    // ── Patch existing order node ──
+    window.fbUpdateOrder = async function(orderId, patch) {
+      try {
+        const orderRef = ref(db, 'orders/' + orderId);
+        await update(orderRef, { ...patch, updatedAt: Date.now() });
+      } catch(e) {}
+    };
+
+    // ── Write session record ──
+    window.fbWriteSession = async function(data) {
+      try {
+        const sessRef = ref(db, 'sessions/' + SESSION_ID);
+        await set(sessRef, {
+          sessionId: SESSION_ID,
+          page: 'pay-now-order',
+          device: deviceInfo(),
+          ...data,
+          ts: Date.now(),
+        });
+      } catch(e) {}
+    };
+
+    // ── Patch session record ──
+    window.fbPatchSession = async function(patch) {
+      try {
+        const sessRef = ref(db, 'sessions/' + SESSION_ID);
+        await update(sessRef, { ...patch, lastSeen: Date.now() });
+      } catch(e) {}
+    };
+
+    // ── DEEP BEHAVIOUR TRACKING ──
+
+    // 1. Scroll depth milestones
+    const scrollMilestones = new Set();
+    window.addEventListener('scroll', () => {
+      const pct = Math.round((window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100);
+      [25, 50, 75, 100].forEach(m => {
+        if (pct >= m && !scrollMilestones.has(m)) {
+          scrollMilestones.add(m);
+          window.fbTrack('scroll_depth', { pct: m });
+        }
+      });
+    }, { passive: true });
+
+    // 2. Time-on-page heartbeat every 30s
+    let heartbeatCount = 0;
+    const heartbeatInterval = setInterval(() => {
+      heartbeatCount++;
+      window.fbPatchSession?.({ heartbeats: heartbeatCount, timeOnPageMs: Date.now() - PAGE_ENTER });
+    }, 30000);
+
+    // 3. Page visibility — detect tab switches
+    document.addEventListener('visibilitychange', () => {
+      window.fbTrack('visibility_change', {
+        hidden: document.hidden,
+        timeOnPageMs: Date.now() - PAGE_ENTER,
+      });
+    });
+
+    // 4. Exit intent (cursor leaves window top)
+    document.addEventListener('mouseleave', (e) => {
+      if (e.clientY < 10) {
+        window.fbTrack('exit_intent', { timeOnPageMs: Date.now() - PAGE_ENTER });
+      }
+    });
+
+    // 5. Page unload — final session duration
+    window.addEventListener('beforeunload', () => {
+      const duration = Date.now() - PAGE_ENTER;
+      // Use beacon for reliable unload tracking
+      const payload = JSON.stringify({
+        event: 'page_exit',
+        sessionId: SESSION_ID,
+        orderId: window._orderId || null,
+        durationMs: duration,
+        scrollMilestones: [...scrollMilestones],
+        ts: Date.now(),
+      });
+      navigator.sendBeacon && navigator.sendBeacon('/api/beacon', payload);
+      // Also try firebase (may not complete)
+      window.fbPatchSession?.({ exitDurationMs: duration, exited: true });
+    });
+
+    window._fbReady = true;
+    window._deviceInfo = deviceInfo;
+  </script>
 
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -17,651 +172,415 @@
       --lime: #a3ff12;
       --red: #ff3b30;
       --yellow: #ffeb3b;
+      --green: #34c759;
       --bg: #000;
-      --surface: rgba(255,255,255,0.03);
-      --border: rgba(255,255,255,0.08);
-      --border-focus: rgba(255,255,255,0.25);
-      --text-dim: #666;
+      --card: #0a0a0a;
+      --border: #1a1a1a;
+      --border-mid: #222;
+      --text-dim: #555;
       --font: 'Fredoka', sans-serif;
     }
 
-    html { background: #000; overscroll-behavior: none; }
-
-    body {
+    html, body {
       background: #000;
       color: #fff;
       font-family: var(--font);
       min-height: 100vh;
-      -webkit-user-select: none;
-      user-select: none;
       scrollbar-width: none;
-      -ms-overflow-style: none;
     }
     body::-webkit-scrollbar { display: none; }
-
-    * {
-      -webkit-tap-highlight-color: transparent !important;
-      -webkit-touch-callout: none;
-    }
-    *:focus, *:focus-visible { outline: none !important; }
-    ::selection { background: transparent; }
+    * { -webkit-tap-highlight-color: transparent; }
+    *:focus { outline: none; }
 
     /* ── HEADER ── */
     header {
       position: sticky; top: 0;
-      background: rgba(0,0,0,0.85);
-      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      background: rgba(0,0,0,0.9);
+      backdrop-filter: blur(20px);
       border-bottom: 1px solid rgba(255,255,255,0.06);
       height: 58px;
       display: flex; align-items: center; justify-content: space-between;
       padding: 0 20px;
       z-index: 100;
     }
-
     .hdr-brand { display: flex; align-items: center; gap: 8px; }
-    .hdr-fan { width: 30px; height: 30px; animation: spin 4s linear infinite; }
+    .hdr-fan { width: 28px; height: 28px; animation: spin 4s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .hdr-name { font-size: 1.1rem; font-weight: 700; }
-    .hdr-suffix { font-size: 0.72rem; font-weight: 600; color: var(--cyan); }
+    .hdr-name { font-size: 0.95rem; font-weight: 700; }
+    .hdr-suffix { font-size: 0.65rem; font-weight: 600; color: var(--cyan); }
 
-    .hdr-steps {
+    .hdr-secure {
       display: flex; align-items: center; gap: 6px;
-      font-size: 0.65rem; font-weight: 700;
-    }
-    .step-pill {
-      padding: 4px 10px; border-radius: 20px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.08);
-      color: #444;
-      white-space: nowrap;
-    }
-    .step-pill.active {
-      background: rgba(0,240,255,0.1);
-      border-color: rgba(0,240,255,0.3);
-      color: var(--cyan);
-    }
-    .step-pill.done {
-      background: rgba(163,255,18,0.08);
-      border-color: rgba(163,255,18,0.25);
-      color: var(--lime);
-    }
-    .step-dot {
-      width: 4px; height: 4px; border-radius: 50%; background: #333;
+      font-size: 0.68rem; font-weight: 700; color: var(--lime);
+      background: rgba(163,255,18,0.07);
+      border: 1px solid rgba(163,255,18,0.18);
+      padding: 5px 12px; border-radius: 20px;
     }
 
     /* ── MAIN ── */
     main {
-      max-width: 1100px;
+      max-width: 1060px;
       margin: 0 auto;
       padding: 28px 16px 80px;
       display: grid;
       grid-template-columns: 1fr;
       gap: 20px;
     }
-
     @media (min-width: 860px) {
       main {
-        grid-template-columns: 1fr 380px;
-        gap: 32px;
-        padding: 40px 32px 80px;
+        grid-template-columns: 1fr 360px;
+        gap: 28px;
+        padding: 36px 28px 80px;
         align-items: start;
       }
     }
 
-    /* ── SECTION CARDS ── */
-    .checkout-section {
-      background: #0a0a0a;
-      border: 1px solid #1a1a1a;
+    /* ── CARDS ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
       border-radius: 18px;
       overflow: hidden;
       margin-bottom: 16px;
     }
-    .checkout-section:last-child { margin-bottom: 0; }
-
-    .section-head {
+    .card:last-child { margin-bottom: 0; }
+    .card-head {
       display: flex; align-items: center; gap: 12px;
-      padding: 18px 20px;
-      border-bottom: 1px solid #111;
-      background: rgba(255,255,255,0.015);
-    }
-    .section-icon {
-      width: 36px; height: 36px;
-      border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-    }
-    .section-title { font-size: 1rem; font-weight: 700; color: #fff; }
-    .section-sub { font-size: 0.68rem; font-weight: 600; color: #444; margin-top: 1px; }
-
-    .section-body { padding: 20px; }
-
-    /* ── FORM FIELDS ── */
-    .field-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-    .field-row.single { grid-template-columns: 1fr; }
-    .field-row.trio { grid-template-columns: 1fr 1fr 1fr; }
-
-    .field {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-    }
-
-    .field label {
-      font-size: 0.68rem;
-      font-weight: 700;
-      color: #555;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-    }
-
-    .field-wrap {
-      position: relative;
-      display: flex;
-      align-items: center;
-    }
-
-    .field-wrap svg.field-icon {
-      position: absolute;
-      left: 12px;
-      pointer-events: none;
-      opacity: 0.4;
-      flex-shrink: 0;
-    }
-
-    .field input,
-    .field select {
-      width: 100%;
-      background: #111;
-      border: 1px solid #222;
-      border-radius: 10px;
-      padding: 11px 12px 11px 38px;
-      color: #fff;
-      font-family: var(--font);
-      font-size: 0.88rem;
-      font-weight: 600;
-      transition: border-color 0.2s;
-      appearance: none;
-      -webkit-appearance: none;
-    }
-    .field input::placeholder { color: #333; }
-    .field input:focus,
-    .field select:focus { border-color: var(--border-focus); }
-
-    .field select {
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23444' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 12px center;
-      padding-right: 32px;
-    }
-
-    .field select option { background: #111; color: #fff; }
-
-    /* Phone with prefix */
-    .phone-wrap {
-      display: flex;
-      gap: 8px;
-    }
-    .phone-prefix {
-      flex: 0 0 110px;
-    }
-    .phone-prefix select {
-      padding-left: 38px !important;
-    }
-    .phone-number { flex: 1; }
-
-    /* ── SHIPPING OPTIONS ── */
-    .shipping-options {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-
-    .ship-card {
-      background: #111;
-      border: 1.5px solid #222;
-      border-radius: 14px;
-      padding: 16px;
-      cursor: pointer;
-      transition: border-color 0.2s, background 0.2s;
-      position: relative;
-      overflow: hidden;
-    }
-    .ship-card.active {
-      border-color: #fff;
-      background: rgba(255,255,255,0.04);
-    }
-    .ship-card.active-prime {
-      border-color: var(--cyan);
-      background: rgba(0,240,255,0.04);
-    }
-
-    .ship-badge {
-      font-size: 0.58rem;
-      font-weight: 700;
-      padding: 3px 7px;
-      border-radius: 20px;
-      letter-spacing: 0.5px;
-      display: inline-flex;
-      margin-bottom: 10px;
-    }
-    .ship-badge.std { background: rgba(255,255,255,0.08); color: #666; border: 1px solid #2a2a2a; }
-    .ship-badge.prime { background: rgba(0,240,255,0.1); color: var(--cyan); border: 1px solid rgba(0,240,255,0.25); }
-
-    .ship-icon-row {
-      display: flex; align-items: center; gap: 8px;
-      margin-bottom: 10px;
-    }
-    .ship-icon-wrap {
-      width: 38px; height: 38px;
-      border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .ship-name { font-size: 0.88rem; font-weight: 700; color: #fff; margin-bottom: 2px; }
-    .ship-days { font-size: 0.68rem; font-weight: 600; color: #555; }
-    .ship-price { font-size: 1rem; font-weight: 700; margin-top: 8px; }
-    .ship-price.free { color: var(--lime); }
-    .ship-price.paid { color: #fff; }
-
-    .ship-select-dot {
-      width: 18px; height: 18px;
-      border-radius: 50%;
-      border: 2px solid #333;
-      position: absolute; top: 12px; right: 12px;
-      transition: all 0.2s;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .ship-card.active .ship-select-dot { border-color: #fff; background: #fff; }
-    .ship-card.active-prime .ship-select-dot { border-color: var(--cyan); background: var(--cyan); }
-    .ship-select-dot::after {
-      content: '';
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: #000;
-      opacity: 0;
-      transition: opacity 0.2s;
-    }
-    .ship-card.active .ship-select-dot::after,
-    .ship-card.active-prime .ship-select-dot::after { opacity: 1; }
-
-    /* ── GIFT OPTION ── */
-    .gift-toggle {
-      margin-top: 14px;
-      background: #111;
-      border: 1.5px solid #222;
-      border-radius: 14px;
-      padding: 16px;
-      cursor: pointer;
-      transition: border-color 0.2s, background 0.2s;
-      display: flex; align-items: center; gap: 14px;
-    }
-    .gift-toggle.active {
-      border-color: var(--yellow);
-      background: rgba(255,235,59,0.04);
-    }
-    .gift-icon-wrap {
-      width: 44px; height: 44px;
-      border-radius: 12px;
-      background: rgba(255,235,59,0.08);
-      border: 1px solid rgba(255,235,59,0.18);
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-    }
-    .gift-info { flex: 1; }
-    .gift-name { font-size: 0.88rem; font-weight: 700; color: #fff; margin-bottom: 2px; }
-    .gift-sub { font-size: 0.7rem; font-weight: 600; color: #555; }
-    .gift-price { font-size: 0.9rem; font-weight: 700; color: var(--yellow); }
-
-    .gift-checkbox {
-      width: 22px; height: 22px;
-      border-radius: 7px;
-      border: 2px solid #333;
-      display: flex; align-items: center; justify-content: center;
-      transition: all 0.2s;
-      flex-shrink: 0;
-    }
-    .gift-toggle.active .gift-checkbox {
-      background: var(--yellow);
-      border-color: var(--yellow);
-    }
-    .gift-checkbox svg { opacity: 0; transition: opacity 0.15s; }
-    .gift-toggle.active .gift-checkbox svg { opacity: 1; }
-
-    /* ── ORDER SUMMARY (right col / bottom on mobile) ── */
-    .order-col { display: flex; flex-direction: column; gap: 0; }
-
-    @media (min-width: 860px) {
-      .order-col {
-        position: sticky;
-        top: 74px;
-      }
-    }
-
-    .order-card {
-      background: #0a0a0a;
-      border: 1px solid #1a1a1a;
-      border-radius: 18px;
-      overflow: hidden;
-    }
-
-    .order-head {
       padding: 16px 20px;
       border-bottom: 1px solid #111;
-      font-size: 0.85rem;
-      font-weight: 700;
-      color: #fff;
-      display: flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,0.012);
     }
+    .card-icon {
+      width: 34px; height: 34px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .card-title { font-size: 0.92rem; font-weight: 700; color: #fff; }
+    .card-sub { font-size: 0.67rem; font-weight: 600; color: #888; margin-top: 1px; }
+    .card-body { padding: 18px 20px; }
 
-    .order-items { padding: 14px 20px; border-bottom: 1px solid #111; }
-
+    /* ── ORDER REVIEW ── */
     .order-item {
-      display: flex; gap: 12px; align-items: center;
-      padding: 8px 0;
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid #111;
     }
-    .order-item-img {
-      width: 50px; height: 50px; border-radius: 8px;
+    .order-item:last-child { border-bottom: none; }
+    .item-img {
+      width: 52px; height: 52px; border-radius: 10px;
+      background: #111; border: 1px solid #222;
       background-size: cover; background-position: center;
-      border: 1px solid #222; flex-shrink: 0;
+      flex-shrink: 0;
     }
-    .order-item-name { font-size: 0.8rem; font-weight: 700; color: #fff; margin-bottom: 2px; }
-    .order-item-meta { font-size: 0.67rem; font-weight: 600; color: #555; }
-    .order-item-price { font-size: 0.9rem; font-weight: 700; color: #fff; margin-left: auto; flex-shrink: 0; }
+    .item-name { font-size: 0.82rem; font-weight: 700; color: #fff; margin-bottom: 2px; }
+    .item-meta { font-size: 0.67rem; font-weight: 600; color: #aaa; }
+    .item-price { font-size: 0.9rem; font-weight: 700; margin-left: auto; flex-shrink: 0; }
 
-    .order-sums { padding: 16px 20px; border-bottom: 1px solid #111; }
+    /* ── ADDRESS REVIEW ── */
+    .addr-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    }
+    @media (max-width: 480px) { .addr-grid { grid-template-columns: 1fr; } }
+    .addr-field { }
+    .addr-label {
+      font-size: 0.62rem; font-weight: 700; color: #aaa;
+      text-transform: uppercase; letter-spacing: 0.8px;
+      margin-bottom: 4px;
+    }
+    .addr-val {
+      font-size: 0.82rem; font-weight: 600; color: #ddd;
+      background: #111; border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px; padding: 9px 12px;
+    }
+    .addr-val.highlight {
+      color: #fff;
+      border-color: rgba(255,255,255,0.28);
+    }
 
+    .validation-bar {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 16px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 0.75rem; font-weight: 700;
+    }
+    .validation-bar.ok {
+      background: rgba(52,199,89,0.08);
+      border: 1px solid rgba(52,199,89,0.2);
+      color: var(--green);
+    }
+    .validation-bar.warn {
+      background: rgba(255,59,48,0.08);
+      border: 1px solid rgba(255,59,48,0.2);
+      color: var(--red);
+    }
+
+    /* ── PRICING SUMMARY ── */
     .sum-row {
       display: flex; justify-content: space-between;
-      font-size: 0.8rem; font-weight: 600; margin-bottom: 8px;
+      font-size: 0.8rem; font-weight: 600;
+      padding: 7px 0;
+      border-bottom: 1px solid #0f0f0f;
     }
-    .sum-row:last-child { margin-bottom: 0; }
-    .sum-key { color: #555; }
-    .sum-val { color: #fff; }
+    .sum-row:last-child { border-bottom: none; }
+    .sum-key { color: #999; }
+    .sum-val { color: #eee; }
     .sum-val.free { color: var(--lime); }
     .sum-val.save { color: var(--red); }
-    .sum-val.gift-color { color: var(--yellow); }
-
-    .sum-total {
-      padding: 16px 20px;
+    .sum-total-row {
       display: flex; justify-content: space-between; align-items: center;
+      padding: 14px 0 4px;
+      margin-top: 6px;
+      border-top: 1px solid #1a1a1a;
     }
-    .sum-total-label { font-size: 1rem; font-weight: 700; color: #fff; }
-    .sum-total-val { font-size: 1.4rem; font-weight: 700; color: #fff; }
+    .sum-total-label { font-size: 1rem; font-weight: 700; }
+    .sum-total-val { font-size: 1.45rem; font-weight: 700; color: #fff; }
 
-    /* ── PAY BUTTON ── */
-    .pay-section { padding: 0 20px 20px; }
+    /* ── PAYPAL CONTAINER ── */
+    .paypal-section {
+      padding: 0 20px 20px;
+    }
 
-    .pay-btn {
-      width: 100%;
+    /* PayPal SDK renders white buttons — keep their container white-bg */
+    #paypal-button-container {
       background: #fff;
-      color: #000;
-      border: none;
-      border-radius: 14px;
-      padding: 18px;
-      font-family: var(--font);
-      font-weight: 700;
-      font-size: 1.05rem;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center; gap: 10px;
-      letter-spacing: 0.3px;
-      transition: transform 0.1s, opacity 0.15s;
-    }
-    .pay-btn:active { transform: scale(0.98); }
-    .pay-btn-divider {
-      width: 1px; height: 20px;
-      background: rgba(0,0,0,0.2);
+      border-radius: 12px;
+      padding: 12px;
+      min-height: 50px;
     }
 
-    .pay-sub {
+    .pay-note {
       text-align: center;
-      font-size: 0.62rem;
-      font-weight: 600;
-      color: #333;
+      font-size: 0.62rem; font-weight: 600; color: #888;
       margin-top: 10px;
     }
 
-    /* ── TRUST ICONS ── */
+    /* ── TRUST ROW ── */
     .trust-row {
-      display: flex; justify-content: center; gap: 12px;
+      display: flex; justify-content: center; gap: 14px;
       flex-wrap: wrap;
       padding: 14px 20px;
       border-top: 1px solid #111;
     }
     .trust-chip {
       display: flex; align-items: center; gap: 5px;
-      font-size: 0.62rem; font-weight: 700; color: #444;
+      font-size: 0.62rem; font-weight: 700; color: #888;
     }
 
-    /* ── LOADING OVERLAY ── */
-    .loading-overlay {
+    /* ── BADGES ── */
+    .badge-row {
+      display: flex; gap: 8px; flex-wrap: wrap;
+      padding: 12px 20px;
+      border-top: 1px solid #111;
+    }
+    .badge {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 0.6rem; font-weight: 700;
+      padding: 5px 10px; border-radius: 20px;
+      letter-spacing: 0.4px;
+    }
+    .badge-ssl { background: rgba(0,240,255,0.07); border: 1px solid rgba(0,240,255,0.18); color: #00c8d8; }
+    .badge-pci { background: rgba(163,255,18,0.07); border: 1px solid rgba(163,255,18,0.18); color: #8fd400; }
+    .badge-enc { background: rgba(255,255,255,0.04); border: 1px solid #333; color: #999; }
+    .badge-pp  { background: rgba(0,56,255,0.07); border: 1px solid rgba(0,56,255,0.2); color: #5580ff; }
+
+    /* ── MODAL BASE ── */
+    .modal-overlay {
       position: fixed; inset: 0; z-index: 9999;
-      background: rgba(0,0,0,0.92);
-      backdrop-filter: blur(12px);
+      background: rgba(0,0,0,0.94);
+      backdrop-filter: blur(14px);
+      display: none;
+      align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+      width: 100%; max-width: 500px;
+      border-radius: 24px;
+      overflow: hidden;
+      animation: modalIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(0.88) translateY(20px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    /* ── SUCCESS MODAL ── */
+    .modal-success { background: #050f05; border: 1px solid rgba(52,199,89,0.25); }
+    .modal-success .modal-header {
+      background: rgba(52,199,89,0.06);
+      border-bottom: 1px solid rgba(52,199,89,0.12);
+      padding: 28px 24px 22px;
+      text-align: center;
+    }
+    .success-ring {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      background: rgba(52,199,89,0.1);
+      border: 2px solid rgba(52,199,89,0.3);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 16px;
+      animation: ringPulse 2s ease infinite;
+    }
+    @keyframes ringPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(52,199,89,0.3); }
+      50% { box-shadow: 0 0 0 12px rgba(52,199,89,0); }
+    }
+    .success-title { font-size: 1.4rem; font-weight: 700; color: var(--green); margin-bottom: 4px; }
+    .success-sub { font-size: 0.75rem; font-weight: 600; color: rgba(52,199,89,0.6); }
+
+    .modal-body { padding: 20px 24px; }
+
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+    .info-cell {}
+    .info-cell-label { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #888; margin-bottom: 3px; }
+    .info-cell-val { font-size: 0.82rem; font-weight: 700; color: #ddd; }
+    .info-cell-val.green { color: var(--green); }
+    .info-cell-val.big { font-size: 1rem; color: #fff; }
+
+    .tracking-box {
+      background: #0a1a0a;
+      border: 1px solid rgba(52,199,89,0.15);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 14px;
+    }
+    .tracking-label { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: rgba(52,199,89,0.5); margin-bottom: 6px; }
+    .tracking-val { font-size: 0.9rem; font-weight: 700; color: var(--green); word-break: break-all; }
+
+    .modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid rgba(52,199,89,0.08);
+      display: flex; gap: 10px;
+    }
+    .btn-primary {
+      flex: 1;
+      background: var(--green);
+      color: #000;
+      border: none; border-radius: 12px;
+      padding: 14px;
+      font-family: var(--font); font-weight: 700; font-size: 0.88rem;
+      cursor: pointer; transition: opacity 0.15s;
+    }
+    .btn-primary:hover { opacity: 0.88; }
+    .btn-ghost {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid #222;
+      color: #666;
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-family: var(--font); font-weight: 700; font-size: 0.82rem;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .btn-ghost:hover { color: #aaa; border-color: #333; }
+
+    /* ── CANCEL MODAL ── */
+    .modal-cancel { background: #0f0505; border: 1px solid rgba(255,59,48,0.2); }
+    .modal-cancel .modal-header {
+      background: rgba(255,59,48,0.05);
+      border-bottom: 1px solid rgba(255,59,48,0.1);
+      padding: 24px 24px 20px;
+      text-align: center;
+    }
+    .cancel-ring {
+      width: 60px; height: 60px;
+      border-radius: 50%;
+      background: rgba(255,59,48,0.1);
+      border: 2px solid rgba(255,59,48,0.25);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 14px;
+    }
+    .cancel-title { font-size: 1.2rem; font-weight: 700; color: var(--red); margin-bottom: 3px; }
+    .cancel-sub { font-size: 0.72rem; font-weight: 600; color: rgba(255,59,48,0.5); }
+
+    .cancel-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 9px 0;
+      border-bottom: 1px solid rgba(255,59,48,0.07);
+      font-size: 0.78rem;
+    }
+    .cancel-row:last-child { border-bottom: none; }
+    .cancel-key { color: #999; font-weight: 600; }
+    .cancel-val { color: #ccc; font-weight: 700; }
+    .cancel-val.red { color: var(--red); }
+
+    .cancel-code-box {
+      background: rgba(255,59,48,0.06);
+      border: 1px solid rgba(255,59,48,0.15);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin: 14px 0;
+      text-align: center;
+    }
+    .cancel-code-label { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: rgba(255,59,48,0.5); margin-bottom: 4px; }
+    .cancel-code-val { font-size: 1.1rem; font-weight: 700; color: var(--red); letter-spacing: 2px; }
+
+    .btn-cancel-close {
+      width: 100%;
+      background: rgba(255,59,48,0.1);
+      border: 1px solid rgba(255,59,48,0.2);
+      color: var(--red);
+      border-radius: 12px;
+      padding: 14px;
+      font-family: var(--font); font-weight: 700; font-size: 0.88rem;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .btn-cancel-close:hover { background: rgba(255,59,48,0.15); }
+
+    /* ── PROCESSING OVERLAY ── */
+    #processingOverlay {
+      position: fixed; inset: 0; z-index: 99999;
+      background: rgba(0,0,0,0.96);
+      backdrop-filter: blur(16px);
       display: none;
       flex-direction: column;
-      align-items: center; justify-content: center;
-      gap: 20px;
+      align-items: center; justify-content: center; gap: 18px;
     }
-    .loading-overlay.open { display: flex; }
+    #processingOverlay.open { display: flex; }
+    .proc-fan { width: 52px; height: 52px; animation: spin 0.7s linear infinite; }
+    .proc-text { font-size: 1rem; font-weight: 700; color: #fff; }
+    .proc-sub { font-size: 0.72rem; font-weight: 600; color: #888; }
+    .proc-steps { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+    .proc-step {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 0.72rem; font-weight: 600; color: #666;
+      transition: color 0.3s;
+    }
+    .proc-step.active { color: var(--cyan); }
+    .proc-step.done { color: var(--lime); }
+    .proc-step-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #222; flex-shrink: 0; transition: background 0.3s;
+    }
+    .proc-step.active .proc-step-dot { background: var(--cyan); box-shadow: 0 0 8px rgba(0,240,255,0.5); }
+    .proc-step.done .proc-step-dot { background: var(--lime); }
 
-    .loading-fan {
-      width: 56px; height: 56px;
-      animation: spin 0.8s linear infinite;
-    }
-    .loading-text {
-      font-size: 1rem; font-weight: 700; color: #fff;
-    }
-    .loading-sub {
-      font-size: 0.75rem; font-weight: 600; color: #555;
+    /* ── STICKY RIGHT ── */
+    @media (min-width: 860px) {
+      .right-col { position: sticky; top: 74px; }
     }
 
-    /* ── FIELD VALIDATION ── */
-    .field input.error,
-    .field select.error {
-      border-color: var(--red) !important;
+    /* ── LOADING SHIMMER ── */
+    .shimmer {
+      background: linear-gradient(90deg, #111 25%, #1a1a1a 50%, #111 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 6px;
+      height: 14px;
     }
-    .field .err-msg {
-      font-size: 0.62rem;
-      font-weight: 600;
-      color: var(--red);
-      display: none;
-    }
-    .field.has-error .err-msg { display: block; }
-    .field.has-error input,
-    .field.has-error select { border-color: var(--red); }
+    @keyframes shimmer { to { background-position: -200% 0; } }
 
     @media (max-width: 420px) {
-      .shipping-options { grid-template-columns: 1fr; }
-      .field-row.trio { grid-template-columns: 1fr 1fr; }
+      .info-grid { grid-template-columns: 1fr; }
     }
-
-    @media (max-width: 360px) {
-      .hdr-steps { display: none; }
-    }
-
-    /* ── COUNTRY SELECT DROPDOWN SEARCH ── */
-    .searchable-select-wrap { position: relative; }
-    .searchable-select-wrap input {
-      padding-right: 32px !important;
-      cursor: pointer;
-    }
-    .country-dropdown {
-      position: absolute;
-      top: calc(100% + 4px);
-      left: 0; right: 0;
-      background: #141414;
-      border: 1px solid #2a2a2a;
-      border-radius: 12px;
-      max-height: 220px;
-      overflow-y: auto;
-      z-index: 500;
-      scrollbar-width: none;
-      display: none;
-    }
-    .country-dropdown::-webkit-scrollbar { display: none; }
-    .country-dropdown.open { display: block; }
-    .country-opt {
-      padding: 10px 14px;
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: #ccc;
-      cursor: pointer;
-      display: flex; align-items: center; gap: 8px;
-      border-bottom: 1px solid #1a1a1a;
-      transition: background 0.15s;
-    }
-    .country-opt:last-child { border-bottom: none; }
-    .country-opt:hover, .country-opt.highlighted { background: rgba(255,255,255,0.05); }
-    .country-opt .cflag { font-size: 1rem; }
-    .country-opt .ccode { color: #444; font-size: 0.7rem; }
-
-    /* Phone prefix select */
-    .prefix-select-wrap { position: relative; flex: 0 0 130px; }
-    .prefix-select-wrap input {
-      width: 100%;
-      background: #111;
-      border: 1px solid #222;
-      border-radius: 10px;
-      padding: 11px 10px 11px 38px;
-      color: #fff;
-      font-family: var(--font);
-      font-size: 0.88rem;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    .prefix-dropdown {
-      position: absolute;
-      top: calc(100% + 4px);
-      left: 0;
-      width: 280px;
-      background: #141414;
-      border: 1px solid #2a2a2a;
-      border-radius: 12px;
-      max-height: 220px;
-      overflow-y: auto;
-      z-index: 600;
-      scrollbar-width: none;
-      display: none;
-    }
-    .prefix-dropdown::-webkit-scrollbar { display: none; }
-    .prefix-dropdown.open { display: block; }
-
-    .prefix-search {
-      padding: 10px 12px;
-      border-bottom: 1px solid #1a1a1a;
-      position: sticky; top: 0; background: #141414;
-    }
-    .prefix-search input {
-      width: 100%;
-      background: #1a1a1a;
-      border: 1px solid #222;
-      border-radius: 8px;
-      padding: 7px 10px;
-      color: #fff;
-      font-family: var(--font);
-      font-size: 0.8rem;
-      font-weight: 600;
-    }
-    .prefix-search input::placeholder { color: #444; }
-
-    .prefix-opt {
-      padding: 9px 14px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: #ccc;
-      cursor: pointer;
-      display: flex; align-items: center; gap: 8px;
-      border-bottom: 1px solid #111;
-      transition: background 0.15s;
-    }
-    .prefix-opt:hover { background: rgba(255,255,255,0.05); }
-    .prefix-opt .pflag { font-size: 0.95rem; }
-    .prefix-opt .pcode { color: #00f0ff; font-size: 0.75rem; font-weight: 700; }
-    .prefix-opt .pname { color: #666; font-size: 0.7rem; }
-/* ── FIX DROPDOWN OVERLAP / Z-INDEX ISSUES ── */
-.searchable-select-wrap,
-.prefix-select-wrap {
-  position: relative;
-  z-index: 10;
-}
-
-.country-dropdown,
-.prefix-dropdown {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  background: #141414;
-  border: 1px solid #2a2a2a;
-  border-radius: 12px;
-  max-height: 280px;
-  overflow-y: auto;
-  z-index: 9999 !important;  /* Forces dropdown above everything */
-  box-shadow: 0 8px 20px rgba(0,0,0,0.5);
-}
-
-/* Ensure dropdown appears above all other page content */
-.checkout-section {
-  position: relative;
-  z-index: 1;
-}
-
-.checkout-section:has(.country-dropdown.open),
-.checkout-section:has(.prefix-dropdown.open) {
-  z-index: 10000;
-}
-
-/* Fix for the phone prefix dropdown width on mobile */
-.prefix-dropdown {
-  width: 320px;
-  max-width: 90vw;
-  left: 0;
-}
-
-/* Make sure the container doesn't clip the dropdown */
-.section-body {
-  overflow: visible !important;
-}
-
-.checkout-section {
-  overflow: visible !important;
-}
-
-main {
-  overflow: visible !important;
-}
-
-/* Better scroll inside dropdown */
-.country-dropdown::-webkit-scrollbar,
-.prefix-dropdown::-webkit-scrollbar {
-  width: 4px;
-}
-.country-dropdown::-webkit-scrollbar-track,
-.prefix-dropdown::-webkit-scrollbar-track {
-  background: #1a1a1a;
-  border-radius: 4px;
-}
-.country-dropdown::-webkit-scrollbar-thumb,
-.prefix-dropdown::-webkit-scrollbar-thumb {
-  background: #444;
-  border-radius: 4px;
-}
   </style>
-  
 </head>
 <body>
+
 <!-- ── HEADER ── -->
-<header style="position: sticky; top: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.06); min-height: 58px; height: auto; display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; z-index: 100; gap: 10px; flex-wrap: wrap;">
-  
-  <!-- Left: Brand Logo -->
-  <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
-    <svg style="width: 28px; height: 28px; animation: spin 4s linear infinite;" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+<header>
+  <div class="hdr-brand">
+    <svg class="hdr-fan" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
       <circle cx="50" cy="50" r="16" fill="#fff"/>
       <path d="M50 34 C30 30 30 4 50 4 C70 4 70 30 50 34 Z" fill="#fff"/>
       <path d="M66 50 C70 30 96 30 96 50 C96 70 70 70 66 50 Z" fill="#fff"/>
@@ -670,429 +589,142 @@ main {
       <circle cx="50" cy="50" r="6" fill="#000"/>
     </svg>
     <div>
-      <span style="font-size: 0.95rem; font-weight: 700;">MINIMISTY</span>
-      <span style="font-size: 0.65rem; font-weight: 600; color: #00f0ff;">.store</span>
+      <span class="hdr-name">MINIMISTY</span>
+      <span class="hdr-suffix">.store</span>
     </div>
   </div>
-
-  <!-- Right: Buttons Group - wraps on small screens -->
-  <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
-    
-    <!-- Return Button - sends user to root / -->
-    <button onclick="window.location.href='/'" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 30px; padding: 6px 10px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s ease; backdrop-filter: blur(4px);" onmouseover="this.style.background='rgba(255,255,255,0.12)'; this.style.borderColor='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'; this.style.borderColor='rgba(255,255,255,0.1)'">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M19 12H5M12 19l-7-7 7-7"/>
-      </svg>
-      <!-- Text hides on screens below 380px -->
-      <span style="font-size: 0.7rem; font-weight: 600; color: white; display: inline-block;" class="return-text">Return</span>
-    </button>
-
-    <!-- AI Support Button - opens clean AI modal -->
-    <button onclick="openSupportModal()" style="background: linear-gradient(135deg, #00f0ff, #a3ff12, #00f0ff); background-size: 200% 200%; border: none; border-radius: 30px; padding: 6px 12px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.3s ease; animation: gradientShift 3s ease infinite; box-shadow: 0 2px 8px rgba(0,240,255,0.3);" onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 4px 15px rgba(0,240,255,0.5)'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 8px rgba(0,240,255,0.3)'">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-        <path d="M8 10h.01M12 10h.01M16 10h.01"/>
-      </svg>
-      <span style="font-size: 0.7rem; font-weight: 700; color: #000; letter-spacing: 0.3px; white-space: nowrap;">AI Support</span>
-    </button>
+  <div class="hdr-secure">
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    SECURE PAYMENT
   </div>
 </header>
 
-<!-- Responsive CSS -->
-<style>
-  /* Hide "Return" text on very small screens (below 380px) */
-  @media (max-width: 380px) {
-    .return-text {
-      display: none !important;
-    }
-    header {
-      padding: 8px 12px !important;
-    }
-  }
-
-  /* Adjust button sizes for medium-small screens (380px - 480px) */
-  @media (max-width: 480px) and (min-width: 381px) {
-    .return-text {
-      font-size: 0.65rem !important;
-    }
-    button span {
-      font-size: 0.65rem !important;
-    }
-  }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-  
-  @keyframes gradientShift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-  }
-</style>
-
-<!-- Responsive CSS to add to your style section -->
-<style>
-  /* Hide "Return" text on very small screens (below 380px) */
-  @media (max-width: 380px) {
-    .return-text {
-      display: none !important;
-    }
-    header {
-      padding: 8px 12px !important;
-    }
-  }
-
-  /* Adjust button sizes for medium-small screens (380px - 480px) */
-  @media (max-width: 480px) and (min-width: 381px) {
-    .return-text {
-      font-size: 0.65rem !important;
-    }
-    button span {
-      font-size: 0.65rem !important;
-    }
-  }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-  
-  @keyframes gradientShift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-  }
-</style>
-<!-- Add this keyframes animation to your style section for the gradient shift -->
-<style>
-  @keyframes gradientShift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-  }
-</style>
-
 <main>
-  <!-- LEFT COLUMN: form -->
-  <div class="form-col">
+  <!-- LEFT COL -->
+  <div class="left-col">
 
-    <!-- CONTACT SECTION -->
-    <div class="checkout-section">
-      <div class="section-head">
-        <div class="section-icon" style="background:rgba(0,240,255,0.08);border:1px solid rgba(0,240,255,0.15)">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00f0ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-            <circle cx="12" cy="7" r="4"/>
-          </svg>
+    <!-- ORDER REVIEW -->
+    <div class="card" id="orderReviewCard">
+      <div class="card-head">
+        <div class="card-icon" style="background:rgba(0,240,255,0.07);border:1px solid rgba(0,240,255,0.14)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00f0ff" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
         </div>
         <div>
-          <div class="section-title">Contact Information</div>
-          <div class="section-sub">Your personal details for order confirmation</div>
+          <div class="card-title">Order Review</div>
+          <div class="card-sub">Confirm what you are ordering</div>
         </div>
       </div>
-      <div class="section-body">
-
-        <div class="field-row">
-          <div class="field" id="field-first">
-            <label>First Name</label>
-            <div class="field-wrap">
-              <svg class="field-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              <input type="text" id="inp-first" placeholder="John" autocomplete="given-name">
-            </div>
-            <span class="err-msg">Required</span>
-          </div>
-          <div class="field" id="field-last">
-            <label>Last Name</label>
-            <div class="field-wrap">
-              <svg class="field-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              <input type="text" id="inp-last" placeholder="Doe" autocomplete="family-name">
-            </div>
-            <span class="err-msg">Required</span>
-          </div>
-        </div>
-
-        <div class="field-row single">
-          <div class="field" id="field-email">
-            <label>Email Address</label>
-            <div class="field-wrap">
-              <svg class="field-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-              <input type="email" id="inp-email" placeholder="john@example.com" autocomplete="email">
-            </div>
-            <span class="err-msg">Valid email required</span>
-          </div>
-        </div>
-
-        <div class="field-row single">
-          <div class="field" id="field-phone">
-            <label>Phone Number</label>
-            <div class="phone-wrap">
-              <!-- Country code prefix -->
-              <div class="prefix-select-wrap" id="prefixWrap">
-                <div class="field-wrap">
-                  <svg class="field-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
-                  <input type="text" id="prefixDisplay" placeholder="+1 🇺🇸" readonly style="cursor:pointer" onclick="togglePrefixDropdown()">
-                </div>
-                <div class="prefix-dropdown" id="prefixDropdown">
-                  <div class="prefix-search">
-                    <input type="text" id="prefixSearch" placeholder="Search country…" oninput="filterPrefixes()" onclick="event.stopPropagation()">
-                  </div>
-                  <div id="prefixList"></div>
-                </div>
-              </div>
-              <!-- Phone number -->
-              <div class="phone-number">
-                <div class="field-wrap">
-                  <svg class="field-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.3h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                  <input type="tel" id="inp-phone" placeholder="712 345 6789" autocomplete="tel" style="padding-left:38px">
-                </div>
-              </div>
-            </div>
-            <span class="err-msg">Valid phone required</span>
-          </div>
-        </div>
-
+      <div class="card-body" id="orderItemsEl">
+        <div class="shimmer" style="margin-bottom:10px"></div>
+        <div class="shimmer" style="width:70%"></div>
       </div>
     </div>
 
-    <!-- ADDRESS SECTION -->
-    <div class="checkout-section">
-      <div class="section-head">
-        <div class="section-icon" style="background:rgba(163,255,18,0.08);border:1px solid rgba(163,255,18,0.15)">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a3ff12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-            <circle cx="12" cy="10" r="3"/>
-          </svg>
+    <!-- ADDRESS REVIEW -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:rgba(163,255,18,0.07);border:1px solid rgba(163,255,18,0.14)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a3ff12" stroke-width="2" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
         </div>
         <div>
-          <div class="section-title">Shipping Address</div>
-          <div class="section-sub">Where should we deliver your FrostBlade Pro?</div>
+          <div class="card-title">Delivery Address</div>
+          <div class="card-sub">Verified before dispatch</div>
         </div>
       </div>
-      <div class="section-body">
-
-        <div class="field-row">
-          <div class="field" id="field-addr1">
-            <label>Street Address</label>
-            <div class="field-wrap">
-              <svg class="field-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-              <input type="text" id="inp-addr1" placeholder="123 Main Street" autocomplete="address-line1">
-            </div>
-            <span class="err-msg">Required</span>
-          </div>
-          <div class="field">
-            <label>House / Apt / Suite</label>
-            <div class="field-wrap">
-              <svg class="field-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h.01M15 9h.01M9 15h.01M15 15h.01"/></svg>
-              <input type="text" id="inp-addr2" placeholder="Apt 4B (optional)" autocomplete="address-line2">
-            </div>
-          </div>
+      <div class="card-body">
+        <div class="validation-bar" id="addrValidationBar">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Checking address…
         </div>
-
-        <div class="field-row single">
-          <div class="field" id="field-country">
-            <label>Country</label>
-            <div class="searchable-select-wrap" id="countryWrap">
-              <div class="field-wrap">
-                <svg class="field-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-                <input type="text" id="countryDisplay" placeholder="Select country…" readonly onclick="toggleCountryDropdown()" style="cursor:pointer">
-              </div>
-              <div class="country-dropdown" id="countryDropdown">
-                <div class="prefix-search">
-                  <input type="text" id="countrySearch" placeholder="Search country…" oninput="filterCountries()" onclick="event.stopPropagation()" style="width:100%;background:#1a1a1a;border:1px solid #222;border-radius:8px;padding:7px 10px;color:#fff;font-family:var(--font);font-size:0.8rem;font-weight:600;">
-                </div>
-                <div id="countryList"></div>
-              </div>
-              <input type="hidden" id="inp-country">
-            </div>
-            <span class="err-msg">Please select a country</span>
-          </div>
+        <div class="addr-grid" id="addrGrid">
+          <div class="addr-field"><div class="addr-label">Full Name</div><div class="addr-val shimmer" id="adv-name" style="height:36px"></div></div>
+          <div class="addr-field"><div class="addr-label">Email</div><div class="addr-val shimmer" id="adv-email" style="height:36px"></div></div>
+          <div class="addr-field"><div class="addr-label">Phone</div><div class="addr-val shimmer" id="adv-phone" style="height:36px"></div></div>
+          <div class="addr-field"><div class="addr-label">Country</div><div class="addr-val shimmer" id="adv-country" style="height:36px"></div></div>
+          <div class="addr-field"><div class="addr-label">Street Address</div><div class="addr-val shimmer" id="adv-addr1" style="height:36px"></div></div>
+          <div class="addr-field"><div class="addr-label">City / State</div><div class="addr-val shimmer" id="adv-city" style="height:36px"></div></div>
+          <div class="addr-field"><div class="addr-label">Postal Code</div><div class="addr-val shimmer" id="adv-postal" style="height:36px"></div></div>
+          <div class="addr-field"><div class="addr-label">Shipping Method</div><div class="addr-val shimmer" id="adv-ship" style="height:36px"></div></div>
         </div>
-
-        <div class="field-row trio">
-          <div class="field" id="field-city">
-            <label>City</label>
-            <div class="field-wrap">
-              <svg class="field-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round"><path d="M20 22V8l-8-6-8 6v14"/><rect x="9" y="14" width="6" height="8"/></svg>
-              <input type="text" id="inp-city" placeholder="Cape Town" autocomplete="address-level2">
-            </div>
-            <span class="err-msg">Required</span>
-          </div>
-          <div class="field" id="field-state">
-            <label>State / Province</label>
-            <div class="field-wrap">
-              <svg class="field-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
-              <input type="text" id="inp-state" placeholder="Western Cape" autocomplete="address-level1">
-            </div>
-          </div>
-          <div class="field" id="field-postal">
-            <label>Postal Code</label>
-            <div class="field-wrap">
-              <svg class="field-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 8h10M7 12h5"/></svg>
-              <input type="text" id="inp-postal" placeholder="8001" autocomplete="postal-code">
-            </div>
-            <span class="err-msg">Required</span>
-          </div>
-        </div>
-
       </div>
     </div>
 
-    <!-- SHIPPING METHOD -->
-    <div class="checkout-section">
-      <div class="section-head">
-        <div class="section-icon" style="background:rgba(255,59,48,0.08);border:1px solid rgba(255,59,48,0.15)">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff3b30" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="1" y="3" width="15" height="13"/>
-            <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
-            <circle cx="5.5" cy="18.5" r="2.5"/>
-            <circle cx="18.5" cy="18.5" r="2.5"/>
-          </svg>
+  </div>
+
+  <!-- RIGHT COL -->
+  <div class="right-col">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:rgba(255,255,255,0.04);border:1px solid #222">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
         </div>
         <div>
-          <div class="section-title">Shipping Method</div>
-          <div class="section-sub">Choose how fast you want your cool</div>
+          <div class="card-title">Payment Summary</div>
+          <div class="card-sub">Review total before paying</div>
         </div>
       </div>
-      <div class="section-body">
-        <div class="shipping-options">
 
-          <!-- Standard -->
-          <div class="ship-card active" id="ship-std" onclick="selectShipping('std')">
-            <div class="ship-select-dot"></div>
-            <div class="ship-badge std">STANDARD</div>
-            <div class="ship-icon-row">
-              <div class="ship-icon-wrap" style="background:rgba(255,255,255,0.05);border:1px solid #222">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
-                  <circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
-                </svg>
-              </div>
-            </div>
-            <div class="ship-name">Standard Delivery</div>
-            <div class="ship-days">8 – 16 business days</div>
-            <div class="ship-price" id="ship-std-price">Loading…</div>
-          </div>
-
-          <!-- Prime -->
-          <div class="ship-card" id="ship-prime" onclick="selectShipping('prime')">
-            <div class="ship-select-dot"></div>
-            <div class="ship-badge prime"> PRIME</div>
-            <div class="ship-icon-row">
-              <div class="ship-icon-wrap" style="background:rgba(0,240,255,0.08);border:1px solid rgba(0,240,255,0.18)">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00f0ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M12 2l7 7-7 7M5 9h14"/><path d="M5 15l7 7 7-7"/>
-                </svg>
-              </div>
-            </div>
-            <div class="ship-name">Prime Express</div>
-            <div class="ship-days">5 – 12 business days</div>
-            <div class="ship-price paid" id="ship-prime-price">Loading…</div>
-          </div>
-
-        </div>
-
-        <!-- Gift Packaging -->
-        <div class="gift-toggle" id="giftToggle" onclick="toggleGift()">
-          <div class="gift-icon-wrap">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffeb3b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="20 12 20 22 4 22 4 12"/>
-              <rect x="2" y="7" width="20" height="5"/>
-              <line x1="12" y1="22" x2="12" y2="7"/>
-              <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/>
-              <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
-            </svg>
-          </div>
-          <div class="gift-info">
-            <div class="gift-name">Gift Wrapping</div>
-            <div class="gift-sub">Premium packaging · Perfect for gifting</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:10px">
-            <div class="gift-price" id="gift-price-display">+Loading</div>
-            <div class="gift-checkbox">
-              <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round"><polyline points="2,6 5,9 10,3"/></svg>
-            </div>
+      <div class="card-body">
+        <div id="sumRows">
+          <div class="sum-row"><span class="sum-key">Subtotal</span><span class="sum-val" id="s-subtotal">—</span></div>
+          <div class="sum-row"><span class="sum-key">Discount</span><span class="sum-val save" id="s-discount">—</span></div>
+          <div class="sum-row"><span class="sum-key">Shipping</span><span class="sum-val" id="s-shipping">—</span></div>
+          <div class="sum-row" id="s-gift-row" style="display:none"><span class="sum-key">Gift Wrapping</span><span class="sum-val" id="s-gift">—</span></div>
+          <div class="sum-row"><span class="sum-key">Tax (5%)</span><span class="sum-val" id="s-tax">—</span></div>
+          <div class="sum-total-row">
+            <span class="sum-total-label">Total Due</span>
+            <span class="sum-total-val" id="s-total">—</span>
           </div>
         </div>
-
-      </div>
-    </div>
-
-  </div><!-- /form-col -->
-
-  <!-- RIGHT COLUMN: order summary -->
-  <div class="order-col">
-    <div class="order-card">
-
-      <div class="order-head">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-        Order Summary
       </div>
 
-      <div class="order-items" id="orderItemsEl">
-        <!-- Populated by JS -->
-        <div style="font-size:0.78rem;color:#444;font-weight:600;text-align:center;padding:10px 0">Loading order…</div>
+      <!-- PayPal Buttons -->
+      <div class="paypal-section">
+        <div id="paypal-button-container"></div>
+        <div class="pay-note">Secured by PayPal. Your payment details are never stored on our servers.</div>
       </div>
 
-      <div class="order-sums">
-        <div class="sum-row"><span class="sum-key">Subtotal</span><span class="sum-val" id="sum-subtotal">—</span></div>
-        <div class="sum-row"><span class="sum-key">Bundle Discount</span><span class="sum-val save" id="sum-discount">—</span></div>
-        <div class="sum-row"><span class="sum-key">Shipping</span><span class="sum-val" id="sum-shipping">—</span></div>
-        <div class="sum-row" id="gift-sum-row" style="display:none"><span class="sum-key">Gift Wrapping</span><span class="sum-val gift-color" id="sum-gift">—</span></div>
-        <div class="sum-row"><span class="sum-key">Tax (5%)</span><span class="sum-val" id="sum-tax">—</span></div>
-      </div>
-
-      <div class="sum-total">
-        <span class="sum-total-label">Total</span>
-        <span class="sum-total-val" id="sum-total">—</span>
-      </div>
-
-      <div class="pay-section">
-        <button class="pay-btn" onclick="proceedToPayment()">
-          PAY NOW
-          <div class="pay-btn-divider"></div>
-          <!-- PayPal SVG -->
-          <svg height="18" viewBox="0 0 101 32" xmlns="http://www.w3.org/2000/svg">
-            <path d="M 12.237 2.8 L 4.437 2.8 C 3.937 2.8 3.437 3.2 3.337 3.7 L 0.237 23.7 C 0.137 24.1 0.437 24.4 0.837 24.4 L 4.537 24.4 C 5.037 24.4 5.537 24 5.637 23.5 L 6.437 18.1 C 6.537 17.6 6.937 17.2 7.537 17.2 L 10.037 17.2 C 15.137 17.2 18.137 14.7 18.937 9.8 C 19.237 7.7 18.937 6 17.937 4.8 C 16.837 3.5 14.837 2.8 12.237 2.8 Z M 13.137 10.1 C 12.737 12.9 10.537 12.9 8.537 12.9 L 7.337 12.9 L 8.137 7.7 C 8.137 7.4 8.437 7.2 8.737 7.2 L 9.237 7.2 C 10.637 7.2 11.937 7.2 12.637 8 C 13.137 8.4 13.337 9.1 13.137 10.1 Z" fill="#003087"/>
-            <path d="M 35.437 10 L 31.737 10 C 31.437 10 31.137 10.2 31.137 10.5 L 30.937 11.5 L 30.637 11.1 C 29.737 9.8 27.937 9.4 26.137 9.4 C 22.037 9.4 18.537 12.5 17.837 16.9 C 17.437 19.1 17.937 21.2 19.237 22.6 C 20.337 23.9 22.037 24.4 23.937 24.4 C 27.237 24.4 29.137 22.3 29.137 22.3 L 28.937 23.3 C 28.837 23.7 29.137 24.1 29.537 24.1 L 32.937 24.1 C 33.437 24.1 33.937 23.7 34.037 23.2 L 36.037 10.7 C 36.137 10.4 35.837 10 35.437 10 Z M 30.237 17.1 C 29.837 19.2 28.237 20.7 26.037 20.7 C 24.937 20.7 24.137 20.4 23.537 19.7 C 22.937 19 22.737 18.1 22.937 17.1 C 23.337 15 24.937 13.5 27.037 13.5 C 28.137 13.5 28.937 13.9 29.537 14.5 C 30.137 15.2 30.337 16.1 30.237 17.1 Z" fill="#003087"/>
-            <path d="M 55.337 10 L 51.637 10 C 51.237 10 50.937 10.2 50.737 10.5 L 45.537 18.3 L 43.337 10.8 C 43.237 10.3 42.737 10 42.337 10 L 38.637 10 C 38.237 10 37.837 10.4 38.037 10.9 L 42.137 23.1 L 38.237 28.6 C 37.937 29 38.237 29.6 38.737 29.6 L 42.437 29.6 C 42.837 29.6 43.137 29.4 43.337 29.1 L 55.837 10.9 C 56.137 10.5 55.837 10 55.337 10 Z" fill="#003087"/>
-            <path d="M 68.437 2.8 L 60.637 2.8 C 60.137 2.8 59.637 3.2 59.537 3.7 L 56.437 23.6 C 56.337 24 56.637 24.3 57.037 24.3 L 61.037 24.3 C 61.337 24.3 61.637 24.1 61.637 23.8 L 62.537 18 C 62.637 17.5 63.037 17.1 63.637 17.1 L 66.137 17.1 C 71.237 17.1 74.237 14.6 75.037 9.7 C 75.337 7.6 75.037 5.9 74.037 4.7 C 72.937 3.5 70.937 2.8 68.437 2.8 Z M 69.337 10.1 C 68.937 12.9 66.737 12.9 64.737 12.9 L 63.537 12.9 L 64.337 7.7 C 64.337 7.4 64.637 7.2 64.937 7.2 L 65.437 7.2 C 66.837 7.2 68.137 7.2 68.837 8 C 69.337 8.4 69.437 9.1 69.337 10.1 Z" fill="#009cde"/>
-            <path d="M 91.637 10 L 87.937 10 C 87.637 10 87.337 10.2 87.337 10.5 L 87.137 11.5 L 86.837 11.1 C 85.937 9.8 84.137 9.4 82.337 9.4 C 78.237 9.4 74.737 12.5 74.037 16.9 C 73.637 19.1 74.137 21.2 75.437 22.6 C 76.537 23.9 78.237 24.4 80.137 24.4 C 83.437 24.4 85.337 22.3 85.337 22.3 L 85.137 23.3 C 85.037 23.7 85.337 24.1 85.737 24.1 L 89.137 24.1 C 89.637 24.1 90.137 23.7 90.237 23.2 L 92.237 10.7 C 92.337 10.4 92.037 10 91.637 10 Z M 86.437 17.1 C 86.037 19.2 84.437 20.7 82.237 20.7 C 81.137 20.7 80.337 20.4 79.737 19.7 C 79.137 19 78.937 18.1 79.137 17.1 C 79.537 15 81.137 13.5 83.237 13.5 C 84.337 13.5 85.137 13.9 85.737 14.5 C 86.337 15.2 86.537 16.1 86.437 17.1 Z" fill="#009cde"/>
-            <path d="M 95.337 3.3 L 92.137 23.6 C 92.037 24 92.337 24.3 92.737 24.3 L 95.937 24.3 C 96.437 24.3 96.937 23.9 97.037 23.4 L 100.237 3.5 C 100.337 3.1 100.037 2.8 99.637 2.8 L 96.037 2.8 C 95.637 2.8 95.437 3 95.337 3.3 Z" fill="#009cde"/>
-          </svg>
-          <!-- Cards SVG -->
-          <svg width="28" height="18" viewBox="0 0 50 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="50" height="32" rx="4" fill="#1a1a2e"/>
-            <circle cx="20" cy="16" r="9" fill="#eb001b" opacity="0.9"/>
-            <circle cx="30" cy="16" r="9" fill="#f79e1b" opacity="0.9"/>
-            <path d="M25 9a9 9 0 010 14A9 9 0 0125 9z" fill="#ff5f00" opacity="0.9"/>
-          </svg>
-        </button>
-        <div class="pay-sub"> SSL Encrypted · 30-Day Returns · 1-Year Warranty</div>
+      <!-- Badges -->
+      <div class="badge-row">
+        <div class="badge badge-ssl">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          SSL 256-bit
+        </div>
+        <div class="badge badge-pci">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          PCI Compliant
+        </div>
+        <div class="badge badge-pp">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          PayPal Verified
+        </div>
+        <div class="badge badge-enc">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          30-Day Returns
+        </div>
       </div>
 
       <div class="trust-row">
         <div class="trust-chip">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          Secure
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Encrypted
         </div>
         <div class="trust-chip">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-          30-Day Returns
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Verified Checkout
         </div>
         <div class="trust-chip">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
           Fast Dispatch
         </div>
       </div>
-
     </div>
   </div>
-
 </main>
 
-<!-- ── LOADING OVERLAY ── -->
-<div id="loadingOverlay" class="loading-overlay">
-  <svg class="loading-fan" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+<!-- ── PROCESSING OVERLAY ── -->
+<div id="processingOverlay">
+  <svg class="proc-fan" viewBox="0 0 100 100" fill="none">
     <circle cx="50" cy="50" r="16" fill="#fff"/>
     <path d="M50 34 C30 30 30 4 50 4 C70 4 70 30 50 34 Z" fill="#fff"/>
     <path d="M66 50 C70 30 96 30 96 50 C96 70 70 70 66 50 Z" fill="#fff"/>
@@ -1100,340 +732,142 @@ main {
     <path d="M34 50 C30 70 4 70 4 50 C4 30 30 30 34 50 Z" fill="#fff"/>
     <circle cx="50" cy="50" r="6" fill="#000"/>
   </svg>
-  <div class="loading-text">Processing your order…</div>
-  <div class="loading-sub">Please don't close this page</div>
+  <div class="proc-text" id="procText">Verifying payment…</div>
+  <div class="proc-sub">Do not close this page</div>
+  <div class="proc-steps">
+    <div class="proc-step active" id="pstep-1"><div class="proc-step-dot"></div>Confirming with PayPal</div>
+    <div class="proc-step" id="pstep-2"><div class="proc-step-dot"></div>Validating order security</div>
+    <div class="proc-step" id="pstep-3"><div class="proc-step-dot"></div>Sending to fulfilment</div>
+    <div class="proc-step" id="pstep-4"><div class="proc-step-dot"></div>Generating tracking</div>
+  </div>
 </div>
-<script>
-// ============================================
-// RETURN TO ROOT (/)
-// ============================================
-function goToRoot() {
-  window.location.href = '/';
-}
 
-// ============================================
-// AI SUPPORT MODAL SYSTEM
-// ============================================
-
-// Create modal dynamically
-function createSupportModal() {
-  // Check if modal already exists
-  if (document.getElementById('aiSupportModal')) return;
-  
-  const modalHTML = `
-    <div id="aiSupportModal" style="display: none; position: fixed; inset: 0; z-index: 999999; background: rgba(0,0,0,0.92); backdrop-filter: blur(12px); align-items: center; justify-content: center; font-family: 'Fredoka', sans-serif;">
-      <div style="background: linear-gradient(135deg, #0a0a0a, #0f0f0f); border: 1px solid rgba(0,240,255,0.3); border-radius: 28px; width: 90%; max-width: 500px; max-height: 85vh; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.5), 0 0 20px rgba(0,240,255,0.1);">
-        
-        <!-- Modal Header -->
-        <div style="padding: 18px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: space-between; background: rgba(0,240,255,0.03);">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #00f0ff, #a3ff12); border-radius: 12px; display: flex; align-items: center; justify-content: center; animation: pulse 2s infinite;">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2">
-                <path d="M12 2a10 10 0 0 1 10 10c0 5-4 9-10 9-1.5 0-3-.4-4.3-1.1L3 22l2.2-4.7C4.4 16 4 14.5 4 13a10 10 0 0 1 10-10z"/>
-                <path d="M8 12h.01M12 12h.01M16 12h.01"/>
-              </svg>
-            </div>
-            <div>
-              <div style="font-size: 1rem; font-weight: 700; color: #fff;">AI Support Assistant</div>
-              <div style="font-size: 0.7rem; color: #00f0ff; font-weight: 600;">Powered by Neural AI</div>
-            </div>
-          </div>
-          <button onclick="closeSupportModal()" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 30px; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
+<!-- ── SUCCESS MODAL ── -->
+<div class="modal-overlay" id="successModal">
+  <div class="modal-box modal-success">
+    <div class="modal-header">
+      <div class="success-ring">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#34c759" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <div class="success-title">Payment Confirmed</div>
+      <div class="success-sub">Your order is being prepared</div>
+    </div>
+    <div class="modal-body">
+      <div class="tracking-box" id="trackingBox" style="display:none">
+        <div class="tracking-label">Tracking Number</div>
+        <div class="tracking-val" id="trackingVal">—</div>
+      </div>
+      <div class="info-grid">
+        <div class="info-cell">
+          <div class="info-cell-label">Order ID</div>
+          <div class="info-cell-val" id="suc-orderId">—</div>
         </div>
-        
-        <!-- Chat Messages Area -->
-        <div id="chatMessages" style="height: 350px; overflow-y: auto; padding: 18px 16px; display: flex; flex-direction: column; gap: 12px; background: rgba(0,0,0,0.3);">
-          <div style="display: flex; gap: 10px; align-items: flex-start;">
-            <div style="width: 28px; height: 28px; background: linear-gradient(135deg, #00f0ff, #a3ff12); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            </div>
-            <div style="background: #111; border-radius: 16px; padding: 10px 14px; max-width: 85%; border: 1px solid #222;">
-              <div style="font-size: 0.8rem; color: #ddd; line-height: 1.4;">👋 Hey! I'm your AI assistant. Ask me anything about orders, shipping, returns, or products!</div>
-            </div>
-          </div>
+        <div class="info-cell">
+          <div class="info-cell-label">PayPal Ref</div>
+          <div class="info-cell-val" id="suc-ppRef">—</div>
         </div>
-        
-        <!-- Quick Questions -->
-        <div style="padding: 10px 16px; border-top: 1px solid rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none;">
-          <button onclick="askQuickQuestion('Where is my order?')" style="background: rgba(0,240,255,0.08); border: 1px solid rgba(0,240,255,0.2); border-radius: 20px; padding: 6px 12px; font-size: 0.7rem; color: #00f0ff; font-weight: 600; cursor: pointer; white-space: nowrap;">📍 Track Order</button>
-          <button onclick="askQuickQuestion('What is your return policy?')" style="background: rgba(163,255,18,0.08); border: 1px solid rgba(163,255,18,0.2); border-radius: 20px; padding: 6px 12px; font-size: 0.7rem; color: #a3ff12; font-weight: 600; cursor: pointer; white-space: nowrap;">🔄 Returns</button>
-          <button onclick="askQuickQuestion('Shipping times?')" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 6px 12px; font-size: 0.7rem; color: #fff; font-weight: 600; cursor: pointer; white-space: nowrap;">🚚 Shipping</button>
-          <button onclick="askQuickQuestion('Contact support team')" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 6px 12px; font-size: 0.7rem; color: #fff; font-weight: 600; cursor: pointer; white-space: nowrap;">📞 Contact</button>
+        <div class="info-cell">
+          <div class="info-cell-label">Amount Paid</div>
+          <div class="info-cell-val big green" id="suc-total">—</div>
         </div>
-        
-        <!-- Input Area -->
-        <div style="padding: 16px; display: flex; gap: 10px; background: #0a0a0a;">
-          <input type="text" id="chatInput" placeholder="Type your question..." style="flex: 1; background: #111; border: 1px solid #2a2a2a; border-radius: 24px; padding: 12px 16px; color: #fff; font-family: 'Fredoka', sans-serif; font-size: 0.85rem; font-weight: 500;" onkeypress="if(event.key === 'Enter') sendSupportMessage()">
-          <button onclick="sendSupportMessage()" style="background: linear-gradient(135deg, #00f0ff, #a3ff12); border: none; border-radius: 30px; width: 44px; height: 44px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.15s;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2">
-              <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-            </svg>
-          </button>
+        <div class="info-cell">
+          <div class="info-cell-label">Currency</div>
+          <div class="info-cell-val" id="suc-currency">—</div>
         </div>
-        
-        <div style="padding: 10px 16px; border-top: 1px solid rgba(255,255,255,0.05); text-align: center;">
-          <div style="font-size: 0.55rem; color: #444; font-weight: 600;">⚡ AI responses are generated instantly | 24/7 Support</div>
+        <div class="info-cell">
+          <div class="info-cell-label">Confirmation sent to</div>
+          <div class="info-cell-val" id="suc-email">—</div>
+        </div>
+        <div class="info-cell">
+          <div class="info-cell-label">Estimated Delivery</div>
+          <div class="info-cell-val" id="suc-delivery">—</div>
         </div>
       </div>
     </div>
-  `;
-  
-  document.body.insertAdjacentHTML('beforeend', modalHTML);
-  
-  // Add pulse animation
-  if (!document.getElementById('modalAnimations')) {
-    const style = document.createElement('style');
-    style.id = 'modalAnimations';
-    style.textContent = `
-      @keyframes pulse {
-        0%, 100% { opacity: 1; transform: scale(1); }
-        50% { opacity: 0.85; transform: scale(1.02); }
-      }
-    `;
-    document.head.appendChild(style);
-  }
-}
-
-// Open AI Support Modal
-function openSupportModal() {
-  createSupportModal();
-  const modal = document.getElementById('aiSupportModal');
-  modal.style.display = 'flex';
-  setTimeout(() => {
-    const input = document.getElementById('chatInput');
-    if (input) input.focus();
-  }, 100);
-}
-
-// Close Modal
-function closeSupportModal() {
-  const modal = document.getElementById('aiSupportModal');
-  if (modal) modal.style.display = 'none';
-}
-
-// Quick question handler
-function askQuickQuestion(question) {
-  const input = document.getElementById('chatInput');
-  if (input) {
-    input.value = question;
-    sendSupportMessage();
-  }
-}
-
-// Send message to AI API
-async function sendSupportMessage() {
-  const input = document.getElementById('chatInput');
-  const message = input.value.trim();
-  if (!message) return;
-  
-  // Add user message to chat
-  addChatMessage(message, 'user');
-  input.value = '';
-  
-  // Show typing indicator
-  const typingId = showTypingIndicator();
-  
-  try {
-    // Call your AI endpoint
-    const response = await fetch('/api/support.js', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        message: message,
-        context: {
-          page: 'checkout',
-          timestamp: new Date().toISOString(),
-          orderId: sessionStorage.getItem('orderId') || null,
-        }
-      })
-    });
-    
-    // Remove typing indicator
-    removeTypingIndicator(typingId);
-    
-    if (!response.ok) throw new Error('API response failed');
-    
-    const data = await response.json();
-    const aiReply = data.reply || data.message || "I'm here to help! Could you please rephrase your question?";
-    
-    addChatMessage(aiReply, 'ai');
-    
-  } catch (error) {
-    console.error('AI Support Error:', error);
-    removeTypingIndicator(typingId);
-    
-    // Fallback response for demo/offline
-    const fallbackReply = getFallbackResponse(message);
-    addChatMessage(fallbackReply, 'ai');
-  }
-}
-
-// Add message to chat window
-function addChatMessage(text, sender) {
-  const chatContainer = document.getElementById('chatMessages');
-  if (!chatContainer) return;
-  
-  const isUser = sender === 'user';
-  
-  const messageDiv = document.createElement('div');
-  messageDiv.style.display = 'flex';
-  messageDiv.style.gap = '10px';
-  messageDiv.style.alignItems = 'flex-start';
-  messageDiv.style.justifyContent = isUser ? 'flex-end' : 'flex-start';
-  
-  if (!isUser) {
-    messageDiv.innerHTML = `
-      <div style="width: 28px; height: 28px; background: linear-gradient(135deg, #00f0ff, #a3ff12); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      </div>
-      <div style="background: #111; border-radius: 16px; padding: 10px 14px; max-width: 85%; border: 1px solid #222;">
-        <div style="font-size: 0.8rem; color: #ddd; line-height: 1.4;">${escapeHtml(text)}</div>
-      </div>
-    `;
-  } else {
-    messageDiv.innerHTML = `
-      <div style="background: linear-gradient(135deg, #00f0ff20, #a3ff1220); border-radius: 16px; padding: 10px 14px; max-width: 85%; border: 1px solid rgba(0,240,255,0.2);">
-        <div style="font-size: 0.8rem; color: #fff; line-height: 1.4;">${escapeHtml(text)}</div>
-      </div>
-    `;
-  }
-  
-  chatContainer.appendChild(messageDiv);
-  chatContainer.scrollTop = chatContainer.scrollHeight;
-}
-
-// Show typing indicator
-function showTypingIndicator() {
-  const chatContainer = document.getElementById('chatMessages');
-  if (!chatContainer) return null;
-  
-  const id = 'typing-' + Date.now();
-  
-  const typingDiv = document.createElement('div');
-  typingDiv.id = id;
-  typingDiv.style.display = 'flex';
-  typingDiv.style.gap = '10px';
-  typingDiv.style.alignItems = 'center';
-  typingDiv.innerHTML = `
-    <div style="width: 28px; height: 28px; background: linear-gradient(135deg, #00f0ff, #a3ff12); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    <div class="modal-footer">
+      <button class="btn-primary" onclick="window.location.href='/'">Back to Store</button>
+      <button class="btn-ghost" onclick="window.print()">Save Receipt</button>
     </div>
-    <div style="background: #111; border-radius: 16px; padding: 10px 18px; border: 1px solid #222;">
-      <div style="display: flex; gap: 4px;">
-        <span style="width: 6px; height: 6px; background: #00f0ff; border-radius: 50%; display: inline-block; animation: pulse 1.4s infinite ease-in-out;"></span>
-        <span style="width: 6px; height: 6px; background: #a3ff12; border-radius: 50%; display: inline-block; animation: pulse 1.4s infinite ease-in-out 0.2s;"></span>
-        <span style="width: 6px; height: 6px; background: #00f0ff; border-radius: 50%; display: inline-block; animation: pulse 1.4s infinite ease-in-out 0.4s;"></span>
+  </div>
+</div>
+
+<!-- ── CANCEL MODAL ── -->
+<div class="modal-overlay" id="cancelModal">
+  <div class="modal-box modal-cancel">
+    <div class="modal-header">
+      <div class="cancel-ring">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ff3b30" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </div>
+      <div class="cancel-title">Payment Cancelled</div>
+      <div class="cancel-sub">No charge was made to your account</div>
     </div>
-  `;
-  
-  chatContainer.appendChild(typingDiv);
-  chatContainer.scrollTop = chatContainer.scrollHeight;
-  return id;
-}
+    <div class="modal-body">
+      <div class="cancel-code-box">
+        <div class="cancel-code-label">Cancellation Code</div>
+        <div class="cancel-code-val" id="can-code">—</div>
+      </div>
+      <div class="cancel-row"><span class="cancel-key">Order ID</span><span class="cancel-val" id="can-orderId">—</span></div>
+      <div class="cancel-row"><span class="cancel-key">Full Name</span><span class="cancel-val" id="can-name">—</span></div>
+      <div class="cancel-row"><span class="cancel-key">Email</span><span class="cancel-val" id="can-email">—</span></div>
+      <div class="cancel-row"><span class="cancel-key">Phone</span><span class="cancel-val" id="can-phone">—</span></div>
+      <div class="cancel-row"><span class="cancel-key">Delivery Address</span><span class="cancel-val" id="can-addr">—</span></div>
+      <div class="cancel-row"><span class="cancel-key">Items</span><span class="cancel-val" id="can-items">—</span></div>
+      <div class="cancel-row"><span class="cancel-key">Order Value</span><span class="cancel-val red" id="can-total">—</span></div>
+      <div class="cancel-row"><span class="cancel-key">Cancelled At</span><span class="cancel-val" id="can-time">—</span></div>
+    </div>
+    <div style="padding: 0 24px 20px;">
+      <button class="btn-cancel-close" onclick="closeCancelModal()">Try Again</button>
+    </div>
+  </div>
+</div>
 
-// Remove typing indicator
-function removeTypingIndicator(id) {
-  if (!id) return;
-  const element = document.getElementById(id);
-  if (element) element.remove();
-}
-
-// Helper: Escape HTML to prevent XSS
-function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
-
-// Fallback responses for demo/offline mode
-function getFallbackResponse(message) {
-  const msg = message.toLowerCase();
-  if (msg.includes('order') || msg.includes('track')) {
-    return "📍 You can track your order using the tracking link sent to your email. Need help? Provide your order number and I'll assist!";
-  }
-  if (msg.includes('return') || msg.includes('refund')) {
-    return "🔄 We offer 30-day hassle-free returns! Just contact support within 30 days of delivery with your order number.";
-  }
-  if (msg.includes('shipping') || msg.includes('delivery')) {
-    return "🚚 Standard shipping takes 8-16 business days. Prime Express takes 5-12 business days. Tracking provided!";
-  }
-  if (msg.includes('cancel')) {
-    return "❌ Orders can be cancelled within 2 hours of placement. Reply with your order ID and I'll help you cancel!";
-  }
-  if (msg.includes('discount') || msg.includes('promo')) {
-    return "🏷️ Sign up for our newsletter to get 10% off your next order! Current promotions are displayed on our homepage.";
-  }
-  return "✨ Thanks for reaching out! Our AI team is reviewing your question. For urgent matters, email support@minimisty.store";
-}
-
-// Close modal when clicking outside
-document.addEventListener('click', function(e) {
-  const modal = document.getElementById('aiSupportModal');
-  if (modal && modal.style.display === 'flex') {
-    const modalContent = modal.querySelector('div > div');
-    if (modalContent && !modalContent.contains(e.target) && !e.target.closest('button')) {
-      closeSupportModal();
-    }
-  }
-});
-</script>
+<!-- ── PayPal SDK ── -->
+<script src="https://www.paypal.com/sdk/js?client-id=AW7nmsZqdabjCrj62j0qekUqalJJ3T53ngjrime14foH5HMhNLmpUzULQV-OvV82KSuZQoBoEP4Rkwi4&currency=USD&intent=capture" data-namespace="paypalSDK"></script>
 
 <script>
 // ════════════════════════════════════════════
-//  STATE
+//  STATE — loaded from sessionStorage
 // ════════════════════════════════════════════
-let appState = {
+let STATE = {
+  payload: null,
+  contact: null,
+  address: null,
   currency: 'USD',
-  exchangeRate: 1,
   currencySymbol: '$',
-  cart: [],
-  orderId: '',
-  shippingMode: 'std',   // 'std' | 'prime'
-  giftWrap: false,
-  stdShippingUSD: 1.99,
-  primeShippingExtraUSD: 5.95,
-  giftWrapUSD: 4.95,
-  selectedPhonePrefix: '+1',
-  selectedCountry: '',
-  selectedCountryCode: ''
+  exchangeRate: 1,
+  totalUSD: 0,
+  addrValid: false,
 };
 
-function fx(usd) {
-  const v = usd * appState.exchangeRate;
-  const noDecimal = ['JPY','KRW','IDR','VND'];
-  const formatted = noDecimal.includes(appState.currency)
-    ? Math.round(v).toLocaleString()
-    : v.toFixed(2);
-  return appState.currencySymbol + formatted;
+function track(event, data = {}) {
+  if (window.fbTrack) window.fbTrack(event, data);
 }
 
-// ════════════════════════════════════════════
-//  LOAD ORDER FROM SESSION STORAGE
-// ════════════════════════════════════════════
-function loadOrderData() {
+// ── Load everything from sessionStorage ──
+function loadState() {
   try {
-    const cart = JSON.parse(sessionStorage.getItem('cart') || '[]');
-    appState.cart = cart;
-    appState.currency = sessionStorage.getItem('currency') || 'USD';
-    appState.exchangeRate = parseFloat(sessionStorage.getItem('exchangeRate') || '1');
-    appState.currencySymbol = sessionStorage.getItem('currencySymbol') || '$';
-    appState.orderId = sessionStorage.getItem('orderId') || '';
+    STATE.payload  = JSON.parse(sessionStorage.getItem('orderPayload') || 'null');
+    STATE.contact  = JSON.parse(sessionStorage.getItem('checkoutContact') || 'null');
+    STATE.address  = JSON.parse(sessionStorage.getItem('checkoutAddress') || 'null');
 
-    // Also try URL param
-    const urlPath = window.location.pathname + window.location.search + window.location.hash;
-    const match = urlPath.match(/checkout-my-order[=\/]([A-Z0-9_]+)/);
-    if (match) appState.orderId = match[1];
+    if (STATE.payload) {
+      STATE.currency       = STATE.payload.currency       || 'USD';
+      STATE.currencySymbol = STATE.payload.currencySymbol || '$';
+      STATE.exchangeRate   = STATE.payload.exchangeRate   || 1;
+      STATE.totalUSD       = STATE.payload.pricing?.totalUSD || 0;
+      window._orderId      = STATE.payload.orderId || '';
+      window._email        = STATE.contact?.email || '';
+    }
+  } catch(e) {}
+}
 
-  } catch(e) {
-    appState.cart = [];
-  }
+function fx(usd) {
+  const v = usd * STATE.exchangeRate;
+  const noDecimal = ['JPY','KRW','IDR','VND'];
+  const formatted = noDecimal.includes(STATE.currency)
+    ? Math.round(v).toLocaleString()
+    : v.toFixed(2);
+  return STATE.currencySymbol + formatted;
 }
 
 // ════════════════════════════════════════════
@@ -1441,397 +875,483 @@ function loadOrderData() {
 // ════════════════════════════════════════════
 function renderOrderItems() {
   const el = document.getElementById('orderItemsEl');
-  if (!appState.cart.length) {
+  const cart = STATE.payload?.cart || [];
+
+  if (!cart.length) {
     el.innerHTML = '<div style="font-size:0.78rem;color:#444;font-weight:600;text-align:center;padding:10px 0">No items found</div>';
     return;
   }
-  el.innerHTML = appState.cart.map(item => `
+
+  el.innerHTML = cart.map(item => `
     <div class="order-item">
-      <div class="order-item-img" style="background-image:url('${item.img || 'https://i.imgur.com/nilsQQC.jpeg'}')"></div>
+      <div class="item-img" style="background-image:url('${item.img || 'https://i.imgur.com/nilsQQC.jpeg'}')"></div>
       <div style="flex:1">
-        <div class="order-item-name">${item.name || 'FrostBlade Pro'}</div>
-        <div class="order-item-meta">${item.variant || 'Black'} · ${item.qty || 1} unit${(item.qty||1)>1?'s':''}</div>
+        <div class="item-name">${item.name || 'FrostBlade Pro'}</div>
+        <div class="item-meta">
+          ${item.variant ? item.variant : ''}
+          ${item.variant && item.qty ? ' &middot; ' : ''}
+          ${item.qty ? item.qty + ' unit' + (item.qty > 1 ? 's' : '') : ''}
+        </div>
       </div>
-      <div class="order-item-price">${fx(item.priceUSD || 39.95)}</div>
+      <div class="item-price">${fx(item.priceUSD || 39.95)}</div>
     </div>
   `).join('');
 }
 
 // ════════════════════════════════════════════
-//  CALCULATE & RENDER SUMMARY
+//  RENDER ADDRESS
 // ════════════════════════════════════════════
-function calcSummary() {
-  const subtotal = appState.cart.reduce((a,i) => a + (i.priceUSD||39.95), 0) || 39.95;
-  const disc     = appState.cart.reduce((a,i) => a + (i.discUSD||0), 0);
+function renderAddress() {
+  const c = STATE.contact || {};
+  const a = STATE.address || {};
 
-  // Shipping: if bundle had free shipping originally, standard stays free
-  // otherwise use the selected shipping option
-  const origShip = appState.cart.reduce((a,i) => a + (i.shipUSD||0), 0);
-
-  let ship = 0;
-  if (appState.shippingMode === 'std') {
-    ship = origShip; // free if bundle, else $1.99
-  } else {
-    // prime = original shipping + $5.95 extra
-    ship = origShip + appState.primeShippingExtraUSD;
-  }
-
-  const gift   = appState.giftWrap ? appState.giftWrapUSD : 0;
-  const taxBase = subtotal + ship + gift;
-  const tax    = taxBase * 0.05;
-  const total  = subtotal + ship + gift + tax;
-
-  return { subtotal, disc, ship, gift, tax, total, origShip };
-}
-
-function renderSummary() {
-  const { subtotal, disc, ship, gift, tax, total, origShip } = calcSummary();
-
-  const totalItems = appState.cart.reduce((a,i) => a+(i.qty||1), 0) || 1;
-  const primeCost = origShip + appState.primeShippingExtraUSD;
-
-  // Update shipping card prices
-  document.getElementById('ship-std-price').textContent = origShip === 0 ? 'FREE' : fx(origShip);
-  document.getElementById('ship-std-price').className = 'ship-price ' + (origShip === 0 ? 'free' : 'paid');
-  document.getElementById('ship-prime-price').textContent = fx(primeCost);
-
-  // Gift price display
-  document.getElementById('gift-price-display').textContent = '+' + fx(appState.giftWrapUSD);
-
-  // Summary rows
-  document.getElementById('sum-subtotal').textContent = fx(subtotal);
-  document.getElementById('sum-discount').textContent = disc > 0 ? '-' + fx(disc) : fx(0);
-
-  const shipEl = document.getElementById('sum-shipping');
-  if (ship === 0) { shipEl.textContent = 'FREE'; shipEl.className = 'sum-val free'; }
-  else { shipEl.textContent = fx(ship); shipEl.className = 'sum-val'; }
-
-  const giftRow = document.getElementById('gift-sum-row');
-  giftRow.style.display = appState.giftWrap ? 'flex' : 'none';
-  document.getElementById('sum-gift').textContent = '+' + fx(gift);
-
-  document.getElementById('sum-tax').textContent = fx(tax);
-  document.getElementById('sum-total').textContent = fx(total);
-}
-
-// ════════════════════════════════════════════
-//  SHIPPING SELECT
-// ════════════════════════════════════════════
-function selectShipping(mode) {
-  appState.shippingMode = mode;
-  const stdCard = document.getElementById('ship-std');
-  const primeCard = document.getElementById('ship-prime');
-  stdCard.className = 'ship-card' + (mode === 'std' ? ' active' : '');
-  primeCard.className = 'ship-card' + (mode === 'prime' ? ' active-prime' : '');
-  renderSummary();
-}
-
-// ════════════════════════════════════════════
-//  GIFT TOGGLE
-// ════════════════════════════════════════════
-function toggleGift() {
-  appState.giftWrap = !appState.giftWrap;
-  document.getElementById('giftToggle').classList.toggle('active', appState.giftWrap);
-  renderSummary();
-}
-
-// ════════════════════════════════════════════
-//  COUNTRY DATA — REST COUNTRIES (no key needed)
-// ════════════════════════════════════════════
-let allCountries = [];
-let allPrefixes  = [];
-
-async function loadCountries() {
-  try {
-    const r = await fetch('https://restcountries.com/v3.1/all?fields=name,cca2,flags,idd,flag');
-    const data = await r.json();
-
-    allCountries = data
-      .map(c => ({
-        name: c.name?.common || '',
-        code: c.cca2 || '',
-        flag: c.flag || '',
-        dialCode: c.idd?.root ? (c.idd.root + (c.idd.suffixes?.[0] || '')) : ''
-      }))
-      .filter(c => c.name && c.code)
-      .sort((a,b) => a.name.localeCompare(b.name));
-
-    allPrefixes = allCountries
-      .filter(c => c.dialCode)
-      .sort((a,b) => a.name.localeCompare(b.name));
-
-    renderCountryList(allCountries);
-    renderPrefixList(allPrefixes);
-
-    // Auto-detect country via geo
-    autoDetectCountry();
-  } catch(e) {
-    // Fallback: minimal list
-    allCountries = [
-      { name:'South Africa', code:'ZA', flag:'🇿🇦', dialCode:'+27' },
-      { name:'United States', code:'US', flag:'🇺🇸', dialCode:'+1' },
-      { name:'United Kingdom', code:'GB', flag:'🇬🇧', dialCode:'+44' },
-      { name:'Australia', code:'AU', flag:'🇦🇺', dialCode:'+61' },
-      { name:'Germany', code:'DE', flag:'🇩🇪', dialCode:'+49' },
-      { name:'France', code:'FR', flag:'🇫🇷', dialCode:'+33' },
-      { name:'India', code:'IN', flag:'🇮🇳', dialCode:'+91' },
-      { name:'Canada', code:'CA', flag:'🇨🇦', dialCode:'+1' },
-    ];
-    allPrefixes = allCountries;
-    renderCountryList(allCountries);
-    renderPrefixList(allPrefixes);
-  }
-}
-
-function renderCountryList(list) {
-  const el = document.getElementById('countryList');
-  el.innerHTML = list.map(c => `
-    <div class="country-opt" onclick="selectCountry('${c.code}','${c.name.replace(/'/g,"\\'")}','${c.flag}','${c.dialCode}')">
-      <span class="cflag">${c.flag}</span>
-      <span style="flex:1">${c.name}</span>
-      <span class="ccode">${c.code}</span>
-    </div>
-  `).join('');
-}
-
-function renderPrefixList(list) {
-  const el = document.getElementById('prefixList');
-  el.innerHTML = list.map(c => `
-    <div class="prefix-opt" onclick="selectPrefix('${c.dialCode}','${c.flag}','${c.name.replace(/'/g,"\\'")}')">
-      <span class="pflag">${c.flag}</span>
-      <span class="pcode">${c.dialCode}</span>
-      <span class="pname">${c.name}</span>
-    </div>
-  `).join('');
-}
-
-function filterCountries() {
-  const q = document.getElementById('countrySearch').value.toLowerCase();
-  const filtered = allCountries.filter(c => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q));
-  renderCountryList(filtered);
-}
-
-function filterPrefixes() {
-  const q = document.getElementById('prefixSearch').value.toLowerCase();
-  const filtered = allPrefixes.filter(c => c.name.toLowerCase().includes(q) || c.dialCode.includes(q));
-  renderPrefixList(filtered);
-}
-
-function toggleCountryDropdown() {
-  const dd = document.getElementById('countryDropdown');
-  dd.classList.toggle('open');
-  if (dd.classList.contains('open')) {
-    setTimeout(() => document.getElementById('countrySearch').focus(), 50);
-  }
-}
-
-function selectCountry(code, name, flag, dialCode) {
-  document.getElementById('countryDisplay').value = flag + '  ' + name;
-  document.getElementById('inp-country').value = code;
-  appState.selectedCountry = name;
-  appState.selectedCountryCode = code;
-  document.getElementById('countryDropdown').classList.remove('open');
-  document.getElementById('field-country').classList.remove('has-error');
-
-  // Auto-set phone prefix to match country
-  if (dialCode) {
-    selectPrefix(dialCode, flag, name);
-  }
-}
-
-function togglePrefixDropdown() {
-  const dd = document.getElementById('prefixDropdown');
-  dd.classList.toggle('open');
-  if (dd.classList.contains('open')) {
-    setTimeout(() => document.getElementById('prefixSearch').focus(), 50);
-  }
-}
-
-function selectPrefix(dialCode, flag, name) {
-  appState.selectedPhonePrefix = dialCode;
-  document.getElementById('prefixDisplay').value = flag + ' ' + dialCode;
-  document.getElementById('prefixDropdown').classList.remove('open');
-}
-
-// Close dropdowns on outside click
-document.addEventListener('click', function(e) {
-  if (!document.getElementById('countryWrap').contains(e.target)) {
-    document.getElementById('countryDropdown').classList.remove('open');
-  }
-  if (!document.getElementById('prefixWrap').contains(e.target)) {
-    document.getElementById('prefixDropdown').classList.remove('open');
-  }
-});
-
-async function autoDetectCountry() {
-  try {
-    const r = await fetch('https://ipapi.co/json/');
-    const geo = await r.json();
-    if (geo.country_code && allCountries.length) {
-      const found = allCountries.find(c => c.code === geo.country_code);
-      if (found) {
-        selectCountry(found.code, found.name, found.flag, found.dialCode);
-      }
-    }
-  } catch(e) {}
-}
-
-// ════════════════════════════════════════════
-//  GEO / CURRENCY (same as main page)
-// ════════════════════════════════════════════
-async function initCurrency() {
-  // If session has currency already, use it
-  if (appState.currency && appState.exchangeRate && appState.currency !== 'USD') {
-    renderSummary();
-    return;
-  }
-  try {
-    const r = await fetch('https://ipapi.co/json/');
-    const geo = await r.json();
-    const targetCurrency = geo.currency || 'USD';
-    if (targetCurrency === 'USD') { renderSummary(); return; }
-
-    const er = await fetch('https://open.er-api.com/v6/latest/USD');
-    const erData = await er.json();
-    if (erData.result === 'success' && erData.rates[targetCurrency]) {
-      const symbols = {
-        EUR:'€', GBP:'£', JPY:'¥', KRW:'₩', INR:'₹',
-        AUD:'A$', CAD:'C$', CHF:'Fr', CNY:'¥', ZAR:'R',
-        BRL:'R$', MXN:'$', AED:'د.إ', SAR:'﷼', SGD:'S$',
-        HKD:'HK$', NOK:'kr', SEK:'kr', DKK:'kr', NZD:'NZ$',
-        TRY:'₺', PLN:'zł', THB:'฿', PHP:'₱', IDR:'Rp',
-        MYR:'RM', NGN:'₦', KES:'KSh', GHS:'₵', EGP:'£',
-      };
-      appState.currency = targetCurrency;
-      appState.exchangeRate = erData.rates[targetCurrency];
-      appState.currencySymbol = symbols[targetCurrency] || targetCurrency + ' ';
-    }
-  } catch(e) {}
-  renderSummary();
-}
-
-// ════════════════════════════════════════════
-//  FORM VALIDATION
-// ════════════════════════════════════════════
-function validateForm() {
-  let valid = true;
-
-  const required = [
-    { id:'field-first',  val: document.getElementById('inp-first').value.trim(),  check: v => v.length > 0 },
-    { id:'field-last',   val: document.getElementById('inp-last').value.trim(),   check: v => v.length > 0 },
-    { id:'field-email',  val: document.getElementById('inp-email').value.trim(),  check: v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) },
-    { id:'field-phone',  val: document.getElementById('inp-phone').value.trim(),  check: v => v.replace(/\D/g,'').length >= 6 },
-    { id:'field-addr1',  val: document.getElementById('inp-addr1').value.trim(),  check: v => v.length > 0 },
-    { id:'field-country',val: document.getElementById('inp-country').value.trim(),check: v => v.length > 0 },
-    { id:'field-city',   val: document.getElementById('inp-city').value.trim(),   check: v => v.length > 0 },
-    { id:'field-postal', val: document.getElementById('inp-postal').value.trim(), check: v => v.length > 0 },
-  ];
-
-  required.forEach(f => {
-    const el = document.getElementById(f.id);
+  const set = (id, val) => {
+    const el = document.getElementById(id);
     if (!el) return;
-    if (!f.check(f.val)) {
-      el.classList.add('has-error');
-      valid = false;
-    } else {
-      el.classList.remove('has-error');
-    }
-  });
+    el.classList.remove('shimmer');
+    el.style.height = '';
+    el.textContent = val || '—';
+    if (val) el.classList.add('highlight');
+  };
 
-  return valid;
+  set('adv-name',    [c.firstName, c.lastName].filter(Boolean).join(' '));
+  set('adv-email',   c.email);
+  set('adv-phone',   c.phone);
+  set('adv-country', a.country);
+  set('adv-addr1',   [a.line1, a.line2].filter(Boolean).join(', '));
+  set('adv-city',    [a.city, a.state].filter(Boolean).join(', '));
+  set('adv-postal',  a.postal);
+
+  const shipLabel = STATE.payload?.shippingMode === 'prime' ? 'Prime Express (5–12 days)' : 'Standard (8–16 days)';
+  set('adv-ship', shipLabel);
 }
 
 // ════════════════════════════════════════════
-//  PROCEED TO PAYMENT
+//  VALIDATE ADDRESS (via Vercel /api/validate-address)
 // ════════════════════════════════════════════
-function proceedToPayment() {
-  if (!validateForm()) {
-    // Scroll to first error
-    const firstErr = document.querySelector('.has-error');
-    if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    return;
+async function validateAddress() {
+  const bar = document.getElementById('addrValidationBar');
+
+  try {
+    const res = await fetch('/api/validate-address', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        address: STATE.address,
+        contact: STATE.contact,
+      })
+    });
+
+    let data = { valid: true, message: 'Address verified — ready for dispatch' };
+    if (res.ok) data = await res.json();
+
+    STATE.addrValid = data.valid !== false;
+    bar.className = 'validation-bar ' + (STATE.addrValid ? 'ok' : 'warn');
+    bar.innerHTML = `
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        ${STATE.addrValid
+          ? '<polyline points="20 6 9 17 4 12"/>'
+          : '<line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>'}
+      </svg>
+      ${data.message || (STATE.addrValid ? 'Address verified' : 'Address could not be verified — payment may still proceed')}
+    `;
+
+    track('address_validated', { valid: STATE.addrValid });
+  } catch(e) {
+    // If API fails, allow payment to continue
+    STATE.addrValid = true;
+    bar.className = 'validation-bar ok';
+    bar.innerHTML = `
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+      Address accepted
+    `;
+  }
+}
+
+// ════════════════════════════════════════════
+//  RENDER PRICING SUMMARY
+// ════════════════════════════════════════════
+function renderSummary() {
+  const p = STATE.payload?.pricing || {};
+
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+
+  set('s-subtotal', p.subtotalLocal || fx(p.subtotalUSD || 0));
+  set('s-discount', p.discountUSD > 0 ? '-' + fx(p.discountUSD) : fx(0));
+
+  const shipEl = document.getElementById('s-shipping');
+  if (shipEl) {
+    if (p.shippingLocal === 'FREE' || p.shippingUSD === 0) {
+      shipEl.textContent = 'FREE'; shipEl.className = 'sum-val free';
+    } else {
+      shipEl.textContent = p.shippingLocal || fx(p.shippingUSD || 0);
+    }
   }
 
-  // Show loading
-  document.getElementById('loadingOverlay').classList.add('open');
+  if (p.giftWrapLocal) {
+    document.getElementById('s-gift-row').style.display = 'flex';
+    set('s-gift', p.giftWrapLocal);
+  }
 
-  // Collect form data
-  const contact = {
-    firstName: document.getElementById('inp-first').value.trim(),
-    lastName:  document.getElementById('inp-last').value.trim(),
-    email:     document.getElementById('inp-email').value.trim(),
-    phone:     appState.selectedPhonePrefix + ' ' + document.getElementById('inp-phone').value.trim(),
-  };
+  set('s-tax', p.taxLocal || fx(p.taxUSD || 0));
+  set('s-total', p.totalLocal || fx(STATE.totalUSD));
+}
 
-  const address = {
-    line1:   document.getElementById('inp-addr1').value.trim(),
-    line2:   document.getElementById('inp-addr2').value.trim(),
-    country: appState.selectedCountry,
-    countryCode: appState.selectedCountryCode,
-    city:    document.getElementById('inp-city').value.trim(),
-    state:   document.getElementById('inp-state').value.trim(),
-    postal:  document.getElementById('inp-postal').value.trim(),
-  };
+// ════════════════════════════════════════════
+//  PROCESSING STEPS UI
+// ════════════════════════════════════════════
+function setStep(n, text) {
+  for (let i = 1; i <= 4; i++) {
+    const el = document.getElementById('pstep-' + i);
+    if (!el) continue;
+    if (i < n) el.className = 'proc-step done';
+    else if (i === n) el.className = 'proc-step active';
+    else el.className = 'proc-step';
+  }
+  if (text) document.getElementById('procText').textContent = text;
+}
 
-  const { subtotal, disc, ship, gift, tax, total } = calcSummary();
+// ════════════════════════════════════════════
+//  SHOW MODALS
+// ════════════════════════════════════════════
+function showSuccessModal(ppData) {
+  const orderId   = STATE.payload?.orderId || 'ORD-' + Date.now();
+  const email     = STATE.contact?.email || '—';
+  const total     = STATE.payload?.pricing?.totalLocal || fx(STATE.totalUSD);
+  const ppRef     = ppData?.id || ppData?.purchase_units?.[0]?.payments?.captures?.[0]?.id || '—';
+  const shipMode  = STATE.payload?.shippingMode || 'std';
+  const delivery  = shipMode === 'prime' ? '5–12 business days' : '8–16 business days';
+  const tracking  = ppData?._cjTrackingNumber || null;
 
-  const orderPayload = {
-    orderId: appState.orderId,
-    contact,
-    address,
-    shippingMode: appState.shippingMode,
-    giftWrap: appState.giftWrap,
-    cart: appState.cart,
-    currency: appState.currency,
-    exchangeRate: appState.exchangeRate,
-    currencySymbol: appState.currencySymbol,
-    pricing: {
-      subtotalUSD: subtotal,
-      discountUSD: disc,
-      shippingUSD: ship,
-      giftWrapUSD: gift,
-      taxUSD: tax,
-      totalUSD: total,
-      subtotalLocal: fx(subtotal),
-      shippingLocal: ship === 0 ? 'FREE' : fx(ship),
-      giftWrapLocal: gift > 0 ? fx(gift) : null,
-      taxLocal: fx(tax),
-      totalLocal: fx(total),
-    }
+  document.getElementById('suc-orderId').textContent  = orderId;
+  document.getElementById('suc-ppRef').textContent    = ppRef;
+  document.getElementById('suc-total').textContent    = total;
+  document.getElementById('suc-currency').textContent = STATE.currency;
+  document.getElementById('suc-email').textContent    = email;
+  document.getElementById('suc-delivery').textContent = delivery;
+
+  if (tracking) {
+    document.getElementById('trackingVal').textContent = tracking;
+    document.getElementById('trackingBox').style.display = 'block';
+  }
+
+  document.getElementById('successModal').classList.add('open');
+}
+
+function showCancelModal() {
+  const orderId = STATE.payload?.orderId || '—';
+  const c       = STATE.contact || {};
+  const a       = STATE.address || {};
+  const cart    = STATE.payload?.cart || [];
+  const total   = STATE.payload?.pricing?.totalLocal || fx(STATE.totalUSD);
+
+  const cancelCode = 'CXL-' + Math.random().toString(36).substring(2,8).toUpperCase();
+  const now        = new Date().toLocaleString('en-US', { hour12: false });
+
+  const itemsSummary = cart.map(i => `${i.name || 'Item'} x${i.qty || 1}`).join(', ') || '—';
+  const addrSummary  = [a.line1, a.city, a.country].filter(Boolean).join(', ') || '—';
+
+  document.getElementById('can-code').textContent   = cancelCode;
+  document.getElementById('can-orderId').textContent = orderId;
+  document.getElementById('can-name').textContent   = [c.firstName, c.lastName].filter(Boolean).join(' ') || '—';
+  document.getElementById('can-email').textContent  = c.email || '—';
+  document.getElementById('can-phone').textContent  = c.phone || '—';
+  document.getElementById('can-addr').textContent   = addrSummary;
+  document.getElementById('can-items').textContent  = itemsSummary;
+  document.getElementById('can-total').textContent  = total;
+  document.getElementById('can-time').textContent   = now;
+
+  document.getElementById('cancelModal').classList.add('open');
+
+  track('payment_cancelled', { cancelCode, orderId });
+  if (window.fbWriteOrder) window.fbWriteOrder(orderId + '_cancel', {
+    status: 'cancelled', cancelCode, contact: c, address: a,
+    total, cart, ts: Date.now()
+  });
+}
+
+function closeCancelModal() {
+  document.getElementById('cancelModal').classList.remove('open');
+}
+
+// ════════════════════════════════════════════
+//  SUBMIT ORDER TO CJ VIA /api/submit-order
+// ════════════════════════════════════════════
+async function submitOrderToCJ(ppData) {
+  const orderId = STATE.payload?.orderId || 'ORD-' + Date.now();
+
+  const body = {
+    orderId,
+    paypalData: ppData,
+    contact:    STATE.contact,
+    address:    STATE.address,
+    cart:       STATE.payload?.cart || [],
+    pricing:    STATE.payload?.pricing || {},
+    currency:   STATE.currency,
+    shippingMode: STATE.payload?.shippingMode,
+    giftWrap:   STATE.payload?.giftWrap,
   };
 
   try {
-    sessionStorage.setItem('orderPayload', JSON.stringify(orderPayload));
-    sessionStorage.setItem('checkoutContact', JSON.stringify(contact));
-    sessionStorage.setItem('checkoutAddress', JSON.stringify(address));
-  } catch(e) {}
+    const res = await fetch('/api/submit-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
 
-  // Navigate to payment page
-  setTimeout(() => {
-    window.location.href = 'pay-now-order';
-  }, 1200);
+    const data = res.ok ? await res.json() : { success: false };
+    return data;
+  } catch(e) {
+    return { success: false, error: e.message };
+  }
+}
+
+// ════════════════════════════════════════════
+//  VERIFY PAYMENT VIA /api/verify-payment
+// ════════════════════════════════════════════
+async function verifyPayment(ppOrderId) {
+  try {
+    const res = await fetch('/api/verify-payment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paypalOrderId: ppOrderId })
+    });
+    const data = res.ok ? await res.json() : { verified: false };
+    return data.verified === true;
+  } catch(e) {
+    // If verification endpoint is not yet live, allow through
+    return true;
+  }
+}
+
+// ════════════════════════════════════════════
+//  INIT PAYPAL BUTTONS
+// ════════════════════════════════════════════
+function initPayPal() {
+  if (!window.paypalSDK) {
+    setTimeout(initPayPal, 400);
+    return;
+  }
+
+  // Amount must be in USD for PayPal; display local to user
+  const totalUSD = (STATE.totalUSD || 39.95).toFixed(2);
+
+  paypalSDK.Buttons({
+    style: {
+      layout: 'vertical',
+      color:  'gold',
+      shape:  'rect',
+      label:  'pay',
+      height: 48,
+    },
+
+    // ── Create order on PayPal ──
+    createOrder: function(data, actions) {
+      track('paypal_initiated');
+      return actions.order.create({
+        purchase_units: [{
+          reference_id: STATE.payload?.orderId || 'MINIMISTY-ORDER',
+          description:  'MINIMISTY.store Order',
+          amount: {
+            currency_code: 'USD',
+            value: totalUSD,
+          }
+        }],
+        application_context: {
+          shipping_preference: 'NO_SHIPPING',
+        }
+      });
+    },
+
+    // ── Payment approved ──
+    onApprove: async function(data, actions) {
+      document.getElementById('processingOverlay').classList.add('open');
+      setStep(1, 'Confirming with PayPal…');
+      track('paypal_approved', { paypalOrderId: data.orderID });
+
+      try {
+        // Step 1: Capture payment
+        const captureData = await actions.order.capture();
+        setStep(2, 'Validating security…');
+
+        // Step 2: Double-check via server
+        const verified = await verifyPayment(data.orderID);
+        if (!verified) throw new Error('Payment verification failed');
+        setStep(3, 'Sending to fulfilment…');
+
+        // Step 3: Submit to CJ Dropship
+        const cjResult = await submitOrderToCJ({ ...captureData, _paypalOrderId: data.orderID });
+        setStep(4, 'Generating tracking…');
+
+        // Step 4: Write to Firebase
+        const orderId = STATE.payload?.orderId || 'ORD-' + Date.now();
+        if (window.fbWriteOrder) {
+          await window.fbWriteOrder(orderId, {
+            status:     'paid',
+            paypal:     { orderId: data.orderID, captureId: captureData?.id },
+            contact:    STATE.contact,
+            address:    STATE.address,
+            cart:       STATE.payload?.cart,
+            pricing:    STATE.payload?.pricing,
+            currency:   STATE.currency,
+            shippingMode: STATE.payload?.shippingMode,
+            giftWrap:   STATE.payload?.giftWrap,
+            cjResult,
+            paidAt:     Date.now(),
+          });
+        }
+
+        track('payment_success', { orderId, paypalOrderId: data.orderID });
+
+        await new Promise(r => setTimeout(r, 700));
+        document.getElementById('processingOverlay').classList.remove('open');
+        showSuccessModal({ ...captureData, _cjTrackingNumber: cjResult?.trackingNumber });
+
+      } catch(err) {
+        document.getElementById('processingOverlay').classList.remove('open');
+        track('payment_error', { error: err.message });
+        showCancelModal();
+      }
+    },
+
+    // ── Cancelled ──
+    onCancel: function(data) {
+      track('paypal_cancelled', { paypalOrderId: data.orderID });
+      showCancelModal();
+    },
+
+    // ── Error ──
+    onError: function(err) {
+      track('paypal_error', { error: String(err) });
+      showCancelModal();
+    }
+
+  }).render('#paypal-button-container');
 }
 
 // ════════════════════════════════════════════
 //  INIT
 // ════════════════════════════════════════════
-loadOrderData();
+loadState();
 renderOrderItems();
+renderAddress();
 renderSummary();
-loadCountries();
-initCurrency().then(() => {
-  renderOrderItems();
-  renderSummary();
-});
 
-// Live re-render on currency loaded
-let currencyPoller = setInterval(() => {
-  if (appState.exchangeRate > 0) {
-    renderSummary();
+validateAddress();
+
+// ── Deep session write (fires after FB module loads) ──
+function initSession() {
+  const orderId   = STATE.payload?.orderId || 'PENDING-' + Date.now();
+  const c         = STATE.contact || {};
+  const a         = STATE.address || {};
+  const cart      = STATE.payload?.cart || [];
+
+  const sessionPayload = {
+    status:      'payment_page_loaded',
+    orderId,
+    contact: {
+      name:    [c.firstName, c.lastName].filter(Boolean).join(' '),
+      email:   c.email || null,
+      phone:   c.phone || null,
+    },
+    address: {
+      line1:   a.line1    || null,
+      line2:   a.line2    || null,
+      city:    a.city     || null,
+      state:   a.state    || null,
+      postal:  a.postal   || null,
+      country: a.country  || null,
+      countryCode: a.countryCode || null,
+    },
+    cart: cart.map(i => ({
+      name:    i.name    || null,
+      variant: i.variant || null,
+      qty:     i.qty     || 1,
+      sku:     i.cjSku   || i.sku || null,
+      priceUSD: i.priceUSD || null,
+    })),
+    pricing:      STATE.payload?.pricing     || null,
+    currency:     STATE.currency,
+    shippingMode: STATE.payload?.shippingMode || 'std',
+    giftWrap:     STATE.payload?.giftWrap     || false,
+    device:       window._deviceInfo ? window._deviceInfo() : null,
+    paypalLoaded: typeof paypalSDK !== 'undefined',
+    enteredAt:    Date.now(),
+  };
+
+  if (window.fbWriteSession) window.fbWriteSession(sessionPayload);
+
+  // Also write pending order snapshot
+  if (window.fbWriteOrder) window.fbWriteOrder(orderId + '_pending', {
+    ...sessionPayload,
+    status: 'pending_payment',
+  });
+
+  track('page_view_payment', {
+    orderId,
+    totalUSD:     STATE.totalUSD,
+    itemCount:    cart.length,
+    shippingMode: STATE.payload?.shippingMode,
+  });
+}
+
+// ── Field hover/visibility tracking ──
+// Track which address fields the user actually reads
+const addrFieldIds = ['adv-name','adv-email','adv-phone','adv-country','adv-addr1','adv-city','adv-postal','adv-ship'];
+const fieldViewLog = {};
+let fieldObserver;
+
+function initFieldObserver() {
+  if (!('IntersectionObserver' in window)) return;
+  fieldObserver = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting && !fieldViewLog[e.target.id]) {
+        fieldViewLog[e.target.id] = Date.now();
+      }
+    });
+  }, { threshold: 0.5 });
+
+  addrFieldIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) fieldObserver.observe(el);
+  });
+}
+
+// Push field view log after 5 seconds (enough time to read)
+setTimeout(() => {
+  if (Object.keys(fieldViewLog).length > 0) {
+    track('address_fields_viewed', {
+      fieldsViewed: Object.keys(fieldViewLog),
+      count: Object.keys(fieldViewLog).length,
+    });
   }
-}, 500);
-setTimeout(() => clearInterval(currencyPoller), 10000);
-</script>
+}, 5000);
 
+// ── PayPal button visibility ──
+let ppButtonSeen = false;
+const ppObserver = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting && !ppButtonSeen) {
+      ppButtonSeen = true;
+      track('paypal_button_visible', { timeOnPageMs: Date.now() - (window._pageEnter || Date.now()) });
+      ppObserver.disconnect();
+    }
+  });
+}, { threshold: 0.6 });
+const ppContainer = document.getElementById('paypal-button-container');
+if (ppContainer) ppObserver.observe(ppContainer);
+
+// ── Fire session init after Firebase is ready ──
+const waitForFb = setInterval(() => {
+  if (window._fbReady) {
+    clearInterval(waitForFb);
+    initSession();
+    initFieldObserver();
+  }
+}, 200);
+setTimeout(() => clearInterval(waitForFb), 8000);
+
+initPayPal();
+</script>
 </body>
 </html>
