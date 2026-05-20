@@ -873,29 +873,65 @@ function fx(usd) {
 // ════════════════════════════════════════════
 //  RENDER ORDER ITEMS
 // ════════════════════════════════════════════
+const SKU_MAP = {
+  'Blue':  'CJYD239388104DW',
+  'Black': 'CJYD239388103CX',
+  'Pink':  'CJYD239388102BY',
+  'White': 'CJYD239388101AZ',
+};
+
+const SWATCH_MAP = {
+  'Blue':  '#3b82f6',
+  'Black': '#1a1a1a',
+  'Pink':  '#f472b6',
+  'White': '#f0f0f0',
+};
+
+function resolveSku(variant) {
+  if (!variant) return null;
+  const key = Object.keys(SKU_MAP).find(k => k.toLowerCase() === variant.toLowerCase());
+  return key ? SKU_MAP[key] : null;
+}
+
 function renderOrderItems() {
   const el = document.getElementById('orderItemsEl');
   const cart = STATE.payload?.cart || [];
 
   if (!cart.length) {
-    el.innerHTML = '<div style="font-size:0.78rem;color:#444;font-weight:600;text-align:center;padding:10px 0">No items found</div>';
+    el.innerHTML = '<div style="font-size:0.78rem;color:#666;font-weight:600;text-align:center;padding:10px 0">No items found</div>';
     return;
   }
 
-  el.innerHTML = cart.map(item => `
-    <div class="order-item">
-      <div class="item-img" style="background-image:url('${item.img || 'https://i.imgur.com/nilsQQC.jpeg'}')"></div>
-      <div style="flex:1">
-        <div class="item-name">${item.name || 'FrostBlade Pro'}</div>
-        <div class="item-meta">
-          ${item.variant ? item.variant : ''}
-          ${item.variant && item.qty ? ' &middot; ' : ''}
-          ${item.qty ? item.qty + ' unit' + (item.qty > 1 ? 's' : '') : ''}
+  el.innerHTML = cart.map(item => {
+    const sku       = resolveSku(item.variant) || item.cjSku || item.sku || null;
+    const swatchColor = item.variant ? (SWATCH_MAP[item.variant] || '#555') : null;
+    const skuDisplay  = sku
+      ? `<div style="display:flex;align-items:center;gap:5px;margin-top:4px">
+           <span style="font-size:0.58rem;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:0.6px">SKU</span>
+           <span style="font-size:0.65rem;font-weight:700;color:#00f0ff;background:rgba(0,240,255,0.07);border:1px solid rgba(0,240,255,0.18);border-radius:5px;padding:1px 7px;letter-spacing:0.5px">${sku}</span>
+         </div>`
+      : `<div style="font-size:0.65rem;font-weight:700;color:#ff3b30;margin-top:4px">SKU not resolved</div>`;
+
+    const variantDisplay = item.variant
+      ? `<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+           <span style="width:10px;height:10px;border-radius:50%;background:${swatchColor};border:1px solid rgba(255,255,255,0.2);flex-shrink:0;display:inline-block"></span>
+           <span style="font-size:0.72rem;font-weight:700;color:#ddd">${item.variant}</span>
+           <span style="font-size:0.67rem;font-weight:600;color:#888">&middot; ${item.qty || 1} unit${(item.qty || 1) > 1 ? 's' : ''}</span>
+         </div>`
+      : `<div style="font-size:0.67rem;font-weight:600;color:#888;margin-bottom:2px">${item.qty || 1} unit${(item.qty || 1) > 1 ? 's' : ''}</div>`;
+
+    return `
+      <div class="order-item">
+        <div class="item-img" style="background-image:url('${item.img || 'https://i.imgur.com/nilsQQC.jpeg'}')"></div>
+        <div style="flex:1;min-width:0">
+          <div class="item-name">${item.name || 'FrostBlade Pro'}</div>
+          ${variantDisplay}
+          ${skuDisplay}
         </div>
+        <div class="item-price" style="align-self:flex-start;padding-top:2px">${fx(item.priceUSD || 39.95)}</div>
       </div>
-      <div class="item-price">${fx(item.priceUSD || 39.95)}</div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 // ════════════════════════════════════════════
