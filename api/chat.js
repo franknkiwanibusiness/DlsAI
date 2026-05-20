@@ -1,4 +1,3 @@
-Full api/chat.js with Groq and Firebase order lookup
 import { initializeApp, getApps } from 'firebase-admin/app';
 import { getDatabase } from 'firebase-admin/database';
 import { credential } from 'firebase-admin';
@@ -110,8 +109,10 @@ If the user provides an Order ID (looks like ORD_ABC123_XYZ), you will receive t
 
 // Detect if message contains an order ID pattern
 function extractOrderId(messages) {
+  if (!messages || !Array.isArray(messages)) return null;
   const allText = messages.map(m => m.content).join(' ');
-  const match = allText.match(/ORD_[A-Z0-9_]{5,30}/i);
+  // Matches ORD_ followed by alphanumeric blocks separated by optional underscores/dashes
+  const match = allText.match(/ORD_[A-Z0-9_\-]+/i);
   return match ? match[0].toUpperCase() : null;
 }
 
@@ -119,31 +120,36 @@ function extractOrderId(messages) {
 async function fetchOrder(orderId) {
   try {
     const db = getDatabase();
-    const snap = await db.ref('orders/' + orderId).get();
+    const snap = await db.ref(`orders/${orderId}`).get();
     if (!snap.exists()) return null;
     return snap.val();
   } catch (e) {
+    console.error('Error fetching order from Firebase:', e);
     return null;
   }
 }
 
 function formatOrderForAI(order, orderId) {
   if (!order) return `Order ID ${orderId} was not found in our system.`;
+  
   const items = (order.items || [])
-    .map(i => `${i.qty}x ${i.product} (${i.variant}, ${i.bundle} bundle)`)
+    .map(i => `${i.qty}x ${i.product || 'FrostBlade Pro'} (${i.variant || 'Default'}, ${i.bundle || 'Single'} bundle)`)
     .join(', ');
+    
   const p = order.pricing || {};
-  const status = (order.status || 'unknown').replace(/_/g, ' ');
+  const status = (order.status || 'unknown').toUpperCase().replace(/_/g, ' ');
+  
   const created = order.createdAt
     ? new Date(order.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
     : 'unknown date';
+    
   return `ORDER FOUND:
 - Order ID: ${orderId}
 - Status: ${status}
 - Placed: ${created}
 - Items: ${items || 'N/A'}
 - Subtotal: $${(p.subtotalUSD || 0).toFixed(2)} USD
-- Shipping: ${p.shippingUSD === 0 ? 'FREE' : '$' + (p.shippingUSD || 0).toFixed(2)}
+- Shipping: ${p.shippingUSD === 0 || p.shippingUSD === undefined ? 'FREE' : '$' + (p.shippingUSD || 0).toFixed(2)}
 - Tax: $${(p.taxUSD || 0).toFixed(2)}
 - Total: $${(p.totalUSD || 0).toFixed(2)} USD
 - Currency at checkout: ${order.currency || 'USD'}
@@ -151,42 +157,59 @@ function formatOrderForAI(order, orderId) {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end();
-
-  const { system, messages } = req.body;
-
-  // Check if user mentioned an order ID — if so, fetch it from Firebase
-  const orderId = extractOrderId(messages);
-  let enrichedSystem = SYSTEM_PROMPT; // always use our full system prompt, ignore client-sent one
-
-  if (orderId) {
-    const order = await fetchOrder(orderId);
-    const orderBlock = formatOrderForAI(order, orderId);
-    enrichedSystem += `\n\n== CURRENT ORDER CONTEXT ==\n${orderBlock}`;
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', ['POST']);
+    return res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
-    },
-    body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
-      max_tokens: 600,
-      temperature: 0.5,
-      messages: [
-        { role: 'system', content: enrichedSystem },
-        ...messages
-      ]
-    })
-  });
+  try {
+    const { messages } = req.body;
 
-  if (!response.ok) {
-    return res.status(500).json({ reply: 'Sorry, I\'m having trouble connecting right now. Please email support@minimisty.store for help.' });
+    if (!messages || !Array.isArray(messages)) {
+      return res.status(400).json({ reply: 'Invalid payload: messages array is required.' });
+    }
+
+    // Check if user mentioned an order ID — if so, fetch it from Firebase
+    const orderId = extractOrderId(messages);
+    let enrichedSystem = SYSTEM_PROMPT;
+
+    if (orderId) {
+      const order = await fetchOrder(orderId);
+      const orderBlock = formatOrderForAI(order, orderId);
+      enrichedSystem += `\n\n== CURRENT ORDER CONTEXT ==\n${orderBlock}`;
+    }
+
+    // Call the Groq API
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        max_tokens: 600,
+        temperature: 0.5,
+        messages: [
+          { role: 'system', content: enrichedSystem },
+          ...messages
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Groq API Error response:', errorText);
+      return res.status(500).json({ reply: "Sorry, I'm having trouble connecting right now. Please email support@minimisty.store for help." });
+    }
+
+    const data = await response.json();
+    const reply = data.choices?.[0]?.message?.content || 'Sorry, no response.';
+    
+    return res.status(200).json({ reply });
+
+  } catch (error) {
+    console.error('Global Chat Handler Error:', error);
+    return res.status(500).json({ reply: "An internal server error occurred. Please contact support@minimisty.store." });
   }
-
-  const data = await response.json();
-  const reply = data.choices?.[0]?.message?.content || 'Sorry, no response.';
-  res.json({ reply });
 }
