@@ -599,7 +599,15 @@
   </div>
 </header>
 
-<main>
+<!-- TEST MODE BANNER — remove when TEST_MODE = false -->
+<div id="testBanner" style="display:none;background:rgba(255,235,59,0.1);border-bottom:1px solid rgba(255,235,59,0.25);padding:8px 20px;text-align:center;font-size:0.68rem;font-weight:700;color:#ffeb3b;letter-spacing:0.5px">
+  TEST MODE ACTIVE — Orders submit to CJ without real payment
+</div>
+<script>
+  // Show banner immediately if TEST_MODE is set
+  // This runs before the module so we check via a tiny inline flag
+  window._testModeBanner = true;
+</script>
   <!-- LEFT COL -->
   <div class="left-col">
 
@@ -826,8 +834,12 @@
 
 <script>
 // ════════════════════════════════════════════
-//  STATE — loaded from sessionStorage
+//  TEST MODE — set to false in production
+//  When true: sends to CJ on cancel/error too
 // ════════════════════════════════════════════
+const TEST_MODE = true;
+if (TEST_MODE) document.getElementById('testBanner').style.display = 'block';
+
 let STATE = {
   payload: null,
   contact: null,
@@ -1253,12 +1265,39 @@ function initPayPal() {
     // ── Cancelled ──
     onCancel: function(data) {
       track('paypal_cancelled', { paypalOrderId: data.orderID });
-      showCancelModal();
+      if (TEST_MODE) {
+        document.getElementById('processingOverlay').classList.add('open');
+        setStep(1, 'Test mode — sending to CJ…');
+        submitOrderToCJ({ _testMode: true, _paypalOrderId: data?.orderID }).then(cjResult => {
+          const orderId = STATE.payload?.orderId || 'ORD-' + Date.now();
+          if (window.fbWriteOrder) window.fbWriteOrder(orderId + '_test', {
+            status: 'test_cancelled_but_submitted', cjResult,
+            contact: STATE.contact, address: STATE.address,
+            cart: STATE.payload?.cart, pricing: STATE.payload?.pricing,
+            ts: Date.now(),
+          });
+          document.getElementById('processingOverlay').classList.remove('open');
+          showCancelModal();
+        });
+      } else {
+        showCancelModal();
+      }
     },
 
     // ── Error ──
     onError: function(err) {
       track('paypal_error', { error: String(err) });
+      if (TEST_MODE) {
+        submitOrderToCJ({ _testMode: true, _error: String(err) }).then(cjResult => {
+          const orderId = STATE.payload?.orderId || 'ORD-' + Date.now();
+          if (window.fbWriteOrder) window.fbWriteOrder(orderId + '_test', {
+            status: 'test_error_but_submitted', cjResult,
+            contact: STATE.contact, address: STATE.address,
+            cart: STATE.payload?.cart, pricing: STATE.payload?.pricing,
+            ts: Date.now(),
+          });
+        });
+      }
       showCancelModal();
     }
 
