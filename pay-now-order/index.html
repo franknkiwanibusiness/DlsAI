@@ -12,7 +12,7 @@
   <!-- Firebase v11 -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
-    import { getDatabase, ref, set, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+    import { getDatabase, ref, set, push, update } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
     import { getAuth } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
 
     const firebaseConfig = {
@@ -27,26 +27,49 @@
     };
 
     const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+    const db  = getDatabase(app);
     const auth = getAuth(app);
 
-    // ── Track a page event ──
+    // ── Session ID (unique per page load) ──
+    const SESSION_ID = 'sess_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+    window._sessionId = SESSION_ID;
+    const PAGE_ENTER = Date.now();
+
+    // ── Device + context snapshot ──
+    function deviceInfo() {
+      return {
+        ua:          navigator.userAgent,
+        lang:        navigator.language,
+        screenW:     window.screen.width,
+        screenH:     window.screen.height,
+        viewportW:   window.innerWidth,
+        viewportH:   window.innerHeight,
+        touch:       ('ontouchstart' in window),
+        referrer:    document.referrer || 'direct',
+        timezone:    Intl.DateTimeFormat().resolvedOptions().timeZone,
+        colorScheme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
+        connection:  navigator.connection?.effectiveType || 'unknown',
+      };
+    }
+
+    // ── Push a named event ──
     window.fbTrack = async function(eventName, data = {}) {
       try {
         const eventsRef = ref(db, 'events');
         await push(eventsRef, {
-          event: eventName,
-          orderId: window._orderId || null,
-          email: window._email || null,
-          page: 'pay-now-order',
-          ua: navigator.userAgent,
-          ts: Date.now(),
+          event:     eventName,
+          sessionId: SESSION_ID,
+          orderId:   window._orderId || null,
+          email:     window._email  || null,
+          page:      'pay-now-order',
+          timeOnPageMs: Date.now() - PAGE_ENTER,
+          ts:        Date.now(),
           ...data
         });
       } catch(e) {}
     };
 
-    // ── Write full order to Firebase ──
+    // ── Write full order node ──
     window.fbWriteOrder = async function(orderId, payload) {
       try {
         const orderRef = ref(db, 'orders/' + orderId);
@@ -54,16 +77,91 @@
       } catch(e) {}
     };
 
-    // ── Update order status ──
+    // ── Patch existing order node ──
     window.fbUpdateOrder = async function(orderId, patch) {
       try {
-        const { update } = await import("https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js");
         const orderRef = ref(db, 'orders/' + orderId);
         await update(orderRef, { ...patch, updatedAt: Date.now() });
       } catch(e) {}
     };
 
+    // ── Write session record ──
+    window.fbWriteSession = async function(data) {
+      try {
+        const sessRef = ref(db, 'sessions/' + SESSION_ID);
+        await set(sessRef, {
+          sessionId: SESSION_ID,
+          page: 'pay-now-order',
+          device: deviceInfo(),
+          ...data,
+          ts: Date.now(),
+        });
+      } catch(e) {}
+    };
+
+    // ── Patch session record ──
+    window.fbPatchSession = async function(patch) {
+      try {
+        const sessRef = ref(db, 'sessions/' + SESSION_ID);
+        await update(sessRef, { ...patch, lastSeen: Date.now() });
+      } catch(e) {}
+    };
+
+    // ── DEEP BEHAVIOUR TRACKING ──
+
+    // 1. Scroll depth milestones
+    const scrollMilestones = new Set();
+    window.addEventListener('scroll', () => {
+      const pct = Math.round((window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100);
+      [25, 50, 75, 100].forEach(m => {
+        if (pct >= m && !scrollMilestones.has(m)) {
+          scrollMilestones.add(m);
+          window.fbTrack('scroll_depth', { pct: m });
+        }
+      });
+    }, { passive: true });
+
+    // 2. Time-on-page heartbeat every 30s
+    let heartbeatCount = 0;
+    const heartbeatInterval = setInterval(() => {
+      heartbeatCount++;
+      window.fbPatchSession?.({ heartbeats: heartbeatCount, timeOnPageMs: Date.now() - PAGE_ENTER });
+    }, 30000);
+
+    // 3. Page visibility — detect tab switches
+    document.addEventListener('visibilitychange', () => {
+      window.fbTrack('visibility_change', {
+        hidden: document.hidden,
+        timeOnPageMs: Date.now() - PAGE_ENTER,
+      });
+    });
+
+    // 4. Exit intent (cursor leaves window top)
+    document.addEventListener('mouseleave', (e) => {
+      if (e.clientY < 10) {
+        window.fbTrack('exit_intent', { timeOnPageMs: Date.now() - PAGE_ENTER });
+      }
+    });
+
+    // 5. Page unload — final session duration
+    window.addEventListener('beforeunload', () => {
+      const duration = Date.now() - PAGE_ENTER;
+      // Use beacon for reliable unload tracking
+      const payload = JSON.stringify({
+        event: 'page_exit',
+        sessionId: SESSION_ID,
+        orderId: window._orderId || null,
+        durationMs: duration,
+        scrollMilestones: [...scrollMilestones],
+        ts: Date.now(),
+      });
+      navigator.sendBeacon && navigator.sendBeacon('/api/beacon', payload);
+      // Also try firebase (may not complete)
+      window.fbPatchSession?.({ exitDurationMs: duration, exited: true });
+    });
+
     window._fbReady = true;
+    window._deviceInfo = deviceInfo;
   </script>
 
   <style>
@@ -158,7 +256,7 @@
       flex-shrink: 0;
     }
     .card-title { font-size: 0.92rem; font-weight: 700; color: #fff; }
-    .card-sub { font-size: 0.67rem; font-weight: 600; color: #444; margin-top: 1px; }
+    .card-sub { font-size: 0.67rem; font-weight: 600; color: #888; margin-top: 1px; }
     .card-body { padding: 18px 20px; }
 
     /* ── ORDER REVIEW ── */
@@ -175,7 +273,7 @@
       flex-shrink: 0;
     }
     .item-name { font-size: 0.82rem; font-weight: 700; color: #fff; margin-bottom: 2px; }
-    .item-meta { font-size: 0.67rem; font-weight: 600; color: #555; }
+    .item-meta { font-size: 0.67rem; font-weight: 600; color: #aaa; }
     .item-price { font-size: 0.9rem; font-weight: 700; margin-left: auto; flex-shrink: 0; }
 
     /* ── ADDRESS REVIEW ── */
@@ -185,18 +283,18 @@
     @media (max-width: 480px) { .addr-grid { grid-template-columns: 1fr; } }
     .addr-field { }
     .addr-label {
-      font-size: 0.62rem; font-weight: 700; color: #444;
+      font-size: 0.62rem; font-weight: 700; color: #aaa;
       text-transform: uppercase; letter-spacing: 0.8px;
       margin-bottom: 4px;
     }
     .addr-val {
-      font-size: 0.82rem; font-weight: 600; color: #ccc;
-      background: #111; border: 1px solid #1c1c1c;
+      font-size: 0.82rem; font-weight: 600; color: #ddd;
+      background: #111; border: 1px solid rgba(255,255,255,0.15);
       border-radius: 8px; padding: 9px 12px;
     }
     .addr-val.highlight {
       color: #fff;
-      border-color: rgba(163,255,18,0.15);
+      border-color: rgba(255,255,255,0.28);
     }
 
     .validation-bar {
@@ -225,8 +323,8 @@
       border-bottom: 1px solid #0f0f0f;
     }
     .sum-row:last-child { border-bottom: none; }
-    .sum-key { color: #555; }
-    .sum-val { color: #ccc; }
+    .sum-key { color: #999; }
+    .sum-val { color: #eee; }
     .sum-val.free { color: var(--lime); }
     .sum-val.save { color: var(--red); }
     .sum-total-row {
@@ -253,7 +351,7 @@
 
     .pay-note {
       text-align: center;
-      font-size: 0.62rem; font-weight: 600; color: #333;
+      font-size: 0.62rem; font-weight: 600; color: #888;
       margin-top: 10px;
     }
 
@@ -266,7 +364,7 @@
     }
     .trust-chip {
       display: flex; align-items: center; gap: 5px;
-      font-size: 0.62rem; font-weight: 700; color: #444;
+      font-size: 0.62rem; font-weight: 700; color: #888;
     }
 
     /* ── BADGES ── */
@@ -283,7 +381,7 @@
     }
     .badge-ssl { background: rgba(0,240,255,0.07); border: 1px solid rgba(0,240,255,0.18); color: #00c8d8; }
     .badge-pci { background: rgba(163,255,18,0.07); border: 1px solid rgba(163,255,18,0.18); color: #8fd400; }
-    .badge-enc { background: rgba(255,255,255,0.04); border: 1px solid #222; color: #555; }
+    .badge-enc { background: rgba(255,255,255,0.04); border: 1px solid #333; color: #999; }
     .badge-pp  { background: rgba(0,56,255,0.07); border: 1px solid rgba(0,56,255,0.2); color: #5580ff; }
 
     /* ── MODAL BASE ── */
@@ -335,8 +433,8 @@
 
     .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
     .info-cell {}
-    .info-cell-label { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #444; margin-bottom: 3px; }
-    .info-cell-val { font-size: 0.82rem; font-weight: 700; color: #ccc; }
+    .info-cell-label { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #888; margin-bottom: 3px; }
+    .info-cell-val { font-size: 0.82rem; font-weight: 700; color: #ddd; }
     .info-cell-val.green { color: var(--green); }
     .info-cell-val.big { font-size: 1rem; color: #fff; }
 
@@ -402,8 +500,8 @@
       font-size: 0.78rem;
     }
     .cancel-row:last-child { border-bottom: none; }
-    .cancel-key { color: #555; font-weight: 600; }
-    .cancel-val { color: #888; font-weight: 700; }
+    .cancel-key { color: #999; font-weight: 600; }
+    .cancel-val { color: #ccc; font-weight: 700; }
     .cancel-val.red { color: var(--red); }
 
     .cancel-code-box {
@@ -441,11 +539,11 @@
     #processingOverlay.open { display: flex; }
     .proc-fan { width: 52px; height: 52px; animation: spin 0.7s linear infinite; }
     .proc-text { font-size: 1rem; font-weight: 700; color: #fff; }
-    .proc-sub { font-size: 0.72rem; font-weight: 600; color: #444; }
+    .proc-sub { font-size: 0.72rem; font-weight: 600; color: #888; }
     .proc-steps { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
     .proc-step {
       display: flex; align-items: center; gap: 10px;
-      font-size: 0.72rem; font-weight: 600; color: #333;
+      font-size: 0.72rem; font-weight: 600; color: #666;
       transition: color 0.3s;
     }
     .proc-step.active { color: var(--cyan); }
@@ -608,15 +706,15 @@
 
       <div class="trust-row">
         <div class="trust-chip">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           Encrypted
         </div>
         <div class="trust-chip">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
           Verified Checkout
         </div>
         <div class="trust-chip">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
           Fast Dispatch
         </div>
       </div>
@@ -1139,39 +1237,119 @@ renderOrderItems();
 renderAddress();
 renderSummary();
 
-// Kick off address validation and tracking in parallel
 validateAddress();
-track('page_view_payment');
 
-// Write pending order to Firebase immediately
-if (window._fbReady && STATE.payload) {
-  const orderId = STATE.payload?.orderId || 'PENDING-' + Date.now();
+// ── Deep session write (fires after FB module loads) ──
+function initSession() {
+  const orderId   = STATE.payload?.orderId || 'PENDING-' + Date.now();
+  const c         = STATE.contact || {};
+  const a         = STATE.address || {};
+  const cart      = STATE.payload?.cart || [];
+
+  const sessionPayload = {
+    status:      'payment_page_loaded',
+    orderId,
+    contact: {
+      name:    [c.firstName, c.lastName].filter(Boolean).join(' '),
+      email:   c.email || null,
+      phone:   c.phone || null,
+    },
+    address: {
+      line1:   a.line1    || null,
+      line2:   a.line2    || null,
+      city:    a.city     || null,
+      state:   a.state    || null,
+      postal:  a.postal   || null,
+      country: a.country  || null,
+      countryCode: a.countryCode || null,
+    },
+    cart: cart.map(i => ({
+      name:    i.name    || null,
+      variant: i.variant || null,
+      qty:     i.qty     || 1,
+      sku:     i.cjSku   || i.sku || null,
+      priceUSD: i.priceUSD || null,
+    })),
+    pricing:      STATE.payload?.pricing     || null,
+    currency:     STATE.currency,
+    shippingMode: STATE.payload?.shippingMode || 'std',
+    giftWrap:     STATE.payload?.giftWrap     || false,
+    device:       window._deviceInfo ? window._deviceInfo() : null,
+    paypalLoaded: typeof paypalSDK !== 'undefined',
+    enteredAt:    Date.now(),
+  };
+
+  if (window.fbWriteSession) window.fbWriteSession(sessionPayload);
+
+  // Also write pending order snapshot
   if (window.fbWriteOrder) window.fbWriteOrder(orderId + '_pending', {
-    status:   'pending_payment',
-    contact:  STATE.contact,
-    address:  STATE.address,
-    cart:     STATE.payload?.cart,
-    pricing:  STATE.payload?.pricing,
-    currency: STATE.currency,
-    ts:       Date.now(),
+    ...sessionPayload,
+    status: 'pending_payment',
   });
-} else {
-  // Firebase module loads asynchronously — retry once ready
-  setTimeout(() => {
-    if (window.fbWriteOrder && STATE.payload) {
-      const orderId = STATE.payload?.orderId || 'PENDING-' + Date.now();
-      window.fbWriteOrder(orderId + '_pending', {
-        status:   'pending_payment',
-        contact:  STATE.contact,
-        address:  STATE.address,
-        cart:     STATE.payload?.cart,
-        pricing:  STATE.payload?.pricing,
-        currency: STATE.currency,
-        ts:       Date.now(),
-      });
-    }
-  }, 2000);
+
+  track('page_view_payment', {
+    orderId,
+    totalUSD:     STATE.totalUSD,
+    itemCount:    cart.length,
+    shippingMode: STATE.payload?.shippingMode,
+  });
 }
+
+// ── Field hover/visibility tracking ──
+// Track which address fields the user actually reads
+const addrFieldIds = ['adv-name','adv-email','adv-phone','adv-country','adv-addr1','adv-city','adv-postal','adv-ship'];
+const fieldViewLog = {};
+let fieldObserver;
+
+function initFieldObserver() {
+  if (!('IntersectionObserver' in window)) return;
+  fieldObserver = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting && !fieldViewLog[e.target.id]) {
+        fieldViewLog[e.target.id] = Date.now();
+      }
+    });
+  }, { threshold: 0.5 });
+
+  addrFieldIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) fieldObserver.observe(el);
+  });
+}
+
+// Push field view log after 5 seconds (enough time to read)
+setTimeout(() => {
+  if (Object.keys(fieldViewLog).length > 0) {
+    track('address_fields_viewed', {
+      fieldsViewed: Object.keys(fieldViewLog),
+      count: Object.keys(fieldViewLog).length,
+    });
+  }
+}, 5000);
+
+// ── PayPal button visibility ──
+let ppButtonSeen = false;
+const ppObserver = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting && !ppButtonSeen) {
+      ppButtonSeen = true;
+      track('paypal_button_visible', { timeOnPageMs: Date.now() - (window._pageEnter || Date.now()) });
+      ppObserver.disconnect();
+    }
+  });
+}, { threshold: 0.6 });
+const ppContainer = document.getElementById('paypal-button-container');
+if (ppContainer) ppObserver.observe(ppContainer);
+
+// ── Fire session init after Firebase is ready ──
+const waitForFb = setInterval(() => {
+  if (window._fbReady) {
+    clearInterval(waitForFb);
+    initSession();
+    initFieldObserver();
+  }
+}, 200);
+setTimeout(() => clearInterval(waitForFb), 8000);
 
 initPayPal();
 </script>
