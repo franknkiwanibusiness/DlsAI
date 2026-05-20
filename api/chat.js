@@ -1,44 +1,3 @@
-export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end();
-
-  const { system, messages } = req.body;
-
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
-    },
-    body: JSON.stringify({
-      model: 'llama-3.1-8b-instant',
-      max_tokens: 500,
-      messages: [
-        { role: 'system', content: system },
-        ...messages
-      ]
-    })
-  });
-
-  if (!response.ok) {
-    const err = await response.text();
-    return res.status(500).json({ reply: 'Sorry, I could not get a response right now.' });
-  }
-
-  const data = await response.json();
-  const reply = data.choices?.[0]?.message?.content || 'Sorry, no response.';
-  res.json({ reply });
-}import { initializeApp, getApps } from 'firebase-admin/app';
-import { getDatabase } from 'firebase-admin/database';
-import { credential } from 'firebase-admin';
-
-// Init Firebase Admin once (Vercel keeps the instance warm between calls)
-if (!getApps().length) {
-  initializeApp({
-    credential: credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)),
-    databaseURL: 'https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com'
-  });
-}
-
 const SYSTEM_PROMPT = `You are the MINIMISTY store assistant — a smart, friendly, and concise support agent for MINIMISTY.store.
 
 == PRODUCT ==
@@ -125,7 +84,7 @@ Bundle deals always ship free. Single pack has a small shipping charge.
 - No phone support for affiliate queries — email support@minimisty.store
 
 == ORDER LOOKUP ==
-If the user provides an Order ID (looks like ORD_ABC123_XYZ), you will receive the order data injected into the conversation. Use it to answer their question accurately. If no order is found, tell them to double-check their ID or email support.
+If a user asks about their order or provides an Order ID (looks like ORD_ABC123_XYZ), remind them friendly that order lookups are handled via email. Tell them to send their order details to support@minimisty.store so our team can pull up their real-time tracking details.
 
 == BEHAVIOUR RULES ==
 - Be concise. 2–4 sentences max per reply unless a detailed explanation is genuinely needed.
@@ -136,56 +95,8 @@ If the user provides an Order ID (looks like ORD_ABC123_XYZ), you will receive t
 - When a customer seems frustrated, acknowledge it first before solving.
 - Currency: always refer to prices in USD when quoting — the site handles local conversion automatically.`;
 
-// Detect if message contains an order ID pattern
-function extractOrderId(messages) {
-  if (!messages || !Array.isArray(messages)) return null;
-  const allText = messages.map(m => m.content).join(' ');
-  // Matches ORD_ followed by alphanumeric blocks separated by optional underscores/dashes
-  const match = allText.match(/ORD_[A-Z0-9_\-]+/i);
-  return match ? match[0].toUpperCase() : null;
-}
-
-// Fetch order from Firebase
-async function fetchOrder(orderId) {
-  try {
-    const db = getDatabase();
-    const snap = await db.ref(`orders/${orderId}`).get();
-    if (!snap.exists()) return null;
-    return snap.val();
-  } catch (e) {
-    console.error('Error fetching order from Firebase:', e);
-    return null;
-  }
-}
-
-function formatOrderForAI(order, orderId) {
-  if (!order) return `Order ID ${orderId} was not found in our system.`;
-  
-  const items = (order.items || [])
-    .map(i => `${i.qty}x ${i.product || 'FrostBlade Pro'} (${i.variant || 'Default'}, ${i.bundle || 'Single'} bundle)`)
-    .join(', ');
-    
-  const p = order.pricing || {};
-  const status = (order.status || 'unknown').toUpperCase().replace(/_/g, ' ');
-  
-  const created = order.createdAt
-    ? new Date(order.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-    : 'unknown date';
-    
-  return `ORDER FOUND:
-- Order ID: ${orderId}
-- Status: ${status}
-- Placed: ${created}
-- Items: ${items || 'N/A'}
-- Subtotal: $${(p.subtotalUSD || 0).toFixed(2)} USD
-- Shipping: ${p.shippingUSD === 0 || p.shippingUSD === undefined ? 'FREE' : '$' + (p.shippingUSD || 0).toFixed(2)}
-- Tax: $${(p.taxUSD || 0).toFixed(2)}
-- Total: $${(p.totalUSD || 0).toFixed(2)} USD
-- Currency at checkout: ${order.currency || 'USD'}
-- Country: ${order.geo?.country || 'unknown'}`;
-}
-
 export default async function handler(req, res) {
+  // Guard clause for allowed request types
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST']);
     return res.status(405).end(`Method ${req.method} Not Allowed`);
@@ -194,21 +105,12 @@ export default async function handler(req, res) {
   try {
     const { messages } = req.body;
 
+    // Validate request structure
     if (!messages || !Array.isArray(messages)) {
-      return res.status(400).json({ reply: 'Invalid payload: messages array is required.' });
+      return res.status(400).json({ reply: 'Malformed request: messages array is required.' });
     }
 
-    // Check if user mentioned an order ID — if so, fetch it from Firebase
-    const orderId = extractOrderId(messages);
-    let enrichedSystem = SYSTEM_PROMPT;
-
-    if (orderId) {
-      const order = await fetchOrder(orderId);
-      const orderBlock = formatOrderForAI(order, orderId);
-      enrichedSystem += `\n\n== CURRENT ORDER CONTEXT ==\n${orderBlock}`;
-    }
-
-    // Call the Groq API
+    // Hit the Groq endpoint using standard fetch
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -216,29 +118,30 @@ export default async function handler(req, res) {
         'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        max_tokens: 600,
-        temperature: 0.5,
+        model: 'llama-3.3-70b-versatile', // Upgraded to the optimal versatile model for higher accuracy
+        max_tokens: 500,
+        temperature: 0.4, // Lower temperature keeps answers factual and tightly bounded to the prompt rules
         messages: [
-          { role: 'system', content: enrichedSystem },
+          { role: 'system', content: SYSTEM_PROMPT }, // Hardcoded on server side to prevent prompt tampering
           ...messages
         ]
       })
     });
 
+    // Handle bad API responses cleanly
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Groq API Error response:', errorText);
+      const errText = await response.text();
+      console.error('Groq API reported an error:', errText);
       return res.status(500).json({ reply: "Sorry, I'm having trouble connecting right now. Please email support@minimisty.store for help." });
     }
 
     const data = await response.json();
-    const reply = data.choices?.[0]?.message?.content || 'Sorry, no response.';
+    const reply = data.choices?.[0]?.message?.content || 'Sorry, I am having trouble pulling up an answer right now.';
     
     return res.status(200).json({ reply });
 
   } catch (error) {
-    console.error('Global Chat Handler Error:', error);
-    return res.status(500).json({ reply: "An internal server error occurred. Please contact support@minimisty.store." });
+    console.error('Unhandled runtime error in serverless function:', error);
+    return res.status(500).json({ reply: "Something went sideways on our end. Please drop a line to support@minimisty.store." });
   }
 }
