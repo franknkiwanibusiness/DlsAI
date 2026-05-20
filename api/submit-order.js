@@ -23,6 +23,20 @@ export default async function handler(req, res) {
     return res.status(400).json({ success: false, error: 'Missing required order fields' });
   }
 
+  // ── Log incoming colour + resolved SKU for every item ──
+  console.log(`[submit-order] Order ${orderId} — ${cart.length} item(s):`);
+  cart.forEach((item, i) => {
+    const SKU_MAP = {
+      'Blue':  'CJYD239388104DW',
+      'Black': 'CJYD239388103CX',
+      'Pink':  'CJYD239388102BY',
+      'White': 'CJYD239388101AZ',
+    };
+    const key = Object.keys(SKU_MAP).find(k => k.toLowerCase() === (item.variant || '').toLowerCase());
+    const resolved = item.cjSku || item.sku || item.variantId || SKU_MAP[key] || 'NOT FOUND';
+    console.log(`  [${i + 1}] Name: ${item.name || '—'} | Colour: ${item.variant || '—'} | Qty: ${item.qty || 1} | SKU: ${resolved}`);
+  });
+
   const CJ_API_KEY  = process.env.DROPSHIP_API_KEY;
   const CJ_BASE_URL = 'https://developers.cjdropshipping.com/api2.0/v1';
 
@@ -49,14 +63,49 @@ export default async function handler(req, res) {
       if (authData.data?.accessToken) accessToken = authData.data.accessToken;
     }
 
+    // ── SKU lookup — variant name → CJ vid ──
+    const SKU_MAP = {
+      'Blue':  'CJYD239388104DW',
+      'Black': 'CJYD239388103CX',
+      'Pink':  'CJYD239388102BY',
+      'White': 'CJYD239388101AZ',
+    };
+
+    function resolveSku(item) {
+      // 1. Already has a sku on the item — use it
+      if (item.cjSku || item.sku || item.variantId) {
+        return item.cjSku || item.sku || item.variantId;
+      }
+      // 2. Look up by variant name (case-insensitive)
+      if (item.variant) {
+        const key = Object.keys(SKU_MAP).find(
+          k => k.toLowerCase() === item.variant.toLowerCase()
+        );
+        if (key) return SKU_MAP[key];
+      }
+      // 3. Fallback — log and return empty (CJ will reject, but won't silently ship wrong item)
+      console.error('[submit-order] Could not resolve SKU for item:', item);
+      return '';
+    }
+
     // ── Step 2: Build CJ order payload ──
-    // Map your cart items to CJ products
-    // Each item needs a CJ product/variant ID (sku) — stored in item.cjSku or item.sku
     const products = cart.map(item => ({
-      vid:          item.cjSku || item.sku || item.variantId || '',
+      vid:          resolveSku(item),
       quantity:     item.qty || 1,
       shippingName: shippingMode === 'prime' ? 'CJPacket' : 'CJPacket Ordinary',
     }));
+
+    // Abort if any product has no vid — prevents a bad order reaching CJ
+    const missingVid = products.find(p => !p.vid);
+    if (missingVid) {
+      console.error('[submit-order] Missing vid — aborting CJ submission');
+      return res.status(200).json({
+        success: false,
+        warning: 'missing_sku',
+        orderId,
+        products,
+      });
+    }
 
     const cjPayload = {
       orderNumber:      orderId,
