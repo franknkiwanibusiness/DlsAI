@@ -1,16 +1,11 @@
 // api/notify-all.js
-// Called by Vercel Cron (every minute) OR directly from Firebase Cloud Functions
+// Called by external Cron Job service (every minute)
 // Checks for new orders/emails since last run and pushes to all subscriptions
-//
-// Vercel Cron setup in vercel.json:
-// {
-//   "crons": [{ "path": "/api/notify-all", "schedule": "* * * * *" }]
-// }
 //
 // Env vars needed:
 //   FIREBASE_SERVICE_ACCOUNT  — JSON string of service account key
 //   VAPID_PUBLIC_KEY           — public VAPID key
-//   VAPID_API_KEY              — private VAPID key (secret)
+//   VAPID_PRIVATE_KEY          — private VAPID key (secret key from Vercel env)
 //   VAPID_EMAIL                — mailto: address
 //   CRON_SECRET                — optional secret to protect this endpoint
 
@@ -21,7 +16,7 @@ import { getDatabase } from 'firebase-admin/database';
 webpush.setVapidDetails(
   process.env.VAPID_EMAIL || 'mailto:admin@minimisty.store',
   process.env.VAPID_PUBLIC_KEY || 'BMTBoZaETNkmPu3gl42TbHyU9CH6tRTS9_TBGB2-oor3nSvt5WhJyk1PcmOiOLIt5z5xRterBfR2xlY2Ubyq1Do',
-  process.env.VAPID_API_KEY
+  process.env.VAPID_PRIVATE_KEY // Changed from VAPID_API_KEY to match your updated Vercel environment setting
 );
 
 function getAdminApp() {
@@ -55,7 +50,7 @@ async function sendToAll(db, title, body, url) {
 export default async function handler(req, res) {
   // Optional cron secret check
   if (process.env.CRON_SECRET && req.headers['x-cron-secret'] !== process.env.CRON_SECRET) {
-    // Vercel cron sends Authorization header
+    // Check traditional Vercel Authorization header or custom fallback bearer token
     const auth = req.headers['authorization'];
     if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -80,7 +75,7 @@ export default async function handler(req, res) {
       await sendToAll(db, 'New Order', `${email} ${total}`, '/admin#orders');
     }
 
-    // Check for new email captures
+    // Check for new email captures (with safe null fallback to prevent crash)
     const custSnap = await db.ref('customers').orderByChild('ts').startAt(since).once('value');
     const newCusts = Object.values(custSnap.val() || {});
     if (newCusts.length) {
