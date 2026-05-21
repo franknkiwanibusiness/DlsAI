@@ -57,7 +57,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({ email: null, password: null, apiKey: CJ_API_KEY }),
     });
 
-    let accessToken = CJ_API_KEY; 
+    let accessToken = CJ_API_KEY; // CJ also supports direct API key as Bearer in some endpoints
     if (authRes.ok) {
       const authData = await authRes.json();
       if (authData.data?.accessToken) accessToken = authData.data.accessToken;
@@ -72,26 +72,30 @@ export default async function handler(req, res) {
     };
 
     function resolveSku(item) {
+      // 1. Already has a sku on the item — use it
       if (item.cjSku || item.sku || item.variantId) {
         return item.cjSku || item.sku || item.variantId;
       }
+      // 2. Look up by variant name (case-insensitive)
       if (item.variant) {
         const key = Object.keys(SKU_MAP).find(
           k => k.toLowerCase() === item.variant.toLowerCase()
         );
         if (key) return SKU_MAP[key];
       }
+      // 3. Fallback — log and return empty (CJ will reject, but won't silently ship wrong item)
       console.error('[submit-order] Could not resolve SKU for item:', item);
       return '';
     }
 
-    // ── Step 2: Build Corrected CJ order payload ──
-    // Note: 'shippingName' removed from inner objects; mapping only tracking IDs ('vid') and quantity.
+    // ── Step 2: Build CJ order payload ──
     const products = cart.map(item => ({
-      vid:      resolveSku(item),
-      quantity: item.qty || 1,
+      vid:          resolveSku(item),
+      quantity:     item.qty || 1,
+      shippingName: shippingMode === 'prime' ? 'CJPacket' : 'CJPacket Ordinary',
     }));
 
+    // Abort if any product has no vid — prevents a bad order reaching CJ
     const missingVid = products.find(p => !p.vid);
     if (missingVid) {
       console.error('[submit-order] Missing vid — aborting CJ submission');
@@ -103,21 +107,21 @@ export default async function handler(req, res) {
       });
     }
 
-    // Realigned payload fields properties directly matching API schema requirements
     const cjPayload = {
-      orderNumber:          orderId,
-      shippingZip:          address.postal || '',
-      shippingCountry:      address.countryCode || address.country || '',
-      shippingCity:         address.city || '',
-      shippingProvince:     address.state || '',
-      shippingAddress:      address.line1 || '',
-      shippingAddress2:     address.line2 || '',
+      orderNumber:      orderId,
+      shippingZip:      address.postal   || '',
+      shippingCountry:  address.countryCode || address.country || '',
+      shippingCity:     address.city      || '',
+      shippingProvince: address.state     || '',
+      shippingAddress:  address.line1     || '',
+      shippingAddress2: address.line2     || '',
       shippingCustomerName: [contact.firstName, contact.lastName].filter(Boolean).join(' '),
-      shippingPhone:        contact.phone || '',
-      remark:               giftWrap ? 'GIFT_WRAP_REQUESTED' : '',
-      fromCountryCode:      'US',
-      logisticName:         shippingMode === 'prime' ? 'CJPacket' : 'CJPacket Ordinary', //  FIX 1: Property renamed & lifted to root level
-      products,                                                                          //  FIX 2: Streamlined clean variants object array
+      shippingPhone:    contact.phone     || '',
+      remark:           giftWrap ? 'GIFT_WRAP_REQUESTED' : '',
+      fromCountryCode:  'US',
+      houseNumber:      '',
+      products,
+      payType:          2, // 2 = wallet balance; adjust per your CJ account setup
     };
 
     // ── Step 3: Submit to CJ ──
@@ -143,6 +147,7 @@ export default async function handler(req, res) {
         cjRaw:          cjData,
       });
     } else {
+      // CJ rejected — log but don't fail the customer
       console.error('[submit-order] CJ rejected order:', cjData);
       return res.status(200).json({
         success: false,
