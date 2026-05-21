@@ -1099,27 +1099,104 @@ function showCancelModal() {
   const itemsSummary = cart.map(i => `${i.name || 'Item'} x${i.qty || 1}`).join(', ') || '—';
   const addrSummary  = [a.line1, a.city, a.country].filter(Boolean).join(', ') || '—';
 
-  document.getElementById('can-code').textContent   = cancelCode;
+  document.getElementById('can-code').textContent    = cancelCode;
   document.getElementById('can-orderId').textContent = orderId;
-  document.getElementById('can-name').textContent   = [c.firstName, c.lastName].filter(Boolean).join(' ') || '—';
-  document.getElementById('can-email').textContent  = c.email || '—';
-  document.getElementById('can-phone').textContent  = c.phone || '—';
-  document.getElementById('can-addr').textContent   = addrSummary;
-  document.getElementById('can-items').textContent  = itemsSummary;
-  document.getElementById('can-total').textContent  = total;
-  document.getElementById('can-time').textContent   = now;
+  document.getElementById('can-name').textContent    = [c.firstName, c.lastName].filter(Boolean).join(' ') || '—';
+  document.getElementById('can-email').textContent   = c.email || '—';
+  document.getElementById('can-phone').textContent   = c.phone || '—';
+  document.getElementById('can-addr').textContent    = addrSummary;
+  document.getElementById('can-items').textContent   = itemsSummary;
+  document.getElementById('can-total').textContent   = total;
+  document.getElementById('can-time').textContent    = now;
 
   document.getElementById('cancelModal').classList.add('open');
 
   track('payment_cancelled', { cancelCode, orderId });
+
   if (window.fbWriteOrder) window.fbWriteOrder(orderId + '_cancel', {
     status: 'cancelled', cancelCode, contact: c, address: a,
     total, cart, ts: Date.now()
   });
+
+  // Auto-send failed payment email
+  sendFailedOrderEmail({ cancelCode, orderId, now });
 }
 
 function closeCancelModal() {
   document.getElementById('cancelModal').classList.remove('open');
+}
+
+// ════════════════════════════════════════════
+//  SEND FAILED PAYMENT EMAIL VIA /api/send-email
+// ════════════════════════════════════════════
+async function sendFailedOrderEmail({ cancelCode, orderId, now }) {
+  const email = STATE.contact?.email;
+  if (!email) return;
+
+  const c       = STATE.contact || {};
+  const a       = STATE.address || {};
+  const cart    = STATE.payload?.cart || [];
+  const pricing = STATE.payload?.pricing || {};
+
+  // Build order items HTML matching the email template's .order-item structure
+  const orderItemsHtml = cart.map(item => `
+    <div class="order-item">
+      <div class="item-thumb" style="background-image:url('${item.img || 'https://i.imgur.com/nilsQQC.jpeg'}');background-size:cover;background-position:center;"></div>
+      <div class="item-details">
+        <div class="item-name">${item.name || 'FrostBlade Pro'}</div>
+        <div class="item-meta">${item.variant || 'Black'} &middot; ${item.qty || 1} unit${(item.qty || 1) > 1 ? 's' : ''}</div>
+      </div>
+      <div class="item-price">${fx(item.priceUSD || 39.95)}</div>
+    </div>
+  `).join('');
+
+  const shippingFree = (pricing.shippingUSD === 0 || pricing.shippingLocal === 'FREE');
+
+  const payload = {
+    type:  'payment_cancelled',
+    email: email,
+    data: {
+      CANCEL_CODE:      cancelCode,
+      ORDER_ID:         orderId,
+      CANCEL_TIME:      now || new Date().toLocaleString('en-US', { hour12: false }),
+      ITEM_COUNT:       String(cart.length),
+      ORDER_ITEMS_HTML: orderItemsHtml,
+      FULL_NAME:        [c.firstName, c.lastName].filter(Boolean).join(' ') || 'Valued Customer',
+      ADDRESS_LINE1:    a.line1   || '—',
+      ADDRESS_LINE2:    a.line2   || '',
+      CITY:             a.city    || '—',
+      STATE_PROVINCE:   a.state   || '—',
+      POSTAL_CODE:      a.postal  || '—',
+      COUNTRY:          a.country || '—',
+      PHONE:            c.phone   || '—',
+      SUBTOTAL:         pricing.subtotalLocal || fx(pricing.subtotalUSD || 0),
+      SHIPPING:         shippingFree ? 'FREE' : (pricing.shippingLocal || fx(pricing.shippingUSD || 0)),
+      SHIPPING_FREE:    shippingFree,
+      TAX:              pricing.taxLocal  || fx(pricing.taxUSD  || 0),
+      TOTAL:            pricing.totalLocal || fx(pricing.totalUSD || 0),
+      DISCOUNT_CODE:    'WELCOME10',
+    }
+  };
+
+  try {
+    const res = await fetch('/api/send-email', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload),
+    });
+
+    if (res.ok) {
+      console.log('[email] Failed order email sent to:', email);
+      track('failed_order_email_sent', { email: email.substring(0, 3) + '***' });
+    } else {
+      const err = await res.text();
+      console.warn('[email] Send failed:', err);
+      track('failed_order_email_error', { status: res.status });
+    }
+  } catch(e) {
+    console.warn('[email] Network error:', e.message);
+    track('failed_order_email_error', { error: e.message });
+  }
 }
 
 // ════════════════════════════════════════════
