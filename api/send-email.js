@@ -28,7 +28,7 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'MINIMISTY <noreply@minimisty.store>',
+        from: 'MINIMISTY <noreply@dlsvalue.site>',  // ✅ Changed to verified domain
         to: [to],
         subject: subject,
         html: html,
