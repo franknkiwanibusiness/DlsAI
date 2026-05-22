@@ -680,6 +680,68 @@
       0%, 100% { opacity: 1; transform: scale(1); }
       50% { opacity: 0.85; transform: scale(1.02); }
     }
+    /* === OVERRIDE FIXES - MAKE EVERYTHING VISIBLE === */
+
+/* Show scrollbars */
+body {
+  scrollbar-width: auto !important;
+  -ms-overflow-style: auto !important;
+}
+body::-webkit-scrollbar { 
+  display: block !important;
+}
+
+/* Show text selection */
+::selection { 
+  background: rgba(0,240,255,0.3) !important;
+  color: #fff !important;
+}
+
+/* Show focus outlines for accessibility */
+*:focus, *:focus-visible { 
+  outline: 2px solid var(--cyan) !important;
+  outline-offset: 2px !important;
+}
+
+/* Show tap highlight */
+* {
+  -webkit-tap-highlight-color: rgba(0,240,255,0.2) !important;
+  -webkit-touch-callout: default !important;
+}
+
+/* Keep dropdowns visible when open (no change needed, but ensure they work) */
+
+/* Show error messages clearly */
+.field .err-msg {
+  display: block !important;
+  color: var(--red) !important;
+  margin-top: 4px !important;
+}
+
+/* Keep step pills visible on all screens */
+@media (max-width: 360px) {
+  .hdr-steps { 
+    display: flex !important;
+  }
+}
+
+/* Keep return text visible on all screens */
+@media (max-width: 380px) {
+  .return-text { 
+    display: inline-block !important;
+  }
+}
+
+/* Debug helper - show all hidden elements with a red border (optional) */
+/*
+[style*="display: none"], 
+[style*="display:none"],
+.hidden-visually {
+  border: 2px solid red !important;
+  display: block !important;
+  background: rgba(255,0,0,0.1) !important;
+}
+*/
   </style>
 </head>
 <body>
@@ -710,13 +772,13 @@
       <span style="font-size: 0.7rem; font-weight: 600; color: white; display: inline-block;" class="return-text">Return</span>
     </button>
 
-    <button onclick="openSupportModal()" style="background: linear-gradient(135deg, #00f0ff, #a3ff12, #00f0ff); background-size: 200% 200%; border: none; border-radius: 30px; padding: 6px 12px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.3s ease; animation: gradientShift 3s ease infinite; box-shadow: 0 2px 8px rgba(0,240,255,0.3);" onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 4px 15px rgba(0,240,255,0.5)'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 8px rgba(0,240,255,0.3)'">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-        <path d="M8 10h.01M12 10h.01M16 10h.01"/>
-      </svg>
-      <span style="font-size: 0.7rem; font-weight: 700; color: #000; letter-spacing: 0.3px; white-space: nowrap;">AI Support</span>
-    </button>
+ <button onclick="event.stopPropagation(); toggleSupportChat()" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(0,240,255,0.4); border-radius: 30px; padding: 6px 12px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s ease;" onmouseover="this.style.background='rgba(0,240,255,0.15)'; this.style.borderColor='#00f0ff'" onmouseout="this.style.background='rgba(255,255,255,0.05)'; this.style.borderColor='rgba(0,240,255,0.4)'">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00f0ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    <path d="M8 10h.01M12 10h.01M16 10h.01"/>
+  </svg>
+  <span style="font-size: 0.7rem; font-weight: 700; color: #00f0ff; letter-spacing: 0.3px; white-space: nowrap;">AI Support</span>
+</button>
   </div>
 </header>
 
@@ -1043,14 +1105,58 @@
   <div class="loading-text">Processing your order…</div>
   <div class="loading-sub">Please don't close this page</div>
 </div>
-
-<!-- ══════════════════════════════════════════
-     SCRIPTS
-══════════════════════════════════════════ -->
+<!-- AI SUPPORT MODAL - INLINE -->
+<div id="aiSupportModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:999999;background:rgba(0,0,0,0.95);backdrop-filter:blur(12px);align-items:center;justify-content:center;font-family:'Fredoka',sans-serif;">
+  <div style="background:linear-gradient(135deg,#0a0a0a,#0f0f0f);border:1px solid rgba(0,240,255,0.3);border-radius:28px;width:90%;max-width:500px;max-height:85vh;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,0.5),0 0 20px rgba(0,240,255,0.1);">
+    
+    <div style="padding:18px 20px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;background:rgba(0,240,255,0.03);">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:36px;height:36px;background:linear-gradient(135deg,#00f0ff,#a3ff12);border-radius:12px;display:flex;align-items:center;justify-content:center;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><path d="M12 2a10 10 0 0 1 10 10c0 5-4 9-10 9-1.5 0-3-.4-4.3-1.1L3 22l2.2-4.7C4.4 16 4 14.5 4 13a10 10 0 0 1 10-10z"/><path d="M8 12h.01M12 12h.01M16 12h.01"/></svg>
+        </div>
+        <div>
+          <div style="font-size:1rem;font-weight:700;color:#fff;">AI Support Assistant</div>
+          <div style="font-size:0.7rem;color:#00f0ff;font-weight:600;">Powered by Groq</div>
+        </div>
+      </div>
+      <button id="closeChatBtn" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:30px;width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    
+    <div id="chatMessages" style="height:320px;overflow-y:auto;padding:18px 16px;display:flex;flex-direction:column;gap:12px;background:rgba(0,0,0,0.3);">
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <div style="width:28px;height:28px;background:linear-gradient(135deg,#00f0ff,#a3ff12);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <div style="background:#111;border-radius:16px;padding:10px 14px;max-width:85%;border:1px solid #222;">
+          <div style="font-size:0.8rem;color:#ddd;line-height:1.4;">👋 Hey! I'm your AI assistant. Ask me anything about orders, shipping, returns, or products!</div>
+        </div>
+      </div>
+    </div>
+    
+    <div style="padding:10px 16px;border-top:1px solid rgba(255,255,255,0.05);border-bottom:1px solid rgba(255,255,255,0.05);display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;">
+      <button onclick="askQuickQuestion('Where is my order?')" style="background:rgba(0,240,255,0.08);border:1px solid rgba(0,240,255,0.2);border-radius:20px;padding:6px 12px;font-size:0.7rem;color:#00f0ff;font-weight:600;cursor:pointer;white-space:nowrap;font-family:'Fredoka',sans-serif;">📍 Track Order</button>
+      <button onclick="askQuickQuestion('What is your return policy?')" style="background:rgba(163,255,18,0.08);border:1px solid rgba(163,255,18,0.2);border-radius:20px;padding:6px 12px;font-size:0.7rem;color:#a3ff12;font-weight:600;cursor:pointer;white-space:nowrap;font-family:'Fredoka',sans-serif;">🔄 Returns</button>
+      <button onclick="askQuickQuestion('How long does shipping take?')" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:6px 12px;font-size:0.7rem;color:#fff;font-weight:600;cursor:pointer;white-space:nowrap;font-family:'Fredoka',sans-serif;">🚚 Shipping</button>
+      <button onclick="askQuickQuestion('How do I contact support?')" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:6px 12px;font-size:0.7rem;color:#fff;font-weight:600;cursor:pointer;white-space:nowrap;font-family:'Fredoka',sans-serif;">📞 Contact</button>
+    </div>
+    
+    <div style="padding:16px;display:flex;gap:10px;background:#0a0a0a;">
+      <input type="text" id="chatInput" placeholder="Type your question..." style="flex:1;background:#111;border:1px solid #2a2a2a;border-radius:24px;padding:12px 16px;color:#fff;font-family:'Fredoka',sans-serif;font-size:0.85rem;font-weight:500;" onkeypress="if(event.key==='Enter')sendSupportMessage()">
+      <button onclick="sendSupportMessage()" style="background:linear-gradient(135deg,#00f0ff,#a3ff12);border:none;border-radius:30px;width:44px;height:44px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+    
+    <div style="padding:10px 16px;border-top:1px solid rgba(255,255,255,0.05);text-align:center;">
+      <div style="font-size:0.55rem;color:#444;font-weight:600;">⚡ AI responses powered by Groq | 24/7 Support</div>
+    </div>
+  </div>
+</div>
 <script>
 // ════════════════════════════════════════════
 //  FIX 1: SCROLL LOCK UTILITY
-//  Used by both the loading overlay AND the AI modal
 // ════════════════════════════════════════════
 let _scrollY = 0;
 
@@ -1058,7 +1164,6 @@ function lockScroll() {
   _scrollY = window.scrollY;
   document.documentElement.style.setProperty('--scroll-y', `-${_scrollY}px`);
   document.body.classList.add('scroll-locked');
-  // Also prevent touchmove on overlay (iOS)
   document.addEventListener('touchmove', _preventScroll, { passive: false });
 }
 
@@ -1070,105 +1175,42 @@ function unlockScroll() {
 }
 
 function _preventScroll(e) {
-  // Allow scrolling inside dropdowns/modals that have their own scroll
   if (e.target.closest('.country-dropdown, .prefix-dropdown, #chatMessages, .prefix-dropdown')) return;
   e.preventDefault();
 }
 
 // ════════════════════════════════════════════
-//  FIX 1B: LOADER SESSION GUARD (5-second window)
-//  If the user presses back within 5s of the loader showing,
-//  we don't re-trigger it — we just clean up and move on.
+//  LOADER SESSION GUARD
 // ════════════════════════════════════════════
 (function checkLoaderGuard() {
   const ts = sessionStorage.getItem('loaderShownAt');
   if (ts && Date.now() - parseInt(ts, 10) < 5000) {
-    // Came back within 5 seconds — hide overlay, unlock scroll just in case
     const ov = document.getElementById('loadingOverlay');
     if (ov) ov.classList.remove('open');
     unlockScroll();
-    // Clear the flag so it doesn't keep blocking
     sessionStorage.removeItem('loaderShownAt');
   }
 })();
 
 // ════════════════════════════════════════════
-//  AI SUPPORT MODAL
+//  AI SUPPORT CHAT FUNCTIONS
 // ════════════════════════════════════════════
-function createSupportModal() {
-  if (document.getElementById('aiSupportModal')) return;
 
-  const modalHTML = `
-    <div id="aiSupportModal" style="display:none;position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,0.92);backdrop-filter:blur(12px);align-items:center;justify-content:center;font-family:'Fredoka',sans-serif;">
-      <div style="background:linear-gradient(135deg,#0a0a0a,#0f0f0f);border:1px solid rgba(0,240,255,0.3);border-radius:28px;width:90%;max-width:500px;max-height:85vh;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,0.5),0 0 20px rgba(0,240,255,0.1);">
-        
-        <div style="padding:18px 20px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;background:rgba(0,240,255,0.03);">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <div style="width:36px;height:36px;background:linear-gradient(135deg,#00f0ff,#a3ff12);border-radius:12px;display:flex;align-items:center;justify-content:center;animation:pulse 2s infinite;">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><path d="M12 2a10 10 0 0 1 10 10c0 5-4 9-10 9-1.5 0-3-.4-4.3-1.1L3 22l2.2-4.7C4.4 16 4 14.5 4 13a10 10 0 0 1 10-10z"/><path d="M8 12h.01M12 12h.01M16 12h.01"/></svg>
-            </div>
-            <div>
-              <div style="font-size:1rem;font-weight:700;color:#fff;">AI Support Assistant</div>
-              <div style="font-size:0.7rem;color:#00f0ff;font-weight:600;">Powered by Groq</div>
-            </div>
-          </div>
-          <button onclick="closeSupportModal()" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:30px;width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        </div>
-        
-        <div id="chatMessages" style="height:320px;overflow-y:auto;padding:18px 16px;display:flex;flex-direction:column;gap:12px;background:rgba(0,0,0,0.3);">
-          <div style="display:flex;gap:10px;align-items:flex-start;">
-            <div style="width:28px;height:28px;background:linear-gradient(135deg,#00f0ff,#a3ff12);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            </div>
-            <div style="background:#111;border-radius:16px;padding:10px 14px;max-width:85%;border:1px solid #222;">
-              <div style="font-size:0.8rem;color:#ddd;line-height:1.4;">👋 Hey! I'm your AI assistant. Ask me anything about orders, shipping, returns, or products!</div>
-            </div>
-          </div>
-        </div>
-        
-        <div style="padding:10px 16px;border-top:1px solid rgba(255,255,255,0.05);border-bottom:1px solid rgba(255,255,255,0.05);display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;">
-          <button onclick="askQuickQuestion('Where is my order?')" style="background:rgba(0,240,255,0.08);border:1px solid rgba(0,240,255,0.2);border-radius:20px;padding:6px 12px;font-size:0.7rem;color:#00f0ff;font-weight:600;cursor:pointer;white-space:nowrap;font-family:'Fredoka',sans-serif;">📍 Track Order</button>
-          <button onclick="askQuickQuestion('What is your return policy?')" style="background:rgba(163,255,18,0.08);border:1px solid rgba(163,255,18,0.2);border-radius:20px;padding:6px 12px;font-size:0.7rem;color:#a3ff12;font-weight:600;cursor:pointer;white-space:nowrap;font-family:'Fredoka',sans-serif;">🔄 Returns</button>
-          <button onclick="askQuickQuestion('How long does shipping take?')" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:6px 12px;font-size:0.7rem;color:#fff;font-weight:600;cursor:pointer;white-space:nowrap;font-family:'Fredoka',sans-serif;">🚚 Shipping</button>
-          <button onclick="askQuickQuestion('How do I contact support?')" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:6px 12px;font-size:0.7rem;color:#fff;font-weight:600;cursor:pointer;white-space:nowrap;font-family:'Fredoka',sans-serif;">📞 Contact</button>
-        </div>
-        
-        <div style="padding:16px;display:flex;gap:10px;background:#0a0a0a;">
-          <input type="text" id="chatInput" placeholder="Type your question..." style="flex:1;background:#111;border:1px solid #2a2a2a;border-radius:24px;padding:12px 16px;color:#fff;font-family:'Fredoka',sans-serif;font-size:0.85rem;font-weight:500;" onkeypress="if(event.key==='Enter')sendSupportMessage()">
-          <button onclick="sendSupportMessage()" style="background:linear-gradient(135deg,#00f0ff,#a3ff12);border:none;border-radius:30px;width:44px;height:44px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-          </button>
-        </div>
-        
-        <div style="padding:10px 16px;border-top:1px solid rgba(255,255,255,0.05);text-align:center;">
-          <div style="font-size:0.55rem;color:#444;font-weight:600;">⚡ AI responses powered by Groq | 24/7 Support</div>
-        </div>
-      </div>
-    </div>
-  `;
-
-  document.body.insertAdjacentHTML('beforeend', modalHTML);
-}
-
-// FIX 2: Open modal → lock scroll
-function openSupportModal() {
-  createSupportModal();
+function toggleSupportChat() {
   const modal = document.getElementById('aiSupportModal');
-  modal.style.display = 'flex';
-  lockScroll();  // ← blocks main page scroll
-  setTimeout(() => {
-    const input = document.getElementById('chatInput');
-    if (input) input.focus();
-  }, 100);
-}
-
-// FIX 2: Close modal → unlock scroll
-function closeSupportModal() {
-  const modal = document.getElementById('aiSupportModal');
-  if (modal) modal.style.display = 'none';
-  unlockScroll();  // ← restores main page scroll
+  if (!modal) return;
+  
+  if (modal.style.display === 'flex') {
+    modal.style.display = 'none';
+    unlockScroll();
+  } else {
+    modal.style.display = 'flex';
+    lockScroll();
+    setTimeout(() => {
+      const input = document.getElementById('chatInput');
+      if (input) input.focus();
+    }, 100);
+  }
 }
 
 function askQuickQuestion(question) {
@@ -1179,7 +1221,6 @@ function askQuickQuestion(question) {
   }
 }
 
-// FIX 3: Send to Groq via /api/support.js
 async function sendSupportMessage() {
   const input = document.getElementById('chatInput');
   const message = input.value.trim();
@@ -1282,16 +1323,25 @@ function getFallbackResponse(message) {
   return "✨ Thanks for reaching out! For urgent help, email support@minimisty.store and we'll get back to you fast.";
 }
 
-// Close modal on backdrop click
-document.addEventListener('click', function(e) {
+// Close modal on backdrop click (only when clicking outside the modal content)
+document.getElementById('aiSupportModal').addEventListener('click', function(e) {
+  const modalContent = this.querySelector(':scope > div');
+  if (modalContent && !modalContent.contains(e.target)) {
+    this.style.display = 'none';
+    unlockScroll();
+  }
+});
+
+// Close button handler
+document.getElementById('closeChatBtn').addEventListener('click', function(e) {
+  e.stopPropagation();
   const modal = document.getElementById('aiSupportModal');
-  if (modal && modal.style.display === 'flex') {
-    const inner = modal.querySelector(':scope > div');
-    if (inner && !inner.contains(e.target)) closeSupportModal();
+  if (modal) {
+    modal.style.display = 'none';
+    unlockScroll();
   }
 });
 </script>
-
 <script>
 // ════════════════════════════════════════════
 //  STATE
@@ -1321,24 +1371,65 @@ function fx(usd) {
   return appState.currencySymbol + formatted;
 }
 
+
 // ════════════════════════════════════════════
 //  LOAD ORDER FROM SESSION STORAGE
 // ════════════════════════════════════════════
 function loadOrderData() {
   try {
-    const cart = JSON.parse(sessionStorage.getItem('cart') || '[]');
+    // Product page saves under 'pendingCart' + 'minimisty_order' JSON
+    let cart = JSON.parse(sessionStorage.getItem('pendingCart') || '[]');
+    let currency = sessionStorage.getItem('pendingCurrency') || sessionStorage.getItem('currency') || 'USD';
+    let exchangeRate = parseFloat(sessionStorage.getItem('pendingExchangeRate') || sessionStorage.getItem('exchangeRate') || '1');
+    let currencySymbol = sessionStorage.getItem('pendingCurrencySymbol') || sessionStorage.getItem('currencySymbol') || '$';
+    let orderId = sessionStorage.getItem('pendingOrderId') || sessionStorage.getItem('orderId') || '';
+
+    // Also try the unified JSON backup
+    const unified = sessionStorage.getItem('minimisty_order');
+    if (unified && !cart.length) {
+      const parsed = JSON.parse(unified);
+      cart = parsed.cart || [];
+      currency = parsed.currency || currency;
+      exchangeRate = parsed.exchangeRate || exchangeRate;
+      currencySymbol = parsed.currencySymbol || currencySymbol;
+      orderId = parsed.orderId || orderId;
+    }
+
     appState.cart = cart;
-    appState.currency = sessionStorage.getItem('currency') || 'USD';
-    appState.exchangeRate = parseFloat(sessionStorage.getItem('exchangeRate') || '1');
-    appState.currencySymbol = sessionStorage.getItem('currencySymbol') || '$';
-    appState.orderId = sessionStorage.getItem('orderId') || '';
+    appState.currency = currency;
+    appState.exchangeRate = exchangeRate;
+    appState.currencySymbol = currencySymbol;
+    appState.orderId = orderId;
 
     const urlPath = window.location.pathname + window.location.search + window.location.hash;
     const match = urlPath.match(/checkout-my-order[=\/]([A-Z0-9_]+)/);
     if (match) appState.orderId = match[1];
 
+    // Fallback demo product if cart is empty
+    if (!appState.cart.length) {
+      appState.cart = [{
+        id: 'FBP-001',
+        name: 'FrostBlade Pro',
+        variant: 'Black · 256GB',
+        priceUSD: 39.95,
+        discUSD: 0,
+        shipUSD: 1.99,
+        img: 'https://i.imgur.com/nilsQQC.jpeg',
+        qty: 1
+      }];
+    }
   } catch(e) {
-    appState.cart = [];
+    console.warn('loadOrderData error:', e);
+    appState.cart = [{
+      id: 'FBP-001',
+      name: 'FrostBlade Pro',
+      variant: 'Black · 256GB',
+      priceUSD: 39.95,
+      discUSD: 0,
+      shipUSD: 1.99,
+      img: 'https://i.imgur.com/nilsQQC.jpeg',
+      qty: 1
+    }];
   }
 }
 
@@ -1408,7 +1499,6 @@ function renderSummary() {
   document.getElementById('sum-tax').textContent = fx(tax);
   document.getElementById('sum-total').textContent = fx(total);
 }
-
 // ════════════════════════════════════════════
 //  SHIPPING SELECT
 // ════════════════════════════════════════════
