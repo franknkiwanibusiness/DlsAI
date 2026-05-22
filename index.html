@@ -413,6 +413,62 @@
     .tab-panel.active { display: block; }
     @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
+    /* ── SCROLL REVEAL ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(22px);
+      transition: opacity 0.55s cubic-bezier(0.16,1,0.3,1), transform 0.55s cubic-bezier(0.16,1,0.3,1);
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .reveal-delay-1 { transition-delay: 0.08s; }
+    .reveal-delay-2 { transition-delay: 0.16s; }
+    .reveal-delay-3 { transition-delay: 0.24s; }
+
+    /* ── CART ICON BOUNCE ── */
+    @keyframes cartBounce {
+      0%   { transform: scale(1) rotate(0deg); }
+      25%  { transform: scale(1.3) rotate(-8deg); }
+      50%  { transform: scale(0.9) rotate(5deg); }
+      75%  { transform: scale(1.1) rotate(-3deg); }
+      100% { transform: scale(1) rotate(0deg); }
+    }
+    .cart-wrapper.bouncing { animation: cartBounce 0.45s cubic-bezier(0.36,0.07,0.19,0.97); }
+
+    /* ── VARIANT BUTTON ANIMATION ── */
+    .variant-btn .vb-img {
+      transition: border-color 0.2s, transform 0.18s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .variant-btn:active .vb-img { transform: scale(0.9); }
+    .variant-btn.selected .vb-img { transform: scale(1.05); }
+
+    /* ── BUNDLE CARD MICRO-ANIMATION ── */
+    .bundle-card {
+      transition: border-color 0.22s, background 0.22s, transform 0.18s cubic-bezier(0.34,1.56,0.64,1),
+                  box-shadow 0.22s;
+    }
+    .bundle-card.active-bundle { transform: scale(1.01); }
+
+    /* ── SECTION HEADING ANIMATION ── */
+    .section-heading, .section-sub {
+      opacity: 0;
+      animation: fadeUp 0.5s ease forwards;
+    }
+
+    /* ── STAT CARD HOVER ── */
+    .stat-card {
+      transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1), border-color 0.2s, box-shadow 0.2s;
+    }
+    .stat-card:hover { transform: translateY(-3px); box-shadow: 0 8px 32px rgba(0,240,255,0.06); }
+
+    /* ── TRUST CARD HOVER ── */
+    .trust-card {
+      transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1), border-color 0.2s;
+    }
+    .trust-card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.2); }
+
     .feature-item {
       display: flex; gap: 14px;
       background: var(--bg2); padding: 14px; border-radius: 12px;
@@ -577,19 +633,156 @@
     .stock-text { color: var(--red); font-size: 0.83rem; font-weight: 700; }
 
     /* Bundle cards */
+    .bundle-cards-wrap { display: flex; flex-direction: column; gap: 9px; margin-bottom: 4px; }
+
     .bundle-card {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 15px; padding: 14px; margin-bottom: 9px;
-      cursor: pointer; display: flex; justify-content: space-between; align-items: center;
-      transition: border-color 0.2s, background 0.2s;
-      overscroll-behavior: none;
+      background: rgba(255,255,255,0.03);
+      border: 1.5px solid rgba(255,255,255,0.08);
+      border-radius: 16px; padding: 14px 16px;
+      cursor: pointer;
+      display: flex; justify-content: space-between; align-items: flex-start;
+      gap: 10px;
+      transition: border-color 0.22s, background 0.22s, transform 0.18s;
+      position: relative;
+      overflow: visible;
     }
-    .bundle-card.active-bundle { border-color: #fff !important; background: rgba(255,255,255,0.07) !important; }
-    .bundle-name { font-weight: 700; font-size: 0.9rem; color: var(--text); }
-    .bundle-ship { font-size: 0.68rem; color: var(--lime); }
-    .bundle-ship.std { color: #666; }
-    .bundle-price { font-weight: 700; font-size: 1.08rem; color: var(--text); }
-    .bundle-save { font-size: 0.63rem; color: var(--red); }
+    .bundle-card::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, transparent 60%);
+      pointer-events: none; border-radius: 16px;
+    }
+    .bundle-card:active { transform: scale(0.985); }
+
+    /* Active state — clean white glow */
+    .bundle-card.active-bundle {
+      border-color: #ffffff !important;
+      background: rgba(255,255,255,0.07) !important;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.12), 0 4px 24px rgba(255,255,255,0.05) !important;
+    }
+    .bundle-card.active-bundle .bundle-name-label-theme { color: var(--text); }
+    /* bundle-name-label stays #000 regardless of active state */
+
+    /* Popular badge */
+    .bundle-popular-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: var(--cyan); color: #000;
+      font-size: 0.6rem; font-weight: 800; letter-spacing: 0.8px;
+      text-transform: uppercase; padding: 2px 8px; border-radius: 6px;
+      margin-left: 8px; vertical-align: middle;
+    }
+    .bundle-best-badge {
+      display: inline-flex; align-items: center;
+      background: var(--lime); color: #000;
+      font-size: 0.6rem; font-weight: 800; letter-spacing: 0.8px;
+      text-transform: uppercase; padding: 2px 8px; border-radius: 6px;
+      margin-left: 8px; vertical-align: middle;
+    }
+
+    .bundle-left { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .bundle-name {
+      font-weight: 700; font-size: 0.92rem; color: var(--text);
+      display: flex; align-items: center; flex-wrap: wrap; gap: 5px;
+      line-height: 1.2;
+    }
+    /* All bundle name labels follow theme */
+    .bundle-name-label {
+      color: var(--text);
+    }
+    /* Single Pack label follows theme */
+    .bundle-name-label-theme {
+      color: var(--text);
+    }
+    .bundle-ship { font-size: 0.7rem; font-weight: 700; color: var(--lime); display: flex; align-items: center; gap: 4px; }
+    .bundle-ship.std { color: var(--text-muted); }
+    /* Highlighted $1.99 shipping price chip */
+    .ship-price-chip {
+      display: inline-flex; align-items: center;
+      background: rgba(255, 235, 59, 0.15);
+      border: 1px solid rgba(255, 235, 59, 0.4);
+      color: var(--yellow);
+      font-size: 0.68rem; font-weight: 800;
+      padding: 1px 6px; border-radius: 5px;
+      letter-spacing: 0.2px;
+    }
+    [data-theme="light"] .ship-price-chip {
+      background: rgba(180, 130, 0, 0.1);
+      border-color: rgba(180, 130, 0, 0.35);
+      color: #9a6f00;
+    }
+
+    .bundle-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; }
+    .bundle-price-row { display: flex; align-items: baseline; gap: 5px; justify-content: flex-end; }
+    .bundle-price { font-weight: 800; font-size: 1.15rem; color: var(--text); white-space: nowrap; }
+    .bundle-save {
+      display: inline-flex; align-items: center; gap: 3px;
+      background: rgba(255,59,48,0.12); border: 1px solid rgba(255,59,48,0.28);
+      color: #ff6b6b; font-size: 0.63rem; font-weight: 700;
+      padding: 2px 7px; border-radius: 6px;
+      letter-spacing: 0.3px; white-space: nowrap;
+    }
+
+    /* ── BUNDLE QTY COUNTER ── */
+    .bundle-qty-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 28px; height: 28px; padding: 0 8px;
+      background: rgba(255,255,255,0.08);
+      border: 1.5px solid rgba(255,255,255,0.16);
+      border-radius: 8px;
+      font-size: 0.78rem; font-weight: 800;
+      color: var(--text);
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
+      margin-right: 2px;
+      line-height: 1;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .bundle-card.active-bundle .bundle-qty-badge {
+      background: rgba(255,255,255,0.15);
+      border-color: rgba(255,255,255,0.35);
+    }
+    [data-theme="light"] .bundle-qty-badge {
+      background: rgba(0,0,0,0.06);
+      border-color: rgba(0,0,0,0.15);
+      color: var(--text);
+    }
+    [data-theme="light"] .bundle-card.active-bundle .bundle-qty-badge {
+      background: rgba(0,0,0,0.12);
+      border-color: rgba(0,0,0,0.3);
+    }
+
+    /* ── BUNDLE COLOUR PICKERS ── */
+    .bundle-color-row {
+      display: flex; gap: 5px; flex-wrap: wrap;
+      margin-top: 7px;
+      max-height: 0; overflow: hidden;
+      opacity: 0;
+      transition: max-height 0.4s ease, opacity 0.3s ease, margin 0.3s ease;
+    }
+    .bundle-card.active-bundle .bundle-color-row {
+      max-height: 200px;
+      opacity: 1;
+    }
+    .bundle-color-slot {
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+    }
+    .bundle-color-slot .slot-label {
+      font-size: 0.56rem; font-weight: 700;
+      color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .bundle-color-swatches {
+      display: flex; gap: 4px;
+    }
+    .bcs {
+      width: 22px; height: 22px; border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+      background-size: cover; background-position: center;
+      transition: border-color 0.18s, transform 0.12s;
+      flex-shrink: 0;
+    }
+    .bcs:active { transform: scale(0.88); }
+    .bcs.picked { border-color: #fff; box-shadow: 0 0 0 1px rgba(255,255,255,0.4); }
+    [data-theme="light"] .bcs.picked { border-color: #000; box-shadow: 0 0 0 1px rgba(0,0,0,0.3); }
 
     /* Arrival */
     .arrival-bar {
@@ -622,9 +815,29 @@
       padding: 19px; border-radius: 15px; font-weight: 800;
       font-size: 1.08rem; margin-top: 22px; cursor: pointer;
       letter-spacing: 0.5px; font-family: var(--font);
-      transition: transform 0.1s, opacity 0.15s, background 0.3s, color 0.3s;
+      transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1), opacity 0.15s, background 0.3s, color 0.3s;
+      position: relative; overflow: hidden;
     }
-    .add-to-cart-btn:active { transform: scale(0.98); }
+    .add-to-cart-btn:active { transform: scale(0.96); }
+    .add-to-cart-btn.cart-adding {
+      animation: cartBtnPop 0.42s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes cartBtnPop {
+      0%   { transform: scale(1); }
+      30%  { transform: scale(0.94); }
+      65%  { transform: scale(1.04); }
+      100% { transform: scale(1); }
+    }
+    /* Ripple effect */
+    .btn-ripple {
+      position: absolute; border-radius: 50%;
+      background: rgba(255,255,255,0.25);
+      transform: scale(0); animation: rippleOut 0.55s linear;
+      pointer-events: none;
+    }
+    @keyframes rippleOut {
+      to { transform: scale(4); opacity: 0; }
+    }
 
     /* ── CART DRAWER ── */
     .drawer-overlay {
@@ -1584,10 +1797,10 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      background: var(--bg2);
-      border: 1px solid var(--border2);
-      border-radius: 10px;
-      padding: 10px 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 12px;
+      padding: 11px 14px;
       margin-bottom: 18px;
     }
     .countdown-label {
@@ -1608,34 +1821,34 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 1px;
+      gap: 2px;
     }
     .cd-num {
-      background: rgba(255,235,59,0.10);
-      border: 1px solid rgba(255,235,59,0.25);
-      border-radius: 6px;
-      padding: 4px 8px;
-      font-size: 0.95rem;
-      font-weight: 700;
-      color: #ffeb3b;
-      min-width: 32px;
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 7px;
+      padding: 4px 9px;
+      font-size: 0.98rem;
+      font-weight: 800;
+      color: var(--text);
+      min-width: 34px;
       text-align: center;
       font-variant-numeric: tabular-nums;
-      text-shadow: 0 0 8px rgba(255,235,59,0.4);
+      letter-spacing: 0.5px;
     }
     .cd-unit {
-      font-size: 0.55rem;
+      font-size: 0.52rem;
       color: var(--text-faint);
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
     .cd-sep {
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       font-weight: 700;
-      color: #ffeb3b;
-      opacity: 0.5;
+      color: var(--text-faint);
       padding-bottom: 10px;
+      opacity: 0.4;
     }
     .cd-pulse-dot {
       width: 7px; height: 7px;
@@ -1643,6 +1856,15 @@
       background: var(--red);
       animation: pulse 1.5s infinite;
       flex-shrink: 0;
+    }
+    [data-theme="light"] .countdown-bar {
+      background: rgba(0,0,0,0.03);
+      border-color: rgba(0,0,0,0.09);
+    }
+    [data-theme="light"] .cd-num {
+      background: #f0f0f0;
+      border-color: #ddd;
+      color: #111;
     }
 
     /* ── PAYMENT ICONS ── */
@@ -2127,8 +2349,11 @@
     [data-theme="light"] .feature-item { background: #fff; border-color: #e5e5e5; }
     [data-theme="light"] .specs-table { background: #fff; border-color: #e5e5e5; }
     [data-theme="light"] .spec-row { border-color: #eee; }
-    [data-theme="light"] .bundle-card { background: #fff; border-color: #ddd; }
-    [data-theme="light"] .bundle-card.active-bundle { background: #f0f0f0 !important; border-color: #000 !important; }
+    [data-theme="light"] .bundle-card { background: #fff; border-color: #e0e0e0; }
+    [data-theme="light"] .bundle-card.active-bundle { background: #f4f4f4 !important; border-color: #000 !important; box-shadow: 0 0 0 1px rgba(0,0,0,0.1) !important; }
+    [data-theme="light"] .bundle-save { background: rgba(200,40,30,0.1); border-color: rgba(200,40,30,0.25); color: #c0392b; }
+    [data-theme="light"] .bundle-price { color: #000; }
+    [data-theme="light"] .bundle-orig-price { color: #888; }
     [data-theme="light"] .stat-card { background: #fff; border-color: #e0e0e0; }
     [data-theme="light"] .mode-card { background: #fff; border-color: #e0e0e0; }
     [data-theme="light"] .compare-table-inner { background: #fff; border-color: #e0e0e0; }
@@ -2150,8 +2375,6 @@
     [data-theme="light"] .order-summary { background: #fff; border-color: #e0e0e0; }
     [data-theme="light"] .summary-row { border-color: #eee; }
     [data-theme="light"] .arrival-bar { background: var(--lime); }
-    [data-theme="light"] .countdown-bar { background: #fff; border-color: #e0e0e0; }
-    [data-theme="light"] .cd-num { background: rgba(184,134,11,0.08); border-color: rgba(184,134,11,0.25); color: #b8860b; }
     [data-theme="light"] .info-tabs { background: var(--bg); }
     [data-theme="light"] .tab-btn { background: #f0f0f0; border-color: #ddd; color: #666; }
     [data-theme="light"] .tab-btn.active { background: #000; color: #fff; border-color: #000; }
@@ -2232,7 +2455,7 @@
     /* Lime/Cyan adjustments on light bg */
     [data-theme="light"] .lime-highlight { color: #3a8a00; }
     [data-theme="light"] .green-highlight { color: #007a30; }
-    [data-theme="light"] .bundle-ship { color: #3a8a00; }
+    [data-theme="light"] .bundle-ship { color: #2e7d32; }
     [data-theme="light"] .arrival-bar span { color: #000; }
     [data-theme="light"] .order-result .or-val[style*="color:#a3ff12"],
     [data-theme="light"] [style*="color: var(--lime)"],
@@ -2242,7 +2465,7 @@
     [data-theme="light"] .brand-suffix { color: #0077aa; }
     [data-theme="light"] .live-info { color: #0077aa; }
     [data-theme="light"] .stock-text { color: #c0392b; }
-    [data-theme="light"] .bundle-save { color: #c0392b; }
+    [data-theme="light"] .bundle-ship.std { color: #aaa; }
     [data-theme="light"] .cd-pulse-dot { background: #c0392b; }
     [data-theme="light"] .cd-sep { color: #b8860b; }
     [data-theme="light"] .payment-label { color: #999; }
@@ -2260,6 +2483,93 @@
     [data-theme="light"] .pay-icon span { color: #222 !important; }
     /* Google Pay colored letters stay on light — readable enough, but ensure G is dark */
     [data-theme="light"] .pay-icon [style*="color:#fff"] { color: #222 !important; }
+
+    /* ── BUNDLE QUANTITY BADGE ── */
+    .bundle-qty-badge {
+      display: flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+      border: 1.5px solid rgba(255,255,255,0.15);
+      font-size: 0.8rem; font-weight: 800; color: var(--text-muted);
+      flex-shrink: 0; transition: all 0.2s;
+      font-family: var(--font);
+      margin-right: 10px;
+    }
+    .bundle-card.active-bundle .bundle-qty-badge {
+      background: var(--text);
+      border-color: var(--text);
+      color: var(--bg);
+    }
+    [data-theme="light"] .bundle-qty-badge {
+      background: #eee; border-color: #ccc; color: #888;
+    }
+    [data-theme="light"] .bundle-card.active-bundle .bundle-qty-badge {
+      background: #000; border-color: #000; color: #fff;
+    }
+
+    /* ── PER-UNIT COLOUR PICKER ── */
+    #bundleColourPicker {
+      margin-top: 12px;
+      display: none;
+    }
+    #bundleColourPicker.visible { display: block; }
+
+    .bcp-label {
+      font-size: 0.72rem; font-weight: 700; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.6px;
+      margin-bottom: 10px; display: block;
+    }
+
+    .bcp-units-wrap {
+      display: flex; flex-direction: column; gap: 8px;
+    }
+
+    .bcp-unit-row {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--bg3); border: 1px solid var(--border2);
+      border-radius: 12px; padding: 8px 12px;
+    }
+    [data-theme="light"] .bcp-unit-row { background: #f7f7f7; border-color: #e0e0e0; }
+
+    .bcp-unit-label {
+      font-size: 0.7rem; font-weight: 700; color: var(--text-muted);
+      width: 42px; flex-shrink: 0; white-space: nowrap;
+    }
+
+    .bcp-preview {
+      width: 30px; height: 30px; border-radius: 7px;
+      background-size: cover; background-position: center;
+      border: 1.5px solid rgba(255,255,255,0.2);
+      flex-shrink: 0; transition: border-color 0.2s;
+    }
+    [data-theme="light"] .bcp-preview { border-color: #ccc; }
+
+    .bcp-swatches {
+      display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+    }
+
+    .bcp-swatch {
+      width: 28px; height: 28px; border-radius: 6px;
+      background-size: cover; background-position: center;
+      border: 2px solid transparent; cursor: pointer;
+      transition: border-color 0.15s, transform 0.15s;
+      flex-shrink: 0;
+    }
+    .bcp-swatch:active { transform: scale(0.9); }
+    .bcp-swatch.selected {
+      border-color: #fff;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.3);
+    }
+    [data-theme="light"] .bcp-swatch.selected {
+      border-color: #000;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.2);
+    }
+
+    .bcp-swatch-name {
+      font-size: 0.62rem; font-weight: 600; color: var(--text-faint);
+      white-space: nowrap; align-self: center;
+      display: none; /* shown via JS tooltip on hover if needed */
+    }
 
     /* ── ORIGINAL PRICE STRIKETHROUGH ── */
     .bundle-orig-price {
@@ -2746,33 +3056,62 @@
 
     <!-- Bundles -->
     <p class="section-label">Choose Bundle</p>
-    <div class="bundle-card active-bundle" onclick="selectBundle(this,39.99,1.99,0,1)">
-      <div><div class="bundle-name">Single Pack</div><div class="bundle-ship std">$1.99 Shipping</div></div>
-      <div style="text-align:right">
-        <div style="display:flex;align-items:baseline;gap:4px;justify-content:flex-end">
-          <span class="bundle-orig-price" id="orig-0">$49.99</span>
-          <div class="bundle-price" id="bp-0">$39.99</div>
+    <div class="bundle-cards-wrap">
+      <div class="bundle-card active-bundle" onclick="selectBundle(this,39.99,1.99,0,1)">
+        <div class="bundle-left">
+          <div class="bundle-name">
+            <span class="bundle-qty-badge">×1</span>
+            <span class="bundle-name-label-theme">Single Pack</span>
+          </div>
+          <div class="bundle-ship std"><span class="ship-price-chip" id="ship-chip-0">$1.99</span> Shipping</div>
+          <div class="bundle-color-row" id="bcp-main-0">
+            <!-- filled by JS -->
+          </div>
+        </div>
+        <div class="bundle-right">
+          <div class="bundle-price-row">
+            <span class="bundle-orig-price" id="orig-0">$49.99</span>
+            <div class="bundle-price" id="bp-0">$39.99</div>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="bundle-card" onclick="selectBundle(this,69.99,0,35.00,2)">
-      <div><div class="bundle-name">Dual Pack (2 Units)</div><div class="bundle-ship">Free Shipping</div></div>
-      <div style="text-align:right">
-        <div style="display:flex;align-items:baseline;gap:4px;justify-content:flex-end">
-          <span class="bundle-orig-price" id="orig-1">$104.99</span>
-          <div class="bundle-price" id="bp-1">$69.99</div>
+      <div class="bundle-card" onclick="selectBundle(this,69.99,0,35.00,2)">
+        <div class="bundle-left">
+          <div class="bundle-name">
+            <span class="bundle-qty-badge">×2</span>
+            <span class="bundle-name-label">Dual Pack</span> <span class="bundle-popular-badge">POPULAR</span>
+          </div>
+          <div class="bundle-ship">✦ Free Shipping</div>
+          <div class="bundle-color-row" id="bcp-main-1">
+            <!-- filled by JS -->
+          </div>
         </div>
-        <div class="bundle-save">SAVE <span id="bs-1">$10.00</span> · <span id="pct-1">13%</span> per unit</div>
+        <div class="bundle-right">
+          <div class="bundle-price-row">
+            <span class="bundle-orig-price" id="orig-1">$104.99</span>
+            <div class="bundle-price" id="bp-1">$69.99</div>
+          </div>
+          <div class="bundle-save">SAVE <span id="bs-1">$35.00</span> · <span id="pct-1">13%</span>/unit</div>
+        </div>
       </div>
-    </div>
-    <div class="bundle-card" onclick="selectBundle(this,84.99,0,42.50,3)">
-      <div><div class="bundle-name">Family Pack (3 Units)</div><div class="bundle-ship">Free Shipping</div></div>
-      <div style="text-align:right">
-        <div style="display:flex;align-items:baseline;gap:4px;justify-content:flex-end">
-          <span class="bundle-orig-price" id="orig-2">$127.49</span>
-          <div class="bundle-price" id="bp-2">$84.99</div>
+      <div class="bundle-card" onclick="selectBundle(this,84.99,0,42.50,3)">
+        <div class="bundle-left">
+          <div class="bundle-name">
+            <span class="bundle-qty-badge">×3</span>
+            <span class="bundle-name-label">Family Pack</span> <span class="bundle-best-badge">BEST VALUE</span>
+          </div>
+          <div class="bundle-ship">✦ Free Shipping</div>
+          <div class="bundle-color-row" id="bcp-main-2">
+            <!-- filled by JS -->
+          </div>
         </div>
-        <div class="bundle-save">SAVE <span id="bs-2">$35.00</span> · <span id="pct-2">29%</span> per unit</div>
+        <div class="bundle-right">
+          <div class="bundle-price-row">
+            <span class="bundle-orig-price" id="orig-2">$127.49</span>
+            <div class="bundle-price" id="bp-2">$84.99</div>
+          </div>
+          <div class="bundle-save">SAVE <span id="bs-2">$42.50</span> · <span id="pct-2">29%</span>/unit</div>
+        </div>
       </div>
     </div>
 
@@ -3119,33 +3458,56 @@
       <div style="font-size:0.75rem;color:#555;font-weight:600;margin-bottom:18px;">
         Prices in <span id="docCurrencyLabel">USD ($)</span>
       </div>
-      <div class="bundle-card active-bundle" onclick="selectBundle(this,39.99,1.99,0,1)" style="margin-bottom:8px;">
-        <div><div class="bundle-name">Single Pack</div><div class="bundle-ship std">$1.99 Shipping</div></div>
-        <div style="text-align:right">
-          <div style="display:flex;align-items:baseline;gap:4px;justify-content:flex-end">
-            <span class="bundle-orig-price" id="doc-orig-0">$49.99</span>
-            <div class="bundle-price" id="doc-bp-0">$39.99</div>
+      <div class="bundle-cards-wrap" style="margin-bottom:18px;">
+        <div class="bundle-card active-bundle" onclick="selectBundle(this,39.99,1.99,0,1)">
+          <div class="bundle-left">
+            <div class="bundle-name">
+              <span class="bundle-qty-badge">×1</span>
+              <span class="bundle-name-label-theme">Single Pack</span>
+            </div>
+            <div class="bundle-ship std"><span class="ship-price-chip" id="doc-ship-chip-0">$1.99</span> Shipping</div>
+            <div class="bundle-color-row" id="bcp-doc-0"></div>
+          </div>
+          <div class="bundle-right">
+            <div class="bundle-price-row">
+              <span class="bundle-orig-price" id="doc-orig-0">$49.99</span>
+              <div class="bundle-price" id="doc-bp-0">$39.99</div>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="bundle-card" onclick="selectBundle(this,69.99,0,35.00,2)" style="margin-bottom:8px;">
-        <div><div class="bundle-name">Dual Pack · 2 Units</div><div class="bundle-ship">Free Shipping</div></div>
-        <div style="text-align:right">
-          <div style="display:flex;align-items:baseline;gap:4px;justify-content:flex-end">
-            <span class="bundle-orig-price" id="doc-orig-1">$104.99</span>
-            <div class="bundle-price" id="doc-bp-1">$69.99</div>
+        <div class="bundle-card" onclick="selectBundle(this,69.99,0,35.00,2)">
+          <div class="bundle-left">
+            <div class="bundle-name">
+              <span class="bundle-qty-badge">×2</span>
+              <span class="bundle-name-label">Dual Pack</span> <span class="bundle-popular-badge">POPULAR</span>
+            </div>
+            <div class="bundle-ship">✦ Free Shipping</div>
+            <div class="bundle-color-row" id="bcp-doc-1"></div>
           </div>
-          <div class="bundle-save">SAVE <span id="doc-bs-1">$10.00</span> · 13% per unit</div>
+          <div class="bundle-right">
+            <div class="bundle-price-row">
+              <span class="bundle-orig-price" id="doc-orig-1">$104.99</span>
+              <div class="bundle-price" id="doc-bp-1">$69.99</div>
+            </div>
+            <div class="bundle-save">SAVE <span id="doc-bs-1">$35.00</span> · 13%/unit</div>
+          </div>
         </div>
-      </div>
-      <div class="bundle-card" onclick="selectBundle(this,84.99,0,42.50,3)" style="margin-bottom:18px;">
-        <div><div class="bundle-name">Family Pack · 3 Units</div><div class="bundle-ship">Free Shipping</div></div>
-        <div style="text-align:right">
-          <div style="display:flex;align-items:baseline;gap:4px;justify-content:flex-end">
-            <span class="bundle-orig-price" id="doc-orig-2">$127.49</span>
-            <div class="bundle-price" id="doc-bp-2">$84.99</div>
+        <div class="bundle-card" onclick="selectBundle(this,84.99,0,42.50,3)">
+          <div class="bundle-left">
+            <div class="bundle-name">
+              <span class="bundle-qty-badge">×3</span>
+              <span class="bundle-name-label">Family Pack</span> <span class="bundle-best-badge">BEST VALUE</span>
+            </div>
+            <div class="bundle-ship">✦ Free Shipping</div>
+            <div class="bundle-color-row" id="bcp-doc-2"></div>
           </div>
-          <div class="bundle-save">SAVE <span id="doc-bs-2">$35.00</span> · 29% per unit</div>
+          <div class="bundle-right">
+            <div class="bundle-price-row">
+              <span class="bundle-orig-price" id="doc-orig-2">$127.49</span>
+              <div class="bundle-price" id="doc-bp-2">$84.99</div>
+            </div>
+            <div class="bundle-save">SAVE <span id="doc-bs-2">$42.50</span> · 29%/unit</div>
+          </div>
         </div>
       </div>
       <div class="arrival-bar">
@@ -3618,6 +3980,11 @@
     const shipLabel = document.getElementById('shippingPriceLabel');
     if (shipLabel) shipLabel.textContent = fx(1.99) + ' Shipping';
 
+    // Update $1.99 shipping chip in bundle cards (main + doc panel)
+    ['ship-chip-0', 'doc-ship-chip-0'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.textContent = fx(1.99);
+    });
+
     // Main buy section bundle prices
     const keys = BUNDLE_KEYS;
     ['bp-0','bp-1','bp-2'].forEach((id, i) => {
@@ -3744,13 +4111,89 @@
   }
 
   // ════════════════════════════════
+  //  BUNDLE COLOUR PICKERS
+  // ════════════════════════════════
+  const VARIANTS = [
+    { name: 'Black', img: 'https://i.imgur.com/nilsQQC.jpeg', swatch: '#1a1a1a' },
+    { name: 'White', img: 'https://i.imgur.com/RsKcjuk.jpeg', swatch: '#e8e8e8' },
+    { name: 'Blue',  img: 'https://i.imgur.com/N9xdxXe.jpeg', swatch: '#4ab3d4' },
+    { name: 'Pink',  img: 'https://i.imgur.com/xQ3W065.jpeg', swatch: '#f4a3b5' },
+  ];
+  const BUNDLE_QTYS = [1, 2, 3]; // single, dual, family
+
+  // Per-bundle slot selections: bundleColors[bundleIdx][slotIdx] = variantIdx
+  const bundleColors = [
+    [0],       // single: slot 0 = Black
+    [0, 0],    // dual: slots 0,1
+    [0, 0, 0], // family: slots 0,1,2
+  ];
+
+  function buildColorPickers(prefix) {
+    BUNDLE_QTYS.forEach((qty, bIdx) => {
+      const container = document.getElementById(prefix + bIdx);
+      if (!container) return;
+      container.innerHTML = '';
+      for (let s = 0; s < qty; s++) {
+        const slot = document.createElement('div');
+        slot.className = 'bundle-color-slot';
+        const label = document.createElement('div');
+        label.className = 'slot-label';
+        label.textContent = qty === 1 ? 'Color' : 'Unit ' + (s + 1);
+        const swatches = document.createElement('div');
+        swatches.className = 'bundle-color-swatches';
+        VARIANTS.forEach((v, vIdx) => {
+          const sw = document.createElement('div');
+          sw.className = 'bcs' + (bundleColors[bIdx][s] === vIdx ? ' picked' : '');
+          sw.style.background = v.swatch;
+          sw.title = v.name;
+          sw.onclick = (e) => {
+            e.stopPropagation();
+            bundleColors[bIdx][s] = vIdx;
+            // If single pack, also update main variant to keep in sync
+            if (bIdx === 0) {
+              state.currentVariant = VARIANTS[vIdx].name;
+              state.currentVariantImg = VARIANTS[vIdx].img;
+              document.getElementById('mainProductImg') && (document.getElementById('mainProductImg').src = VARIANTS[vIdx].img);
+              const di = document.getElementById('docImg'); if (di) di.src = VARIANTS[vIdx].img;
+              // Sync buy variant row
+              document.querySelectorAll('#buyVariantRow .variant-btn').forEach((b,i) => b.classList.toggle('selected', i === vIdx));
+            }
+            // Refresh all pickers so both main + doc panels stay in sync
+            buildColorPickers('bcp-main-');
+            buildColorPickers('bcp-doc-');
+          };
+          swatches.appendChild(sw);
+        });
+        slot.appendChild(label);
+        slot.appendChild(swatches);
+        container.appendChild(slot);
+      }
+    });
+  }
+
+  // Init pickers on page load
+  buildColorPickers('bcp-main-');
+  buildColorPickers('bcp-doc-');
+
+  // ════════════════════════════════
   //  BUNDLE SELECT
   // ════════════════════════════════
   function selectBundle(el, priceUSD, shipUSD, discUSD, qty) {
     document.querySelectorAll('.bundle-card').forEach(c => c.classList.remove('active-bundle'));
-    el.classList.add('active-bundle');
+    // Select both (main + doc) matching cards by their position index
+    const allWraps = document.querySelectorAll('.bundle-cards-wrap');
+    allWraps.forEach(wrap => {
+      const cards = wrap.querySelectorAll('.bundle-card');
+      cards.forEach((c, i) => { if (i === qty - 1) c.classList.add('active-bundle'); });
+    });
     const keys = ['single','dual','family'];
     state.currentBundle = keys[qty - 1] || 'single';
+    // Sync single-pack main variant when that bundle selected
+    if (qty === 1) {
+      const vIdx = bundleColors[0][0];
+      state.currentVariant = VARIANTS[vIdx].name;
+      state.currentVariantImg = VARIANTS[vIdx].img;
+    }
     updateSummary();
     if (typeof trackClick === 'function') trackClick('bundle_select', { bundle: state.currentBundle });
   }
@@ -3832,13 +4275,21 @@
   // ════════════════════════════════
   function addToCart() {
     const k = state.currentBundle;
+    const bIdx = BUNDLE_KEYS.indexOf(k);
+    const qty = BUNDLE_QTY[k];
+    const colors = bundleColors[bIdx] || [0];
+
+    // Build variant summary string (e.g. "Black, White, Blue")
+    const variantStr = colors.slice(0, qty).map(vi => VARIANTS[vi].name).join(' · ');
+    const primaryImg = VARIANTS[colors[0]].img;
+
     const item = {
       id: Date.now(),
       name: 'FrostBlade Pro',
-      variant: state.currentVariant,
-      img: state.currentVariantImg,
+      variant: variantStr,
+      img: primaryImg,
       bundle: k,
-      qty: BUNDLE_QTY[k],
+      qty: qty,
       priceUSD: PRICES_USD[k],
       shipUSD: SHIPS_USD[k],
       discUSD: SAVES_USD[k],
@@ -3852,7 +4303,7 @@
     openCart();
 
     if (typeof trackCartAdd === 'function') trackCartAdd(item);
-    if (typeof trackClick === 'function') trackClick('add_to_cart', { bundle: k, variant: state.currentVariant });
+    if (typeof trackClick === 'function') trackClick('add_to_cart', { bundle: k, variant: variantStr });
   }
 
   function upgradeToBundle() {
@@ -4024,13 +4475,63 @@ async function goToCheckout() {
     }
   }
 
-  // Store in sessionStorage for checkout page (NO URL PARAMETERS)
+  // Build full order snapshot so the next page has everything it needs
+  const subtotalUSD = state.cart.reduce((a, i) => a + i.priceUSD, 0);
+  const discUSD     = state.cart.reduce((a, i) => a + i.discUSD, 0);
+  const shipUSD     = state.cart.reduce((a, i) => a + i.shipUSD, 0);
+  let codeDiscUSD = 0;
+  if (window._appliedCode) {
+    codeDiscUSD = window._appliedCode.type === 'pct'
+      ? subtotalUSD * (window._appliedCode.value / 100)
+      : Math.min(window._appliedCode.value, subtotalUSD);
+  }
+  const taxUSD   = (subtotalUSD - codeDiscUSD) * 0.05;
+  const totalUSD = subtotalUSD - codeDiscUSD + shipUSD + taxUSD;
+
+  const orderSnapshot = {
+    orderId,
+    createdAt: Date.now(),
+    currency:        window._currency        || 'USD',
+    exchangeRate:    window._exchangeRate    || 1,
+    currencySymbol:  window._currencySymbol  || '$',
+    appliedCode:     window._appliedCode     || null,
+    pricing: {
+      subtotalUSD:  +subtotalUSD.toFixed(2),
+      discountUSD:  +discUSD.toFixed(2),
+      codeDiscUSD:  +codeDiscUSD.toFixed(2),
+      shippingUSD:  +shipUSD.toFixed(2),
+      taxUSD:       +taxUSD.toFixed(2),
+      totalUSD:     +totalUSD.toFixed(2)
+    },
+    items: state.cart.map(i => ({
+      name:       i.name,
+      product:    'FrostBlade Pro',
+      variant:    i.variant,
+      variantImg: i.img,
+      bundle:     i.bundle,
+      qty:        i.qty,
+      priceUSD:   i.priceUSD,
+      shipUSD:    i.shipUSD,
+      discUSD:    i.discUSD,
+      priceLocal: i.priceLocal
+    })),
+    geo: window._geoData || null
+  };
+
+  // Persist to both sessionStorage (primary) and localStorage (fallback)
+  // so the checkout page can always read the order regardless of browser behaviour
+  const orderJSON = JSON.stringify(orderSnapshot);
   try {
+    sessionStorage.setItem('minimisty_order', orderJSON);
     sessionStorage.setItem('pendingOrderId', orderId);
     sessionStorage.setItem('pendingCart', JSON.stringify(state.cart));
-    sessionStorage.setItem('pendingCurrency', window._currency || 'USD');
-    sessionStorage.setItem('pendingExchangeRate', String(window._exchangeRate || 1));
-    sessionStorage.setItem('pendingCurrencySymbol', window._currencySymbol || '$');
+    sessionStorage.setItem('pendingCurrency', orderSnapshot.currency);
+    sessionStorage.setItem('pendingExchangeRate', String(orderSnapshot.exchangeRate));
+    sessionStorage.setItem('pendingCurrencySymbol', orderSnapshot.currencySymbol);
+  } catch(e) {}
+  try {
+    localStorage.setItem('minimisty_order', orderJSON);
+    localStorage.setItem('minimisty_last_order_id', orderId);
   } catch(e) {}
 
   // Redirect to checkout page WITHOUT order ID in URL
