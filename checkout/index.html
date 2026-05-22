@@ -39,6 +39,15 @@
     }
     body::-webkit-scrollbar { display: none; }
 
+    /* ── FIX 1 & 2: Scroll lock used by both loader and AI modal ── */
+    body.scroll-locked {
+      overflow: hidden !important;
+      position: fixed;
+      width: 100%;
+      /* preserve scroll position so page doesn't jump */
+      top: var(--scroll-y, 0);
+    }
+
     * {
       -webkit-tap-highlight-color: transparent !important;
       -webkit-touch-callout: none;
@@ -441,12 +450,15 @@
     /* ── LOADING OVERLAY ── */
     .loading-overlay {
       position: fixed; inset: 0; z-index: 9999;
-      background: rgba(0,0,0,0.92);
+      background: rgba(0,0,0,0.95);
       backdrop-filter: blur(12px);
       display: none;
       flex-direction: column;
       align-items: center; justify-content: center;
       gap: 20px;
+      /* FIX: ensure overlay itself doesn't scroll */
+      overflow: hidden;
+      touch-action: none;
     }
     .loading-overlay.open { display: flex; }
 
@@ -584,82 +596,97 @@
     .prefix-opt .pflag { font-size: 0.95rem; }
     .prefix-opt .pcode { color: #00f0ff; font-size: 0.75rem; font-weight: 700; }
     .prefix-opt .pname { color: #666; font-size: 0.7rem; }
-/* ── FIX DROPDOWN OVERLAP / Z-INDEX ISSUES ── */
-.searchable-select-wrap,
-.prefix-select-wrap {
-  position: relative;
-  z-index: 10;
-}
 
-.country-dropdown,
-.prefix-dropdown {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  background: #141414;
-  border: 1px solid #2a2a2a;
-  border-radius: 12px;
-  max-height: 280px;
-  overflow-y: auto;
-  z-index: 9999 !important;  /* Forces dropdown above everything */
-  box-shadow: 0 8px 20px rgba(0,0,0,0.5);
-}
+    /* ── FIX DROPDOWN OVERLAP / Z-INDEX ISSUES ── */
+    .searchable-select-wrap,
+    .prefix-select-wrap {
+      position: relative;
+      z-index: 10;
+    }
 
-/* Ensure dropdown appears above all other page content */
-.checkout-section {
-  position: relative;
-  z-index: 1;
-}
+    .country-dropdown,
+    .prefix-dropdown {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      background: #141414;
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      max-height: 280px;
+      overflow-y: auto;
+      z-index: 9999 !important;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+    }
 
-.checkout-section:has(.country-dropdown.open),
-.checkout-section:has(.prefix-dropdown.open) {
-  z-index: 10000;
-}
+    .checkout-section {
+      position: relative;
+      z-index: 1;
+    }
 
-/* Fix for the phone prefix dropdown width on mobile */
-.prefix-dropdown {
-  width: 320px;
-  max-width: 90vw;
-  left: 0;
-}
+    .checkout-section:has(.country-dropdown.open),
+    .checkout-section:has(.prefix-dropdown.open) {
+      z-index: 10000;
+    }
 
-/* Make sure the container doesn't clip the dropdown */
-.section-body {
-  overflow: visible !important;
-}
+    .prefix-dropdown {
+      width: 320px;
+      max-width: 90vw;
+      left: 0;
+    }
 
-.checkout-section {
-  overflow: visible !important;
-}
+    .section-body {
+      overflow: visible !important;
+    }
 
-main {
-  overflow: visible !important;
-}
+    .checkout-section {
+      overflow: visible !important;
+    }
 
-/* Better scroll inside dropdown */
-.country-dropdown::-webkit-scrollbar,
-.prefix-dropdown::-webkit-scrollbar {
-  width: 4px;
-}
-.country-dropdown::-webkit-scrollbar-track,
-.prefix-dropdown::-webkit-scrollbar-track {
-  background: #1a1a1a;
-  border-radius: 4px;
-}
-.country-dropdown::-webkit-scrollbar-thumb,
-.prefix-dropdown::-webkit-scrollbar-thumb {
-  background: #444;
-  border-radius: 4px;
-}
+    main {
+      overflow: visible !important;
+    }
+
+    .country-dropdown::-webkit-scrollbar,
+    .prefix-dropdown::-webkit-scrollbar {
+      width: 4px;
+    }
+    .country-dropdown::-webkit-scrollbar-track,
+    .prefix-dropdown::-webkit-scrollbar-track {
+      background: #1a1a1a;
+      border-radius: 4px;
+    }
+    .country-dropdown::-webkit-scrollbar-thumb,
+    .prefix-dropdown::-webkit-scrollbar-thumb {
+      background: #444;
+      border-radius: 4px;
+    }
+
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    @media (max-width: 380px) {
+      .return-text { display: none !important; }
+      header { padding: 8px 12px !important; }
+    }
+    @media (max-width: 480px) and (min-width: 381px) {
+      .return-text { font-size: 0.65rem !important; }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.85; transform: scale(1.02); }
+    }
   </style>
-  
 </head>
 <body>
+
 <!-- ── HEADER ── -->
 <header style="position: sticky; top: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.06); min-height: 58px; height: auto; display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; z-index: 100; gap: 10px; flex-wrap: wrap;">
   
-  <!-- Left: Brand Logo -->
   <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
     <svg style="width: 28px; height: 28px; animation: spin 4s linear infinite;" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
       <circle cx="50" cy="50" r="16" fill="#fff"/>
@@ -675,19 +702,14 @@ main {
     </div>
   </div>
 
-  <!-- Right: Buttons Group - wraps on small screens -->
   <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
-    
-    <!-- Return Button - sends user to root / -->
     <button onclick="window.location.href='/'" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 30px; padding: 6px 10px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s ease; backdrop-filter: blur(4px);" onmouseover="this.style.background='rgba(255,255,255,0.12)'; this.style.borderColor='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'; this.style.borderColor='rgba(255,255,255,0.1)'">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M19 12H5M12 19l-7-7 7-7"/>
       </svg>
-      <!-- Text hides on screens below 380px -->
       <span style="font-size: 0.7rem; font-weight: 600; color: white; display: inline-block;" class="return-text">Return</span>
     </button>
 
-    <!-- AI Support Button - opens clean AI modal -->
     <button onclick="openSupportModal()" style="background: linear-gradient(135deg, #00f0ff, #a3ff12, #00f0ff); background-size: 200% 200%; border: none; border-radius: 30px; padding: 6px 12px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.3s ease; animation: gradientShift 3s ease infinite; box-shadow: 0 2px 8px rgba(0,240,255,0.3);" onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 4px 15px rgba(0,240,255,0.5)'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 8px rgba(0,240,255,0.3)'">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -697,80 +719,6 @@ main {
     </button>
   </div>
 </header>
-
-<!-- Responsive CSS -->
-<style>
-  /* Hide "Return" text on very small screens (below 380px) */
-  @media (max-width: 380px) {
-    .return-text {
-      display: none !important;
-    }
-    header {
-      padding: 8px 12px !important;
-    }
-  }
-
-  /* Adjust button sizes for medium-small screens (380px - 480px) */
-  @media (max-width: 480px) and (min-width: 381px) {
-    .return-text {
-      font-size: 0.65rem !important;
-    }
-    button span {
-      font-size: 0.65rem !important;
-    }
-  }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-  
-  @keyframes gradientShift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-  }
-</style>
-
-<!-- Responsive CSS to add to your style section -->
-<style>
-  /* Hide "Return" text on very small screens (below 380px) */
-  @media (max-width: 380px) {
-    .return-text {
-      display: none !important;
-    }
-    header {
-      padding: 8px 12px !important;
-    }
-  }
-
-  /* Adjust button sizes for medium-small screens (380px - 480px) */
-  @media (max-width: 480px) and (min-width: 381px) {
-    .return-text {
-      font-size: 0.65rem !important;
-    }
-    button span {
-      font-size: 0.65rem !important;
-    }
-  }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-  
-  @keyframes gradientShift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-  }
-</style>
-<!-- Add this keyframes animation to your style section for the gradient shift -->
-<style>
-  @keyframes gradientShift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-  }
-</style>
 
 <main>
   <!-- LEFT COLUMN: form -->
@@ -826,7 +774,6 @@ main {
           <div class="field" id="field-phone">
             <label>Phone Number</label>
             <div class="phone-wrap">
-              <!-- Country code prefix -->
               <div class="prefix-select-wrap" id="prefixWrap">
                 <div class="field-wrap">
                   <svg class="field-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
@@ -839,7 +786,6 @@ main {
                   <div id="prefixList"></div>
                 </div>
               </div>
-              <!-- Phone number -->
               <div class="phone-number">
                 <div class="field-wrap">
                   <svg class="field-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.3h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
@@ -956,7 +902,6 @@ main {
       <div class="section-body">
         <div class="shipping-options">
 
-          <!-- Standard -->
           <div class="ship-card active" id="ship-std" onclick="selectShipping('std')">
             <div class="ship-select-dot"></div>
             <div class="ship-badge std">STANDARD</div>
@@ -973,7 +918,6 @@ main {
             <div class="ship-price" id="ship-std-price">Loading…</div>
           </div>
 
-          <!-- Prime -->
           <div class="ship-card" id="ship-prime" onclick="selectShipping('prime')">
             <div class="ship-select-dot"></div>
             <div class="ship-badge prime"> PRIME</div>
@@ -991,7 +935,6 @@ main {
 
         </div>
 
-        <!-- Gift Packaging -->
         <div class="gift-toggle" id="giftToggle" onclick="toggleGift()">
           <div class="gift-icon-wrap">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffeb3b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -1029,7 +972,6 @@ main {
       </div>
 
       <div class="order-items" id="orderItemsEl">
-        <!-- Populated by JS -->
         <div style="font-size:0.78rem;color:#444;font-weight:600;text-align:center;padding:10px 0">Loading order…</div>
       </div>
 
@@ -1050,7 +992,6 @@ main {
         <button class="pay-btn" onclick="proceedToPayment()">
           PAY NOW
           <div class="pay-btn-divider"></div>
-          <!-- PayPal SVG -->
           <svg height="18" viewBox="0 0 101 32" xmlns="http://www.w3.org/2000/svg">
             <path d="M 12.237 2.8 L 4.437 2.8 C 3.937 2.8 3.437 3.2 3.337 3.7 L 0.237 23.7 C 0.137 24.1 0.437 24.4 0.837 24.4 L 4.537 24.4 C 5.037 24.4 5.537 24 5.637 23.5 L 6.437 18.1 C 6.537 17.6 6.937 17.2 7.537 17.2 L 10.037 17.2 C 15.137 17.2 18.137 14.7 18.937 9.8 C 19.237 7.7 18.937 6 17.937 4.8 C 16.837 3.5 14.837 2.8 12.237 2.8 Z M 13.137 10.1 C 12.737 12.9 10.537 12.9 8.537 12.9 L 7.337 12.9 L 8.137 7.7 C 8.137 7.4 8.437 7.2 8.737 7.2 L 9.237 7.2 C 10.637 7.2 11.937 7.2 12.637 8 C 13.137 8.4 13.337 9.1 13.137 10.1 Z" fill="#003087"/>
             <path d="M 35.437 10 L 31.737 10 C 31.437 10 31.137 10.2 31.137 10.5 L 30.937 11.5 L 30.637 11.1 C 29.737 9.8 27.937 9.4 26.137 9.4 C 22.037 9.4 18.537 12.5 17.837 16.9 C 17.437 19.1 17.937 21.2 19.237 22.6 C 20.337 23.9 22.037 24.4 23.937 24.4 C 27.237 24.4 29.137 22.3 29.137 22.3 L 28.937 23.3 C 28.837 23.7 29.137 24.1 29.537 24.1 L 32.937 24.1 C 33.437 24.1 33.937 23.7 34.037 23.2 L 36.037 10.7 C 36.137 10.4 35.837 10 35.437 10 Z M 30.237 17.1 C 29.837 19.2 28.237 20.7 26.037 20.7 C 24.937 20.7 24.137 20.4 23.537 19.7 C 22.937 19 22.737 18.1 22.937 17.1 C 23.337 15 24.937 13.5 27.037 13.5 C 28.137 13.5 28.937 13.9 29.537 14.5 C 30.137 15.2 30.337 16.1 30.237 17.1 Z" fill="#003087"/>
@@ -1059,7 +1000,6 @@ main {
             <path d="M 91.637 10 L 87.937 10 C 87.637 10 87.337 10.2 87.337 10.5 L 87.137 11.5 L 86.837 11.1 C 85.937 9.8 84.137 9.4 82.337 9.4 C 78.237 9.4 74.737 12.5 74.037 16.9 C 73.637 19.1 74.137 21.2 75.437 22.6 C 76.537 23.9 78.237 24.4 80.137 24.4 C 83.437 24.4 85.337 22.3 85.337 22.3 L 85.137 23.3 C 85.037 23.7 85.337 24.1 85.737 24.1 L 89.137 24.1 C 89.637 24.1 90.137 23.7 90.237 23.2 L 92.237 10.7 C 92.337 10.4 92.037 10 91.637 10 Z M 86.437 17.1 C 86.037 19.2 84.437 20.7 82.237 20.7 C 81.137 20.7 80.337 20.4 79.737 19.7 C 79.137 19 78.937 18.1 79.137 17.1 C 79.537 15 81.137 13.5 83.237 13.5 C 84.337 13.5 85.137 13.9 85.737 14.5 C 86.337 15.2 86.537 16.1 86.437 17.1 Z" fill="#009cde"/>
             <path d="M 95.337 3.3 L 92.137 23.6 C 92.037 24 92.337 24.3 92.737 24.3 L 95.937 24.3 C 96.437 24.3 96.937 23.9 97.037 23.4 L 100.237 3.5 C 100.337 3.1 100.037 2.8 99.637 2.8 L 96.037 2.8 C 95.637 2.8 95.437 3 95.337 3.3 Z" fill="#009cde"/>
           </svg>
-          <!-- Cards SVG -->
           <svg width="28" height="18" viewBox="0 0 50 32" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect width="50" height="32" rx="4" fill="#1a1a2e"/>
             <circle cx="20" cy="16" r="9" fill="#eb001b" opacity="0.9"/>
@@ -1067,7 +1007,7 @@ main {
             <path d="M25 9a9 9 0 010 14A9 9 0 0125 9z" fill="#ff5f00" opacity="0.9"/>
           </svg>
         </button>
-        <div class="pay-sub"> SSL Encrypted · 30-Day Returns · 1-Year Warranty</div>
+        <div class="pay-sub">SSL Encrypted · 30-Day Returns · 1-Year Warranty</div>
       </div>
 
       <div class="trust-row">
@@ -1103,119 +1043,134 @@ main {
   <div class="loading-text">Processing your order…</div>
   <div class="loading-sub">Please don't close this page</div>
 </div>
+
+<!-- ══════════════════════════════════════════
+     SCRIPTS
+══════════════════════════════════════════ -->
 <script>
-// ============================================
-// RETURN TO ROOT (/)
-// ============================================
-function goToRoot() {
-  window.location.href = '/';
+// ════════════════════════════════════════════
+//  FIX 1: SCROLL LOCK UTILITY
+//  Used by both the loading overlay AND the AI modal
+// ════════════════════════════════════════════
+let _scrollY = 0;
+
+function lockScroll() {
+  _scrollY = window.scrollY;
+  document.documentElement.style.setProperty('--scroll-y', `-${_scrollY}px`);
+  document.body.classList.add('scroll-locked');
+  // Also prevent touchmove on overlay (iOS)
+  document.addEventListener('touchmove', _preventScroll, { passive: false });
 }
 
-// ============================================
-// AI SUPPORT MODAL SYSTEM
-// ============================================
+function unlockScroll() {
+  document.body.classList.remove('scroll-locked');
+  document.documentElement.style.removeProperty('--scroll-y');
+  window.scrollTo(0, _scrollY);
+  document.removeEventListener('touchmove', _preventScroll);
+}
 
-// Create modal dynamically
+function _preventScroll(e) {
+  // Allow scrolling inside dropdowns/modals that have their own scroll
+  if (e.target.closest('.country-dropdown, .prefix-dropdown, #chatMessages, .prefix-dropdown')) return;
+  e.preventDefault();
+}
+
+// ════════════════════════════════════════════
+//  FIX 1B: LOADER SESSION GUARD (5-second window)
+//  If the user presses back within 5s of the loader showing,
+//  we don't re-trigger it — we just clean up and move on.
+// ════════════════════════════════════════════
+(function checkLoaderGuard() {
+  const ts = sessionStorage.getItem('loaderShownAt');
+  if (ts && Date.now() - parseInt(ts, 10) < 5000) {
+    // Came back within 5 seconds — hide overlay, unlock scroll just in case
+    const ov = document.getElementById('loadingOverlay');
+    if (ov) ov.classList.remove('open');
+    unlockScroll();
+    // Clear the flag so it doesn't keep blocking
+    sessionStorage.removeItem('loaderShownAt');
+  }
+})();
+
+// ════════════════════════════════════════════
+//  AI SUPPORT MODAL
+// ════════════════════════════════════════════
 function createSupportModal() {
-  // Check if modal already exists
   if (document.getElementById('aiSupportModal')) return;
-  
+
   const modalHTML = `
-    <div id="aiSupportModal" style="display: none; position: fixed; inset: 0; z-index: 999999; background: rgba(0,0,0,0.92); backdrop-filter: blur(12px); align-items: center; justify-content: center; font-family: 'Fredoka', sans-serif;">
-      <div style="background: linear-gradient(135deg, #0a0a0a, #0f0f0f); border: 1px solid rgba(0,240,255,0.3); border-radius: 28px; width: 90%; max-width: 500px; max-height: 85vh; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.5), 0 0 20px rgba(0,240,255,0.1);">
+    <div id="aiSupportModal" style="display:none;position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,0.92);backdrop-filter:blur(12px);align-items:center;justify-content:center;font-family:'Fredoka',sans-serif;">
+      <div style="background:linear-gradient(135deg,#0a0a0a,#0f0f0f);border:1px solid rgba(0,240,255,0.3);border-radius:28px;width:90%;max-width:500px;max-height:85vh;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,0.5),0 0 20px rgba(0,240,255,0.1);">
         
-        <!-- Modal Header -->
-        <div style="padding: 18px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: space-between; background: rgba(0,240,255,0.03);">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #00f0ff, #a3ff12); border-radius: 12px; display: flex; align-items: center; justify-content: center; animation: pulse 2s infinite;">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2">
-                <path d="M12 2a10 10 0 0 1 10 10c0 5-4 9-10 9-1.5 0-3-.4-4.3-1.1L3 22l2.2-4.7C4.4 16 4 14.5 4 13a10 10 0 0 1 10-10z"/>
-                <path d="M8 12h.01M12 12h.01M16 12h.01"/>
-              </svg>
+        <div style="padding:18px 20px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;background:rgba(0,240,255,0.03);">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:36px;height:36px;background:linear-gradient(135deg,#00f0ff,#a3ff12);border-radius:12px;display:flex;align-items:center;justify-content:center;animation:pulse 2s infinite;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><path d="M12 2a10 10 0 0 1 10 10c0 5-4 9-10 9-1.5 0-3-.4-4.3-1.1L3 22l2.2-4.7C4.4 16 4 14.5 4 13a10 10 0 0 1 10-10z"/><path d="M8 12h.01M12 12h.01M16 12h.01"/></svg>
             </div>
             <div>
-              <div style="font-size: 1rem; font-weight: 700; color: #fff;">AI Support Assistant</div>
-              <div style="font-size: 0.7rem; color: #00f0ff; font-weight: 600;">Powered by Neural AI</div>
+              <div style="font-size:1rem;font-weight:700;color:#fff;">AI Support Assistant</div>
+              <div style="font-size:0.7rem;color:#00f0ff;font-weight:600;">Powered by Groq</div>
             </div>
           </div>
-          <button onclick="closeSupportModal()" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 30px; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
+          <button onclick="closeSupportModal()" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:30px;width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
         
-        <!-- Chat Messages Area -->
-        <div id="chatMessages" style="height: 350px; overflow-y: auto; padding: 18px 16px; display: flex; flex-direction: column; gap: 12px; background: rgba(0,0,0,0.3);">
-          <div style="display: flex; gap: 10px; align-items: flex-start;">
-            <div style="width: 28px; height: 28px; background: linear-gradient(135deg, #00f0ff, #a3ff12); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+        <div id="chatMessages" style="height:320px;overflow-y:auto;padding:18px 16px;display:flex;flex-direction:column;gap:12px;background:rgba(0,0,0,0.3);">
+          <div style="display:flex;gap:10px;align-items:flex-start;">
+            <div style="width:28px;height:28px;background:linear-gradient(135deg,#00f0ff,#a3ff12);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             </div>
-            <div style="background: #111; border-radius: 16px; padding: 10px 14px; max-width: 85%; border: 1px solid #222;">
-              <div style="font-size: 0.8rem; color: #ddd; line-height: 1.4;">👋 Hey! I'm your AI assistant. Ask me anything about orders, shipping, returns, or products!</div>
+            <div style="background:#111;border-radius:16px;padding:10px 14px;max-width:85%;border:1px solid #222;">
+              <div style="font-size:0.8rem;color:#ddd;line-height:1.4;">👋 Hey! I'm your AI assistant. Ask me anything about orders, shipping, returns, or products!</div>
             </div>
           </div>
         </div>
         
-        <!-- Quick Questions -->
-        <div style="padding: 10px 16px; border-top: 1px solid rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none;">
-          <button onclick="askQuickQuestion('Where is my order?')" style="background: rgba(0,240,255,0.08); border: 1px solid rgba(0,240,255,0.2); border-radius: 20px; padding: 6px 12px; font-size: 0.7rem; color: #00f0ff; font-weight: 600; cursor: pointer; white-space: nowrap;">📍 Track Order</button>
-          <button onclick="askQuickQuestion('What is your return policy?')" style="background: rgba(163,255,18,0.08); border: 1px solid rgba(163,255,18,0.2); border-radius: 20px; padding: 6px 12px; font-size: 0.7rem; color: #a3ff12; font-weight: 600; cursor: pointer; white-space: nowrap;">🔄 Returns</button>
-          <button onclick="askQuickQuestion('Shipping times?')" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 6px 12px; font-size: 0.7rem; color: #fff; font-weight: 600; cursor: pointer; white-space: nowrap;">🚚 Shipping</button>
-          <button onclick="askQuickQuestion('Contact support team')" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 6px 12px; font-size: 0.7rem; color: #fff; font-weight: 600; cursor: pointer; white-space: nowrap;">📞 Contact</button>
+        <div style="padding:10px 16px;border-top:1px solid rgba(255,255,255,0.05);border-bottom:1px solid rgba(255,255,255,0.05);display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;">
+          <button onclick="askQuickQuestion('Where is my order?')" style="background:rgba(0,240,255,0.08);border:1px solid rgba(0,240,255,0.2);border-radius:20px;padding:6px 12px;font-size:0.7rem;color:#00f0ff;font-weight:600;cursor:pointer;white-space:nowrap;font-family:'Fredoka',sans-serif;">📍 Track Order</button>
+          <button onclick="askQuickQuestion('What is your return policy?')" style="background:rgba(163,255,18,0.08);border:1px solid rgba(163,255,18,0.2);border-radius:20px;padding:6px 12px;font-size:0.7rem;color:#a3ff12;font-weight:600;cursor:pointer;white-space:nowrap;font-family:'Fredoka',sans-serif;">🔄 Returns</button>
+          <button onclick="askQuickQuestion('How long does shipping take?')" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:6px 12px;font-size:0.7rem;color:#fff;font-weight:600;cursor:pointer;white-space:nowrap;font-family:'Fredoka',sans-serif;">🚚 Shipping</button>
+          <button onclick="askQuickQuestion('How do I contact support?')" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:6px 12px;font-size:0.7rem;color:#fff;font-weight:600;cursor:pointer;white-space:nowrap;font-family:'Fredoka',sans-serif;">📞 Contact</button>
         </div>
         
-        <!-- Input Area -->
-        <div style="padding: 16px; display: flex; gap: 10px; background: #0a0a0a;">
-          <input type="text" id="chatInput" placeholder="Type your question..." style="flex: 1; background: #111; border: 1px solid #2a2a2a; border-radius: 24px; padding: 12px 16px; color: #fff; font-family: 'Fredoka', sans-serif; font-size: 0.85rem; font-weight: 500;" onkeypress="if(event.key === 'Enter') sendSupportMessage()">
-          <button onclick="sendSupportMessage()" style="background: linear-gradient(135deg, #00f0ff, #a3ff12); border: none; border-radius: 30px; width: 44px; height: 44px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.15s;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2">
-              <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-            </svg>
+        <div style="padding:16px;display:flex;gap:10px;background:#0a0a0a;">
+          <input type="text" id="chatInput" placeholder="Type your question..." style="flex:1;background:#111;border:1px solid #2a2a2a;border-radius:24px;padding:12px 16px;color:#fff;font-family:'Fredoka',sans-serif;font-size:0.85rem;font-weight:500;" onkeypress="if(event.key==='Enter')sendSupportMessage()">
+          <button onclick="sendSupportMessage()" style="background:linear-gradient(135deg,#00f0ff,#a3ff12);border:none;border-radius:30px;width:44px;height:44px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           </button>
         </div>
         
-        <div style="padding: 10px 16px; border-top: 1px solid rgba(255,255,255,0.05); text-align: center;">
-          <div style="font-size: 0.55rem; color: #444; font-weight: 600;">⚡ AI responses are generated instantly | 24/7 Support</div>
+        <div style="padding:10px 16px;border-top:1px solid rgba(255,255,255,0.05);text-align:center;">
+          <div style="font-size:0.55rem;color:#444;font-weight:600;">⚡ AI responses powered by Groq | 24/7 Support</div>
         </div>
       </div>
     </div>
   `;
-  
+
   document.body.insertAdjacentHTML('beforeend', modalHTML);
-  
-  // Add pulse animation
-  if (!document.getElementById('modalAnimations')) {
-    const style = document.createElement('style');
-    style.id = 'modalAnimations';
-    style.textContent = `
-      @keyframes pulse {
-        0%, 100% { opacity: 1; transform: scale(1); }
-        50% { opacity: 0.85; transform: scale(1.02); }
-      }
-    `;
-    document.head.appendChild(style);
-  }
 }
 
-// Open AI Support Modal
+// FIX 2: Open modal → lock scroll
 function openSupportModal() {
   createSupportModal();
   const modal = document.getElementById('aiSupportModal');
   modal.style.display = 'flex';
+  lockScroll();  // ← blocks main page scroll
   setTimeout(() => {
     const input = document.getElementById('chatInput');
     if (input) input.focus();
   }, 100);
 }
 
-// Close Modal
+// FIX 2: Close modal → unlock scroll
 function closeSupportModal() {
   const modal = document.getElementById('aiSupportModal');
   if (modal) modal.style.display = 'none';
+  unlockScroll();  // ← restores main page scroll
 }
 
-// Quick question handler
 function askQuickQuestion(question) {
   const input = document.getElementById('chatInput');
   if (input) {
@@ -1224,163 +1179,115 @@ function askQuickQuestion(question) {
   }
 }
 
-// Send message to AI API
+// FIX 3: Send to Groq via /api/support.js
 async function sendSupportMessage() {
   const input = document.getElementById('chatInput');
   const message = input.value.trim();
   if (!message) return;
-  
-  // Add user message to chat
+
   addChatMessage(message, 'user');
   input.value = '';
-  
-  // Show typing indicator
+
   const typingId = showTypingIndicator();
-  
+
   try {
-    // Call your AI endpoint
-    const response = await fetch('/api/support.js', {
+    const response = await fetch('/api/support', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        message: message,
-        context: {
-          page: 'checkout',
-          timestamp: new Date().toISOString(),
-          orderId: sessionStorage.getItem('orderId') || null,
-        }
-      })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message })
     });
-    
-    // Remove typing indicator
+
     removeTypingIndicator(typingId);
-    
-    if (!response.ok) throw new Error('API response failed');
-    
+
+    if (!response.ok) throw new Error('API error ' + response.status);
+
     const data = await response.json();
-    const aiReply = data.reply || data.message || "I'm here to help! Could you please rephrase your question?";
-    
-    addChatMessage(aiReply, 'ai');
-    
+    addChatMessage(data.reply || "Let me connect you with our team!", 'ai');
+
   } catch (error) {
-    console.error('AI Support Error:', error);
     removeTypingIndicator(typingId);
-    
-    // Fallback response for demo/offline
-    const fallbackReply = getFallbackResponse(message);
-    addChatMessage(fallbackReply, 'ai');
+    addChatMessage(getFallbackResponse(message), 'ai');
   }
 }
 
-// Add message to chat window
 function addChatMessage(text, sender) {
   const chatContainer = document.getElementById('chatMessages');
   if (!chatContainer) return;
-  
+
   const isUser = sender === 'user';
-  
-  const messageDiv = document.createElement('div');
-  messageDiv.style.display = 'flex';
-  messageDiv.style.gap = '10px';
-  messageDiv.style.alignItems = 'flex-start';
-  messageDiv.style.justifyContent = isUser ? 'flex-end' : 'flex-start';
-  
+  const div = document.createElement('div');
+  div.style.cssText = `display:flex;gap:10px;align-items:flex-start;justify-content:${isUser ? 'flex-end' : 'flex-start'}`;
+
   if (!isUser) {
-    messageDiv.innerHTML = `
-      <div style="width: 28px; height: 28px; background: linear-gradient(135deg, #00f0ff, #a3ff12); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+    div.innerHTML = `
+      <div style="width:28px;height:28px;background:linear-gradient(135deg,#00f0ff,#a3ff12);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       </div>
-      <div style="background: #111; border-radius: 16px; padding: 10px 14px; max-width: 85%; border: 1px solid #222;">
-        <div style="font-size: 0.8rem; color: #ddd; line-height: 1.4;">${escapeHtml(text)}</div>
-      </div>
-    `;
+      <div style="background:#111;border-radius:16px;padding:10px 14px;max-width:85%;border:1px solid #222;">
+        <div style="font-size:0.8rem;color:#ddd;line-height:1.4;">${escapeHtml(text)}</div>
+      </div>`;
   } else {
-    messageDiv.innerHTML = `
-      <div style="background: linear-gradient(135deg, #00f0ff20, #a3ff1220); border-radius: 16px; padding: 10px 14px; max-width: 85%; border: 1px solid rgba(0,240,255,0.2);">
-        <div style="font-size: 0.8rem; color: #fff; line-height: 1.4;">${escapeHtml(text)}</div>
-      </div>
-    `;
+    div.innerHTML = `
+      <div style="background:linear-gradient(135deg,rgba(0,240,255,0.12),rgba(163,255,18,0.12));border-radius:16px;padding:10px 14px;max-width:85%;border:1px solid rgba(0,240,255,0.2);">
+        <div style="font-size:0.8rem;color:#fff;line-height:1.4;">${escapeHtml(text)}</div>
+      </div>`;
   }
-  
-  chatContainer.appendChild(messageDiv);
+
+  chatContainer.appendChild(div);
   chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
-// Show typing indicator
 function showTypingIndicator() {
   const chatContainer = document.getElementById('chatMessages');
   if (!chatContainer) return null;
-  
   const id = 'typing-' + Date.now();
-  
-  const typingDiv = document.createElement('div');
-  typingDiv.id = id;
-  typingDiv.style.display = 'flex';
-  typingDiv.style.gap = '10px';
-  typingDiv.style.alignItems = 'center';
-  typingDiv.innerHTML = `
-    <div style="width: 28px; height: 28px; background: linear-gradient(135deg, #00f0ff, #a3ff12); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+  const div = document.createElement('div');
+  div.id = id;
+  div.style.cssText = 'display:flex;gap:10px;align-items:center;';
+  div.innerHTML = `
+    <div style="width:28px;height:28px;background:linear-gradient(135deg,#00f0ff,#a3ff12);border-radius:10px;display:flex;align-items:center;justify-content:center;">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
     </div>
-    <div style="background: #111; border-radius: 16px; padding: 10px 18px; border: 1px solid #222;">
-      <div style="display: flex; gap: 4px;">
-        <span style="width: 6px; height: 6px; background: #00f0ff; border-radius: 50%; display: inline-block; animation: pulse 1.4s infinite ease-in-out;"></span>
-        <span style="width: 6px; height: 6px; background: #a3ff12; border-radius: 50%; display: inline-block; animation: pulse 1.4s infinite ease-in-out 0.2s;"></span>
-        <span style="width: 6px; height: 6px; background: #00f0ff; border-radius: 50%; display: inline-block; animation: pulse 1.4s infinite ease-in-out 0.4s;"></span>
+    <div style="background:#111;border-radius:16px;padding:10px 18px;border:1px solid #222;">
+      <div style="display:flex;gap:4px;">
+        <span style="width:6px;height:6px;background:#00f0ff;border-radius:50%;display:inline-block;animation:pulse 1.4s infinite ease-in-out;"></span>
+        <span style="width:6px;height:6px;background:#a3ff12;border-radius:50%;display:inline-block;animation:pulse 1.4s infinite ease-in-out 0.2s;"></span>
+        <span style="width:6px;height:6px;background:#00f0ff;border-radius:50%;display:inline-block;animation:pulse 1.4s infinite ease-in-out 0.4s;"></span>
       </div>
-    </div>
-  `;
-  
-  chatContainer.appendChild(typingDiv);
+    </div>`;
+  chatContainer.appendChild(div);
   chatContainer.scrollTop = chatContainer.scrollHeight;
   return id;
 }
 
-// Remove typing indicator
 function removeTypingIndicator(id) {
   if (!id) return;
-  const element = document.getElementById(id);
-  if (element) element.remove();
+  const el = document.getElementById(id);
+  if (el) el.remove();
 }
 
-// Helper: Escape HTML to prevent XSS
 function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
 }
 
-// Fallback responses for demo/offline mode
 function getFallbackResponse(message) {
   const msg = message.toLowerCase();
-  if (msg.includes('order') || msg.includes('track')) {
-    return "📍 You can track your order using the tracking link sent to your email. Need help? Provide your order number and I'll assist!";
-  }
-  if (msg.includes('return') || msg.includes('refund')) {
-    return "🔄 We offer 30-day hassle-free returns! Just contact support within 30 days of delivery with your order number.";
-  }
-  if (msg.includes('shipping') || msg.includes('delivery')) {
-    return "🚚 Standard shipping takes 8-16 business days. Prime Express takes 5-12 business days. Tracking provided!";
-  }
-  if (msg.includes('cancel')) {
-    return "❌ Orders can be cancelled within 2 hours of placement. Reply with your order ID and I'll help you cancel!";
-  }
-  if (msg.includes('discount') || msg.includes('promo')) {
-    return "🏷️ Sign up for our newsletter to get 10% off your next order! Current promotions are displayed on our homepage.";
-  }
-  return "✨ Thanks for reaching out! Our AI team is reviewing your question. For urgent matters, email support@minimisty.store";
+  if (msg.includes('order') || msg.includes('track')) return "📍 Your tracking link is emailed after dispatch. Share your order number and we'll look into it!";
+  if (msg.includes('return') || msg.includes('refund')) return "🔄 We offer 30-day hassle-free returns. Email support@minimisty.store with your order number.";
+  if (msg.includes('shipping') || msg.includes('delivery')) return "🚚 Standard shipping: 8–16 days. Prime Express: 5–12 days. Tracking provided for all orders!";
+  if (msg.includes('cancel')) return "❌ Orders can be cancelled within 2 hours of placement. Reply with your order ID and we'll help!";
+  if (msg.includes('gift') || msg.includes('wrap')) return "🎁 Gift wrapping adds premium packaging — perfect for presents. You can add it during checkout!";
+  return "✨ Thanks for reaching out! For urgent help, email support@minimisty.store and we'll get back to you fast.";
 }
 
-// Close modal when clicking outside
+// Close modal on backdrop click
 document.addEventListener('click', function(e) {
   const modal = document.getElementById('aiSupportModal');
   if (modal && modal.style.display === 'flex') {
-    const modalContent = modal.querySelector('div > div');
-    if (modalContent && !modalContent.contains(e.target) && !e.target.closest('button')) {
-      closeSupportModal();
-    }
+    const inner = modal.querySelector(':scope > div');
+    if (inner && !inner.contains(e.target)) closeSupportModal();
   }
 });
 </script>
@@ -1395,7 +1302,7 @@ let appState = {
   currencySymbol: '$',
   cart: [],
   orderId: '',
-  shippingMode: 'std',   // 'std' | 'prime'
+  shippingMode: 'std',
   giftWrap: false,
   stdShippingUSD: 1.99,
   primeShippingExtraUSD: 5.95,
@@ -1426,7 +1333,6 @@ function loadOrderData() {
     appState.currencySymbol = sessionStorage.getItem('currencySymbol') || '$';
     appState.orderId = sessionStorage.getItem('orderId') || '';
 
-    // Also try URL param
     const urlPath = window.location.pathname + window.location.search + window.location.hash;
     const match = urlPath.match(/checkout-my-order[=\/]([A-Z0-9_]+)/);
     if (match) appState.orderId = match[1];
@@ -1463,16 +1369,12 @@ function renderOrderItems() {
 function calcSummary() {
   const subtotal = appState.cart.reduce((a,i) => a + (i.priceUSD||39.95), 0) || 39.95;
   const disc     = appState.cart.reduce((a,i) => a + (i.discUSD||0), 0);
-
-  // Shipping: if bundle had free shipping originally, standard stays free
-  // otherwise use the selected shipping option
   const origShip = appState.cart.reduce((a,i) => a + (i.shipUSD||0), 0);
 
   let ship = 0;
   if (appState.shippingMode === 'std') {
-    ship = origShip; // free if bundle, else $1.99
+    ship = origShip;
   } else {
-    // prime = original shipping + $5.95 extra
     ship = origShip + appState.primeShippingExtraUSD;
   }
 
@@ -1486,19 +1388,13 @@ function calcSummary() {
 
 function renderSummary() {
   const { subtotal, disc, ship, gift, tax, total, origShip } = calcSummary();
-
-  const totalItems = appState.cart.reduce((a,i) => a+(i.qty||1), 0) || 1;
   const primeCost = origShip + appState.primeShippingExtraUSD;
 
-  // Update shipping card prices
   document.getElementById('ship-std-price').textContent = origShip === 0 ? 'FREE' : fx(origShip);
   document.getElementById('ship-std-price').className = 'ship-price ' + (origShip === 0 ? 'free' : 'paid');
   document.getElementById('ship-prime-price').textContent = fx(primeCost);
-
-  // Gift price display
   document.getElementById('gift-price-display').textContent = '+' + fx(appState.giftWrapUSD);
 
-  // Summary rows
   document.getElementById('sum-subtotal').textContent = fx(subtotal);
   document.getElementById('sum-discount').textContent = disc > 0 ? '-' + fx(disc) : fx(0);
 
@@ -1509,7 +1405,6 @@ function renderSummary() {
   const giftRow = document.getElementById('gift-sum-row');
   giftRow.style.display = appState.giftWrap ? 'flex' : 'none';
   document.getElementById('sum-gift').textContent = '+' + fx(gift);
-
   document.getElementById('sum-tax').textContent = fx(tax);
   document.getElementById('sum-total').textContent = fx(total);
 }
@@ -1519,10 +1414,8 @@ function renderSummary() {
 // ════════════════════════════════════════════
 function selectShipping(mode) {
   appState.shippingMode = mode;
-  const stdCard = document.getElementById('ship-std');
-  const primeCard = document.getElementById('ship-prime');
-  stdCard.className = 'ship-card' + (mode === 'std' ? ' active' : '');
-  primeCard.className = 'ship-card' + (mode === 'prime' ? ' active-prime' : '');
+  document.getElementById('ship-std').className = 'ship-card' + (mode === 'std' ? ' active' : '');
+  document.getElementById('ship-prime').className = 'ship-card' + (mode === 'prime' ? ' active-prime' : '');
   renderSummary();
 }
 
@@ -1536,7 +1429,7 @@ function toggleGift() {
 }
 
 // ════════════════════════════════════════════
-//  COUNTRY DATA — REST COUNTRIES (no key needed)
+//  COUNTRY DATA
 // ════════════════════════════════════════════
 let allCountries = [];
 let allPrefixes  = [];
@@ -1556,26 +1449,21 @@ async function loadCountries() {
       .filter(c => c.name && c.code)
       .sort((a,b) => a.name.localeCompare(b.name));
 
-    allPrefixes = allCountries
-      .filter(c => c.dialCode)
-      .sort((a,b) => a.name.localeCompare(b.name));
+    allPrefixes = allCountries.filter(c => c.dialCode).sort((a,b) => a.name.localeCompare(b.name));
 
     renderCountryList(allCountries);
     renderPrefixList(allPrefixes);
-
-    // Auto-detect country via geo
     autoDetectCountry();
   } catch(e) {
-    // Fallback: minimal list
     allCountries = [
       { name:'South Africa', code:'ZA', flag:'🇿🇦', dialCode:'+27' },
       { name:'United States', code:'US', flag:'🇺🇸', dialCode:'+1' },
       { name:'United Kingdom', code:'GB', flag:'🇬🇧', dialCode:'+44' },
-      { name:'Australia', code:'AU', flag:'🇦🇺', dialCode:'+61' },
-      { name:'Germany', code:'DE', flag:'🇩🇪', dialCode:'+49' },
-      { name:'France', code:'FR', flag:'🇫🇷', dialCode:'+33' },
-      { name:'India', code:'IN', flag:'🇮🇳', dialCode:'+91' },
-      { name:'Canada', code:'CA', flag:'🇨🇦', dialCode:'+1' },
+      { name:'Australia',      code:'AU', flag:'🇦🇺', dialCode:'+61' },
+      { name:'Germany',        code:'DE', flag:'🇩🇪', dialCode:'+49' },
+      { name:'France',         code:'FR', flag:'🇫🇷', dialCode:'+33' },
+      { name:'India',          code:'IN', flag:'🇮🇳', dialCode:'+91' },
+      { name:'Canada',         code:'CA', flag:'🇨🇦', dialCode:'+1'  },
     ];
     allPrefixes = allCountries;
     renderCountryList(allCountries);
@@ -1584,8 +1472,7 @@ async function loadCountries() {
 }
 
 function renderCountryList(list) {
-  const el = document.getElementById('countryList');
-  el.innerHTML = list.map(c => `
+  document.getElementById('countryList').innerHTML = list.map(c => `
     <div class="country-opt" onclick="selectCountry('${c.code}','${c.name.replace(/'/g,"\\'")}','${c.flag}','${c.dialCode}')">
       <span class="cflag">${c.flag}</span>
       <span style="flex:1">${c.name}</span>
@@ -1595,8 +1482,7 @@ function renderCountryList(list) {
 }
 
 function renderPrefixList(list) {
-  const el = document.getElementById('prefixList');
-  el.innerHTML = list.map(c => `
+  document.getElementById('prefixList').innerHTML = list.map(c => `
     <div class="prefix-opt" onclick="selectPrefix('${c.dialCode}','${c.flag}','${c.name.replace(/'/g,"\\'")}')">
       <span class="pflag">${c.flag}</span>
       <span class="pcode">${c.dialCode}</span>
@@ -1607,22 +1493,18 @@ function renderPrefixList(list) {
 
 function filterCountries() {
   const q = document.getElementById('countrySearch').value.toLowerCase();
-  const filtered = allCountries.filter(c => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q));
-  renderCountryList(filtered);
+  renderCountryList(allCountries.filter(c => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)));
 }
 
 function filterPrefixes() {
   const q = document.getElementById('prefixSearch').value.toLowerCase();
-  const filtered = allPrefixes.filter(c => c.name.toLowerCase().includes(q) || c.dialCode.includes(q));
-  renderPrefixList(filtered);
+  renderPrefixList(allPrefixes.filter(c => c.name.toLowerCase().includes(q) || c.dialCode.includes(q)));
 }
 
 function toggleCountryDropdown() {
   const dd = document.getElementById('countryDropdown');
   dd.classList.toggle('open');
-  if (dd.classList.contains('open')) {
-    setTimeout(() => document.getElementById('countrySearch').focus(), 50);
-  }
+  if (dd.classList.contains('open')) setTimeout(() => document.getElementById('countrySearch').focus(), 50);
 }
 
 function selectCountry(code, name, flag, dialCode) {
@@ -1632,19 +1514,13 @@ function selectCountry(code, name, flag, dialCode) {
   appState.selectedCountryCode = code;
   document.getElementById('countryDropdown').classList.remove('open');
   document.getElementById('field-country').classList.remove('has-error');
-
-  // Auto-set phone prefix to match country
-  if (dialCode) {
-    selectPrefix(dialCode, flag, name);
-  }
+  if (dialCode) selectPrefix(dialCode, flag, name);
 }
 
 function togglePrefixDropdown() {
   const dd = document.getElementById('prefixDropdown');
   dd.classList.toggle('open');
-  if (dd.classList.contains('open')) {
-    setTimeout(() => document.getElementById('prefixSearch').focus(), 50);
-  }
+  if (dd.classList.contains('open')) setTimeout(() => document.getElementById('prefixSearch').focus(), 50);
 }
 
 function selectPrefix(dialCode, flag, name) {
@@ -1653,14 +1529,11 @@ function selectPrefix(dialCode, flag, name) {
   document.getElementById('prefixDropdown').classList.remove('open');
 }
 
-// Close dropdowns on outside click
 document.addEventListener('click', function(e) {
-  if (!document.getElementById('countryWrap').contains(e.target)) {
+  if (!document.getElementById('countryWrap').contains(e.target))
     document.getElementById('countryDropdown').classList.remove('open');
-  }
-  if (!document.getElementById('prefixWrap').contains(e.target)) {
+  if (!document.getElementById('prefixWrap').contains(e.target))
     document.getElementById('prefixDropdown').classList.remove('open');
-  }
 });
 
 async function autoDetectCountry() {
@@ -1669,18 +1542,15 @@ async function autoDetectCountry() {
     const geo = await r.json();
     if (geo.country_code && allCountries.length) {
       const found = allCountries.find(c => c.code === geo.country_code);
-      if (found) {
-        selectCountry(found.code, found.name, found.flag, found.dialCode);
-      }
+      if (found) selectCountry(found.code, found.name, found.flag, found.dialCode);
     }
   } catch(e) {}
 }
 
 // ════════════════════════════════════════════
-//  GEO / CURRENCY (same as main page)
+//  GEO / CURRENCY
 // ════════════════════════════════════════════
 async function initCurrency() {
-  // If session has currency already, use it
   if (appState.currency && appState.exchangeRate && appState.currency !== 'USD') {
     renderSummary();
     return;
@@ -1715,45 +1585,50 @@ async function initCurrency() {
 // ════════════════════════════════════════════
 function validateForm() {
   let valid = true;
-
-  const required = [
-    { id:'field-first',  val: document.getElementById('inp-first').value.trim(),  check: v => v.length > 0 },
-    { id:'field-last',   val: document.getElementById('inp-last').value.trim(),   check: v => v.length > 0 },
-    { id:'field-email',  val: document.getElementById('inp-email').value.trim(),  check: v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) },
-    { id:'field-phone',  val: document.getElementById('inp-phone').value.trim(),  check: v => v.replace(/\D/g,'').length >= 6 },
-    { id:'field-addr1',  val: document.getElementById('inp-addr1').value.trim(),  check: v => v.length > 0 },
-    { id:'field-country',val: document.getElementById('inp-country').value.trim(),check: v => v.length > 0 },
-    { id:'field-city',   val: document.getElementById('inp-city').value.trim(),   check: v => v.length > 0 },
-    { id:'field-postal', val: document.getElementById('inp-postal').value.trim(), check: v => v.length > 0 },
+  const fields = [
+    { id:'field-first',  val: document.getElementById('inp-first').value.trim(),   check: v => v.length > 0 },
+    { id:'field-last',   val: document.getElementById('inp-last').value.trim(),    check: v => v.length > 0 },
+    { id:'field-email',  val: document.getElementById('inp-email').value.trim(),   check: v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) },
+    { id:'field-phone',  val: document.getElementById('inp-phone').value.trim(),   check: v => v.replace(/\D/g,'').length >= 6 },
+    { id:'field-addr1',  val: document.getElementById('inp-addr1').value.trim(),   check: v => v.length > 0 },
+    { id:'field-country',val: document.getElementById('inp-country').value.trim(), check: v => v.length > 0 },
+    { id:'field-city',   val: document.getElementById('inp-city').value.trim(),    check: v => v.length > 0 },
+    { id:'field-postal', val: document.getElementById('inp-postal').value.trim(),  check: v => v.length > 0 },
   ];
 
-  required.forEach(f => {
+  fields.forEach(f => {
     const el = document.getElementById(f.id);
     if (!el) return;
-    if (!f.check(f.val)) {
-      el.classList.add('has-error');
-      valid = false;
-    } else {
-      el.classList.remove('has-error');
-    }
+    if (!f.check(f.val)) { el.classList.add('has-error'); valid = false; }
+    else el.classList.remove('has-error');
   });
 
   return valid;
 }
 
 // ════════════════════════════════════════════
-//  PROCEED TO PAYMENT
+//  FIX 1: PROCEED TO PAYMENT — with scroll lock + 5s session guard
 // ════════════════════════════════════════════
 function proceedToPayment() {
   if (!validateForm()) {
-    // Scroll to first error
     const firstErr = document.querySelector('.has-error');
     if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
 
-  // Show loading
+  // Check if loader was shown in the last 5 seconds (back-navigation guard)
+  const ts = sessionStorage.getItem('loaderShownAt');
+  if (ts && Date.now() - parseInt(ts, 10) < 5000) {
+    // Already shown recently — skip to navigation
+    window.location.href = 'pay-now-order';
+    return;
+  }
+
+  // Show loader + lock scroll
   document.getElementById('loadingOverlay').classList.add('open');
+  lockScroll();
+  // Stamp the time so back-navigation within 5s won't re-trigger
+  sessionStorage.setItem('loaderShownAt', Date.now().toString());
 
   // Collect form data
   const contact = {
@@ -1762,23 +1637,21 @@ function proceedToPayment() {
     email:     document.getElementById('inp-email').value.trim(),
     phone:     appState.selectedPhonePrefix + ' ' + document.getElementById('inp-phone').value.trim(),
   };
-
   const address = {
-    line1:   document.getElementById('inp-addr1').value.trim(),
-    line2:   document.getElementById('inp-addr2').value.trim(),
-    country: appState.selectedCountry,
+    line1:       document.getElementById('inp-addr1').value.trim(),
+    line2:       document.getElementById('inp-addr2').value.trim(),
+    country:     appState.selectedCountry,
     countryCode: appState.selectedCountryCode,
-    city:    document.getElementById('inp-city').value.trim(),
-    state:   document.getElementById('inp-state').value.trim(),
-    postal:  document.getElementById('inp-postal').value.trim(),
+    city:        document.getElementById('inp-city').value.trim(),
+    state:       document.getElementById('inp-state').value.trim(),
+    postal:      document.getElementById('inp-postal').value.trim(),
   };
 
   const { subtotal, disc, ship, gift, tax, total } = calcSummary();
 
   const orderPayload = {
     orderId: appState.orderId,
-    contact,
-    address,
+    contact, address,
     shippingMode: appState.shippingMode,
     giftWrap: appState.giftWrap,
     cart: appState.cart,
@@ -1786,17 +1659,13 @@ function proceedToPayment() {
     exchangeRate: appState.exchangeRate,
     currencySymbol: appState.currencySymbol,
     pricing: {
-      subtotalUSD: subtotal,
-      discountUSD: disc,
-      shippingUSD: ship,
-      giftWrapUSD: gift,
-      taxUSD: tax,
-      totalUSD: total,
+      subtotalUSD: subtotal, discountUSD: disc,
+      shippingUSD: ship, giftWrapUSD: gift,
+      taxUSD: tax, totalUSD: total,
       subtotalLocal: fx(subtotal),
       shippingLocal: ship === 0 ? 'FREE' : fx(ship),
       giftWrapLocal: gift > 0 ? fx(gift) : null,
-      taxLocal: fx(tax),
-      totalLocal: fx(total),
+      taxLocal: fx(tax), totalLocal: fx(total),
     }
   };
 
@@ -1806,7 +1675,7 @@ function proceedToPayment() {
     sessionStorage.setItem('checkoutAddress', JSON.stringify(address));
   } catch(e) {}
 
-  // Navigate to payment page
+  // Navigate after 1.2s (loader shows for this duration)
   setTimeout(() => {
     window.location.href = 'pay-now-order';
   }, 1200);
@@ -1824,11 +1693,8 @@ initCurrency().then(() => {
   renderSummary();
 });
 
-// Live re-render on currency loaded
 let currencyPoller = setInterval(() => {
-  if (appState.exchangeRate > 0) {
-    renderSummary();
-  }
+  if (appState.exchangeRate > 0) renderSummary();
 }, 500);
 setTimeout(() => clearInterval(currencyPoller), 10000);
 </script>
