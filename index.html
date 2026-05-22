@@ -3772,64 +3772,39 @@
     } catch(e) {}
   };
 
-  // ── Save full order to Firebase and return orderId ──
+  // ── Create order via Vercel API (server-side pricing) ──
+  // Sends only item identifiers — never prices.
+  // The server looks up real prices and writes to Firebase.
   window.saveOrderToFirebase = async function(cartItems) {
-    const devId   = window._deviceId || getDeviceId();
-    const orderId = 'ORD_' + Date.now().toString(36).toUpperCase() + '_' + Math.random().toString(36).substr(2,5).toUpperCase();
+    const devId = window._deviceId || getDeviceId();
 
-    const subtotalUSD = cartItems.reduce((a,i) => a + i.priceUSD, 0);
-    const shipUSD     = cartItems.reduce((a,i) => a + i.shipUSD, 0);
-    const discUSD     = cartItems.reduce((a,i) => a + i.discUSD, 0);
-    const taxUSD      = subtotalUSD * 0.05;
-    const totalUSD    = subtotalUSD + shipUSD + taxUSD;
+    // Strip all price fields before sending — only send identifiers
+    const safeItems = cartItems.map(i => ({
+      bundle:     i.bundle,
+      variant:    i.variant,
+      variantImg: i.img || i.variantImg || '',
+    }));
 
-    const orderData = {
-      orderId,
-      deviceId: devId,
-      sessionId,
-      status: 'pending_checkout',
-      createdAt: serverTimestamp(),
-      currency: window._currency || 'USD',
-      exchangeRate: window._exchangeRate || 1,
-      currencySymbol: window._currencySymbol || '$',
-      geo: window._geoData ? {
-        country: window._geoData.country_code,
-        city: window._geoData.city,
-        currency: window._geoData.currency
-      } : {},
-      pricing: {
-        subtotalUSD: +subtotalUSD.toFixed(2),
-        shippingUSD: +shipUSD.toFixed(2),
-        discountUSD: +discUSD.toFixed(2),
-        taxUSD:      +taxUSD.toFixed(2),
-        totalUSD:    +totalUSD.toFixed(2)
-      },
-      items: cartItems.map(i => ({
-        product:    'FrostBlade Pro',
-        variant:    i.variant,
-        variantImg: i.img,
-        bundle:     i.bundle,
-        qty:        i.qty,
-        priceUSD:   i.priceUSD
-      }))
-    };
+    const res = await fetch('/api/create-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        items:          safeItems,
+        deviceId:       devId,
+        sessionId:      sessionId,
+        currency:       window._currency        || 'USD',
+        exchangeRate:   window._exchangeRate    || 1,
+        currencySymbol: window._currencySymbol  || '$',
+        geo: window._geoData ? {
+          country: window._geoData.country_code,
+          city:    window._geoData.city,
+        } : {},
+      }),
+    });
 
-    try {
-      // Store under orders/{orderId} — accessible by checkout page via orderId
-      await set(ref(db, 'orders/' + orderId), orderData);
-      // Also index by device for easy lookup
-      await set(ref(db, 'deviceOrders/' + devId + '/' + orderId), {
-        orderId,
-        createdAt: serverTimestamp(),
-        totalUSD: +totalUSD.toFixed(2),
-        status: 'pending_checkout'
-      });
-      await update(ref(db, 'analytics'), { totalCheckouts: increment(1) });
-      console.log('Order saved:', orderId);
-    } catch(e) {
-      console.warn('Order save failed:', e);
-    }
-
+    if (!res.ok) throw new Error('create-order failed: ' + res.status);
+    const { orderId } = await res.json();
+    console.log('Order created server-side:', orderId);
     return orderId;
   };
 
@@ -4465,76 +4440,31 @@ async function goToCheckout() {
   const btn = document.getElementById('checkoutBtn');
   if (btn) { btn.textContent = 'Preparing order…'; btn.disabled = true; }
 
-  // Save order to Firebase and get unique orderId
-  let orderId = 'local_' + Date.now();
-  if (typeof saveOrderToFirebase === 'function') {
-    try {
-      orderId = await saveOrderToFirebase(state.cart);
-    } catch(e) {
-      console.warn('Firebase order save error, continuing with local ID');
-    }
-  }
-
-  // Build full order snapshot so the next page has everything it needs
-  const subtotalUSD = state.cart.reduce((a, i) => a + i.priceUSD, 0);
-  const discUSD     = state.cart.reduce((a, i) => a + i.discUSD, 0);
-  const shipUSD     = state.cart.reduce((a, i) => a + i.shipUSD, 0);
-  let codeDiscUSD = 0;
-  if (window._appliedCode) {
-    codeDiscUSD = window._appliedCode.type === 'pct'
-      ? subtotalUSD * (window._appliedCode.value / 100)
-      : Math.min(window._appliedCode.value, subtotalUSD);
-  }
-  const taxUSD   = (subtotalUSD - codeDiscUSD) * 0.05;
-  const totalUSD = subtotalUSD - codeDiscUSD + shipUSD + taxUSD;
-
-  const orderSnapshot = {
-    orderId,
-    createdAt: Date.now(),
-    currency:        window._currency        || 'USD',
-    exchangeRate:    window._exchangeRate    || 1,
-    currencySymbol:  window._currencySymbol  || '$',
-    appliedCode:     window._appliedCode     || null,
-    pricing: {
-      subtotalUSD:  +subtotalUSD.toFixed(2),
-      discountUSD:  +discUSD.toFixed(2),
-      codeDiscUSD:  +codeDiscUSD.toFixed(2),
-      shippingUSD:  +shipUSD.toFixed(2),
-      taxUSD:       +taxUSD.toFixed(2),
-      totalUSD:     +totalUSD.toFixed(2)
-    },
-    items: state.cart.map(i => ({
-      name:       i.name,
-      product:    'FrostBlade Pro',
-      variant:    i.variant,
-      variantImg: i.img,
-      bundle:     i.bundle,
-      qty:        i.qty,
-      priceUSD:   i.priceUSD,
-      shipUSD:    i.shipUSD,
-      discUSD:    i.discUSD,
-      priceLocal: i.priceLocal
-    })),
-    geo: window._geoData || null
-  };
-
-  // Persist to both sessionStorage (primary) and localStorage (fallback)
-  // so the checkout page can always read the order regardless of browser behaviour
-  const orderJSON = JSON.stringify(orderSnapshot);
+  let orderId;
   try {
-    sessionStorage.setItem('minimisty_order', orderJSON);
+    // Send only identifiers to the server — it calculates all prices
+    orderId = await saveOrderToFirebase(state.cart);
+  } catch(e) {
+    console.warn('Order creation failed:', e);
+    if (btn) { btn.textContent = 'ORDER NOW'; btn.disabled = false; }
+    alert('Could not create order. Please check your connection and try again.');
+    return;
+  }
+
+  // Store ONLY the orderId — no prices in storage
+  // The checkout page fetches the verified order from Firebase using this ID
+  try {
     sessionStorage.setItem('pendingOrderId', orderId);
-    sessionStorage.setItem('pendingCart', JSON.stringify(state.cart));
-    sessionStorage.setItem('pendingCurrency', orderSnapshot.currency);
-    sessionStorage.setItem('pendingExchangeRate', String(orderSnapshot.exchangeRate));
-    sessionStorage.setItem('pendingCurrencySymbol', orderSnapshot.currencySymbol);
-  } catch(e) {}
-  try {
-    localStorage.setItem('minimisty_order', orderJSON);
+    // Currency/display prefs are not sensitive — fine to store locally
+    sessionStorage.setItem('pendingCurrency',       window._currency        || 'USD');
+    sessionStorage.setItem('pendingExchangeRate',   String(window._exchangeRate    || 1));
+    sessionStorage.setItem('pendingCurrencySymbol', window._currencySymbol  || '$');
+    if (window._appliedCode) {
+      sessionStorage.setItem('minimisty_applied_code', JSON.stringify(window._appliedCode));
+    }
     localStorage.setItem('minimisty_last_order_id', orderId);
   } catch(e) {}
 
-  // Redirect to checkout page WITHOUT order ID in URL
   window.location.href = '/checkout';
 }
 
