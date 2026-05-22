@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Checkout – MINIMISTY.store</title>
+  <title>Checkout – FrostBlade Pro | MINIMISTY.store</title>
   <meta name="robots" content="noindex, nofollow">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
-
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap" rel="stylesheet">
+  <script src="https://www.paypal.com/sdk/js?client-id=AW7nmsZqdabjCrj62j0qekUqalJJ3T53ngjrime14foH5HMhNLmpUzULQV-OvV82KSuZQoBoEP4Rkwi4&currency=USD&intent=capture" data-sdk-integration-source="button-factory"></script>
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -17,1776 +17,1751 @@
       --lime: #a3ff12;
       --red: #ff3b30;
       --yellow: #ffeb3b;
-      --bg: #000;
-      --surface: rgba(255,255,255,0.03);
-      --border: rgba(255,255,255,0.08);
-      --border-focus: rgba(255,255,255,0.25);
-      --text-dim: #666;
       --font: 'Fredoka', sans-serif;
+
+      --bg:           #000000;
+      --bg2:          #0a0a0a;
+      --bg3:          #111111;
+      --surface:      rgba(255,255,255,0.03);
+      --border:       rgba(255,255,255,0.10);
+      --border2:      #1e1e1e;
+      --text:         #ffffff;
+      --text-dim:     #aaaaaa;
+      --text-muted:   #666666;
+      --text-faint:   #444444;
+      --card-bg:      #0d0d0d;
+      --input-bg:     #111111;
+      --input-border: #222222;
+      --header-bg:    rgba(0,0,0,0.55);
     }
 
-    html { background: #000; overscroll-behavior: none; }
+    [data-theme="light"] {
+      --bg:           #f5f5f5;
+      --bg2:          #ffffff;
+      --bg3:          #eeeeee;
+      --surface:      rgba(0,0,0,0.03);
+      --border:       rgba(0,0,0,0.10);
+      --border2:      #dddddd;
+      --text:         #0a0a0a;
+      --text-dim:     #444444;
+      --text-muted:   #666666;
+      --text-faint:   #999999;
+      --card-bg:      #ffffff;
+      --input-bg:     #f0f0f0;
+      --input-border: #cccccc;
+      --header-bg:    rgba(245,245,245,0.85);
+    }
 
+    html { background: var(--bg); overscroll-behavior: none; }
     body {
-      background: #000;
-      color: #fff;
+      background: var(--bg); color: var(--text);
       font-family: var(--font);
       min-height: 100vh;
-      -webkit-user-select: none;
-      user-select: none;
-      scrollbar-width: none;
-      -ms-overflow-style: none;
+      -webkit-user-select: none; user-select: none;
+      scrollbar-width: none; -ms-overflow-style: none;
     }
-    body::-webkit-scrollbar { display: none; }
-
-    /* ── FIX 1 & 2: Scroll lock used by both loader and AI modal ── */
-    body.scroll-locked {
-      overflow: hidden !important;
-      position: fixed;
-      width: 100%;
-      /* preserve scroll position so page doesn't jump */
-      top: var(--scroll-y, 0);
-    }
-
-    * {
-      -webkit-tap-highlight-color: transparent !important;
-      -webkit-touch-callout: none;
-    }
-    *:focus, *:focus-visible { outline: none !important; }
+    ::-webkit-scrollbar { display: none; }
+    * { -webkit-tap-highlight-color: transparent !important; }
+    *:focus, *:focus-visible { outline: none !important; box-shadow: none !important; }
     ::selection { background: transparent; }
 
     /* ── HEADER ── */
     header {
-      position: sticky; top: 0;
-      background: rgba(0,0,0,0.85);
-      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-      height: 58px;
+      position: sticky; top: 0; width: 100%; height: 56px;
+      background: var(--header-bg);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
       display: flex; align-items: center; justify-content: space-between;
-      padding: 0 20px;
-      z-index: 100;
+      padding: 0 16px; z-index: 100;
+      border-bottom: 1px solid var(--border2);
     }
-
-    .hdr-brand { display: flex; align-items: center; gap: 8px; }
-    .hdr-fan { width: 30px; height: 30px; animation: spin 4s linear infinite; }
+    .brand-name { font-weight: 700; font-size: 1.2rem; color: var(--text); }
+    .brand-suffix { font-weight: 600; font-size: 0.8rem; color: var(--cyan); }
+    .fan-icon { width: 30px; height: 30px; animation: spin 5s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .hdr-name { font-size: 1.1rem; font-weight: 700; }
-    .hdr-suffix { font-size: 0.72rem; font-weight: 600; color: var(--cyan); }
-
-    .hdr-steps {
+    .back-btn {
       display: flex; align-items: center; gap: 6px;
-      font-size: 0.65rem; font-weight: 700;
+      color: var(--text-muted); font-size: 0.82rem; font-weight: 700;
+      cursor: pointer; transition: color 0.2s;
+      text-decoration: none;
     }
-    .step-pill {
-      padding: 4px 10px; border-radius: 20px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.08);
-      color: #444;
-      white-space: nowrap;
-    }
-    .step-pill.active {
-      background: rgba(0,240,255,0.1);
-      border-color: rgba(0,240,255,0.3);
-      color: var(--cyan);
-    }
-    .step-pill.done {
-      background: rgba(163,255,18,0.08);
-      border-color: rgba(163,255,18,0.25);
-      color: var(--lime);
-    }
-    .step-dot {
-      width: 4px; height: 4px; border-radius: 50%; background: #333;
+    .back-btn:hover { color: var(--text); }
+    .secure-badge {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 0.68rem; font-weight: 700; color: var(--text-muted);
     }
 
-    /* ── MAIN ── */
-    main {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 28px 16px 80px;
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 20px;
+    /* ── PROGRESS ── */
+    .progress-bar {
+      width: 100%; height: 3px;
+      background: var(--bg3);
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--cyan), var(--lime));
+      width: 60%;
+      transition: width 0.5s ease;
     }
 
-    @media (min-width: 860px) {
+    /* ── LAYOUT ── */
+    main { padding: 20px 16px 80px; max-width: 960px; margin: 0 auto; display: flex; flex-direction: column; }
+
+    #formColumn { display: contents; }
+    .form-top    { order: 1; } /* timer + save cart + contact + shipping */
+    .order-sidebar { order: 2; } /* summary — appears above payment on mobile */
+    .form-bottom { order: 3; } /* payment + place order */
+
+    @media (min-width: 800px) {
       main {
+        display: grid;
         grid-template-columns: 1fr 380px;
         gap: 32px;
-        padding: 40px 32px 80px;
+        padding: 32px 24px 60px;
         align-items: start;
       }
+      #formColumn { display: flex; flex-direction: column; grid-column: 1; }
+      .form-top    { order: unset; }
+      .form-bottom { order: unset; }
+      .order-sidebar { order: unset; grid-column: 2; grid-row: 1; position: sticky; top: 76px; }
     }
 
-    /* ── SECTION CARDS ── */
-    .checkout-section {
-      background: #0a0a0a;
-      border: 1px solid #1a1a1a;
-      border-radius: 18px;
-      overflow: hidden;
+    /* ── SECTION CARD ── */
+    .section-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border2);
+      border-radius: 20px;
+      padding: 20px;
       margin-bottom: 16px;
+      overflow: hidden;
     }
-    .checkout-section:last-child { margin-bottom: 0; }
-
-    .section-head {
-      display: flex; align-items: center; gap: 12px;
-      padding: 18px 20px;
-      border-bottom: 1px solid #111;
-      background: rgba(255,255,255,0.015);
+    .section-title {
+      font-size: 0.72rem; font-weight: 800;
+      color: var(--text-muted); text-transform: uppercase;
+      letter-spacing: 1.5px; margin-bottom: 16px;
+      display: flex; align-items: center; gap: 8px;
     }
-    .section-icon {
-      width: 36px; height: 36px;
-      border-radius: 10px;
+    .section-title-num {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--bg3); border: 1px solid var(--border2);
       display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
+      font-size: 0.68rem; font-weight: 800; color: var(--text);
     }
-    .section-title { font-size: 1rem; font-weight: 700; color: #fff; }
-    .section-sub { font-size: 0.68rem; font-weight: 600; color: #444; margin-top: 1px; }
-
-    .section-body { padding: 20px; }
+    .section-title-num.done {
+      background: var(--lime); border-color: var(--lime); color: #000;
+    }
 
     /* ── FORM FIELDS ── */
-    .field-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-    .field-row.single { grid-template-columns: 1fr; }
-    .field-row.trio { grid-template-columns: 1fr 1fr 1fr; }
-
-    .field {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-    }
-
-    .field label {
-      font-size: 0.68rem;
-      font-weight: 700;
-      color: #555;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-    }
-
-    .field-wrap {
-      position: relative;
-      display: flex;
-      align-items: center;
-    }
-
-    .field-wrap svg.field-icon {
-      position: absolute;
-      left: 12px;
-      pointer-events: none;
-      opacity: 0.4;
-      flex-shrink: 0;
-    }
-
-    .field input,
-    .field select {
-      width: 100%;
-      background: #111;
-      border: 1px solid #222;
-      border-radius: 10px;
-      padding: 11px 12px 11px 38px;
-      color: #fff;
-      font-family: var(--font);
-      font-size: 0.88rem;
-      font-weight: 600;
+    .field-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .field-row .field-group { min-width: 120px; }
+    .field-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; flex: 1; min-width: 0; }
+    .field-label { font-size: 0.68rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; }
+    .field-input {
+      background: var(--input-bg);
+      border: 1.5px solid var(--input-border);
+      border-radius: 11px; padding: 13px 14px;
+      color: var(--text); font-family: var(--font);
+      font-size: 0.88rem; font-weight: 600;
       transition: border-color 0.2s;
-      appearance: none;
-      -webkit-appearance: none;
+      -webkit-user-select: auto; user-select: auto;
+      width: 100%; max-width: 100%; box-sizing: border-box;
     }
-    .field input::placeholder { color: #333; }
-    .field input:focus,
-    .field select:focus { border-color: var(--border-focus); }
+    .field-input:focus { border-color: var(--text-muted); }
+    .field-input::placeholder { color: var(--text-faint); }
+    .field-input.error { border-color: var(--red); }
+    .field-error { font-size: 0.65rem; color: var(--red); font-weight: 700; min-height: 1em; }
 
-    .field select {
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23444' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    [data-theme="light"] .field-input { color: #000; }
+    [data-theme="light"] .field-input::placeholder { color: #aaa; }
+
+    /* ── SELECT ── */
+    .field-select {
+      background: var(--input-bg);
+      border: 1.5px solid var(--input-border);
+      border-radius: 11px; padding: 13px 14px;
+      color: var(--text); font-family: var(--font);
+      font-size: 0.88rem; font-weight: 600;
+      width: 100%; max-width: 100%; box-sizing: border-box; appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpath d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
-      background-position: right 12px center;
-      padding-right: 32px;
+      background-position: right 14px center;
     }
+    .field-select:focus { border-color: var(--text-muted); }
+    [data-theme="light"] .field-select { color: #000; }
 
-    .field select option { background: #111; color: #fff; }
-
-    /* Phone with prefix */
-    .phone-wrap {
-      display: flex;
-      gap: 8px;
-    }
-    .phone-prefix {
-      flex: 0 0 110px;
-    }
-    .phone-prefix select {
-      padding-left: 38px !important;
-    }
-    .phone-number { flex: 1; }
-
-    /* ── SHIPPING OPTIONS ── */
-    .shipping-options {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-
-    .ship-card {
-      background: #111;
-      border: 1.5px solid #222;
-      border-radius: 14px;
-      padding: 16px;
-      cursor: pointer;
-      transition: border-color 0.2s, background 0.2s;
-      position: relative;
-      overflow: hidden;
-    }
-    .ship-card.active {
-      border-color: #fff;
-      background: rgba(255,255,255,0.04);
-    }
-    .ship-card.active-prime {
-      border-color: var(--cyan);
-      background: rgba(0,240,255,0.04);
-    }
-
-    .ship-badge {
-      font-size: 0.58rem;
-      font-weight: 700;
-      padding: 3px 7px;
-      border-radius: 20px;
-      letter-spacing: 0.5px;
-      display: inline-flex;
-      margin-bottom: 10px;
-    }
-    .ship-badge.std { background: rgba(255,255,255,0.08); color: #666; border: 1px solid #2a2a2a; }
-    .ship-badge.prime { background: rgba(0,240,255,0.1); color: var(--cyan); border: 1px solid rgba(0,240,255,0.25); }
-
-    .ship-icon-row {
-      display: flex; align-items: center; gap: 8px;
-      margin-bottom: 10px;
-    }
-    .ship-icon-wrap {
-      width: 38px; height: 38px;
-      border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .ship-name { font-size: 0.88rem; font-weight: 700; color: #fff; margin-bottom: 2px; }
-    .ship-days { font-size: 0.68rem; font-weight: 600; color: #555; }
-    .ship-price { font-size: 1rem; font-weight: 700; margin-top: 8px; }
-    .ship-price.free { color: var(--lime); }
-    .ship-price.paid { color: #fff; }
-
-    .ship-select-dot {
-      width: 18px; height: 18px;
-      border-radius: 50%;
-      border: 2px solid #333;
-      position: absolute; top: 12px; right: 12px;
-      transition: all 0.2s;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .ship-card.active .ship-select-dot { border-color: #fff; background: #fff; }
-    .ship-card.active-prime .ship-select-dot { border-color: var(--cyan); background: var(--cyan); }
-    .ship-select-dot::after {
-      content: '';
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: #000;
-      opacity: 0;
-      transition: opacity 0.2s;
-    }
-    .ship-card.active .ship-select-dot::after,
-    .ship-card.active-prime .ship-select-dot::after { opacity: 1; }
-
-    /* ── GIFT OPTION ── */
-    .gift-toggle {
-      margin-top: 14px;
-      background: #111;
-      border: 1.5px solid #222;
-      border-radius: 14px;
-      padding: 16px;
-      cursor: pointer;
-      transition: border-color 0.2s, background 0.2s;
-      display: flex; align-items: center; gap: 14px;
-    }
-    .gift-toggle.active {
-      border-color: var(--yellow);
-      background: rgba(255,235,59,0.04);
-    }
-    .gift-icon-wrap {
-      width: 44px; height: 44px;
-      border-radius: 12px;
-      background: rgba(255,235,59,0.08);
-      border: 1px solid rgba(255,235,59,0.18);
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-    }
-    .gift-info { flex: 1; }
-    .gift-name { font-size: 0.88rem; font-weight: 700; color: #fff; margin-bottom: 2px; }
-    .gift-sub { font-size: 0.7rem; font-weight: 600; color: #555; }
-    .gift-price { font-size: 0.9rem; font-weight: 700; color: var(--yellow); }
-
-    .gift-checkbox {
-      width: 22px; height: 22px;
-      border-radius: 7px;
-      border: 2px solid #333;
-      display: flex; align-items: center; justify-content: center;
-      transition: all 0.2s;
-      flex-shrink: 0;
-    }
-    .gift-toggle.active .gift-checkbox {
-      background: var(--yellow);
-      border-color: var(--yellow);
-    }
-    .gift-checkbox svg { opacity: 0; transition: opacity 0.15s; }
-    .gift-toggle.active .gift-checkbox svg { opacity: 1; }
-
-    /* ── ORDER SUMMARY (right col / bottom on mobile) ── */
-    .order-col { display: flex; flex-direction: column; gap: 0; }
-
-    @media (min-width: 860px) {
-      .order-col {
-        position: sticky;
-        top: 74px;
-      }
-    }
-
-    .order-card {
-      background: #0a0a0a;
-      border: 1px solid #1a1a1a;
-      border-radius: 18px;
-      overflow: hidden;
-    }
-
-    .order-head {
-      padding: 16px 20px;
-      border-bottom: 1px solid #111;
-      font-size: 0.85rem;
-      font-weight: 700;
-      color: #fff;
-      display: flex; align-items: center; gap: 8px;
-    }
-
-    .order-items { padding: 14px 20px; border-bottom: 1px solid #111; }
-
+    /* ── ORDER SUMMARY SIDEBAR ── */
     .order-item {
       display: flex; gap: 12px; align-items: center;
-      padding: 8px 0;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border2);
     }
+    .order-item:last-child { border-bottom: none; }
     .order-item-img {
-      width: 50px; height: 50px; border-radius: 8px;
+      width: 54px; height: 54px; border-radius: 10px;
       background-size: cover; background-position: center;
-      border: 1px solid #222; flex-shrink: 0;
+      flex-shrink: 0; border: 1px solid var(--border2);
+      position: relative;
     }
-    .order-item-name { font-size: 0.8rem; font-weight: 700; color: #fff; margin-bottom: 2px; }
-    .order-item-meta { font-size: 0.67rem; font-weight: 600; color: #555; }
-    .order-item-price { font-size: 0.9rem; font-weight: 700; color: #fff; margin-left: auto; flex-shrink: 0; }
+    .order-item-badge {
+      position: absolute; top: -6px; right: -6px;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: var(--text-muted); color: var(--bg);
+      font-size: 0.6rem; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      border: 2px solid var(--bg2);
+    }
+    .order-item-name { font-size: 0.82rem; font-weight: 700; color: var(--text); }
+    .order-item-variant { font-size: 0.68rem; color: var(--text-muted); font-weight: 600; margin-top: 2px; }
+    .order-item-price { font-size: 0.88rem; font-weight: 700; color: var(--text); margin-left: auto; flex-shrink: 0; }
 
-    .order-sums { padding: 16px 20px; border-bottom: 1px solid #111; }
+    /* Discount row in sidebar */
+    .discount-row {
+      display: flex; gap: 8px; margin: 14px 0 10px;
+    }
+    .discount-input {
+      flex: 1; background: var(--input-bg);
+      border: 1.5px solid var(--input-border);
+      border-radius: 10px; padding: 11px 12px;
+      color: var(--text); font-family: var(--font);
+      font-size: 0.82rem; font-weight: 600;
+      -webkit-user-select: auto; user-select: auto;
+    }
+    .discount-input::placeholder { color: var(--text-faint); }
+    .discount-input:focus { border-color: var(--text-muted); }
+    .discount-input.applied { border-color: var(--lime); }
+    [data-theme="light"] .discount-input { color: #000; }
 
-    .sum-row {
+    .discount-apply-btn {
+      background: var(--bg3); color: var(--text);
+      border: 1.5px solid var(--border2);
+      border-radius: 10px; padding: 11px 16px;
+      font-family: var(--font); font-weight: 800;
+      font-size: 0.78rem; cursor: pointer;
+      flex-shrink: 0; transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .discount-apply-btn:active { transform: scale(0.95); }
+    .discount-apply-btn.applied { background: var(--lime); color: #000; border-color: var(--lime); }
+
+    .summary-line {
       display: flex; justify-content: space-between;
-      font-size: 0.8rem; font-weight: 600; margin-bottom: 8px;
+      font-size: 0.82rem; font-weight: 600;
+      padding: 7px 0;
     }
-    .sum-row:last-child { margin-bottom: 0; }
-    .sum-key { color: #555; }
-    .sum-val { color: #fff; }
-    .sum-val.free { color: var(--lime); }
-    .sum-val.save { color: var(--red); }
-    .sum-val.gift-color { color: var(--yellow); }
-
-    .sum-total {
-      padding: 16px 20px;
-      display: flex; justify-content: space-between; align-items: center;
-    }
-    .sum-total-label { font-size: 1rem; font-weight: 700; color: #fff; }
-    .sum-total-val { font-size: 1.4rem; font-weight: 700; color: #fff; }
-
-    /* ── PAY BUTTON ── */
-    .pay-section { padding: 0 20px 20px; }
-
-    .pay-btn {
-      width: 100%;
-      background: #fff;
-      color: #000;
-      border: none;
-      border-radius: 14px;
-      padding: 18px;
-      font-family: var(--font);
-      font-weight: 700;
-      font-size: 1.05rem;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center; gap: 10px;
-      letter-spacing: 0.3px;
-      transition: transform 0.1s, opacity 0.15s;
-    }
-    .pay-btn:active { transform: scale(0.98); }
-    .pay-btn-divider {
-      width: 1px; height: 20px;
-      background: rgba(0,0,0,0.2);
+    .summary-line .label { color: var(--text-dim); }
+    .summary-line .value { color: var(--text); }
+    .summary-line .value.green { color: var(--lime); }
+    .summary-line .value.red { color: var(--red); }
+    .summary-line .value.yellow { color: var(--yellow); }
+    .summary-total-line {
+      display: flex; justify-content: space-between;
+      font-size: 1.2rem; font-weight: 800;
+      padding: 14px 0 0;
+      margin-top: 8px;
+      border-top: 1px solid var(--border2);
     }
 
-    .pay-sub {
-      text-align: center;
-      font-size: 0.62rem;
-      font-weight: 600;
-      color: #333;
-      margin-top: 10px;
+    /* ── PAYMENT METHOD TABS ── */
+    .pay-tabs {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 8px; margin-bottom: 16px;
+    }
+    .pay-tab {
+      padding: 11px 8px;
+      background: var(--input-bg);
+      border: 1.5px solid var(--input-border);
+      border-radius: 11px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      gap: 6px; font-family: var(--font);
+      font-size: 0.78rem; font-weight: 700; color: var(--text-muted);
+      transition: all 0.2s;
+    }
+    .pay-tab.active { background: var(--bg3); border-color: var(--text); color: var(--text); }
+    .pay-tab svg { flex-shrink: 0; }
+
+    /* Card fields */
+    .card-number-wrap { position: relative; }
+    .card-brand-icon {
+      position: absolute; right: 14px; top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.7rem; font-weight: 800;
+      color: var(--text-muted);
+      pointer-events: none;
     }
 
-    /* ── TRUST ICONS ── */
+    /* ── PLACE ORDER BUTTON ── */
+    .place-order-btn {
+      width: 100%; background: var(--text); color: var(--bg);
+      border: none; padding: 18px; border-radius: 14px;
+      font-family: var(--font); font-weight: 800; font-size: 1rem;
+      cursor: pointer; margin-top: 20px; letter-spacing: 0.5px;
+      transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1), opacity 0.15s;
+      position: relative; overflow: hidden;
+    }
+    .place-order-btn:active { transform: scale(0.97); }
+    .place-order-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    @keyframes btnPop { 0%{transform:scale(1)} 30%{transform:scale(0.94)} 65%{transform:scale(1.03)} 100%{transform:scale(1)} }
+    .place-order-btn.popping { animation: btnPop 0.42s cubic-bezier(0.34,1.56,0.64,1); }
+
+    /* ── TRUST ROW ── */
     .trust-row {
-      display: flex; justify-content: center; gap: 12px;
-      flex-wrap: wrap;
-      padding: 14px 20px;
-      border-top: 1px solid #111;
+      display: flex; flex-wrap: wrap; gap: 10px;
+      justify-content: center; margin-top: 14px;
     }
     .trust-chip {
       display: flex; align-items: center; gap: 5px;
-      font-size: 0.62rem; font-weight: 700; color: #444;
+      font-size: 0.65rem; font-weight: 700; color: var(--text-faint);
     }
+    .trust-chip svg { flex-shrink: 0; }
 
-    /* ── LOADING OVERLAY ── */
-    .loading-overlay {
+    /* ── SUCCESS SCREEN ── */
+    #successScreen {
+      display: none;
       position: fixed; inset: 0; z-index: 9999;
-      background: rgba(0,0,0,0.95);
-      backdrop-filter: blur(12px);
-      display: none;
-      flex-direction: column;
-      align-items: center; justify-content: center;
-      gap: 20px;
-      /* FIX: ensure overlay itself doesn't scroll */
-      overflow: hidden;
-      touch-action: none;
+      background: var(--bg);
+      flex-direction: column; align-items: center; justify-content: center;
+      padding: 24px; text-align: center;
     }
-    .loading-overlay.open { display: flex; }
+    #successScreen.show { display: flex; }
+    .success-checkmark {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: rgba(163,255,18,0.1); border: 2px solid var(--lime);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 22px;
+      animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes popIn { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }
 
-    .loading-fan {
-      width: 56px; height: 56px;
-      animation: spin 0.8s linear infinite;
+    /* ── COUNTDOWN TIMER ── */
+    .timer-bar {
+      display: flex; align-items: center; gap: 10px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 12px; padding: 11px 14px;
+      margin-bottom: 16px;
     }
-    .loading-text {
-      font-size: 1rem; font-weight: 700; color: #fff;
+    .timer-label { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
+    .timer-digits { display: flex; gap: 4px; margin-left: auto; align-items: center; }
+    .td-num {
+      background: var(--bg3); border: 1px solid var(--border2);
+      border-radius: 7px; padding: 4px 9px;
+      font-size: 0.95rem; font-weight: 800; color: var(--text);
+      min-width: 32px; text-align: center;
+      font-variant-numeric: tabular-nums;
     }
-    .loading-sub {
-      font-size: 0.75rem; font-weight: 600; color: #555;
-    }
+    .td-sep { color: var(--text-faint); font-size: 0.85rem; opacity: 0.4; padding-bottom: 8px; }
+    .pulse-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--red); animation: pulse 1.5s infinite; flex-shrink: 0; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
-    /* ── FIELD VALIDATION ── */
-    .field input.error,
-    .field select.error {
-      border-color: var(--red) !important;
+    /* ── ABANDONED CART EMAIL STRIP ── */
+    .email-strip {
+      background: rgba(163,255,18,0.05);
+      border: 1px solid rgba(163,255,18,0.18);
+      border-radius: 12px; padding: 14px;
+      margin-bottom: 16px;
+      display: block;
     }
-    .field .err-msg {
-      font-size: 0.62rem;
-      font-weight: 600;
-      color: var(--red);
-      display: none;
+    .email-strip-title { font-size: 0.75rem; font-weight: 800; color: var(--lime); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .email-strip-sub { font-size: 0.68rem; color: var(--text-muted); font-weight: 600; margin-bottom: 10px; }
+    .email-strip-row { display: flex; gap: 8px; }
+    .email-strip-input {
+      flex: 1; background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      border-radius: 9px; padding: 10px 12px;
+      color: var(--text); font-family: var(--font);
+      font-size: 0.8rem; font-weight: 600;
+      -webkit-user-select: auto; user-select: auto;
     }
-    .field.has-error .err-msg { display: block; }
-    .field.has-error input,
-    .field.has-error select { border-color: var(--red); }
+    .email-strip-input::placeholder { color: var(--text-faint); }
+    [data-theme="light"] .email-strip-input { color: #000; }
+    .email-strip-btn {
+      background: var(--lime); color: #000; border: none;
+      border-radius: 9px; padding: 10px 14px;
+      font-family: var(--font); font-weight: 800; font-size: 0.78rem;
+      cursor: pointer; flex-shrink: 0; white-space: nowrap;
+      transition: transform 0.1s;
+    }
+    .email-strip-btn:active { transform: scale(0.95); }
 
-    @media (max-width: 420px) {
-      .shipping-options { grid-template-columns: 1fr; }
-      .field-row.trio { grid-template-columns: 1fr 1fr; }
+    /* ── MOBILE STICKY TOTAL ── */
+    #mobileStickyTotal {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: var(--bg2); border-top: 1px solid var(--border2);
+      padding: 12px 16px calc(env(safe-area-inset-bottom) + 12px);
+      z-index: 50;
+      display: flex; align-items: center; justify-content: space-between;
     }
+    .mobile-total-label { font-size: 0.72rem; color: var(--text-muted); font-weight: 700; }
+    .mobile-total-amount { font-size: 1.1rem; font-weight: 800; color: var(--text); }
 
-    @media (max-width: 360px) {
-      .hdr-steps { display: none; }
-    }
+    @media (min-width: 800px) { #mobileStickyTotal { display: none !important; } }
 
-    /* ── COUNTRY SELECT DROPDOWN SEARCH ── */
-    .searchable-select-wrap { position: relative; }
-    .searchable-select-wrap input {
-      padding-right: 32px !important;
-      cursor: pointer;
+    /* ── SHIMMER ── */
+    .shimmer {
+      background: linear-gradient(90deg, var(--bg3) 25%, var(--input-border) 50%, var(--bg3) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 6px; height: 1em; display: inline-block;
     }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+    /* light overrides */
+    [data-theme="light"] .section-card { background: #fff; border-color: #e5e5e5; }
+    [data-theme="light"] .order-item { border-color: #eee; }
+    [data-theme="light"] .summary-total-line { border-color: #eee; }
+    [data-theme="light"] .pay-tab { background: #f0f0f0; border-color: #ddd; }
+    [data-theme="light"] .pay-tab.active { background: #fff; border-color: #000; }
+    [data-theme="light"] .timer-bar { background: rgba(0,0,0,0.03); border-color: rgba(0,0,0,0.09); }
+    [data-theme="light"] .td-num { background: #f0f0f0; border-color: #ddd; color: #111; }
+    [data-theme="light"] .place-order-btn { background: #000; color: #fff; }
+    [data-theme="light"] #mobileStickyTotal { background: #fff; border-color: #e0e0e0; }
+
+    /* ── COUNTRY PICKER ── */
+    .country-picker { position: relative; }
+    .country-selected {
+      background: var(--input-bg);
+      border: 1.5px solid var(--input-border);
+      border-radius: 11px; padding: 13px 14px;
+      display: flex; align-items: center; gap: 9px;
+      cursor: pointer; user-select: none; -webkit-user-select: none;
+      transition: border-color 0.2s;
+    }
+    .country-selected:hover { border-color: var(--text-muted); }
+    .country-selected.open { border-color: var(--text-muted); border-radius: 11px 11px 0 0; }
+    .country-flag { font-size: 1.15rem; line-height: 1; flex-shrink: 0; }
+    .country-name-display { flex: 1; font-size: 0.88rem; font-weight: 600; color: var(--text); }
+    .country-chevron { flex-shrink: 0; transition: transform 0.2s; }
+    .country-selected.open .country-chevron { transform: rotate(180deg); }
+
     .country-dropdown {
-      position: absolute;
-      top: calc(100% + 4px);
-      left: 0; right: 0;
-      background: #141414;
-      border: 1px solid #2a2a2a;
-      border-radius: 12px;
-      max-height: 220px;
-      overflow-y: auto;
-      z-index: 500;
-      scrollbar-width: none;
-      display: none;
+      position: absolute; top: 100%; left: 0; right: 0; z-index: 200;
+      background: var(--input-bg);
+      border: 1.5px solid var(--text-muted);
+      border-top: none;
+      border-radius: 0 0 11px 11px;
+      overflow: hidden;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.4);
     }
-    .country-dropdown::-webkit-scrollbar { display: none; }
-    .country-dropdown.open { display: block; }
-    .country-opt {
-      padding: 10px 14px;
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: #ccc;
-      cursor: pointer;
-      display: flex; align-items: center; gap: 8px;
-      border-bottom: 1px solid #1a1a1a;
-      transition: background 0.15s;
+    .country-search-wrap { padding: 8px 10px; border-bottom: 1px solid var(--border2); }
+    .country-search {
+      width: 100%; background: var(--bg3);
+      border: 1px solid var(--border2); border-radius: 8px;
+      padding: 9px 11px; color: var(--text);
+      font-family: var(--font); font-size: 0.82rem; font-weight: 600;
+      -webkit-user-select: auto; user-select: auto;
     }
-    .country-opt:last-child { border-bottom: none; }
-    .country-opt:hover, .country-opt.highlighted { background: rgba(255,255,255,0.05); }
-    .country-opt .cflag { font-size: 1rem; }
-    .country-opt .ccode { color: #444; font-size: 0.7rem; }
+    .country-search::placeholder { color: var(--text-faint); }
+    .country-search:focus { border-color: var(--text-muted); outline: none; }
+    [data-theme="light"] .country-search { color: #000; }
 
-    /* Phone prefix select */
-    .prefix-select-wrap { position: relative; flex: 0 0 130px; }
-    .prefix-select-wrap input {
-      width: 100%;
-      background: #111;
-      border: 1px solid #222;
-      border-radius: 10px;
-      padding: 11px 10px 11px 38px;
-      color: #fff;
-      font-family: var(--font);
-      font-size: 0.88rem;
-      font-weight: 600;
-      cursor: pointer;
+    .country-list { max-height: 220px; overflow-y: auto; scrollbar-width: thin; }
+    .country-list::-webkit-scrollbar { width: 4px; }
+    .country-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+    .country-option {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 14px; cursor: pointer;
+      font-size: 0.85rem; font-weight: 600; color: var(--text);
+      transition: background 0.1s;
     }
-    .prefix-dropdown {
-      position: absolute;
-      top: calc(100% + 4px);
-      left: 0;
-      width: 280px;
-      background: #141414;
-      border: 1px solid #2a2a2a;
-      border-radius: 12px;
-      max-height: 220px;
-      overflow-y: auto;
-      z-index: 600;
-      scrollbar-width: none;
-      display: none;
-    }
-    .prefix-dropdown::-webkit-scrollbar { display: none; }
-    .prefix-dropdown.open { display: block; }
+    .country-option:hover { background: var(--bg3); }
+    .country-option.selected { background: rgba(163,255,18,0.08); color: var(--lime); }
+    .country-option-flag { font-size: 1.1rem; flex-shrink: 0; }
+    .country-no-results { padding: 14px; text-align: center; font-size: 0.78rem; color: var(--text-muted); font-weight: 600; }
 
-    .prefix-search {
-      padding: 10px 12px;
-      border-bottom: 1px solid #1a1a1a;
-      position: sticky; top: 0; background: #141414;
+    /* ── COUNTRY PICKER ── */
+    .country-picker { position: relative; z-index: 10; }
+    .country-selected {
+      background: var(--input-bg);
+      border: 1.5px solid var(--input-border);
+      border-radius: 11px; padding: 13px 14px;
+      display: flex; align-items: center; gap: 9px;
+      cursor: pointer; user-select: none; -webkit-user-select: none;
+      transition: border-color 0.2s;
     }
-    .prefix-search input {
-      width: 100%;
-      background: #1a1a1a;
-      border: 1px solid #222;
-      border-radius: 8px;
-      padding: 7px 10px;
-      color: #fff;
-      font-family: var(--font);
-      font-size: 0.8rem;
-      font-weight: 600;
-    }
-    .prefix-search input::placeholder { color: #444; }
+    .country-selected:hover { border-color: var(--text-muted); }
+    .country-selected.open { border-color: var(--text-muted); border-radius: 11px 11px 0 0; }
+    .country-flag { font-size: 1.15rem; line-height: 1; flex-shrink: 0; }
+    .country-name-display { flex: 1; font-size: 0.88rem; font-weight: 600; color: var(--text); }
+    .country-chevron { flex-shrink: 0; transition: transform 0.2s; }
+    .country-selected.open .country-chevron { transform: rotate(180deg); }
 
-    .prefix-opt {
-      padding: 9px 14px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: #ccc;
-      cursor: pointer;
-      display: flex; align-items: center; gap: 8px;
-      border-bottom: 1px solid #111;
-      transition: background 0.15s;
+    .country-dropdown {
+      position: absolute; top: 100%; left: 0; right: 0; z-index: 300;
+      background: #1b1b1b;
+      border: 1.5px solid #3a3a3a;
+      border-top: none;
+      border-radius: 0 0 11px 11px;
+      overflow: hidden;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.9);
     }
-    .prefix-opt:hover { background: rgba(255,255,255,0.05); }
-    .prefix-opt .pflag { font-size: 0.95rem; }
-    .prefix-opt .pcode { color: #00f0ff; font-size: 0.75rem; font-weight: 700; }
-    .prefix-opt .pname { color: #666; font-size: 0.7rem; }
+    [data-theme="light"] .country-dropdown { background: #ffffff; border-color: #999; box-shadow: 0 16px 48px rgba(0,0,0,0.2); }
 
-    /* ── FIX DROPDOWN OVERLAP / Z-INDEX ISSUES ── */
-    .searchable-select-wrap,
-    .prefix-select-wrap {
-      position: relative;
-      z-index: 10;
+    .country-search-wrap { padding: 8px 10px; border-bottom: 1px solid #2a2a2a; background: #1b1b1b; }
+    [data-theme="light"] .country-search-wrap { background: #fff; border-color: #e0e0e0; }
+    .country-search {
+      width: 100%; background: #252525;
+      border: 1px solid #333; border-radius: 8px;
+      padding: 9px 11px; color: #fff;
+      font-family: var(--font); font-size: 0.82rem; font-weight: 600;
+      -webkit-user-select: auto; user-select: auto;
     }
+    .country-search::placeholder { color: #555; }
+    .country-search:focus { border-color: #555; outline: none; }
+    [data-theme="light"] .country-search { background: #f2f2f2; color: #000; border-color: #ccc; }
+    [data-theme="light"] .country-search::placeholder { color: #999; }
 
-    .country-dropdown,
-    .prefix-dropdown {
-      position: absolute;
-      top: calc(100% + 4px);
-      left: 0;
-      right: 0;
-      background: #141414;
-      border: 1px solid #2a2a2a;
-      border-radius: 12px;
-      max-height: 280px;
-      overflow-y: auto;
-      z-index: 9999 !important;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+    .country-list { max-height: 220px; overflow-y: auto; scrollbar-width: thin; background: #1b1b1b; }
+    [data-theme="light"] .country-list { background: #fff; }
+    .country-list::-webkit-scrollbar { width: 4px; }
+    .country-list::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+    .country-option {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 14px; cursor: pointer;
+      font-size: 0.85rem; font-weight: 600; color: #ddd;
+      transition: background 0.1s; background: #1b1b1b;
     }
+    .country-option:hover { background: #252525; }
+    .country-option.selected { background: rgba(163,255,18,0.1); color: var(--lime); }
+    [data-theme="light"] .country-option { color: #111; background: #fff; }
+    [data-theme="light"] .country-option:hover { background: #f5f5f5; }
+    .country-option-flag { font-size: 1.1rem; flex-shrink: 0; }
+    .country-no-results { padding: 14px; text-align: center; font-size: 0.78rem; color: #666; font-weight: 600; background: #1b1b1b; }
+    [data-theme="light"] .country-no-results { background: #fff; color: #999; }
 
-    .checkout-section {
-      position: relative;
-      z-index: 1;
+    [data-theme="light"] .country-selected { color: #000; }
+    [data-theme="light"] .country-name-display { color: #000; }
+
+    /* ── PHONE DIAL-CODE PICKER ── */
+    .phone-wrap { display: flex; gap: 8px; align-items: stretch; }
+    .dial-picker { position: relative; flex-shrink: 0; z-index: 10; }
+    .dial-selected {
+      height: 100%; background: var(--input-bg);
+      border: 1.5px solid var(--input-border);
+      border-radius: 11px; padding: 0 10px;
+      display: flex; align-items: center; gap: 5px; min-height: 48px;
+      cursor: pointer; user-select: none; -webkit-user-select: none;
+      transition: border-color 0.2s; white-space: nowrap;
     }
+    .dial-selected:hover { border-color: var(--text-muted); }
+    .dial-selected.open { border-color: var(--text-muted); border-radius: 11px 11px 0 0; }
+    .dial-code-display { font-size: 0.82rem; font-weight: 700; color: var(--text); min-width: 34px; text-align: center; }
+    [data-theme="light"] .dial-code-display { color: #000; }
+    .dial-number-input { flex: 1; min-width: 0; }
 
-    .checkout-section:has(.country-dropdown.open),
-    .checkout-section:has(.prefix-dropdown.open) {
-      z-index: 10000;
+    .dial-dropdown {
+      position: absolute; top: 100%; left: 0; min-width: 250px; z-index: 300;
+      background: #1b1b1b;
+      border: 1.5px solid #3a3a3a;
+      border-top: none;
+      border-radius: 0 0 11px 11px;
+      overflow: hidden;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.9);
     }
+    [data-theme="light"] .dial-dropdown { background: #ffffff; border-color: #999; box-shadow: 0 16px 48px rgba(0,0,0,0.2); }
+    .dial-dropdown .country-search-wrap { background: #1b1b1b; }
+    [data-theme="light"] .dial-dropdown .country-search-wrap { background: #fff; }
+    .dial-dropdown .country-list { background: #1b1b1b; }
+    [data-theme="light"] .dial-dropdown .country-list { background: #fff; }
+    .dial-dropdown .country-option { background: #1b1b1b; }
+    .dial-dropdown .country-option:hover { background: #252525; }
+    [data-theme="light"] .dial-dropdown .country-option { background: #fff; }
+    [data-theme="light"] .dial-dropdown .country-option:hover { background: #f5f5f5; }
+    .dial-option-code { margin-left: auto; font-size: 0.75rem; color: #888; font-weight: 700; }
+    [data-theme="light"] .dial-option-code { color: #999; }
 
-    .prefix-dropdown {
-      width: 320px;
-      max-width: 90vw;
-      left: 0;
-    }
-
-    .section-body {
-      overflow: visible !important;
-    }
-
-    .checkout-section {
-      overflow: visible !important;
-    }
-
-    main {
-      overflow: visible !important;
+    @media (max-width: 400px) {
+      .field-row { flex-direction: column; }
+      .section-card { padding: 16px; }
     }
 
-    .country-dropdown::-webkit-scrollbar,
-    .prefix-dropdown::-webkit-scrollbar {
-      width: 4px;
-    }
-    .country-dropdown::-webkit-scrollbar-track,
-    .prefix-dropdown::-webkit-scrollbar-track {
-      background: #1a1a1a;
-      border-radius: 4px;
-    }
-    .country-dropdown::-webkit-scrollbar-thumb,
-    .prefix-dropdown::-webkit-scrollbar-thumb {
-      background: #444;
-      border-radius: 4px;
-    }
-
-    @keyframes gradientShift {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-
-    @media (max-width: 380px) {
-      .return-text { display: none !important; }
-      header { padding: 8px 12px !important; }
-    }
-    @media (max-width: 480px) and (min-width: 381px) {
-      .return-text { font-size: 0.65rem !important; }
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.85; transform: scale(1.02); }
-    }
-    /* === OVERRIDE FIXES - MAKE EVERYTHING VISIBLE === */
-
-/* Show scrollbars */
-body {
-  scrollbar-width: auto !important;
-  -ms-overflow-style: auto !important;
-}
-body::-webkit-scrollbar { 
-  display: block !important;
-}
-
-/* Show text selection */
-::selection { 
-  background: rgba(0,240,255,0.3) !important;
-  color: #fff !important;
-}
-
-/* Show focus outlines for accessibility */
-*:focus, *:focus-visible { 
-  outline: 2px solid var(--cyan) !important;
-  outline-offset: 2px !important;
-}
-
-/* Show tap highlight */
-* {
-  -webkit-tap-highlight-color: rgba(0,240,255,0.2) !important;
-  -webkit-touch-callout: default !important;
-}
-
-/* Keep dropdowns visible when open (no change needed, but ensure they work) */
-
-/* Show error messages clearly */
-.field .err-msg {
-  display: block !important;
-  color: var(--red) !important;
-  margin-top: 4px !important;
-}
-
-/* Keep step pills visible on all screens */
-@media (max-width: 360px) {
-  .hdr-steps { 
-    display: flex !important;
-  }
-}
-
-/* Keep return text visible on all screens */
-@media (max-width: 380px) {
-  .return-text { 
-    display: inline-block !important;
-  }
-}
-
-/* Debug helper - show all hidden elements with a red border (optional) */
-/*
-[style*="display: none"], 
-[style*="display:none"],
-.hidden-visually {
-  border: 2px solid red !important;
-  display: block !important;
-  background: rgba(255,0,0,0.1) !important;
-}
-*/
+    /* ── NO SCROLL ── */
+    .no-scroll { overflow: hidden !important; }
   </style>
 </head>
 <body>
 
-<!-- ── HEADER ── -->
-<header style="position: sticky; top: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.06); min-height: 58px; height: auto; display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; z-index: 100; gap: 10px; flex-wrap: wrap;">
-  
-  <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
-    <svg style="width: 28px; height: 28px; animation: spin 4s linear infinite;" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="50" cy="50" r="16" fill="#fff"/>
-      <path d="M50 34 C30 30 30 4 50 4 C70 4 70 30 50 34 Z" fill="#fff"/>
-      <path d="M66 50 C70 30 96 30 96 50 C96 70 70 70 66 50 Z" fill="#fff"/>
-      <path d="M50 66 C70 70 70 96 50 96 C30 96 30 70 50 66 Z" fill="#fff"/>
-      <path d="M34 50 C30 70 4 70 4 50 C4 30 30 30 34 50 Z" fill="#fff"/>
-      <circle cx="50" cy="50" r="6" fill="#000"/>
+<!-- ═══ HEADER ═══ -->
+<header>
+  <a class="back-btn" href="/" id="backBtn">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    Back
+  </a>
+  <div style="display:flex;align-items:center;gap:8px">
+    <svg class="fan-icon" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="50" cy="50" r="16" fill="var(--text)" stroke="var(--bg)" stroke-width="4"/>
+      <path d="M50 34 C30 30 30 4 50 4 C70 4 70 30 50 34 Z" fill="var(--text)"/>
+      <path d="M66 50 C70 30 96 30 96 50 C96 70 70 70 66 50 Z" fill="var(--text)"/>
+      <path d="M50 66 C70 70 70 96 50 96 C30 96 30 70 50 66 Z" fill="var(--text)"/>
+      <path d="M34 50 C30 70 4 70 4 50 C4 30 30 30 34 50 Z" fill="var(--text)"/>
+      <circle cx="50" cy="50" r="6" fill="var(--bg)"/>
     </svg>
-    <div>
-      <span style="font-size: 0.95rem; font-weight: 700;">MINIMISTY</span>
-      <span style="font-size: 0.65rem; font-weight: 600; color: #00f0ff;">.store</span>
-    </div>
+    <span class="brand-name">MINIMISTY</span><span class="brand-suffix">.store</span>
   </div>
-
-  <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
-    <button onclick="window.location.href='/'" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 30px; padding: 6px 10px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s ease; backdrop-filter: blur(4px);" onmouseover="this.style.background='rgba(255,255,255,0.12)'; this.style.borderColor='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'; this.style.borderColor='rgba(255,255,255,0.1)'">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M19 12H5M12 19l-7-7 7-7"/>
-      </svg>
-      <span style="font-size: 0.7rem; font-weight: 600; color: white; display: inline-block;" class="return-text">Return</span>
-    </button>
-
- <button onclick="event.stopPropagation(); toggleSupportChat()" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(0,240,255,0.4); border-radius: 30px; padding: 6px 12px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s ease;" onmouseover="this.style.background='rgba(0,240,255,0.15)'; this.style.borderColor='#00f0ff'" onmouseout="this.style.background='rgba(255,255,255,0.05)'; this.style.borderColor='rgba(0,240,255,0.4)'">
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00f0ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-    <path d="M8 10h.01M12 10h.01M16 10h.01"/>
-  </svg>
-  <span style="font-size: 0.7rem; font-weight: 700; color: #00f0ff; letter-spacing: 0.3px; white-space: nowrap;">AI Support</span>
-</button>
+  <div class="secure-badge">
+    <svg width="12" height="14" viewBox="0 0 24 28" fill="none" stroke="#a3ff12" stroke-width="2"><rect x="2" y="11" width="20" height="16" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    Secure
   </div>
 </header>
+<div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
 
+<!-- ═══ MAIN ═══ -->
 <main>
-  <!-- LEFT COLUMN: form -->
-  <div class="form-col">
+  <!-- LEFT: FORM COLUMN -->
+  <div id="formColumn">
+  <div class="form-top">
 
-    <!-- CONTACT SECTION -->
-    <div class="checkout-section">
-      <div class="section-head">
-        <div class="section-icon" style="background:rgba(0,240,255,0.08);border:1px solid rgba(0,240,255,0.15)">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00f0ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-            <circle cx="12" cy="7" r="4"/>
-          </svg>
+    <!-- Countdown Timer -->
+    <div class="timer-bar" id="timerBar">
+      <div class="pulse-dot"></div>
+      <span class="timer-label">Offer expires in</span>
+      <div class="timer-digits">
+        <div class="td-num" id="t-h">00</div>
+        <span class="td-sep">:</span>
+        <div class="td-num" id="t-m">00</div>
+        <span class="td-sep">:</span>
+        <div class="td-num" id="t-s">00</div>
+      </div>
+    </div>
+
+    <!-- Abandoned Cart Email Strip -->
+    <div class="email-strip" id="emailStrip">
+      <div class="email-strip-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        Save your cart — complete later
+      </div>
+      <div class="email-strip-sub">Enter your email and we'll send you a link to finish your order. No spam, ever.</div>
+      <div class="email-strip-row">
+        <input class="email-strip-input" id="saveCartEmail" type="email" placeholder="your@email.com" autocomplete="email">
+        <button class="email-strip-btn" onclick="saveCartEmail()">SAVE CART</button>
+      </div>
+      <div id="saveCartMsg" style="font-size:0.68rem;font-weight:700;margin-top:6px;min-height:1em;"></div>
+    </div>
+
+    <!-- 1. Contact -->
+    <div class="section-card">
+      <div class="section-title">
+        <span class="section-title-num" id="step1num">1</span>
+        Contact Information
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">First Name</label>
+          <input class="field-input" id="firstName" type="text" placeholder="Jane" autocomplete="given-name"
+            oninput="onContactInput()">
+          <div class="field-error" id="firstNameErr"></div>
         </div>
-        <div>
-          <div class="section-title">Contact Information</div>
-          <div class="section-sub">Your personal details for order confirmation</div>
+        <div class="field-group">
+          <label class="field-label">Last Name</label>
+          <input class="field-input" id="lastName" type="text" placeholder="Smith" autocomplete="family-name"
+            oninput="onContactInput()">
+          <div class="field-error" id="lastNameErr"></div>
         </div>
       </div>
-      <div class="section-body">
+      <div class="field-group">
+        <label class="field-label">Email Address</label>
+        <input class="field-input" id="emailField" type="email" placeholder="jane@example.com" autocomplete="email"
+          oninput="onContactInput(); syncEmailToStrip()">
+        <div class="field-error" id="emailErr"></div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Phone (optional)</label>
+        <div class="phone-wrap">
+          <div class="dial-picker" id="dialPicker">
+            <div class="dial-selected" id="dialSelected" onclick="toggleDialDropdown()">
+              <span class="country-flag" id="dialFlag">🌐</span>
+              <span class="dial-code-display" id="dialCodeDisplay">+?</span>
+              <svg width="10" height="7" viewBox="0 0 10 7" fill="none" stroke="#666" stroke-width="2"><path d="M1 1l4 4 4-4"/></svg>
+            </div>
+            <div class="dial-dropdown" id="dialDropdown" style="display:none">
+              <div class="country-search-wrap">
+                <input class="country-search" id="dialSearch" type="text" placeholder="Search…"
+                  oninput="filterDial(this.value)" autocomplete="off" autocorrect="off" spellcheck="false">
+              </div>
+              <div class="country-list" id="dialList"></div>
+            </div>
+          </div>
+          <input class="field-input dial-number-input" id="phoneField" type="tel" placeholder="555 000 0000" autocomplete="tel-national" inputmode="tel">
+        </div>
+      </div>
+    </div>
 
+    <!-- 2. Shipping -->
+    <div class="section-card">
+      <div class="section-title">
+        <span class="section-title-num" id="step2num">2</span>
+        Shipping Address
+      </div>
+      <div class="field-group">
+        <label class="field-label">Address Line 1</label>
+        <input class="field-input" id="addr1" type="text" placeholder="123 Main Street" autocomplete="address-line1">
+        <div class="field-error" id="addr1Err"></div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Address Line 2 (optional)</label>
+        <input class="field-input" id="addr2" type="text" placeholder="Apt, suite, unit…" autocomplete="address-line2">
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">City</label>
+          <input class="field-input" id="city" type="text" placeholder="Cape Town" autocomplete="address-level2">
+          <div class="field-error" id="cityErr"></div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Postal Code</label>
+          <input class="field-input" id="postal" type="text" placeholder="8001" autocomplete="postal-code">
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Country</label>
+        <div class="country-picker" id="countryPicker">
+          <div class="country-selected" id="countrySelected" onclick="toggleCountryDropdown()">
+            <span class="country-flag" id="selectedFlag">🌐</span>
+            <span class="country-name-display" id="selectedCountryName">Detecting…</span>
+            <svg class="country-chevron" id="countryChevron" width="12" height="8" viewBox="0 0 12 8" fill="none" stroke="#666" stroke-width="2"><path d="M1 1l5 5 5-5"/></svg>
+          </div>
+          <div class="country-dropdown" id="countryDropdown" style="display:none">
+            <div class="country-search-wrap">
+              <input class="country-search" id="countrySearch" type="text" placeholder="Search country…"
+                oninput="filterCountries(this.value)" autocomplete="off" autocorrect="off" spellcheck="false">
+            </div>
+            <div class="country-list" id="countryList"></div>
+          </div>
+        </div>
+        <input type="hidden" id="country" value="">
+        <div class="field-error" id="countryErr"></div>
+      </div>
+    </div>
+
+  </div><!-- /form-top -->
+
+  <div class="form-bottom">
+
+    <!-- 3. Payment -->
+    <div class="section-card">
+      <div class="section-title">
+        <span class="section-title-num" id="step3num">3</span>
+        Payment
+      </div>
+
+      <div class="pay-tabs">
+        <div class="pay-tab active" onclick="setPayTab('card',this)" id="tabCard">
+          <svg width="16" height="12" viewBox="0 0 24 18" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="1" width="22" height="16" rx="2"/><line x1="1" y1="7" x2="23" y2="7"/></svg>
+          Credit Card
+        </div>
+        <div class="pay-tab" onclick="setPayTab('paypal',this)" id="tabPaypal">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/></svg>
+          PayPal
+        </div>
+      </div>
+
+      <div id="cardFields">
+        <div class="field-group">
+          <label class="field-label">Card Number</label>
+          <div class="card-number-wrap">
+            <input class="field-input" id="cardNum" type="text" placeholder="0000 0000 0000 0000"
+              maxlength="19" oninput="formatCard(this)" autocomplete="cc-number" inputmode="numeric"
+              style="width:100%;padding-right:52px">
+            <span class="card-brand-icon" id="cardBrand">VISA</span>
+          </div>
+          <div class="field-error" id="cardNumErr"></div>
+        </div>
         <div class="field-row">
-          <div class="field" id="field-first">
-            <label>First Name</label>
-            <div class="field-wrap">
-              <svg class="field-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              <input type="text" id="inp-first" placeholder="John" autocomplete="given-name">
-            </div>
-            <span class="err-msg">Required</span>
+          <div class="field-group">
+            <label class="field-label">Expiry</label>
+            <input class="field-input" id="cardExp" type="text" placeholder="MM / YY"
+              maxlength="7" oninput="formatExpiry(this)" autocomplete="cc-exp" inputmode="numeric">
+            <div class="field-error" id="cardExpErr"></div>
           </div>
-          <div class="field" id="field-last">
-            <label>Last Name</label>
-            <div class="field-wrap">
-              <svg class="field-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              <input type="text" id="inp-last" placeholder="Doe" autocomplete="family-name">
-            </div>
-            <span class="err-msg">Required</span>
+          <div class="field-group">
+            <label class="field-label">CVV</label>
+            <input class="field-input" id="cardCvv" type="text" placeholder="•••"
+              maxlength="4" autocomplete="cc-csc" inputmode="numeric">
+            <div class="field-error" id="cardCvvErr"></div>
           </div>
         </div>
-
-        <div class="field-row single">
-          <div class="field" id="field-email">
-            <label>Email Address</label>
-            <div class="field-wrap">
-              <svg class="field-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-              <input type="email" id="inp-email" placeholder="john@example.com" autocomplete="email">
-            </div>
-            <span class="err-msg">Valid email required</span>
-          </div>
-        </div>
-
-        <div class="field-row single">
-          <div class="field" id="field-phone">
-            <label>Phone Number</label>
-            <div class="phone-wrap">
-              <div class="prefix-select-wrap" id="prefixWrap">
-                <div class="field-wrap">
-                  <svg class="field-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
-                  <input type="text" id="prefixDisplay" placeholder="+1 🇺🇸" readonly style="cursor:pointer" onclick="togglePrefixDropdown()">
-                </div>
-                <div class="prefix-dropdown" id="prefixDropdown">
-                  <div class="prefix-search">
-                    <input type="text" id="prefixSearch" placeholder="Search country…" oninput="filterPrefixes()" onclick="event.stopPropagation()">
-                  </div>
-                  <div id="prefixList"></div>
-                </div>
-              </div>
-              <div class="phone-number">
-                <div class="field-wrap">
-                  <svg class="field-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.3h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                  <input type="tel" id="inp-phone" placeholder="712 345 6789" autocomplete="tel" style="padding-left:38px">
-                </div>
-              </div>
-            </div>
-            <span class="err-msg">Valid phone required</span>
-          </div>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- ADDRESS SECTION -->
-    <div class="checkout-section">
-      <div class="section-head">
-        <div class="section-icon" style="background:rgba(163,255,18,0.08);border:1px solid rgba(163,255,18,0.15)">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a3ff12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-            <circle cx="12" cy="10" r="3"/>
-          </svg>
-        </div>
-        <div>
-          <div class="section-title">Shipping Address</div>
-          <div class="section-sub">Where should we deliver your FrostBlade Pro?</div>
+        <div class="field-group">
+          <label class="field-label">Cardholder Name</label>
+          <input class="field-input" id="cardName" type="text" placeholder="Jane Smith" autocomplete="cc-name">
+          <div class="field-error" id="cardNameErr"></div>
         </div>
       </div>
-      <div class="section-body">
 
-        <div class="field-row">
-          <div class="field" id="field-addr1">
-            <label>Street Address</label>
-            <div class="field-wrap">
-              <svg class="field-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-              <input type="text" id="inp-addr1" placeholder="123 Main Street" autocomplete="address-line1">
-            </div>
-            <span class="err-msg">Required</span>
-          </div>
-          <div class="field">
-            <label>House / Apt / Suite</label>
-            <div class="field-wrap">
-              <svg class="field-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h.01M15 9h.01M9 15h.01M15 15h.01"/></svg>
-              <input type="text" id="inp-addr2" placeholder="Apt 4B (optional)" autocomplete="address-line2">
-            </div>
-          </div>
-        </div>
-
-        <div class="field-row single">
-          <div class="field" id="field-country">
-            <label>Country</label>
-            <div class="searchable-select-wrap" id="countryWrap">
-              <div class="field-wrap">
-                <svg class="field-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-                <input type="text" id="countryDisplay" placeholder="Select country…" readonly onclick="toggleCountryDropdown()" style="cursor:pointer">
-              </div>
-              <div class="country-dropdown" id="countryDropdown">
-                <div class="prefix-search">
-                  <input type="text" id="countrySearch" placeholder="Search country…" oninput="filterCountries()" onclick="event.stopPropagation()" style="width:100%;background:#1a1a1a;border:1px solid #222;border-radius:8px;padding:7px 10px;color:#fff;font-family:var(--font);font-size:0.8rem;font-weight:600;">
-                </div>
-                <div id="countryList"></div>
-              </div>
-              <input type="hidden" id="inp-country">
-            </div>
-            <span class="err-msg">Please select a country</span>
-          </div>
-        </div>
-
-        <div class="field-row trio">
-          <div class="field" id="field-city">
-            <label>City</label>
-            <div class="field-wrap">
-              <svg class="field-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round"><path d="M20 22V8l-8-6-8 6v14"/><rect x="9" y="14" width="6" height="8"/></svg>
-              <input type="text" id="inp-city" placeholder="Cape Town" autocomplete="address-level2">
-            </div>
-            <span class="err-msg">Required</span>
-          </div>
-          <div class="field" id="field-state">
-            <label>State / Province</label>
-            <div class="field-wrap">
-              <svg class="field-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
-              <input type="text" id="inp-state" placeholder="Western Cape" autocomplete="address-level1">
-            </div>
-          </div>
-          <div class="field" id="field-postal">
-            <label>Postal Code</label>
-            <div class="field-wrap">
-              <svg class="field-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 8h10M7 12h5"/></svg>
-              <input type="text" id="inp-postal" placeholder="8001" autocomplete="postal-code">
-            </div>
-            <span class="err-msg">Required</span>
-          </div>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- SHIPPING METHOD -->
-    <div class="checkout-section">
-      <div class="section-head">
-        <div class="section-icon" style="background:rgba(255,59,48,0.08);border:1px solid rgba(255,59,48,0.15)">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff3b30" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="1" y="3" width="15" height="13"/>
-            <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
-            <circle cx="5.5" cy="18.5" r="2.5"/>
-            <circle cx="18.5" cy="18.5" r="2.5"/>
-          </svg>
-        </div>
-        <div>
-          <div class="section-title">Shipping Method</div>
-          <div class="section-sub">Choose how fast you want your cool</div>
-        </div>
-      </div>
-      <div class="section-body">
-        <div class="shipping-options">
-
-          <div class="ship-card active" id="ship-std" onclick="selectShipping('std')">
-            <div class="ship-select-dot"></div>
-            <div class="ship-badge std">STANDARD</div>
-            <div class="ship-icon-row">
-              <div class="ship-icon-wrap" style="background:rgba(255,255,255,0.05);border:1px solid #222">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
-                  <circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
-                </svg>
-              </div>
-            </div>
-            <div class="ship-name">Standard Delivery</div>
-            <div class="ship-days">8 – 16 business days</div>
-            <div class="ship-price" id="ship-std-price">Loading…</div>
-          </div>
-
-          <div class="ship-card" id="ship-prime" onclick="selectShipping('prime')">
-            <div class="ship-select-dot"></div>
-            <div class="ship-badge prime"> PRIME</div>
-            <div class="ship-icon-row">
-              <div class="ship-icon-wrap" style="background:rgba(0,240,255,0.08);border:1px solid rgba(0,240,255,0.18)">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00f0ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M12 2l7 7-7 7M5 9h14"/><path d="M5 15l7 7 7-7"/>
-                </svg>
-              </div>
-            </div>
-            <div class="ship-name">Prime Express</div>
-            <div class="ship-days">5 – 12 business days</div>
-            <div class="ship-price paid" id="ship-prime-price">Loading…</div>
-          </div>
-
-        </div>
-
-        <div class="gift-toggle" id="giftToggle" onclick="toggleGift()">
-          <div class="gift-icon-wrap">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffeb3b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="20 12 20 22 4 22 4 12"/>
-              <rect x="2" y="7" width="20" height="5"/>
-              <line x1="12" y1="22" x2="12" y2="7"/>
-              <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/>
-              <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
-            </svg>
-          </div>
-          <div class="gift-info">
-            <div class="gift-name">Gift Wrapping</div>
-            <div class="gift-sub">Premium packaging · Perfect for gifting</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:10px">
-            <div class="gift-price" id="gift-price-display">+Loading</div>
-            <div class="gift-checkbox">
-              <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round"><polyline points="2,6 5,9 10,3"/></svg>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-
-  </div><!-- /form-col -->
-
-  <!-- RIGHT COLUMN: order summary -->
-  <div class="order-col">
-    <div class="order-card">
-
-      <div class="order-head">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-        Order Summary
+      <div id="paypalFields" style="display:none;padding:16px 0">
+        <div id="paypal-button-container"></div>
+        <p style="font-size:0.72rem;color:var(--text-muted);font-weight:600;margin-top:10px;text-align:center">Complete your payment securely via PayPal.</p>
       </div>
 
-      <div class="order-items" id="orderItemsEl">
-        <div style="font-size:0.78rem;color:#444;font-weight:600;text-align:center;padding:10px 0">Loading order…</div>
-      </div>
-
-      <div class="order-sums">
-        <div class="sum-row"><span class="sum-key">Subtotal</span><span class="sum-val" id="sum-subtotal">—</span></div>
-        <div class="sum-row"><span class="sum-key">Bundle Discount</span><span class="sum-val save" id="sum-discount">—</span></div>
-        <div class="sum-row"><span class="sum-key">Shipping</span><span class="sum-val" id="sum-shipping">—</span></div>
-        <div class="sum-row" id="gift-sum-row" style="display:none"><span class="sum-key">Gift Wrapping</span><span class="sum-val gift-color" id="sum-gift">—</span></div>
-        <div class="sum-row"><span class="sum-key">Tax (5%)</span><span class="sum-val" id="sum-tax">—</span></div>
-      </div>
-
-      <div class="sum-total">
-        <span class="sum-total-label">Total</span>
-        <span class="sum-total-val" id="sum-total">—</span>
-      </div>
-
-      <div class="pay-section">
-        <button class="pay-btn" onclick="proceedToPayment()">
-          PAY NOW
-          <div class="pay-btn-divider"></div>
-          <svg height="18" viewBox="0 0 101 32" xmlns="http://www.w3.org/2000/svg">
-            <path d="M 12.237 2.8 L 4.437 2.8 C 3.937 2.8 3.437 3.2 3.337 3.7 L 0.237 23.7 C 0.137 24.1 0.437 24.4 0.837 24.4 L 4.537 24.4 C 5.037 24.4 5.537 24 5.637 23.5 L 6.437 18.1 C 6.537 17.6 6.937 17.2 7.537 17.2 L 10.037 17.2 C 15.137 17.2 18.137 14.7 18.937 9.8 C 19.237 7.7 18.937 6 17.937 4.8 C 16.837 3.5 14.837 2.8 12.237 2.8 Z M 13.137 10.1 C 12.737 12.9 10.537 12.9 8.537 12.9 L 7.337 12.9 L 8.137 7.7 C 8.137 7.4 8.437 7.2 8.737 7.2 L 9.237 7.2 C 10.637 7.2 11.937 7.2 12.637 8 C 13.137 8.4 13.337 9.1 13.137 10.1 Z" fill="#003087"/>
-            <path d="M 35.437 10 L 31.737 10 C 31.437 10 31.137 10.2 31.137 10.5 L 30.937 11.5 L 30.637 11.1 C 29.737 9.8 27.937 9.4 26.137 9.4 C 22.037 9.4 18.537 12.5 17.837 16.9 C 17.437 19.1 17.937 21.2 19.237 22.6 C 20.337 23.9 22.037 24.4 23.937 24.4 C 27.237 24.4 29.137 22.3 29.137 22.3 L 28.937 23.3 C 28.837 23.7 29.137 24.1 29.537 24.1 L 32.937 24.1 C 33.437 24.1 33.937 23.7 34.037 23.2 L 36.037 10.7 C 36.137 10.4 35.837 10 35.437 10 Z M 30.237 17.1 C 29.837 19.2 28.237 20.7 26.037 20.7 C 24.937 20.7 24.137 20.4 23.537 19.7 C 22.937 19 22.737 18.1 22.937 17.1 C 23.337 15 24.937 13.5 27.037 13.5 C 28.137 13.5 28.937 13.9 29.537 14.5 C 30.137 15.2 30.337 16.1 30.237 17.1 Z" fill="#003087"/>
-            <path d="M 55.337 10 L 51.637 10 C 51.237 10 50.937 10.2 50.737 10.5 L 45.537 18.3 L 43.337 10.8 C 43.237 10.3 42.737 10 42.337 10 L 38.637 10 C 38.237 10 37.837 10.4 38.037 10.9 L 42.137 23.1 L 38.237 28.6 C 37.937 29 38.237 29.6 38.737 29.6 L 42.437 29.6 C 42.837 29.6 43.137 29.4 43.337 29.1 L 55.837 10.9 C 56.137 10.5 55.837 10 55.337 10 Z" fill="#003087"/>
-            <path d="M 68.437 2.8 L 60.637 2.8 C 60.137 2.8 59.637 3.2 59.537 3.7 L 56.437 23.6 C 56.337 24 56.637 24.3 57.037 24.3 L 61.037 24.3 C 61.337 24.3 61.637 24.1 61.637 23.8 L 62.537 18 C 62.637 17.5 63.037 17.1 63.637 17.1 L 66.137 17.1 C 71.237 17.1 74.237 14.6 75.037 9.7 C 75.337 7.6 75.037 5.9 74.037 4.7 C 72.937 3.5 70.937 2.8 68.437 2.8 Z M 69.337 10.1 C 68.937 12.9 66.737 12.9 64.737 12.9 L 63.537 12.9 L 64.337 7.7 C 64.337 7.4 64.637 7.2 64.937 7.2 L 65.437 7.2 C 66.837 7.2 68.137 7.2 68.837 8 C 69.337 8.4 69.437 9.1 69.337 10.1 Z" fill="#009cde"/>
-            <path d="M 91.637 10 L 87.937 10 C 87.637 10 87.337 10.2 87.337 10.5 L 87.137 11.5 L 86.837 11.1 C 85.937 9.8 84.137 9.4 82.337 9.4 C 78.237 9.4 74.737 12.5 74.037 16.9 C 73.637 19.1 74.137 21.2 75.437 22.6 C 76.537 23.9 78.237 24.4 80.137 24.4 C 83.437 24.4 85.337 22.3 85.337 22.3 L 85.137 23.3 C 85.037 23.7 85.337 24.1 85.737 24.1 L 89.137 24.1 C 89.637 24.1 90.137 23.7 90.237 23.2 L 92.237 10.7 C 92.337 10.4 92.037 10 91.637 10 Z M 86.437 17.1 C 86.037 19.2 84.437 20.7 82.237 20.7 C 81.137 20.7 80.337 20.4 79.737 19.7 C 79.137 19 78.937 18.1 79.137 17.1 C 79.537 15 81.137 13.5 83.237 13.5 C 84.337 13.5 85.137 13.9 85.737 14.5 C 86.337 15.2 86.537 16.1 86.437 17.1 Z" fill="#009cde"/>
-            <path d="M 95.337 3.3 L 92.137 23.6 C 92.037 24 92.337 24.3 92.737 24.3 L 95.937 24.3 C 96.437 24.3 96.937 23.9 97.037 23.4 L 100.237 3.5 C 100.337 3.1 100.037 2.8 99.637 2.8 L 96.037 2.8 C 95.637 2.8 95.437 3 95.337 3.3 Z" fill="#009cde"/>
-          </svg>
-          <svg width="28" height="18" viewBox="0 0 50 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="50" height="32" rx="4" fill="#1a1a2e"/>
-            <circle cx="20" cy="16" r="9" fill="#eb001b" opacity="0.9"/>
-            <circle cx="30" cy="16" r="9" fill="#f79e1b" opacity="0.9"/>
-            <path d="M25 9a9 9 0 010 14A9 9 0 0125 9z" fill="#ff5f00" opacity="0.9"/>
-          </svg>
-        </button>
-        <div class="pay-sub">SSL Encrypted · 30-Day Returns · 1-Year Warranty</div>
-      </div>
-
+      <!-- Trust row -->
       <div class="trust-row">
         <div class="trust-chip">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          Secure
+          <svg width="10" height="12" viewBox="0 0 24 28" fill="none" stroke="#a3ff12" stroke-width="2"><rect x="2" y="11" width="20" height="16" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          SSL Encrypted
         </div>
         <div class="trust-chip">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          1-Year Warranty
+        </div>
+        <div class="trust-chip">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.08-4.61"/></svg>
           30-Day Returns
         </div>
         <div class="trust-chip">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          Fast Dispatch
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          Secure Checkout
         </div>
       </div>
+    </div>
+
+    <!-- Place Order -->
+    <button class="place-order-btn" id="placeOrderBtn" onclick="placeOrder()">
+      PLACE ORDER — <span id="btnTotal">Loading…</span>
+    </button>
+    <p style="text-align:center;font-size:0.65rem;color:var(--text-faint);font-weight:600;margin-top:10px;">By placing your order you agree to our Terms of Service and Privacy Policy.</p>
+
+  </div><!-- /form-bottom -->
+  </div><!-- /formColumn -->
+
+  <!-- RIGHT: ORDER SUMMARY -->
+  <div class="order-sidebar">
+    <div class="section-card">
+      <div class="section-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+        Order Summary
+      </div>
+
+      <div id="sidebarItems">
+        <div style="color:var(--text-muted);font-size:0.8rem;font-weight:600">Loading cart…</div>
+      </div>
+
+      <!-- Discount code -->
+      <div style="margin-top:14px">
+        <div style="font-size:0.68rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Discount Code</div>
+        <div class="discount-row">
+          <input class="discount-input" id="discountInput" type="text"
+            placeholder="Enter code…" autocomplete="off" autocorrect="off" spellcheck="false"
+            style="-webkit-user-select:auto;user-select:auto"
+            onkeydown="if(event.key==='Enter')applyDiscount()">
+          <button class="discount-apply-btn" id="discountBtn" onclick="applyDiscount()">APPLY</button>
+        </div>
+        <div id="discountMsg" style="font-size:0.7rem;font-weight:700;margin-top:4px;min-height:1em;"></div>
+      </div>
+
+      <div style="margin-top:14px;border-top:1px solid var(--border2);padding-top:14px" id="pricingLines"></div>
 
     </div>
-  </div>
 
+    <!-- Payment icons -->
+    <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;padding:12px 0">
+      <div style="display:flex;align-items:center;gap:4px;background:var(--card-bg);border:1px solid var(--border2);border-radius:6px;padding:4px 9px;font-size:0.65rem;font-weight:800;color:var(--text-muted)">
+        <span style="color:#1a1f71;font-weight:900;font-size:0.75rem">VISA</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:3px;background:var(--card-bg);border:1px solid var(--border2);border-radius:6px;padding:4px 8px;">
+        <svg width="22" height="14" viewBox="0 0 38 24"><circle cx="13" cy="12" r="12" fill="#eb001b"/><circle cx="25" cy="12" r="12" fill="#f79e1b"/><path d="M19 4.8a12 12 0 0 1 0 14.4A12 12 0 0 1 19 4.8z" fill="#ff5f00"/></svg>
+      </div>
+      <div style="background:var(--card-bg);border:1px solid var(--border2);border-radius:6px;padding:4px 9px;font-size:0.65rem;font-weight:800;color:#2557d6">AMEX</div>
+      <div style="background:var(--card-bg);border:1px solid var(--border2);border-radius:6px;padding:4px 9px;font-size:0.65rem;font-weight:800;color:var(--text)">Apple Pay</div>
+      <div style="background:var(--card-bg);border:1px solid var(--border2);border-radius:6px;padding:4px 9px;font-size:0.65rem;font-weight:800;">
+        <span style="color:var(--text)">G<span style="color:#4285f4">o</span><span style="color:#ea4335">o</span><span style="color:#fbbc04">g</span><span style="color:#34a853">l</span><span style="color:#4285f4">e</span> Pay</span>
+      </div>
+    </div>
+
+  </div><!-- /sidebar -->
 </main>
 
-<!-- ── LOADING OVERLAY ── -->
-<div id="loadingOverlay" class="loading-overlay">
-  <svg class="loading-fan" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="50" cy="50" r="16" fill="#fff"/>
-    <path d="M50 34 C30 30 30 4 50 4 C70 4 70 30 50 34 Z" fill="#fff"/>
-    <path d="M66 50 C70 30 96 30 96 50 C96 70 70 70 66 50 Z" fill="#fff"/>
-    <path d="M50 66 C70 70 70 96 50 96 C30 96 30 70 50 66 Z" fill="#fff"/>
-    <path d="M34 50 C30 70 4 70 4 50 C4 30 30 30 34 50 Z" fill="#fff"/>
-    <circle cx="50" cy="50" r="6" fill="#000"/>
-  </svg>
-  <div class="loading-text">Processing your order…</div>
-  <div class="loading-sub">Please don't close this page</div>
-</div>
-<!-- AI SUPPORT MODAL - INLINE -->
-<div id="aiSupportModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:999999;background:rgba(0,0,0,0.95);backdrop-filter:blur(12px);align-items:center;justify-content:center;font-family:'Fredoka',sans-serif;">
-  <div style="background:linear-gradient(135deg,#0a0a0a,#0f0f0f);border:1px solid rgba(0,240,255,0.3);border-radius:28px;width:90%;max-width:500px;max-height:85vh;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,0.5),0 0 20px rgba(0,240,255,0.1);">
-    
-    <div style="padding:18px 20px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;background:rgba(0,240,255,0.03);">
-      <div style="display:flex;align-items:center;gap:10px;">
-        <div style="width:36px;height:36px;background:linear-gradient(135deg,#00f0ff,#a3ff12);border-radius:12px;display:flex;align-items:center;justify-content:center;">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><path d="M12 2a10 10 0 0 1 10 10c0 5-4 9-10 9-1.5 0-3-.4-4.3-1.1L3 22l2.2-4.7C4.4 16 4 14.5 4 13a10 10 0 0 1 10-10z"/><path d="M8 12h.01M12 12h.01M16 12h.01"/></svg>
-        </div>
-        <div>
-          <div style="font-size:1rem;font-weight:700;color:#fff;">AI Support Assistant</div>
-          <div style="font-size:0.7rem;color:#00f0ff;font-weight:600;">Powered by Groq</div>
-        </div>
-      </div>
-      <button id="closeChatBtn" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:30px;width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
-    </div>
-    
-    <div id="chatMessages" style="height:320px;overflow-y:auto;padding:18px 16px;display:flex;flex-direction:column;gap:12px;background:rgba(0,0,0,0.3);">
-      <div style="display:flex;gap:10px;align-items:flex-start;">
-        <div style="width:28px;height:28px;background:linear-gradient(135deg,#00f0ff,#a3ff12);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        </div>
-        <div style="background:#111;border-radius:16px;padding:10px 14px;max-width:85%;border:1px solid #222;">
-          <div style="font-size:0.8rem;color:#ddd;line-height:1.4;">👋 Hey! I'm your AI assistant. Ask me anything about orders, shipping, returns, or products!</div>
-        </div>
-      </div>
-    </div>
-    
-    <div style="padding:10px 16px;border-top:1px solid rgba(255,255,255,0.05);border-bottom:1px solid rgba(255,255,255,0.05);display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;">
-      <button onclick="askQuickQuestion('Where is my order?')" style="background:rgba(0,240,255,0.08);border:1px solid rgba(0,240,255,0.2);border-radius:20px;padding:6px 12px;font-size:0.7rem;color:#00f0ff;font-weight:600;cursor:pointer;white-space:nowrap;font-family:'Fredoka',sans-serif;">📍 Track Order</button>
-      <button onclick="askQuickQuestion('What is your return policy?')" style="background:rgba(163,255,18,0.08);border:1px solid rgba(163,255,18,0.2);border-radius:20px;padding:6px 12px;font-size:0.7rem;color:#a3ff12;font-weight:600;cursor:pointer;white-space:nowrap;font-family:'Fredoka',sans-serif;">🔄 Returns</button>
-      <button onclick="askQuickQuestion('How long does shipping take?')" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:6px 12px;font-size:0.7rem;color:#fff;font-weight:600;cursor:pointer;white-space:nowrap;font-family:'Fredoka',sans-serif;">🚚 Shipping</button>
-      <button onclick="askQuickQuestion('How do I contact support?')" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:6px 12px;font-size:0.7rem;color:#fff;font-weight:600;cursor:pointer;white-space:nowrap;font-family:'Fredoka',sans-serif;">📞 Contact</button>
-    </div>
-    
-    <div style="padding:16px;display:flex;gap:10px;background:#0a0a0a;">
-      <input type="text" id="chatInput" placeholder="Type your question..." style="flex:1;background:#111;border:1px solid #2a2a2a;border-radius:24px;padding:12px 16px;color:#fff;font-family:'Fredoka',sans-serif;font-size:0.85rem;font-weight:500;" onkeypress="if(event.key==='Enter')sendSupportMessage()">
-      <button onclick="sendSupportMessage()" style="background:linear-gradient(135deg,#00f0ff,#a3ff12);border:none;border-radius:30px;width:44px;height:44px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-      </button>
-    </div>
-    
-    <div style="padding:10px 16px;border-top:1px solid rgba(255,255,255,0.05);text-align:center;">
-      <div style="font-size:0.55rem;color:#444;font-weight:600;">⚡ AI responses powered by Groq | 24/7 Support</div>
-    </div>
+<!-- Mobile sticky total -->
+<div id="mobileStickyTotal">
+  <div>
+    <div class="mobile-total-label">Order Total</div>
+    <div class="mobile-total-amount" id="mobileTotalAmt">Loading…</div>
   </div>
+  <button class="place-order-btn" style="margin:0;padding:12px 20px;font-size:0.88rem;width:auto" onclick="placeOrder()">
+    PLACE ORDER
+  </button>
 </div>
-<script>
-// ════════════════════════════════════════════
-//  FIX 1: SCROLL LOCK UTILITY
-// ════════════════════════════════════════════
-let _scrollY = 0;
 
-function lockScroll() {
-  _scrollY = window.scrollY;
-  document.documentElement.style.setProperty('--scroll-y', `-${_scrollY}px`);
-  document.body.classList.add('scroll-locked');
-  document.addEventListener('touchmove', _preventScroll, { passive: false });
-}
+<!-- SUCCESS SCREEN -->
+<div id="successScreen">
+  <div class="success-checkmark">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#a3ff12" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+  </div>
+  <h2 style="font-size:1.5rem;font-weight:700;margin-bottom:8px;color:var(--text)">Order Confirmed! 🎉</h2>
+  <p style="font-size:0.85rem;color:var(--text-muted);font-weight:600;max-width:320px;line-height:1.5;margin-bottom:6px">
+    Your FrostBlade Pro is on its way. A confirmation has been sent to your email.
+  </p>
+  <p style="font-size:0.75rem;color:var(--text-faint);font-weight:600;margin-bottom:28px" id="successOrderId"></p>
+  <a href="/" style="background:var(--text);color:var(--bg);padding:14px 28px;border-radius:13px;font-family:var(--font);font-weight:800;font-size:0.9rem;text-decoration:none;display:inline-block">
+    CONTINUE SHOPPING
+  </a>
+</div>
 
-function unlockScroll() {
-  document.body.classList.remove('scroll-locked');
-  document.documentElement.style.removeProperty('--scroll-y');
-  window.scrollTo(0, _scrollY);
-  document.removeEventListener('touchmove', _preventScroll);
-}
+<!-- ═══ FIREBASE + LOGIC ═══ -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+  import { getDatabase, ref, get, set, update, push, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
 
-function _preventScroll(e) {
-  if (e.target.closest('.country-dropdown, .prefix-dropdown, #chatMessages, .prefix-dropdown')) return;
-  e.preventDefault();
-}
+  const firebaseConfig = {
+    apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
+    authDomain: "itzhoyoo-f9f7e.firebaseapp.com",
+    databaseURL: "https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com",
+    projectId: "itzhoyoo-f9f7e",
+    storageBucket: "itzhoyoo-f9f7e.filestorage.app",
+    messagingSenderId: "1094792075584",
+    appId: "1:1094792075584:web:d49e9c3f899d3cd31082a5"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
 
-// ════════════════════════════════════════════
-//  LOADER SESSION GUARD
-// ════════════════════════════════════════════
-(function checkLoaderGuard() {
-  const ts = sessionStorage.getItem('loaderShownAt');
-  if (ts && Date.now() - parseInt(ts, 10) < 5000) {
-    const ov = document.getElementById('loadingOverlay');
-    if (ov) ov.classList.remove('open');
-    unlockScroll();
-    sessionStorage.removeItem('loaderShownAt');
-  }
-})();
+  window._db = db;
+  window._fbRef = ref;
+  window._fbSet = set;
+  window._fbUpdate = update;
+  window._fbGet = get;
+  window._fbPush = push;
+  window._fbTs = serverTimestamp;
+  window._fbInc = increment;
 
-// ════════════════════════════════════════════
-//  AI SUPPORT CHAT FUNCTIONS
-// ════════════════════════════════════════════
+  // ── Expose discount code checker ──
+  window.checkDiscountCode = async function(code) {
+    try {
+      const snap = await get(ref(db, 'codes/' + code.toUpperCase()));
+      if (!snap.exists()) return { valid: false, reason: 'Invalid code. Please try again.' };
+      const d = snap.val();
+      if (!d.active) return { valid: false, reason: 'This code is no longer active.' };
+      if (d.maxUses && d.uses >= d.maxUses) return { valid: false, reason: 'This code has reached its usage limit.' };
+      return { valid: true, type: d.type, value: d.value };
+    } catch(e) {
+      return { valid: false, reason: 'Could not check code. Try again.' };
+    }
+  };
 
-function toggleSupportChat() {
-  const modal = document.getElementById('aiSupportModal');
-  if (!modal) return;
-  
-  if (modal.style.display === 'flex') {
-    modal.style.display = 'none';
-    unlockScroll();
-  } else {
-    modal.style.display = 'flex';
-    lockScroll();
-    setTimeout(() => {
-      const input = document.getElementById('chatInput');
-      if (input) input.focus();
-    }, 100);
-  }
-}
+  window.incrementCodeUse = async function(code) {
+    try { await update(ref(db, 'codes/' + code.toUpperCase()), { uses: increment(1) }); } catch(e) {}
+  };
 
-function askQuickQuestion(question) {
-  const input = document.getElementById('chatInput');
-  if (input) {
-    input.value = question;
-    sendSupportMessage();
-  }
-}
+  // ── Save completed order ──
+  window.saveCompletedOrder = async function(orderData) {
+    try {
+      await set(ref(db, 'orders/' + orderData.orderId), {
+        ...orderData,
+        status: 'paid',
+        completedAt: serverTimestamp()
+      });
+      await update(ref(db, 'analytics'), { totalOrders: increment(1) });
+    } catch(e) { console.warn('save order err', e); }
+  };
 
-async function sendSupportMessage() {
-  const input = document.getElementById('chatInput');
-  const message = input.value.trim();
-  if (!message) return;
+  // ── Save abandoned cart email ──
+  window.saveAbandonedCartEmail = async function(email, cartData, orderId) {
+    try {
+      const key = 'abandoned_' + Date.now();
+      await set(ref(db, 'abandonedCarts/' + key), {
+        email, orderId: orderId || '',
+        cart: cartData,
+        ts: serverTimestamp(),
+        deviceId: window._deviceId || '',
+        sent: false,
+        recovered: false
+      });
+      await update(ref(db, 'analytics'), { totalAbandonedCaptures: increment(1) });
+    } catch(e) {}
+  };
 
-  addChatMessage(message, 'user');
-  input.value = '';
+  // ── Save checkout email (for confirmation) ──
+  window.saveCheckoutEmail = async function(email, name, orderId) {
+    try {
+      await set(ref(db, 'customers/' + Date.now()), {
+        email, name, orderId,
+        ts: serverTimestamp(),
+        source: 'checkout',
+        deviceId: window._deviceId || ''
+      });
+    } catch(e) {}
+  };
 
-  const typingId = showTypingIndicator();
-
-  try {
-    const response = await fetch('/api/support', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message })
-    });
-
-    removeTypingIndicator(typingId);
-
-    if (!response.ok) throw new Error('API error ' + response.status);
-
-    const data = await response.json();
-    addChatMessage(data.reply || "Let me connect you with our team!", 'ai');
-
-  } catch (error) {
-    removeTypingIndicator(typingId);
-    addChatMessage(getFallbackResponse(message), 'ai');
-  }
-}
-
-function addChatMessage(text, sender) {
-  const chatContainer = document.getElementById('chatMessages');
-  if (!chatContainer) return;
-
-  const isUser = sender === 'user';
-  const div = document.createElement('div');
-  div.style.cssText = `display:flex;gap:10px;align-items:flex-start;justify-content:${isUser ? 'flex-end' : 'flex-start'}`;
-
-  if (!isUser) {
-    div.innerHTML = `
-      <div style="width:28px;height:28px;background:linear-gradient(135deg,#00f0ff,#a3ff12);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      </div>
-      <div style="background:#111;border-radius:16px;padding:10px 14px;max-width:85%;border:1px solid #222;">
-        <div style="font-size:0.8rem;color:#ddd;line-height:1.4;">${escapeHtml(text)}</div>
-      </div>`;
-  } else {
-    div.innerHTML = `
-      <div style="background:linear-gradient(135deg,rgba(0,240,255,0.12),rgba(163,255,18,0.12));border-radius:16px;padding:10px 14px;max-width:85%;border:1px solid rgba(0,240,255,0.2);">
-        <div style="font-size:0.8rem;color:#fff;line-height:1.4;">${escapeHtml(text)}</div>
-      </div>`;
-  }
-
-  chatContainer.appendChild(div);
-  chatContainer.scrollTop = chatContainer.scrollHeight;
-}
-
-function showTypingIndicator() {
-  const chatContainer = document.getElementById('chatMessages');
-  if (!chatContainer) return null;
-  const id = 'typing-' + Date.now();
-  const div = document.createElement('div');
-  div.id = id;
-  div.style.cssText = 'display:flex;gap:10px;align-items:center;';
-  div.innerHTML = `
-    <div style="width:28px;height:28px;background:linear-gradient(135deg,#00f0ff,#a3ff12);border-radius:10px;display:flex;align-items:center;justify-content:center;">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-    </div>
-    <div style="background:#111;border-radius:16px;padding:10px 18px;border:1px solid #222;">
-      <div style="display:flex;gap:4px;">
-        <span style="width:6px;height:6px;background:#00f0ff;border-radius:50%;display:inline-block;animation:pulse 1.4s infinite ease-in-out;"></span>
-        <span style="width:6px;height:6px;background:#a3ff12;border-radius:50%;display:inline-block;animation:pulse 1.4s infinite ease-in-out 0.2s;"></span>
-        <span style="width:6px;height:6px;background:#00f0ff;border-radius:50%;display:inline-block;animation:pulse 1.4s infinite ease-in-out 0.4s;"></span>
-      </div>
-    </div>`;
-  chatContainer.appendChild(div);
-  chatContainer.scrollTop = chatContainer.scrollHeight;
-  return id;
-}
-
-function removeTypingIndicator(id) {
-  if (!id) return;
-  const el = document.getElementById(id);
-  if (el) el.remove();
-}
-
-function escapeHtml(str) {
-  const d = document.createElement('div');
-  d.textContent = str;
-  return d.innerHTML;
-}
-
-function getFallbackResponse(message) {
-  const msg = message.toLowerCase();
-  if (msg.includes('order') || msg.includes('track')) return "📍 Your tracking link is emailed after dispatch. Share your order number and we'll look into it!";
-  if (msg.includes('return') || msg.includes('refund')) return "🔄 We offer 30-day hassle-free returns. Email support@minimisty.store with your order number.";
-  if (msg.includes('shipping') || msg.includes('delivery')) return "🚚 Standard shipping: 8–16 days. Prime Express: 5–12 days. Tracking provided for all orders!";
-  if (msg.includes('cancel')) return "❌ Orders can be cancelled within 2 hours of placement. Reply with your order ID and we'll help!";
-  if (msg.includes('gift') || msg.includes('wrap')) return "🎁 Gift wrapping adds premium packaging — perfect for presents. You can add it during checkout!";
-  return "✨ Thanks for reaching out! For urgent help, email support@minimisty.store and we'll get back to you fast.";
-}
-
-// Close modal on backdrop click (only when clicking outside the modal content)
-document.getElementById('aiSupportModal').addEventListener('click', function(e) {
-  const modalContent = this.querySelector(':scope > div');
-  if (modalContent && !modalContent.contains(e.target)) {
-    this.style.display = 'none';
-    unlockScroll();
-  }
-});
-
-// Close button handler
-document.getElementById('closeChatBtn').addEventListener('click', function(e) {
-  e.stopPropagation();
-  const modal = document.getElementById('aiSupportModal');
-  if (modal) {
-    modal.style.display = 'none';
-    unlockScroll();
-  }
-});
+  window._fbReady = true;
+  console.log('Firebase ready on checkout');
 </script>
+
 <script>
-// ════════════════════════════════════════════
-//  STATE
-// ════════════════════════════════════════════
-let appState = {
-  currency: 'USD',
-  exchangeRate: 1,
-  currencySymbol: '$',
-  cart: [],
-  orderId: '',
-  shippingMode: 'std',
-  giftWrap: false,
-  stdShippingUSD: 1.99,
-  primeShippingExtraUSD: 5.95,
-  giftWrapUSD: 4.95,
-  selectedPhonePrefix: '+1',
-  selectedCountry: '',
-  selectedCountryCode: ''
-};
+  // ════════════════════════════════
+  //  INIT — read order from storage
+  // ════════════════════════════════
+  let order = null;
+  let appliedCode = null;
 
-function fx(usd) {
-  const v = usd * appState.exchangeRate;
-  const noDecimal = ['JPY','KRW','IDR','VND'];
-  const formatted = noDecimal.includes(appState.currency)
-    ? Math.round(v).toLocaleString()
-    : v.toFixed(2);
-  return appState.currencySymbol + formatted;
-}
+  function readOrder() {
+    // Try sessionStorage first, then localStorage
+    let raw = null;
+    try { raw = sessionStorage.getItem('minimisty_order'); } catch(e) {}
+    if (!raw) { try { raw = localStorage.getItem('minimisty_order'); } catch(e) {} }
+    if (raw) {
+      try { order = JSON.parse(raw); } catch(e) {}
+    }
+    // Also read any pre-applied discount from main page
+    try {
+      const savedCode = sessionStorage.getItem('minimisty_applied_code');
+      if (savedCode) appliedCode = JSON.parse(savedCode);
+    } catch(e) {}
+  }
 
+  readOrder();
 
-// ════════════════════════════════════════════
-//  LOAD ORDER FROM SESSION STORAGE
-// ════════════════════════════════════════════
-function loadOrderData() {
-  try {
-    // Product page saves under 'pendingCart' + 'minimisty_order' JSON
-    let cart = JSON.parse(sessionStorage.getItem('pendingCart') || '[]');
-    let currency = sessionStorage.getItem('pendingCurrency') || sessionStorage.getItem('currency') || 'USD';
-    let exchangeRate = parseFloat(sessionStorage.getItem('pendingExchangeRate') || sessionStorage.getItem('exchangeRate') || '1');
-    let currencySymbol = sessionStorage.getItem('pendingCurrencySymbol') || sessionStorage.getItem('currencySymbol') || '$';
-    let orderId = sessionStorage.getItem('pendingOrderId') || sessionStorage.getItem('orderId') || '';
+  // ════════════════════════════════
+  //  CURRENCY HELPERS
+  // ════════════════════════════════
+  function fx(usd) {
+    const rate = (order && order.exchangeRate) || window._exchangeRate || 1;
+    const sym  = (order && order.currencySymbol) || window._currencySymbol || '$';
+    const cur  = (order && order.currency) || 'USD';
+    const val  = usd * rate;
+    const noDecimal = ['JPY','KRW','IDR','VND'];
+    const formatted = noDecimal.includes(cur)
+      ? Math.round(val).toLocaleString()
+      : val.toFixed(2);
+    return sym + formatted;
+  }
 
-    // Also try the unified JSON backup
-    const unified = sessionStorage.getItem('minimisty_order');
-    if (unified && !cart.length) {
-      const parsed = JSON.parse(unified);
-      cart = parsed.cart || [];
-      currency = parsed.currency || currency;
-      exchangeRate = parsed.exchangeRate || exchangeRate;
-      currencySymbol = parsed.currencySymbol || currencySymbol;
-      orderId = parsed.orderId || orderId;
+  // ════════════════════════════════
+  //  RENDER SIDEBAR
+  // ════════════════════════════════
+  function renderSidebar() {
+    const itemsEl    = document.getElementById('sidebarItems');
+    const pricingEl  = document.getElementById('pricingLines');
+    const btnTotal   = document.getElementById('btnTotal');
+    const mobileAmt  = document.getElementById('mobileTotalAmt');
+
+    if (!order || !order.items || order.items.length === 0) {
+      itemsEl.innerHTML = '<div style="color:var(--text-muted);font-size:0.8rem;font-weight:600">No items found. <a href="/" style="color:var(--cyan)">Return to shop</a></div>';
+      return;
     }
 
-    appState.cart = cart;
-    appState.currency = currency;
-    appState.exchangeRate = exchangeRate;
-    appState.currencySymbol = currencySymbol;
-    appState.orderId = orderId;
-
-    const urlPath = window.location.pathname + window.location.search + window.location.hash;
-    const match = urlPath.match(/checkout-my-order[=\/]([A-Z0-9_]+)/);
-    if (match) appState.orderId = match[1];
-
-    // Fallback demo product if cart is empty
-    if (!appState.cart.length) {
-      appState.cart = [{
-        id: 'FBP-001',
-        name: 'FrostBlade Pro',
-        variant: 'Black · 256GB',
-        priceUSD: 39.95,
-        discUSD: 0,
-        shipUSD: 1.99,
-        img: 'https://i.imgur.com/nilsQQC.jpeg',
-        qty: 1
-      }];
-    }
-  } catch(e) {
-    console.warn('loadOrderData error:', e);
-    appState.cart = [{
-      id: 'FBP-001',
-      name: 'FrostBlade Pro',
-      variant: 'Black · 256GB',
-      priceUSD: 39.95,
-      discUSD: 0,
-      shipUSD: 1.99,
-      img: 'https://i.imgur.com/nilsQQC.jpeg',
-      qty: 1
-    }];
-  }
-}
-
-// ════════════════════════════════════════════
-//  RENDER ORDER ITEMS
-// ════════════════════════════════════════════
-function renderOrderItems() {
-  const el = document.getElementById('orderItemsEl');
-  if (!appState.cart.length) {
-    el.innerHTML = '<div style="font-size:0.78rem;color:#444;font-weight:600;text-align:center;padding:10px 0">No items found</div>';
-    return;
-  }
-  el.innerHTML = appState.cart.map(item => `
-    <div class="order-item">
-      <div class="order-item-img" style="background-image:url('${item.img || 'https://i.imgur.com/nilsQQC.jpeg'}')"></div>
-      <div style="flex:1">
-        <div class="order-item-name">${item.name || 'FrostBlade Pro'}</div>
-        <div class="order-item-meta">${item.variant || 'Black'} · ${item.qty || 1} unit${(item.qty||1)>1?'s':''}</div>
+    // Items
+    itemsEl.innerHTML = order.items.map(item => `
+      <div class="order-item">
+        <div class="order-item-img" style="background-image:url('${item.variantImg || item.img || ""}')">
+          <div class="order-item-badge">${item.qty}</div>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div class="order-item-name">${item.name || 'FrostBlade Pro'}</div>
+          <div class="order-item-variant">${item.variant} · ${item.qty > 1 ? item.qty + ' units' : '1 unit'}</div>
+        </div>
+        <div class="order-item-price">${fx(item.priceUSD)}</div>
       </div>
-      <div class="order-item-price">${fx(item.priceUSD || 39.95)}</div>
-    </div>
-  `).join('');
-}
+    `).join('');
 
-// ════════════════════════════════════════════
-//  CALCULATE & RENDER SUMMARY
-// ════════════════════════════════════════════
-function calcSummary() {
-  const subtotal = appState.cart.reduce((a,i) => a + (i.priceUSD||39.95), 0) || 39.95;
-  const disc     = appState.cart.reduce((a,i) => a + (i.discUSD||0), 0);
-  const origShip = appState.cart.reduce((a,i) => a + (i.shipUSD||0), 0);
-
-  let ship = 0;
-  if (appState.shippingMode === 'std') {
-    ship = origShip;
-  } else {
-    ship = origShip + appState.primeShippingExtraUSD;
+    // Pricing
+    renderPricing(pricingEl, btnTotal, mobileAmt);
   }
 
-  const gift   = appState.giftWrap ? appState.giftWrapUSD : 0;
-  const taxBase = subtotal + ship + gift;
-  const tax    = taxBase * 0.05;
-  const total  = subtotal + ship + gift + tax;
+  function renderPricing(pricingEl, btnTotal, mobileAmt) {
+    if (!order || !order.pricing) return;
 
-  return { subtotal, disc, ship, gift, tax, total, origShip };
-}
+    const p = order.pricing;
+    const codeDisc = appliedCode ? getCodeDiscount(p.subtotalUSD) : 0;
+    const tax = (p.subtotalUSD - codeDisc) * 0.05;
+    const total = p.subtotalUSD + p.shippingUSD - codeDisc + tax;
 
-function renderSummary() {
-  const { subtotal, disc, ship, gift, tax, total, origShip } = calcSummary();
-  const primeCost = origShip + appState.primeShippingExtraUSD;
+    let html = `
+      <div class="summary-line"><span class="label">Subtotal</span><span class="value">${fx(p.subtotalUSD)}</span></div>`;
 
-  document.getElementById('ship-std-price').textContent = origShip === 0 ? 'FREE' : fx(origShip);
-  document.getElementById('ship-std-price').className = 'ship-price ' + (origShip === 0 ? 'free' : 'paid');
-  document.getElementById('ship-prime-price').textContent = fx(primeCost);
-  document.getElementById('gift-price-display').textContent = '+' + fx(appState.giftWrapUSD);
-
-  document.getElementById('sum-subtotal').textContent = fx(subtotal);
-  document.getElementById('sum-discount').textContent = disc > 0 ? '-' + fx(disc) : fx(0);
-
-  const shipEl = document.getElementById('sum-shipping');
-  if (ship === 0) { shipEl.textContent = 'FREE'; shipEl.className = 'sum-val free'; }
-  else { shipEl.textContent = fx(ship); shipEl.className = 'sum-val'; }
-
-  const giftRow = document.getElementById('gift-sum-row');
-  giftRow.style.display = appState.giftWrap ? 'flex' : 'none';
-  document.getElementById('sum-gift').textContent = '+' + fx(gift);
-  document.getElementById('sum-tax').textContent = fx(tax);
-  document.getElementById('sum-total').textContent = fx(total);
-}
-// ════════════════════════════════════════════
-//  SHIPPING SELECT
-// ════════════════════════════════════════════
-function selectShipping(mode) {
-  appState.shippingMode = mode;
-  document.getElementById('ship-std').className = 'ship-card' + (mode === 'std' ? ' active' : '');
-  document.getElementById('ship-prime').className = 'ship-card' + (mode === 'prime' ? ' active-prime' : '');
-  renderSummary();
-}
-
-// ════════════════════════════════════════════
-//  GIFT TOGGLE
-// ════════════════════════════════════════════
-function toggleGift() {
-  appState.giftWrap = !appState.giftWrap;
-  document.getElementById('giftToggle').classList.toggle('active', appState.giftWrap);
-  renderSummary();
-}
-
-// ════════════════════════════════════════════
-//  COUNTRY DATA
-// ════════════════════════════════════════════
-let allCountries = [];
-let allPrefixes  = [];
-
-async function loadCountries() {
-  try {
-    const r = await fetch('https://restcountries.com/v3.1/all?fields=name,cca2,flags,idd,flag');
-    const data = await r.json();
-
-    allCountries = data
-      .map(c => ({
-        name: c.name?.common || '',
-        code: c.cca2 || '',
-        flag: c.flag || '',
-        dialCode: c.idd?.root ? (c.idd.root + (c.idd.suffixes?.[0] || '')) : ''
-      }))
-      .filter(c => c.name && c.code)
-      .sort((a,b) => a.name.localeCompare(b.name));
-
-    allPrefixes = allCountries.filter(c => c.dialCode).sort((a,b) => a.name.localeCompare(b.name));
-
-    renderCountryList(allCountries);
-    renderPrefixList(allPrefixes);
-    autoDetectCountry();
-  } catch(e) {
-    allCountries = [
-      { name:'South Africa', code:'ZA', flag:'🇿🇦', dialCode:'+27' },
-      { name:'United States', code:'US', flag:'🇺🇸', dialCode:'+1' },
-      { name:'United Kingdom', code:'GB', flag:'🇬🇧', dialCode:'+44' },
-      { name:'Australia',      code:'AU', flag:'🇦🇺', dialCode:'+61' },
-      { name:'Germany',        code:'DE', flag:'🇩🇪', dialCode:'+49' },
-      { name:'France',         code:'FR', flag:'🇫🇷', dialCode:'+33' },
-      { name:'India',          code:'IN', flag:'🇮🇳', dialCode:'+91' },
-      { name:'Canada',         code:'CA', flag:'🇨🇦', dialCode:'+1'  },
-    ];
-    allPrefixes = allCountries;
-    renderCountryList(allCountries);
-    renderPrefixList(allPrefixes);
-  }
-}
-
-function renderCountryList(list) {
-  document.getElementById('countryList').innerHTML = list.map(c => `
-    <div class="country-opt" onclick="selectCountry('${c.code}','${c.name.replace(/'/g,"\\'")}','${c.flag}','${c.dialCode}')">
-      <span class="cflag">${c.flag}</span>
-      <span style="flex:1">${c.name}</span>
-      <span class="ccode">${c.code}</span>
-    </div>
-  `).join('');
-}
-
-function renderPrefixList(list) {
-  document.getElementById('prefixList').innerHTML = list.map(c => `
-    <div class="prefix-opt" onclick="selectPrefix('${c.dialCode}','${c.flag}','${c.name.replace(/'/g,"\\'")}')">
-      <span class="pflag">${c.flag}</span>
-      <span class="pcode">${c.dialCode}</span>
-      <span class="pname">${c.name}</span>
-    </div>
-  `).join('');
-}
-
-function filterCountries() {
-  const q = document.getElementById('countrySearch').value.toLowerCase();
-  renderCountryList(allCountries.filter(c => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)));
-}
-
-function filterPrefixes() {
-  const q = document.getElementById('prefixSearch').value.toLowerCase();
-  renderPrefixList(allPrefixes.filter(c => c.name.toLowerCase().includes(q) || c.dialCode.includes(q)));
-}
-
-function toggleCountryDropdown() {
-  const dd = document.getElementById('countryDropdown');
-  dd.classList.toggle('open');
-  if (dd.classList.contains('open')) setTimeout(() => document.getElementById('countrySearch').focus(), 50);
-}
-
-function selectCountry(code, name, flag, dialCode) {
-  document.getElementById('countryDisplay').value = flag + '  ' + name;
-  document.getElementById('inp-country').value = code;
-  appState.selectedCountry = name;
-  appState.selectedCountryCode = code;
-  document.getElementById('countryDropdown').classList.remove('open');
-  document.getElementById('field-country').classList.remove('has-error');
-  if (dialCode) selectPrefix(dialCode, flag, name);
-}
-
-function togglePrefixDropdown() {
-  const dd = document.getElementById('prefixDropdown');
-  dd.classList.toggle('open');
-  if (dd.classList.contains('open')) setTimeout(() => document.getElementById('prefixSearch').focus(), 50);
-}
-
-function selectPrefix(dialCode, flag, name) {
-  appState.selectedPhonePrefix = dialCode;
-  document.getElementById('prefixDisplay').value = flag + ' ' + dialCode;
-  document.getElementById('prefixDropdown').classList.remove('open');
-}
-
-document.addEventListener('click', function(e) {
-  if (!document.getElementById('countryWrap').contains(e.target))
-    document.getElementById('countryDropdown').classList.remove('open');
-  if (!document.getElementById('prefixWrap').contains(e.target))
-    document.getElementById('prefixDropdown').classList.remove('open');
-});
-
-async function autoDetectCountry() {
-  try {
-    const r = await fetch('https://ipapi.co/json/');
-    const geo = await r.json();
-    if (geo.country_code && allCountries.length) {
-      const found = allCountries.find(c => c.code === geo.country_code);
-      if (found) selectCountry(found.code, found.name, found.flag, found.dialCode);
+    if (p.discountUSD > 0) {
+      html += `<div class="summary-line"><span class="label">Bundle Discount</span><span class="value red">-${fx(p.discountUSD)}</span></div>`;
     }
-  } catch(e) {}
-}
-
-// ════════════════════════════════════════════
-//  GEO / CURRENCY
-// ════════════════════════════════════════════
-async function initCurrency() {
-  if (appState.currency && appState.exchangeRate && appState.currency !== 'USD') {
-    renderSummary();
-    return;
-  }
-  try {
-    const r = await fetch('https://ipapi.co/json/');
-    const geo = await r.json();
-    const targetCurrency = geo.currency || 'USD';
-    if (targetCurrency === 'USD') { renderSummary(); return; }
-
-    const er = await fetch('https://open.er-api.com/v6/latest/USD');
-    const erData = await er.json();
-    if (erData.result === 'success' && erData.rates[targetCurrency]) {
-      const symbols = {
-        EUR:'€', GBP:'£', JPY:'¥', KRW:'₩', INR:'₹',
-        AUD:'A$', CAD:'C$', CHF:'Fr', CNY:'¥', ZAR:'R',
-        BRL:'R$', MXN:'$', AED:'د.إ', SAR:'﷼', SGD:'S$',
-        HKD:'HK$', NOK:'kr', SEK:'kr', DKK:'kr', NZD:'NZ$',
-        TRY:'₺', PLN:'zł', THB:'฿', PHP:'₱', IDR:'Rp',
-        MYR:'RM', NGN:'₦', KES:'KSh', GHS:'₵', EGP:'£',
-      };
-      appState.currency = targetCurrency;
-      appState.exchangeRate = erData.rates[targetCurrency];
-      appState.currencySymbol = symbols[targetCurrency] || targetCurrency + ' ';
+    if (codeDisc > 0) {
+      html += `<div class="summary-line"><span class="label" style="color:var(--lime)">Code: ${appliedCode.code}</span><span class="value red">-${fx(codeDisc)}</span></div>`;
     }
-  } catch(e) {}
-  renderSummary();
-}
 
-// ════════════════════════════════════════════
-//  FORM VALIDATION
-// ════════════════════════════════════════════
-function validateForm() {
-  let valid = true;
-  const fields = [
-    { id:'field-first',  val: document.getElementById('inp-first').value.trim(),   check: v => v.length > 0 },
-    { id:'field-last',   val: document.getElementById('inp-last').value.trim(),    check: v => v.length > 0 },
-    { id:'field-email',  val: document.getElementById('inp-email').value.trim(),   check: v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) },
-    { id:'field-phone',  val: document.getElementById('inp-phone').value.trim(),   check: v => v.replace(/\D/g,'').length >= 6 },
-    { id:'field-addr1',  val: document.getElementById('inp-addr1').value.trim(),   check: v => v.length > 0 },
-    { id:'field-country',val: document.getElementById('inp-country').value.trim(), check: v => v.length > 0 },
-    { id:'field-city',   val: document.getElementById('inp-city').value.trim(),    check: v => v.length > 0 },
-    { id:'field-postal', val: document.getElementById('inp-postal').value.trim(),  check: v => v.length > 0 },
-  ];
+    if (p.shippingUSD === 0) {
+      html += `<div class="summary-line"><span class="label">Shipping</span><span class="value green">FREE</span></div>`;
+    } else {
+      html += `<div class="summary-line"><span class="label">Shipping</span><span class="value yellow">${fx(p.shippingUSD)}</span></div>`;
+    }
 
-  fields.forEach(f => {
-    const el = document.getElementById(f.id);
-    if (!el) return;
-    if (!f.check(f.val)) { el.classList.add('has-error'); valid = false; }
-    else el.classList.remove('has-error');
+    html += `<div class="summary-line"><span class="label">Tax (5%)</span><span class="value">${fx(tax)}</span></div>`;
+    html += `<div class="summary-total-line"><span>Total</span><span>${fx(total)}</span></div>`;
+
+    if (pricingEl) pricingEl.innerHTML = html;
+    if (btnTotal) btnTotal.textContent = fx(total);
+    if (mobileAmt) mobileAmt.textContent = fx(total);
+  }
+
+  function getCodeDiscount(subtotal) {
+    if (!appliedCode) return 0;
+    if (appliedCode.type === 'pct') return subtotal * (appliedCode.value / 100);
+    return Math.min(appliedCode.value, subtotal);
+  }
+
+  // ════════════════════════════════
+  //  DISCOUNT CODE
+  // ════════════════════════════════
+  async function applyDiscount() {
+    const input   = document.getElementById('discountInput');
+    const btn     = document.getElementById('discountBtn');
+    const msgEl   = document.getElementById('discountMsg');
+    const code    = input ? input.value.trim().toUpperCase() : '';
+
+    if (!code) return;
+    if (btn) { btn.textContent = '…'; btn.disabled = true; }
+    if (msgEl) { msgEl.textContent = ''; }
+
+    // Wait for Firebase
+    let attempts = 0;
+    while (!window.checkDiscountCode && attempts < 20) {
+      await new Promise(r => setTimeout(r, 150));
+      attempts++;
+    }
+
+    if (!window.checkDiscountCode) {
+      if (msgEl) { msgEl.textContent = 'Service unavailable. Try again.'; msgEl.style.color = 'var(--red)'; }
+      if (btn) { btn.textContent = 'APPLY'; btn.disabled = false; }
+      return;
+    }
+
+    const result = await window.checkDiscountCode(code);
+
+    if (!result.valid) {
+      if (msgEl) { msgEl.textContent = result.reason; msgEl.style.color = 'var(--red)'; }
+      appliedCode = null;
+      if (btn) { btn.textContent = 'APPLY'; btn.disabled = false; btn.classList.remove('applied'); }
+      if (input) { input.classList.remove('applied'); }
+    } else {
+      appliedCode = { type: result.type, value: result.value, code };
+      // Persist so place-order picks it up
+      try { sessionStorage.setItem('minimisty_applied_code', JSON.stringify(appliedCode)); } catch(e) {}
+
+      const displayDiscount = result.type === 'pct'
+        ? result.value + '% off'
+        : fx(result.value) + ' off';
+
+      if (msgEl) { msgEl.innerHTML = `<span style="color:var(--lime)">✓ ${displayDiscount} applied!</span>`; }
+      if (input) { input.disabled = true; input.classList.add('applied'); }
+      if (btn) { btn.textContent = '✓'; btn.disabled = true; btn.classList.add('applied'); }
+
+      // Log usage
+      if (window.incrementCodeUse) window.incrementCodeUse(code);
+    }
+
+    // Re-render pricing
+    const pricingEl  = document.getElementById('pricingLines');
+    const btnTotal   = document.getElementById('btnTotal');
+    const mobileAmt  = document.getElementById('mobileTotalAmt');
+    renderPricing(pricingEl, btnTotal, mobileAmt);
+  }
+
+  // Expose globally
+  window.applyDiscount = applyDiscount;
+
+  // Pre-fill discount if came from main page with code already applied
+  window.addEventListener('load', function() {
+    if (appliedCode) {
+      const input = document.getElementById('discountInput');
+      const btn   = document.getElementById('discountBtn');
+      const msgEl = document.getElementById('discountMsg');
+      if (input) { input.value = appliedCode.code; input.disabled = true; input.classList.add('applied'); }
+      if (btn)   { btn.textContent = '✓'; btn.disabled = true; btn.classList.add('applied'); }
+      const displayDiscount = appliedCode.type === 'pct'
+        ? appliedCode.value + '% off'
+        : fx(appliedCode.value) + ' off';
+      if (msgEl) msgEl.innerHTML = `<span style="color:var(--lime)">✓ ${displayDiscount} applied!</span>`;
+    }
   });
 
-  return valid;
-}
+  // ════════════════════════════════
+  //  SAVE CART EMAIL (abandoned)
+  // ════════════════════════════════
+  async function saveCartEmail() {
+    const input = document.getElementById('saveCartEmail');
+    const msgEl = document.getElementById('saveCartMsg');
+    const email = input ? input.value.trim() : '';
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// ════════════════════════════════════════════
-//  FIX 1: PROCEED TO PAYMENT — with scroll lock + 5s session guard
-// ════════════════════════════════════════════
-function proceedToPayment() {
-  if (!validateForm()) {
-    const firstErr = document.querySelector('.has-error');
-    if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    return;
+    if (!re.test(email)) {
+      if (input) { input.style.borderColor = 'var(--red)'; setTimeout(() => input.style.borderColor = '', 1500); }
+      return;
+    }
+
+    const btn = document.querySelector('.email-strip-btn');
+    if (btn) { btn.textContent = '…'; btn.disabled = true; }
+
+    // Save to Firebase
+    if (window.saveAbandonedCartEmail) {
+      await window.saveAbandonedCartEmail(email, order ? order.items : [], order ? order.orderId : '');
+    }
+
+    // Send recovery email via API
+    try {
+      const itemsSummary = (order && order.items || []).map(i =>
+        `${i.qty}x ${i.name} (${i.variant}) — ${i.priceLocal || fx(i.priceUSD)}`
+      ).join('<br>');
+
+      const total = order && order.pricing ? fx(
+        order.pricing.subtotalUSD + order.pricing.shippingUSD + order.pricing.subtotalUSD * 0.05
+      ) : '';
+
+      await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: email,
+          subject: '🛒 You left something behind — FrostBlade Pro | MINIMISTY.store',
+          html: `
+            <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#000;color:#fff;">
+              <h2 style="color:#00f0ff;">Your FrostBlade Pro is waiting for you!</h2>
+              <p>Hey there! You were so close to completing your order. Don't let it get away — your cart is saved.</p>
+              <div style="background:#0a0a0a;padding:16px;border-radius:10px;border:1px solid #1e1e1e;margin:20px 0;">
+                <strong style="color:#fff;font-size:14px;">Your Cart</strong><br><br>
+                <div style="font-size:13px;color:#aaa;line-height:1.8;">${itemsSummary}</div>
+                ${total ? `<div style="margin-top:12px;font-size:16px;font-weight:bold;color:#fff;">Total: ${total}</div>` : ''}
+              </div>
+              <a href="https://minimisty.store/checkout" style="display:inline-block;background:#fff;color:#000;padding:14px 28px;border-radius:10px;font-weight:bold;font-size:15px;text-decoration:none;margin:10px 0;">COMPLETE MY ORDER →</a>
+              <p style="margin-top:24px;font-size:12px;color:#555;">You also get <strong style="color:#a3ff12;">free shipping</strong> on bundles of 2+. Don't miss out.</p>
+              <hr style="border-color:#222;margin-top:24px;">
+              <p style="font-size:11px;color:#333;">MINIMISTY.store · Stay cool anywhere<br>Reply to unsubscribe.</p>
+            </div>`
+        })
+      });
+    } catch(e) { console.warn('Abandoned cart email failed:', e); }
+
+    if (msgEl) msgEl.innerHTML = '<span style="color:var(--lime)">✓ Cart saved! Check your email to complete later.</span>';
+    if (input) { input.disabled = true; }
+    if (btn)   { btn.textContent = '✓'; }
   }
 
-  // Check if loader was shown in the last 5 seconds (back-navigation guard)
-  const ts = sessionStorage.getItem('loaderShownAt');
-  if (ts && Date.now() - parseInt(ts, 10) < 5000) {
-    // Already shown recently — skip to navigation
-    window.location.href = 'pay-now-order';
-    return;
-  }
+  window.saveCartEmail = saveCartEmail;
 
-  // Show loader + lock scroll
-  document.getElementById('loadingOverlay').classList.add('open');
-  lockScroll();
-  // Stamp the time so back-navigation within 5s won't re-trigger
-  sessionStorage.setItem('loaderShownAt', Date.now().toString());
-
-  // Collect form data
-  const contact = {
-    firstName: document.getElementById('inp-first').value.trim(),
-    lastName:  document.getElementById('inp-last').value.trim(),
-    email:     document.getElementById('inp-email').value.trim(),
-    phone:     appState.selectedPhonePrefix + ' ' + document.getElementById('inp-phone').value.trim(),
-  };
-  const address = {
-    line1:       document.getElementById('inp-addr1').value.trim(),
-    line2:       document.getElementById('inp-addr2').value.trim(),
-    country:     appState.selectedCountry,
-    countryCode: appState.selectedCountryCode,
-    city:        document.getElementById('inp-city').value.trim(),
-    state:       document.getElementById('inp-state').value.trim(),
-    postal:      document.getElementById('inp-postal').value.trim(),
+  // Sync email field → abandoned cart strip
+  window.syncEmailToStrip = function() {
+    const emailVal = document.getElementById('emailField').value;
+    const stripInput = document.getElementById('saveCartEmail');
+    if (stripInput && emailVal && !stripInput.value) stripInput.value = emailVal;
   };
 
-  const { subtotal, disc, ship, gift, tax, total } = calcSummary();
+  // ════════════════════════════════
+  //  CONTACT INPUT HANDLER
+  //  shows email strip after typing
+  // ════════════════════════════════
+  window.onContactInput = function() {
+    window.syncEmailToStrip();
+  };
 
-  const orderPayload = {
-    orderId: appState.orderId,
-    contact, address,
-    shippingMode: appState.shippingMode,
-    giftWrap: appState.giftWrap,
-    cart: appState.cart,
-    currency: appState.currency,
-    exchangeRate: appState.exchangeRate,
-    currencySymbol: appState.currencySymbol,
-    pricing: {
-      subtotalUSD: subtotal, discountUSD: disc,
-      shippingUSD: ship, giftWrapUSD: gift,
-      taxUSD: tax, totalUSD: total,
-      subtotalLocal: fx(subtotal),
-      shippingLocal: ship === 0 ? 'FREE' : fx(ship),
-      giftWrapLocal: gift > 0 ? fx(gift) : null,
-      taxLocal: fx(tax), totalLocal: fx(total),
+  // ════════════════════════════════
+  //  PAYMENT TAB
+  // ════════════════════════════════
+  let activePayTab = 'card';
+  let paypalRendered = false;
+
+  window.setPayTab = function(tab, el) {
+    activePayTab = tab;
+    document.querySelectorAll('.pay-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('cardFields').style.display   = tab === 'card'   ? 'block' : 'none';
+    document.getElementById('paypalFields').style.display = tab === 'paypal' ? 'block' : 'none';
+
+    if (tab === 'paypal' && !paypalRendered && typeof paypal !== 'undefined') {
+      paypalRendered = true;
+      const p = order ? order.pricing : null;
+      const codeDisc = appliedCode ? getCodeDiscount(p ? p.subtotalUSD : 0) : 0;
+      const tax = p ? (p.subtotalUSD - codeDisc) * 0.05 : 0;
+      const totalUSD = p ? +(p.subtotalUSD + p.shippingUSD - codeDisc + tax).toFixed(2) : 0;
+
+      paypal.Buttons({
+        style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'paypal' },
+        createOrder: function(data, actions) {
+          if (!validate()) {
+            const firstError = document.querySelector('.field-input.error');
+            if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return Promise.reject(new Error('Validation failed'));
+          }
+          return actions.order.create({
+            purchase_units: [{
+              amount: { value: String(totalUSD), currency_code: 'USD' },
+              description: 'FrostBlade Pro — MINIMISTY.store'
+            }]
+          });
+        },
+        onApprove: async function(data, actions) {
+          const details = await actions.order.capture();
+          // Treat as a completed order
+          await window.placeOrder(true, details.id);
+        },
+        onError: function(err) {
+          console.error('PayPal error', err);
+          alert('PayPal encountered an error. Please try again or use a card.');
+        }
+      }).render('#paypal-button-container');
     }
   };
 
-  try {
-    sessionStorage.setItem('orderPayload', JSON.stringify(orderPayload));
-    sessionStorage.setItem('checkoutContact', JSON.stringify(contact));
-    sessionStorage.setItem('checkoutAddress', JSON.stringify(address));
-  } catch(e) {}
+  // ════════════════════════════════
+  //  CARD FORMATTING
+  // ════════════════════════════════
+  window.formatCard = function(input) {
+    let val = input.value.replace(/\D/g,'').substring(0,16);
+    input.value = val.replace(/(.{4})/g,'$1 ').trim();
+    // Detect brand
+    const brand = document.getElementById('cardBrand');
+    if (!brand) return;
+    if (val.startsWith('4')) brand.textContent = 'VISA';
+    else if (/^5[1-5]/.test(val)) brand.textContent = 'MC';
+    else if (val.startsWith('34') || val.startsWith('37')) brand.textContent = 'AMEX';
+    else brand.textContent = '';
+  };
 
-  // Navigate after 1.2s (loader shows for this duration)
-  setTimeout(() => {
-    window.location.href = 'pay-now-order';
-  }, 1200);
-}
+  window.formatExpiry = function(input) {
+    let val = input.value.replace(/\D/g,'').substring(0,4);
+    if (val.length >= 2) val = val.substring(0,2) + ' / ' + val.substring(2);
+    input.value = val;
+  };
 
-// ════════════════════════════════════════════
-//  INIT
-// ════════════════════════════════════════════
-loadOrderData();
-renderOrderItems();
-renderSummary();
-loadCountries();
-initCurrency().then(() => {
-  renderOrderItems();
-  renderSummary();
-});
+  // ════════════════════════════════
+  //  VALIDATE
+  // ════════════════════════════════
+  function clearErr(id) { const el = document.getElementById(id); if (el) el.textContent = ''; }
+  function setErr(id, msg) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = msg;
+    const input = document.getElementById(id.replace('Err',''));
+    if (input) input.classList.add('error');
+    setTimeout(() => { const i = document.getElementById(id.replace('Err','')); if (i) i.classList.remove('error'); }, 2000);
+  }
 
-let currencyPoller = setInterval(() => {
-  if (appState.exchangeRate > 0) renderSummary();
-}, 500);
-setTimeout(() => clearInterval(currencyPoller), 10000);
+  function validate() {
+    let ok = true;
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!document.getElementById('firstName').value.trim()) { setErr('firstNameErr','Required'); ok = false; }
+    if (!document.getElementById('lastName').value.trim())  { setErr('lastNameErr','Required'); ok = false; }
+    if (!re.test(document.getElementById('emailField').value.trim())) { setErr('emailErr','Valid email required'); ok = false; }
+    if (!document.getElementById('addr1').value.trim()) { setErr('addr1Err','Required'); ok = false; }
+    if (!document.getElementById('city').value.trim())  { setErr('cityErr','Required'); ok = false; }
+    if (!document.getElementById('country').value)      { setErr('countryErr','Select a country'); ok = false; }
+
+    if (activePayTab === 'card') {
+      const num = document.getElementById('cardNum').value.replace(/\s/g,'');
+      if (num.length < 13) { setErr('cardNumErr','Enter valid card number'); ok = false; }
+      const exp = document.getElementById('cardExp').value;
+      if (exp.replace(/\D/g,'').length < 4) { setErr('cardExpErr','Enter MM / YY'); ok = false; }
+      const cvv = document.getElementById('cardCvv').value;
+      if (cvv.length < 3) { setErr('cardCvvErr','Enter CVV'); ok = false; }
+      if (!document.getElementById('cardName').value.trim()) { setErr('cardNameErr','Required'); ok = false; }
+    }
+
+    return ok;
+  }
+
+  // ════════════════════════════════
+  //  PLACE ORDER
+  // ════════════════════════════════
+  async function placeOrder(isPaypal, paypalOrderId) {
+    ['firstNameErr','lastNameErr','emailErr','addr1Err','cityErr','countryErr','cardNumErr','cardExpErr','cardCvvErr','cardNameErr'].forEach(clearErr);
+
+    if (!isPaypal && !validate()) {
+      // Scroll to first error
+      const firstError = document.querySelector('.field-input.error');
+      if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    const btn = document.getElementById('placeOrderBtn');
+    btn.disabled = true;
+    btn.textContent = 'Processing…';
+    btn.classList.add('popping');
+
+    const email    = document.getElementById('emailField').value.trim();
+    const name     = document.getElementById('firstName').value.trim() + ' ' + document.getElementById('lastName').value.trim();
+    const orderId  = (order && order.orderId) || ('ORD_' + Date.now().toString(36).toUpperCase());
+
+    // Build final order
+    const pricing  = order ? order.pricing : { subtotalUSD:0, shippingUSD:0, discountUSD:0, taxUSD:0, totalUSD:0 };
+    const codeDisc = appliedCode ? getCodeDiscount(pricing.subtotalUSD) : 0;
+    const tax      = (pricing.subtotalUSD - codeDisc) * 0.05;
+    const finalTotal = pricing.subtotalUSD + pricing.shippingUSD - codeDisc + tax;
+
+    const shippingAddress = {
+      name,
+      line1:   document.getElementById('addr1').value.trim(),
+      line2:   document.getElementById('addr2').value.trim(),
+      city:    document.getElementById('city').value.trim(),
+      postal:  document.getElementById('postal').value.trim(),
+      country: document.getElementById('country').value
+    };
+
+    const completedOrder = {
+      orderId,
+      status: 'paid',
+      customerEmail: email,
+      customerName:  name,
+      customerPhone: ((document.getElementById('dialCodeDisplay').textContent.trim() || '') + ' ' + document.getElementById('phoneField').value.trim()).trim(),
+      shippingAddress,
+      paymentMethod: activePayTab,
+      paypalOrderId: paypalOrderId || null,
+      items:    order ? order.items    : [],
+      currency: order ? order.currency : 'USD',
+      exchangeRate: order ? order.exchangeRate : 1,
+      pricing: {
+        ...pricing,
+        codeDiscUSD: +codeDisc.toFixed(2),
+        taxUSD:      +tax.toFixed(2),
+        finalTotalUSD: +finalTotal.toFixed(2)
+      },
+      appliedCode: appliedCode || null,
+      geo: (order && order.geo) || null,
+      deviceId: window._deviceId || ''
+    };
+
+    // Save to Firebase
+    let attempts = 0;
+    while (!window.saveCompletedOrder && attempts < 20) {
+      await new Promise(r => setTimeout(r, 150));
+      attempts++;
+    }
+    if (window.saveCompletedOrder) await window.saveCompletedOrder(completedOrder);
+    if (window.saveCheckoutEmail) await window.saveCheckoutEmail(email, name, orderId);
+
+    // Send confirmation email
+    try {
+      const itemsSummary = (order && order.items || []).map(i =>
+        `<tr><td style="padding:8px;border-bottom:1px solid #1e1e1e;color:#aaa">${i.qty}x ${i.name} — ${i.variant}</td><td style="padding:8px;border-bottom:1px solid #1e1e1e;text-align:right;color:#fff">${i.priceLocal || fx(i.priceUSD)}</td></tr>`
+      ).join('');
+
+      await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: email,
+          subject: `Order Confirmed ✓ ${orderId} — MINIMISTY.store`,
+          html: `
+            <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#000;color:#fff;">
+              <h2 style="color:#a3ff12;">Order Confirmed! 🎉</h2>
+              <p>Hi ${document.getElementById('firstName').value.trim()}, thank you for your order! Your FrostBlade Pro is being prepared for dispatch.</p>
+              <div style="background:#0a0a0a;border:1px solid #1e1e1e;border-radius:12px;padding:16px;margin:20px 0;">
+                <p style="font-size:12px;color:#555;margin-bottom:10px;text-transform:uppercase;letter-spacing:1px;">Order ID</p>
+                <p style="font-size:14px;color:#888;font-weight:bold;">${orderId}</p>
+              </div>
+              <table width="100%" style="border-collapse:collapse;margin:16px 0;">
+                <thead><tr style="background:#0a0a0a;"><th style="padding:10px;text-align:left;color:#555;font-size:12px;">Item</th><th style="padding:10px;text-align:right;color:#555;font-size:12px;">Price</th></tr></thead>
+                <tbody>${itemsSummary}</tbody>
+              </table>
+              <div style="border-top:1px solid #1e1e1e;padding-top:12px;margin-top:8px;">
+                ${pricing.shippingUSD === 0 ? '<p style="color:#a3ff12;font-size:13px;">✓ Free Shipping on your bundle</p>' : ''}
+                ${codeDisc > 0 ? `<p style="color:#ff6b6b;font-size:13px;">Discount Applied: -${fx(codeDisc)}</p>` : ''}
+                <p style="font-size:16px;font-weight:bold;color:#fff;margin-top:8px;">Total: ${fx(finalTotal)}</p>
+              </div>
+              <div style="background:#0a0a0a;border:1px solid #1e1e1e;border-radius:10px;padding:14px;margin:20px 0;">
+                <strong style="color:#fff;">Shipping to:</strong><br>
+                <span style="color:#aaa;font-size:13px;">${shippingAddress.line1}${shippingAddress.line2 ? ', ' + shippingAddress.line2 : ''}, ${shippingAddress.city}, ${shippingAddress.country}</span>
+              </div>
+              <p style="font-size:13px;color:#aaa;">Expected delivery: <strong style="color:#fff;">7–14 business days</strong>. You'll receive a tracking link once dispatched.</p>
+              <hr style="border-color:#222;margin:24px 0;">
+              <p style="font-size:11px;color:#333;">MINIMISTY.store · support@minimisty.store</p>
+            </div>`
+        })
+      });
+    } catch(e) { console.warn('Confirmation email failed:', e); }
+
+    // Clear cart
+    try { sessionStorage.removeItem('minimisty_order'); sessionStorage.removeItem('minimisty_applied_code'); } catch(e) {}
+    try { localStorage.removeItem('minimisty_cart'); } catch(e) {}
+
+    // Show success
+    document.getElementById('successOrderId').textContent = 'Order ID: ' + orderId;
+    document.getElementById('successScreen').classList.add('show');
+
+    // Track progress fill
+    document.getElementById('progressFill').style.width = '100%';
+  }
+
+  window.placeOrder = placeOrder;
+
+  // ════════════════════════════════
+  //  COUNTDOWN — sync with main page
+  // ════════════════════════════════
+  (function() {
+    let deadline = parseInt(sessionStorage.getItem('minimisty_cd') || '0');
+    const now = Date.now();
+    if (!deadline || deadline < now) {
+      deadline = now + (23 * 60 + 47) * 1000;
+      sessionStorage.setItem('minimisty_cd', String(deadline));
+    }
+    function tick() {
+      const diff = deadline - Date.now();
+      const h = Math.max(0, Math.floor(diff / 3600000));
+      const m = Math.max(0, Math.floor((diff % 3600000) / 60000));
+      const s = Math.max(0, Math.floor((diff % 60000) / 1000));
+      const pad = n => String(n).padStart(2,'0');
+      const th = document.getElementById('t-h');
+      const tm = document.getElementById('t-m');
+      const ts = document.getElementById('t-s');
+      if (th) th.textContent = pad(h);
+      if (tm) tm.textContent = pad(m);
+      if (ts) ts.textContent = pad(s);
+    }
+    tick();
+    setInterval(tick, 1000);
+  })();
+
+  // ════════════════════════════════
+  //  THEME
+  // ════════════════════════════════
+  (function() {
+    try {
+      const saved = localStorage.getItem('minimisty_theme');
+      if (saved === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+        document.documentElement.style.background = '#f5f5f5';
+      }
+    } catch(e) {}
+  })();
+
+  // ════════════════════════════════
+  //  DEVICE ID
+  // ════════════════════════════════
+  (function() {
+    let did = null;
+    try { did = localStorage.getItem('minimisty_did'); } catch(e) {}
+    if (did) window._deviceId = did;
+  })();
+
+  // ════════════════════════════════
+  //  INIT RENDER
+  // ════════════════════════════════
+  window.addEventListener('DOMContentLoaded', function() {
+    if (!order) {
+      // No order — show empty state with back button
+      document.getElementById('sidebarItems').innerHTML = `
+        <div style="text-align:center;padding:20px 0">
+          <p style="color:var(--text-muted);font-size:0.85rem;font-weight:600;margin-bottom:14px">Your cart appears to be empty.</p>
+          <a href="/" style="color:var(--cyan);font-size:0.82rem;font-weight:700">← Continue Shopping</a>
+        </div>`;
+      document.getElementById('btnTotal').textContent = '';
+      document.getElementById('mobileTotalAmt').textContent = '';
+      document.getElementById('placeOrderBtn').disabled = true;
+      return;
+    }
+    renderSidebar();
+
+    // Auto-detect country from geo (ipapi handles this above; this is a fallback from order data)
+    if (order.geo && order.geo.country) {
+      // Already handled by detectCountry() — no-op
+    }
+  });
+
+  // Strip is always visible — no inactivity timer needed
+
+  // ════════════════════════════════
+  //  COUNTRY PICKER
+  // ════════════════════════════════
+  const COUNTRIES = [
+    {code:'AF',name:'Afghanistan',flag:'🇦🇫'},{code:'AL',name:'Albania',flag:'🇦🇱'},{code:'DZ',name:'Algeria',flag:'🇩🇿'},
+    {code:'AR',name:'Argentina',flag:'🇦🇷'},{code:'AM',name:'Armenia',flag:'🇦🇲'},{code:'AU',name:'Australia',flag:'🇦🇺'},
+    {code:'AT',name:'Austria',flag:'🇦🇹'},{code:'AZ',name:'Azerbaijan',flag:'🇦🇿'},{code:'BH',name:'Bahrain',flag:'🇧🇭'},
+    {code:'BD',name:'Bangladesh',flag:'🇧🇩'},{code:'BE',name:'Belgium',flag:'🇧🇪'},{code:'BR',name:'Brazil',flag:'🇧🇷'},
+    {code:'BG',name:'Bulgaria',flag:'🇧🇬'},{code:'KH',name:'Cambodia',flag:'🇰🇭'},{code:'CA',name:'Canada',flag:'🇨🇦'},
+    {code:'CL',name:'Chile',flag:'🇨🇱'},{code:'CN',name:'China',flag:'🇨🇳'},{code:'CO',name:'Colombia',flag:'🇨🇴'},
+    {code:'HR',name:'Croatia',flag:'🇭🇷'},{code:'CY',name:'Cyprus',flag:'🇨🇾'},{code:'CZ',name:'Czech Republic',flag:'🇨🇿'},
+    {code:'DK',name:'Denmark',flag:'🇩🇰'},{code:'EG',name:'Egypt',flag:'🇪🇬'},{code:'EE',name:'Estonia',flag:'🇪🇪'},
+    {code:'ET',name:'Ethiopia',flag:'🇪🇹'},{code:'FI',name:'Finland',flag:'🇫🇮'},{code:'FR',name:'France',flag:'🇫🇷'},
+    {code:'GE',name:'Georgia',flag:'🇬🇪'},{code:'DE',name:'Germany',flag:'🇩🇪'},{code:'GH',name:'Ghana',flag:'🇬🇭'},
+    {code:'GR',name:'Greece',flag:'🇬🇷'},{code:'HK',name:'Hong Kong',flag:'🇭🇰'},{code:'HU',name:'Hungary',flag:'🇭🇺'},
+    {code:'IS',name:'Iceland',flag:'🇮🇸'},{code:'IN',name:'India',flag:'🇮🇳'},{code:'ID',name:'Indonesia',flag:'🇮🇩'},
+    {code:'IE',name:'Ireland',flag:'🇮🇪'},{code:'IL',name:'Israel',flag:'🇮🇱'},{code:'IT',name:'Italy',flag:'🇮🇹'},
+    {code:'JP',name:'Japan',flag:'🇯🇵'},{code:'JO',name:'Jordan',flag:'🇯🇴'},{code:'KZ',name:'Kazakhstan',flag:'🇰🇿'},
+    {code:'KE',name:'Kenya',flag:'🇰🇪'},{code:'KR',name:'South Korea',flag:'🇰🇷'},{code:'KW',name:'Kuwait',flag:'🇰🇼'},
+    {code:'LV',name:'Latvia',flag:'🇱🇻'},{code:'LB',name:'Lebanon',flag:'🇱🇧'},{code:'LT',name:'Lithuania',flag:'🇱🇹'},
+    {code:'LU',name:'Luxembourg',flag:'🇱🇺'},{code:'MY',name:'Malaysia',flag:'🇲🇾'},{code:'MT',name:'Malta',flag:'🇲🇹'},
+    {code:'MX',name:'Mexico',flag:'🇲🇽'},{code:'MA',name:'Morocco',flag:'🇲🇦'},{code:'MZ',name:'Mozambique',flag:'🇲🇿'},
+    {code:'NL',name:'Netherlands',flag:'🇳🇱'},{code:'NZ',name:'New Zealand',flag:'🇳🇿'},{code:'NG',name:'Nigeria',flag:'🇳🇬'},
+    {code:'NO',name:'Norway',flag:'🇳🇴'},{code:'OM',name:'Oman',flag:'🇴🇲'},{code:'PK',name:'Pakistan',flag:'🇵🇰'},
+    {code:'PE',name:'Peru',flag:'🇵🇪'},{code:'PH',name:'Philippines',flag:'🇵🇭'},{code:'PL',name:'Poland',flag:'🇵🇱'},
+    {code:'PT',name:'Portugal',flag:'🇵🇹'},{code:'QA',name:'Qatar',flag:'🇶🇦'},{code:'RO',name:'Romania',flag:'🇷🇴'},
+    {code:'RU',name:'Russia',flag:'🇷🇺'},{code:'SA',name:'Saudi Arabia',flag:'🇸🇦'},{code:'SN',name:'Senegal',flag:'🇸🇳'},
+    {code:'RS',name:'Serbia',flag:'🇷🇸'},{code:'SG',name:'Singapore',flag:'🇸🇬'},{code:'SK',name:'Slovakia',flag:'🇸🇰'},
+    {code:'SI',name:'Slovenia',flag:'🇸🇮'},{code:'ZA',name:'South Africa',flag:'🇿🇦'},{code:'ES',name:'Spain',flag:'🇪🇸'},
+    {code:'LK',name:'Sri Lanka',flag:'🇱🇰'},{code:'SE',name:'Sweden',flag:'🇸🇪'},{code:'CH',name:'Switzerland',flag:'🇨🇭'},
+    {code:'TW',name:'Taiwan',flag:'🇹🇼'},{code:'TZ',name:'Tanzania',flag:'🇹🇿'},{code:'TH',name:'Thailand',flag:'🇹🇭'},
+    {code:'TN',name:'Tunisia',flag:'🇹🇳'},{code:'TR',name:'Turkey',flag:'🇹🇷'},{code:'UG',name:'Uganda',flag:'🇺🇬'},
+    {code:'UA',name:'Ukraine',flag:'🇺🇦'},{code:'AE',name:'UAE',flag:'🇦🇪'},{code:'GB',name:'United Kingdom',flag:'🇬🇧'},
+    {code:'US',name:'United States',flag:'🇺🇸'},{code:'UY',name:'Uruguay',flag:'🇺🇾'},{code:'UZ',name:'Uzbekistan',flag:'🇺🇿'},
+    {code:'VN',name:'Vietnam',flag:'🇻🇳'},{code:'ZW',name:'Zimbabwe',flag:'🇿🇼'}
+  ];
+
+  let countryDropdownOpen = false;
+  let filteredCountries = COUNTRIES;
+
+  function renderCountryList(list) {
+    const el = document.getElementById('countryList');
+    if (!el) return;
+    const currentCode = document.getElementById('country').value;
+    if (!list.length) {
+      el.innerHTML = '<div class="country-no-results">No countries found</div>';
+      return;
+    }
+    el.innerHTML = list.map(c => `
+      <div class="country-option${c.code === currentCode ? ' selected' : ''}"
+           onclick="selectCountry('${c.code}','${c.name}','${c.flag}')">
+        <span class="country-option-flag">${c.flag}</span>
+        <span>${c.name}</span>
+      </div>`).join('');
+  }
+
+  window.toggleCountryDropdown = function() {
+    const dd = document.getElementById('countryDropdown');
+    const sel = document.getElementById('countrySelected');
+    countryDropdownOpen = !countryDropdownOpen;
+    dd.style.display = countryDropdownOpen ? 'block' : 'none';
+    sel.classList.toggle('open', countryDropdownOpen);
+    if (countryDropdownOpen) {
+      renderCountryList(COUNTRIES);
+      setTimeout(() => document.getElementById('countrySearch').focus(), 50);
+      // Close on outside click
+      setTimeout(() => document.addEventListener('click', closeCountryOnOutside, { once: true }), 10);
+    }
+  };
+
+  function closeCountryOnOutside(e) {
+    const picker = document.getElementById('countryPicker');
+    if (picker && !picker.contains(e.target)) closeCountryDropdown();
+    else if (countryDropdownOpen) document.addEventListener('click', closeCountryOnOutside, { once: true });
+  }
+
+  function closeCountryDropdown() {
+    countryDropdownOpen = false;
+    const dd = document.getElementById('countryDropdown');
+    const sel = document.getElementById('countrySelected');
+    if (dd) dd.style.display = 'none';
+    if (sel) sel.classList.remove('open');
+  }
+
+  window.filterCountries = function(query) {
+    const q = query.toLowerCase().trim();
+    filteredCountries = q ? COUNTRIES.filter(c => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)) : COUNTRIES;
+    renderCountryList(filteredCountries);
+  };
+
+  window.selectCountry = function(code, name, flag) {
+    document.getElementById('country').value = code;
+    document.getElementById('selectedFlag').textContent = flag;
+    document.getElementById('selectedCountryName').textContent = name;
+    document.getElementById('countrySelected').style.borderColor = '';
+    document.getElementById('countryErr').textContent = '';
+    closeCountryDropdown();
+    if (document.getElementById('countrySearch')) document.getElementById('countrySearch').value = '';
+  };
+
+  // ════════════════════════════════
+  //  DIAL-CODE DATA (country → dial code)
+  // ════════════════════════════════
+  const DIAL_CODES = {
+    AF:'+93',AL:'+355',DZ:'+213',AR:'+54',AM:'+374',AU:'+61',AT:'+43',AZ:'+994',
+    BH:'+973',BD:'+880',BE:'+32',BR:'+55',BG:'+359',KH:'+855',CA:'+1',CL:'+56',
+    CN:'+86',CO:'+57',HR:'+385',CY:'+357',CZ:'+420',DK:'+45',EG:'+20',EE:'+372',
+    ET:'+251',FI:'+358',FR:'+33',GE:'+995',DE:'+49',GH:'+233',GR:'+30',HK:'+852',
+    HU:'+36',IS:'+354',IN:'+91',ID:'+62',IE:'+353',IL:'+972',IT:'+39',JP:'+81',
+    JO:'+962',KZ:'+7',KE:'+254',KR:'+82',KW:'+965',LV:'+371',LB:'+961',LT:'+370',
+    LU:'+352',MY:'+60',MT:'+356',MX:'+52',MA:'+212',MZ:'+258',NL:'+31',NZ:'+64',
+    NG:'+234',NO:'+47',OM:'+968',PK:'+92',PE:'+51',PH:'+63',PL:'+48',PT:'+351',
+    QA:'+974',RO:'+40',RU:'+7',SA:'+966',SN:'+221',RS:'+381',SG:'+65',SK:'+421',
+    SI:'+386',ZA:'+27',ES:'+34',LK:'+94',SE:'+46',CH:'+41',TW:'+886',TZ:'+255',
+    TH:'+66',TN:'+216',TR:'+90',UG:'+256',UA:'+380',AE:'+971',GB:'+44',US:'+1',
+    UY:'+598',UZ:'+998',VN:'+84',ZW:'+263'
+  };
+
+  // Build dial list sorted: common first, then alphabetical
+  const DIAL_PRIORITY = ['ZA','US','GB','AU','CA','NG','KE','GH','AE','SG','IN','DE','FR','NL'];
+  const DIAL_LIST = [
+    ...DIAL_PRIORITY.map(c => COUNTRIES.find(x => x.code === c)).filter(Boolean),
+    ...COUNTRIES.filter(c => !DIAL_PRIORITY.includes(c.code)).sort((a,b) => a.name.localeCompare(b.name))
+  ];
+
+  let dialOpen = false;
+
+  function renderDialList(list) {
+    const el = document.getElementById('dialList');
+    if (!el) return;
+    if (!list.length) { el.innerHTML = '<div class="country-no-results">No results</div>'; return; }
+    el.innerHTML = list.map(c => {
+      const dc = DIAL_CODES[c.code] || '';
+      return `<div class="country-option" onclick="selectDial('${c.code}','${c.flag}','${dc}')">
+        <span class="country-option-flag">${c.flag}</span>
+        <span>${c.name}</span>
+        <span class="dial-option-code">${dc}</span>
+      </div>`;
+    }).join('');
+  }
+
+  window.toggleDialDropdown = function() {
+    const dd = document.getElementById('dialDropdown');
+    const sel = document.getElementById('dialSelected');
+    dialOpen = !dialOpen;
+    dd.style.display = dialOpen ? 'block' : 'none';
+    sel.classList.toggle('open', dialOpen);
+    if (dialOpen) {
+      renderDialList(DIAL_LIST);
+      setTimeout(() => { const s = document.getElementById('dialSearch'); if(s) s.focus(); }, 50);
+      setTimeout(() => document.addEventListener('click', closeDialOnOutside, { once: true }), 10);
+    }
+  };
+
+  function closeDialOnOutside(e) {
+    const picker = document.getElementById('dialPicker');
+    if (picker && !picker.contains(e.target)) closeDialDropdown();
+    else if (dialOpen) document.addEventListener('click', closeDialOnOutside, { once: true });
+  }
+
+  function closeDialDropdown() {
+    dialOpen = false;
+    const dd = document.getElementById('dialDropdown');
+    const sel = document.getElementById('dialSelected');
+    if (dd) dd.style.display = 'none';
+    if (sel) sel.classList.remove('open');
+  }
+
+  window.filterDial = function(query) {
+    const q = query.toLowerCase().trim();
+    const filtered = q ? DIAL_LIST.filter(c => c.name.toLowerCase().includes(q) || (DIAL_CODES[c.code]||'').includes(q)) : DIAL_LIST;
+    renderDialList(filtered);
+  };
+
+  window.selectDial = function(code, flag, dialCode) {
+    document.getElementById('dialFlag').textContent = flag;
+    document.getElementById('dialCodeDisplay').textContent = dialCode;
+    closeDialDropdown();
+    if (document.getElementById('dialSearch')) document.getElementById('dialSearch').value = '';
+    document.getElementById('phoneField').focus();
+  };
+
+  // ════════════════════════════════
+  //  GEO-IP — single call, sets both country picker and dial code
+  // ════════════════════════════════
+  (async function detectGeo() {
+    const existingCode = order && order.geo && order.geo.country;
+    const codeToUse = existingCode || null;
+
+    function applyCountryCode(countryCode) {
+      const found = COUNTRIES.find(c => c.code === countryCode);
+      if (found) {
+        window.selectCountry(found.code, found.name, found.flag);
+        const dc = DIAL_CODES[found.code];
+        if (dc) window.selectDial(found.code, found.flag, dc);
+      } else {
+        document.getElementById('selectedCountryName').textContent = 'Select country';
+        document.getElementById('dialCodeDisplay').textContent = '+?';
+      }
+    }
+
+    if (codeToUse) { applyCountryCode(codeToUse); return; }
+
+    try {
+      const res = await fetch('https://ipapi.co/json/');
+      const data = await res.json();
+      if (data && data.country_code) applyCountryCode(data.country_code);
+      else {
+        document.getElementById('selectedCountryName').textContent = 'Select country';
+        document.getElementById('dialCodeDisplay').textContent = '+?';
+      }
+    } catch(e) {
+      document.getElementById('selectedCountryName').textContent = 'Select country';
+      document.getElementById('dialCodeDisplay').textContent = '+?';
+    }
+  })();
 </script>
 
 </body>
