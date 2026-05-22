@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap" rel="stylesheet">
-  <script src="https://www.paypal.com/sdk/js?client-id=AW7nmsZqdabjCrj62j0qekUqalJJ3T53ngjrime14foH5HMhNLmpUzULQV-OvV82KSuZQoBoEP4Rkwi4&currency=USD&intent=capture" data-sdk-integration-source="button-factory"></script>
+  <script src="https://www.paypal.com/sdk/js?client-id=AW7QSzVXEY2ox7gCDHcVx8lROdXZMMaikeIB5XOtNDoIlf_kG6V3qV_b5QundCBZxgi3wYbW4sWOwThQ&currency=USD&intent=capture" data-sdk-integration-source="button-factory"></script>
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -1243,25 +1243,57 @@
   // ════════════════════════════════
   //  INIT — read order from storage
   // ════════════════════════════════
+  //  ORDER STATE — loaded from Firebase, NOT localStorage
+  //  Prices are server-written and cannot be edited by the user
+  // ════════════════════════════════
   let order = null;
   let appliedCode = null;
 
-  function readOrder() {
-    // Try sessionStorage first, then localStorage
-    let raw = null;
-    try { raw = sessionStorage.getItem('minimisty_order'); } catch(e) {}
-    if (!raw) { try { raw = localStorage.getItem('minimisty_order'); } catch(e) {} }
-    if (raw) {
-      try { order = JSON.parse(raw); } catch(e) {}
-    }
-    // Also read any pre-applied discount from main page
+  // Read display-only prefs from sessionStorage (not sensitive)
+  function readDisplayPrefs() {
+    try {
+      window._exchangeRate    = parseFloat(sessionStorage.getItem('pendingExchangeRate'))  || 1;
+      window._currencySymbol  = sessionStorage.getItem('pendingCurrencySymbol')            || '$';
+      window._currency        = sessionStorage.getItem('pendingCurrency')                  || 'USD';
+    } catch(e) {}
     try {
       const savedCode = sessionStorage.getItem('minimisty_applied_code');
       if (savedCode) appliedCode = JSON.parse(savedCode);
     } catch(e) {}
   }
+  readDisplayPrefs();
 
-  readOrder();
+  // Fetch the verified order from Firebase using the orderId stored in sessionStorage
+  async function loadOrderFromFirebase() {
+    let orderId = null;
+    try { orderId = sessionStorage.getItem('pendingOrderId'); } catch(e) {}
+    if (!orderId) { try { orderId = localStorage.getItem('minimisty_last_order_id'); } catch(e) {} }
+
+    if (!orderId) return null;
+
+    // Wait for Firebase to be ready (loaded by the module script above)
+    let attempts = 0;
+    while (!window._fbGet && attempts < 30) {
+      await new Promise(r => setTimeout(r, 100));
+      attempts++;
+    }
+    if (!window._fbGet) return null;
+
+    try {
+      const snap = await window._fbGet(window._fbRef(window._db, 'orders/' + orderId));
+      if (!snap.exists()) return null;
+      const data = snap.val();
+      // Safety check: only accept orders that were priced server-side
+      if (data.pricingSource !== 'server') {
+        console.warn('Order not server-priced — rejecting');
+        return null;
+      }
+      return data;
+    } catch(e) {
+      console.warn('Firebase order fetch failed:', e);
+      return null;
+    }
+  }
 
   // ════════════════════════════════
   //  CURRENCY HELPERS
@@ -1804,7 +1836,13 @@
     } catch(e) { console.warn('Confirmation email failed:', e); }
 
     // Clear cart
-    try { sessionStorage.removeItem('minimisty_order'); sessionStorage.removeItem('minimisty_applied_code'); } catch(e) {}
+    try {
+      sessionStorage.removeItem('pendingOrderId');
+      sessionStorage.removeItem('minimisty_applied_code');
+      sessionStorage.removeItem('pendingCurrency');
+      sessionStorage.removeItem('pendingExchangeRate');
+      sessionStorage.removeItem('pendingCurrencySymbol');
+    } catch(e) {}
     try { localStorage.removeItem('minimisty_cart'); } catch(e) {}
 
     // Show success
@@ -1867,11 +1905,16 @@
   })();
 
   // ════════════════════════════════
-  //  INIT RENDER
+  //  INIT RENDER — async, fetches order from Firebase
   // ════════════════════════════════
-  window.addEventListener('DOMContentLoaded', function() {
+  window.addEventListener('DOMContentLoaded', async function() {
+    // Show loading state while we fetch from Firebase
+    document.getElementById('sidebarItems').innerHTML =
+      '<div style="color:var(--text-muted);font-size:0.8rem;font-weight:600;padding:10px 0">Loading order…</div>';
+
+    order = await loadOrderFromFirebase();
+
     if (!order) {
-      // No order — show empty state with back button
       document.getElementById('sidebarItems').innerHTML = `
         <div style="text-align:center;padding:20px 0">
           <p style="color:var(--text-muted);font-size:0.85rem;font-weight:600;margin-bottom:14px">Your cart appears to be empty.</p>
@@ -1882,13 +1925,14 @@
       document.getElementById('placeOrderBtn').disabled = true;
       return;
     }
+
+    // Merge display currency from sessionStorage into order object
+    if (!order.exchangeRate)   order.exchangeRate   = window._exchangeRate   || 1;
+    if (!order.currencySymbol) order.currencySymbol = window._currencySymbol || '$';
+    if (!order.currency)       order.currency       = window._currency       || 'USD';
+
     renderSidebar();
     initAddonPrices();
-
-    // Auto-detect country from geo (ipapi handles this above; this is a fallback from order data)
-    if (order.geo && order.geo.country) {
-      // Already handled by detectCountry() — no-op
-    }
   });
 
   // Strip is always visible — no inactivity timer needed
