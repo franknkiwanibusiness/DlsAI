@@ -4010,33 +4010,32 @@
     window.scrollTo(0, window._scrollY || 0);
   }
 
-  async function goToCheckout() {
-    const btn = document.getElementById('checkoutBtn');
-    if (btn) { btn.textContent = 'Preparing order…'; btn.disabled = true; }
+async function goToCheckout() {
+  const btn = document.getElementById('checkoutBtn');
+  if (btn) { btn.textContent = 'Preparing order…'; btn.disabled = true; }
 
-    // Save order to Firebase and get unique orderId
-    let orderId = 'local_' + Date.now();
-    if (typeof saveOrderToFirebase === 'function') {
-      try {
-        orderId = await saveOrderToFirebase(state.cart);
-      } catch(e) {
-        console.warn('Firebase order save error, continuing with local ID');
-      }
-    }
-
-    // Also store in sessionStorage as fallback for checkout page
+  // Save order to Firebase and get unique orderId
+  let orderId = 'local_' + Date.now();
+  if (typeof saveOrderToFirebase === 'function') {
     try {
-      sessionStorage.setItem('orderId', orderId);
-      sessionStorage.setItem('deviceId', window._deviceId || '');
-      sessionStorage.setItem('cart', JSON.stringify(state.cart));
-      sessionStorage.setItem('currency', window._currency || 'USD');
-      sessionStorage.setItem('exchangeRate', String(window._exchangeRate || 1));
-      sessionStorage.setItem('currencySymbol', window._currencySymbol || '$');
-    } catch(e) {}
-
-    // Redirect with orderId in URL so checkout page can read it directly
-    window.location.href = 'checkout-my-order;
+      orderId = await saveOrderToFirebase(state.cart);
+    } catch(e) {
+      console.warn('Firebase order save error, continuing with local ID');
+    }
   }
+
+  // Store in sessionStorage for checkout page (NO URL PARAMETERS)
+  try {
+    sessionStorage.setItem('pendingOrderId', orderId);
+    sessionStorage.setItem('pendingCart', JSON.stringify(state.cart));
+    sessionStorage.setItem('pendingCurrency', window._currency || 'USD');
+    sessionStorage.setItem('pendingExchangeRate', String(window._exchangeRate || 1));
+    sessionStorage.setItem('pendingCurrencySymbol', window._currencySymbol || '$');
+  } catch(e) {}
+
+  // Redirect to checkout page WITHOUT order ID in URL
+  window.location.href = '/checkout';
+}
 
   // ════════════════════════════════
   //  MODALS
