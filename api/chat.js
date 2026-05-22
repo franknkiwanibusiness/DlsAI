@@ -1,4 +1,78 @@
-const SYSTEM_PROMPT = `You are the MINIMISTY store assistant — a smart, friendly, and concise support agent for MINIMISTY.store.
+// api/chat.js — MINIMISTY AI assistant with live order context
+// Fetches the user's real orders from Firebase using their deviceId
+// so the AI can answer order questions accurately without the user typing an ID.
+
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { getDatabase } from 'firebase-admin/database';
+
+function initFirebase() {
+  if (getApps().length > 0) return getApps()[0];
+  return initializeApp({
+    credential: cert({
+      projectId:   process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey:  process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    }),
+    databaseURL: process.env.FIREBASE_DATABASE_URL,
+  });
+}
+
+// Fetch up to 5 most recent orders for this device
+async function getOrdersForDevice(deviceId) {
+  if (!deviceId || typeof deviceId !== 'string') return [];
+  try {
+    initFirebase();
+    const db = getDatabase();
+    const snap = await db.ref('deviceOrders/' + deviceId).get();
+    if (!snap.exists()) return [];
+
+    // deviceOrders/{deviceId}/{orderId} = { orderId, totalUSD, status, createdAt }
+    const entries = Object.values(snap.val() || {});
+    // Sort newest first, take up to 5
+    entries.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    const recent = entries.slice(0, 5);
+
+    // Fetch full order details for each
+    const orders = await Promise.all(recent.map(async entry => {
+      try {
+        const orderSnap = await db.ref('orders/' + entry.orderId).get();
+        return orderSnap.exists() ? orderSnap.val() : null;
+      } catch(e) { return null; }
+    }));
+
+    return orders.filter(Boolean);
+  } catch(e) {
+    console.warn('Order fetch error:', e);
+    return [];
+  }
+}
+
+// Build a concise order context string to inject into the system prompt
+function buildOrderContext(orders) {
+  if (!orders.length) return '';
+
+  const lines = orders.map(o => {
+    const items = (o.items || [])
+      .map(i => `${i.qty}x ${i.product || 'FrostBlade Pro'} (${i.variant || '—'})`)
+      .join(', ');
+    const status = (o.status || 'unknown').replace(/_/g, ' ');
+    const total  = o.pricing ? `$${o.pricing.totalUSD?.toFixed(2)}` : '—';
+    const date   = o.createdAt ? new Date(o.createdAt).toLocaleDateString('en-GB') : '—';
+    const tracking = o.trackingNumber || null;
+    return [
+      `• Order ID: ${o.orderId}`,
+      `  Items: ${items}`,
+      `  Status: ${status}`,
+      `  Total: ${total}`,
+      `  Placed: ${date}`,
+      tracking ? `  Tracking: ${tracking}` : '  Tracking: not yet dispatched',
+    ].join('\n');
+  }).join('\n\n');
+
+  return `\n\n== THIS CUSTOMER'S ORDERS (from our database) ==\nThe following orders are linked to this customer's device. Use this information to answer questions about their orders accurately. Do not reveal the full device ID.\n\n${lines}\n\nIf the customer asks about an order, use the above data. If they mention an order ID that isn't listed here, tell them to email support@minimisty.store with that ID and we'll look it up.`;
+}
+
+const BASE_SYSTEM_PROMPT = `You are the MINIMISTY store assistant — a smart, friendly, and concise support agent for MINIMISTY.store.
 
 == PRODUCT ==
 FrostBlade Pro — Portable Ice-Cold Handheld Electric Fan
@@ -83,9 +157,6 @@ Bundle deals always ship free. Single pack has a small shipping charge.
 - Real-time tracking dashboard, monthly payouts
 - No phone support for affiliate queries — email support@minimisty.store
 
-== ORDER LOOKUP ==
-If a user asks about their order or provides an Order ID (looks like ORD_ABC123_XYZ), remind them friendly that order lookups are handled via email. Tell them to send their order details to support@minimisty.store so our team can pull up their real-time tracking details.
-
 == BEHAVIOUR RULES ==
 - Be concise. 2–4 sentences max per reply unless a detailed explanation is genuinely needed.
 - Never make up information not listed here.
@@ -93,24 +164,27 @@ If a user asks about their order or provides an Order ID (looks like ORD_ABC123_
 - If you don't know something, say: "I don't have that info — please email support@minimisty.store and we'll get back to you within 24 hours."
 - Be warm and human. Avoid robotic phrasing.
 - When a customer seems frustrated, acknowledge it first before solving.
-- Currency: always refer to prices in USD when quoting — the site handles local conversion automatically.`;
+- Currency: always refer to prices in USD when quoting — the site handles local conversion automatically.
+- If a customer asks about their order and order data is provided above, use it directly. Never say you cannot look up orders if their data is already in context.`;
 
 export default async function handler(req, res) {
-  // Guard clause for allowed request types
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST']);
     return res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 
   try {
-    const { messages } = req.body;
+    const { messages, deviceId } = req.body;
 
-    // Validate request structure
     if (!messages || !Array.isArray(messages)) {
       return res.status(400).json({ reply: 'Malformed request: messages array is required.' });
     }
 
-    // Hit the Groq endpoint using standard fetch
+    // Fetch this customer's real orders and inject into system prompt
+    const orders = await getOrdersForDevice(deviceId);
+    const orderContext = buildOrderContext(orders);
+    const systemPrompt = BASE_SYSTEM_PROMPT + orderContext;
+
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -118,30 +192,28 @@ export default async function handler(req, res) {
         'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile', // Upgraded to the optimal versatile model for higher accuracy
+        model: 'llama-3.3-70b-versatile',
         max_tokens: 500,
-        temperature: 0.4, // Lower temperature keeps answers factual and tightly bounded to the prompt rules
+        temperature: 0.4,
         messages: [
-          { role: 'system', content: SYSTEM_PROMPT }, // Hardcoded on server side to prevent prompt tampering
+          { role: 'system', content: systemPrompt },
           ...messages
         ]
       })
     });
 
-    // Handle bad API responses cleanly
     if (!response.ok) {
       const errText = await response.text();
-      console.error('Groq API reported an error:', errText);
+      console.error('Groq API error:', errText);
       return res.status(500).json({ reply: "Sorry, I'm having trouble connecting right now. Please email support@minimisty.store for help." });
     }
 
     const data = await response.json();
-    const reply = data.choices?.[0]?.message?.content || 'Sorry, I am having trouble pulling up an answer right now.';
-    
+    const reply = data.choices?.[0]?.message?.content || 'Sorry, I could not get a response right now.';
     return res.status(200).json({ reply });
 
   } catch (error) {
-    console.error('Unhandled runtime error in serverless function:', error);
+    console.error('chat handler error:', error);
     return res.status(500).json({ reply: "Something went sideways on our end. Please drop a line to support@minimisty.store." });
   }
 }
