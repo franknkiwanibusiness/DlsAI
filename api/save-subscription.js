@@ -1,7 +1,4 @@
 // api/save-subscription.js
-// Saves a Web Push subscription to Firebase RTDB
-// Deploy on Vercel — uses FIREBASE_SERVICE_ACCOUNT env var (JSON string)
-
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getDatabase } from 'firebase-admin/database';
 
@@ -20,18 +17,9 @@ export default async function handler(req, res) {
   if (!subscription?.endpoint) return res.status(400).json({ error: 'Invalid subscription' });
 
   try {
-    const app = getAdminApp();
-    const db  = getDatabase(app);
-
-    // Use endpoint hash as key to avoid duplicates
+    const db = getDatabase(getAdminApp());
     const key = Buffer.from(subscription.endpoint).toString('base64').slice(-40).replace(/[^a-zA-Z0-9]/g, '_');
-
-    await db.ref(`pushSubscriptions/${key}`).set({
-      subscription,
-      uid: uid || 'admin',
-      savedAt: Date.now(),
-    });
-
+    await db.ref(`pushSubscriptions/${key}`).set({ subscription, uid: uid || 'admin', savedAt: Date.now() });
     return res.status(200).json({ ok: true });
   } catch (err) {
     console.error('save-subscription error:', err);
