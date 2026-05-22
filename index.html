@@ -4197,132 +4197,136 @@ async function goToCheckout() {
   // ════════════════════════════════
   //  EMAIL CAPTURE / ABANDONED CART
   // ════════════════════════════════
-  (function() {
-    // Don't show if already submitted or dismissed this session
-    if (sessionStorage.getItem('minimisty_email_dismissed')) return;
+async function submitEmailCapture() {
+  const input = document.getElementById('emailCaptureInput');
+  const email = input ? input.value.trim() : '';
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    let emailShown = false;
+  if (!emailRegex.test(email)) {
+    if (input) { input.style.borderColor = 'var(--red)'; setTimeout(() => { input.style.borderColor = '#222'; }, 1500); }
+    return;
+  }
 
-    function showEmailCapture() {
-      if (emailShown) return;
-      emailShown = true;
-      const overlay = document.getElementById('emailCaptureOverlay');
-      if (overlay) {
-        overlay.classList.add('open');
-        window._scrollYEmail = window.scrollY;
-        document.body.style.top = '-' + window._scrollYEmail + 'px';
-        document.body.classList.add('no-scroll');
-      }
-      if (typeof trackClick === 'function') trackClick('email_capture_shown');
-    }
-
-    // Trigger 1: exit intent on desktop (mouse leaves top of page)
-    document.addEventListener('mouseleave', function(e) {
-      if (e.clientY < 20) showEmailCapture();
+  // Save to Firebase
+  try {
+    const { getDatabase, ref: fbRef, set, serverTimestamp: fbTs, increment, update } = await import('https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js');
+    const db2 = getDatabase();
+    await set(fbRef(db2, 'customers/' + Date.now()), {
+      email,
+      ts: fbTs(),
+      deviceId: window._deviceId || '',
+      sessionId: window._sessionId || '',
+      source: 'email_capture_popup',
+      cartValue: state.cart.reduce((a,i) => a + i.priceUSD, 0)
     });
+    await update(fbRef(db2, 'analytics'), { totalEmailCaptures: increment(1) });
+  } catch(e) {}
 
-    // Trigger 2: user has been on page 45s without adding to cart
-    setTimeout(function() {
-      if (state.cart.length === 0) showEmailCapture();
-    }, 45000);
-
-    // Trigger 3: scroll down 70% of page then scroll back up fast (abandonment signal)
-    let maxScroll = 0;
-    let scrollAbandonTimer = null;
-    window.addEventListener('scroll', function() {
-      const pct = window.scrollY / (document.body.scrollHeight - window.innerHeight);
-      if (pct > maxScroll) maxScroll = pct;
-      if (maxScroll > 0.7 && pct < maxScroll - 0.15) {
-        clearTimeout(scrollAbandonTimer);
-        scrollAbandonTimer = setTimeout(showEmailCapture, 300);
-      }
-    }, { passive: true });
-  })();
-
-  function closeEmailCapture() {
-    const overlay = document.getElementById('emailCaptureOverlay');
-    if (overlay) overlay.classList.remove('open');
-    document.body.classList.remove('no-scroll');
-    document.body.style.top = '';
-    window.scrollTo(0, window._scrollYEmail || 0);
-    sessionStorage.setItem('minimisty_email_dismissed', '1');
+  // Send email via Resend API
+  try {
+    const res = await fetch('/api/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: email,
+        subject: 'Your 10% OFF Code - MINIMISTY.store',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #00f0ff;">Welcome to MINIMISTY!</h2>
+            <p>Thanks for signing up. Here's your <strong style="color: #a3ff12;">10% OFF discount code</strong> for your first order:</p>
+            <div style="background: #0a0a0a; padding: 15px; text-align: center; border-radius: 10px; margin: 20px 0;">
+              <span style="font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #a3ff12;">CHILL10</span>
+            </div>
+            <p>Use this code at checkout to save 10% on your FrostBlade Pro order.</p>
+            <p style="margin-top: 30px; font-size: 12px; color: #666;">Valid for one-time use. Cannot be combined with other offers.</p>
+            <hr style="border-color: #222;">
+            <p style="font-size: 12px; color: #555;">MINIMISTY.store · Stay cool anywhere</p>
+          </div>
+        `
+      })
+    });
+    const data = await res.json();
+    console.log('Resend response:', data);
+  } catch(e) {
+    console.warn('Email send failed:', e);
   }
 
-  async function submitEmailCapture() {
-    const input = document.getElementById('emailCaptureInput');
-    const email = input ? input.value.trim() : '';
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (typeof trackClick === 'function') trackClick('email_capture_submit', { email: email.substring(0,5) + '***' });
 
-    if (!emailRegex.test(email)) {
-      if (input) { input.style.borderColor = 'var(--red)'; setTimeout(() => { input.style.borderColor = '#222'; }, 1500); }
-      return;
-    }
+  // PERMANENTLY mark as submitted (survives refresh)
+  try { localStorage.setItem('minimisty_email_submitted', 'true'); } catch(e) {}
+  sessionStorage.setItem('minimisty_email_dismissed', '1');
 
-    // Save to Firebase
-    try {
-      const { getDatabase, ref: fbRef, set, serverTimestamp: fbTs } = await import('https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js');
-      const { increment, update } = await import('https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js');
-      const db2 = getDatabase();
-      await set(fbRef(db2, 'customers/' + Date.now()), {
-        email,
-        ts: fbTs(),
-        deviceId: window._deviceId || '',
-        sessionId: window._sessionId || '',
-        source: 'email_capture_popup',
-        cartValue: state.cart.reduce((a,i) => a + i.priceUSD, 0)
-      });
-      await update(fbRef(db2, 'analytics'), { totalEmailCaptures: increment(1) });
-    } catch(e) {}
-
-    if (typeof trackClick === 'function') trackClick('email_capture_submit', { email: email.substring(0,5) + '***' });
-
-    // Confirm UI
-    const drawer = document.querySelector('.email-drawer');
-    if (drawer) {
-      drawer.innerHTML = `
-        <div style="text-align:center;padding:20px 0">
-          <div style="font-size:2.2rem;margin-bottom:16px">🎉</div>
-          <div style="font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:8px">You are in!</div>
-          <div style="font-size:0.8rem;color:#555;font-weight:600;line-height:1.5">Your 10% discount code has been sent to<br><strong style="color:#fff">${email}</strong></div>
-          <button onclick="closeEmailCapture()" style="margin-top:22px;background:#fff;color:#000;border:none;border-radius:11px;padding:12px 28px;font-family:var(--font);font-weight:800;font-size:0.88rem;cursor:pointer;">CONTINUE SHOPPING</button>
-        </div>`;
-    }
-    sessionStorage.setItem('minimisty_email_dismissed', '1');
+  // Confirm UI
+  const drawer = document.querySelector('.email-drawer');
+  if (drawer) {
+    drawer.innerHTML = `
+      <div style="text-align:center;padding:20px 0">
+        <div style="font-size:2.2rem;margin-bottom:16px">🎉</div>
+        <div style="font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:8px">You are in!</div>
+        <div style="font-size:0.8rem;color:#555;font-weight:600;line-height:1.5">Your 10% discount code has been sent to<br><strong style="color:#fff">${email}</strong></div>
+        <button onclick="closeEmailCapture()" style="margin-top:22px;background:#fff;color:#000;border:none;border-radius:11px;padding:12px 28px;font-family:var(--font);font-weight:800;font-size:0.88rem;cursor:pointer;">CONTINUE SHOPPING</button>
+      </div>`;
   }
-
+}
   // ════════════════════════════════
   //  FOOTER EMAIL SUBMIT
   // ════════════════════════════════
-  async function submitFooterEmail() {
-    const input = document.getElementById('footerEmailInput');
-    const note  = document.getElementById('footerEmailNote');
-    const email = input ? input.value.trim() : '';
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+async function submitFooterEmail() {
+  const input = document.getElementById('footerEmailInput');
+  const note  = document.getElementById('footerEmailNote');
+  const email = input ? input.value.trim() : '';
+  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    if (!re.test(email)) {
-      if (input) { input.style.borderColor = 'var(--red)'; setTimeout(() => input.style.borderColor = '#1e1e1e', 1500); }
-      return;
-    }
-
-    try {
-      const { getDatabase, ref: r2, set: s2, serverTimestamp: ts2 } = await import('https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js');
-      const { increment: inc2, update: up2 } = await import('https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js');
-      const db2 = getDatabase();
-      await s2(r2(db2, 'customers/' + Date.now()), {
-        email,
-        ts: ts2(),
-        source: 'footer_email',
-        deviceId: window._deviceId || '',
-        country: window._geoData ? window._geoData.country_code : 'unknown'
-      });
-      await up2(r2(db2, 'analytics'), { totalEmailCaptures: inc2(1) });
-    } catch(e) {}
-
-    if (input)  { input.value = ''; input.disabled = true; }
-    if (note)   note.innerHTML = '<span style="color:var(--lime);font-weight:700">You are in! Check your inbox for your 10% code.</span>';
-    if (typeof trackClick === 'function') trackClick('footer_email_submit');
+  if (!re.test(email)) {
+    if (input) { input.style.borderColor = 'var(--red)'; setTimeout(() => input.style.borderColor = '#1e1e1e', 1500); }
+    return;
   }
 
+  // Save to Firebase
+  try {
+    const { getDatabase, ref: r2, set: s2, serverTimestamp: ts2, increment: inc2, update: up2 } = await import('https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js');
+    const db2 = getDatabase();
+    await s2(r2(db2, 'customers/' + Date.now()), {
+      email,
+      ts: ts2(),
+      source: 'footer_email',
+      deviceId: window._deviceId || '',
+      country: window._geoData ? window._geoData.country_code : 'unknown'
+    });
+    await up2(r2(db2, 'analytics'), { totalEmailCaptures: inc2(1) });
+  } catch(e) {}
+
+  // Send email via Resend
+  try {
+    const res = await fetch('/api/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: email,
+        subject: 'Your 10% OFF Code - MINIMISTY.store',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #00f0ff;">Thanks for joining MINIMISTY!</h2>
+            <p>Use this code for <strong>10% OFF</strong> your FrostBlade Pro purchase:</p>
+            <div style="background: #0a0a0a; padding: 15px; text-align: center; border-radius: 10px; margin: 20px 0;">
+              <span style="font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #a3ff12;">CHILL10</span>
+            </div>
+            <p>Enter it at checkout to save instantly.</p>
+            <p style="margin-top: 30px; font-size: 12px; color: #666;">One-time use. Minimum order $20.</p>
+          </div>
+        `
+      })
+    });
+  } catch(e) {}
+
+  if (input)  { input.value = ''; input.disabled = true; }
+  if (note)   note.innerHTML = '<span style="color:var(--lime);font-weight:700">✓ Check your inbox! Your 10% code has been sent.</span>';
+  if (typeof trackClick === 'function') trackClick('footer_email_submit');
+  
+  // Mark as submitted permanently
+  try { localStorage.setItem('minimisty_email_submitted', 'true'); } catch(e) {}
+}
   // ════════════════════════════════
   //  SHARE MODAL
   // ════════════════════════════════
