@@ -58,7 +58,7 @@ async function sendAbandonedCart(db, deviceId, cartData) {
   const total = cartData.totalUSD ? `$${Number(cartData.totalUSD).toFixed(2)}` : '';
   const body  = qty === 1
     ? `Your FrostBlade Pro is waiting${total ? ` — ${total}` : ''}. Limited stock — don't miss out! 🧊`
-    : `${qty} items still in your cart${total ? ` (${total})` : '''}. Grab them before they're gone! 🧊`;
+    : `${qty} items still in your cart${total ? ` (${total})` : ''}. Grab them before they're gone! 🧊`;
 
   const payload = JSON.stringify({
     title: '🧊 Your cart misses you',
