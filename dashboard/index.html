@@ -493,14 +493,14 @@ tailwind.config = {
               <div style="font-size:14px;font-weight:600">New share</div>
               <div style="font-size:12px;color:var(--text2);margin-top:2px">Social or affiliate share event</div>
             </div>
-            <button class="toggle" id="ntf-shares" onclick="togglePref(this,'shares')"><div class="toggle-knob"></div></button>
+            <button class="toggle on" id="ntf-shares" onclick="togglePref(this,'shares')"><div class="toggle-knob"></div></button>
           </div>
           <div class="list-row" style="cursor:default;border-bottom:none">
             <div style="flex:1">
               <div style="font-size:14px;font-weight:600">Cart abandonment</div>
               <div style="font-size:12px;color:var(--text2);margin-top:2px">When cart is added but no checkout</div>
             </div>
-            <button class="toggle" id="ntf-carts" onclick="togglePref(this,'carts')"><div class="toggle-knob"></div></button>
+            <button class="toggle on" id="ntf-carts" onclick="togglePref(this,'carts')"><div class="toggle-knob"></div></button>
           </div>
         </div>
       </div>
@@ -849,7 +849,13 @@ function listenVisits() {
 function listenCartEvents() {
   onValue(ref(db,'cartEvents'), snap => {
     const raw=snap.val()||{}, variants={};
+    const prevCount = parseInt(document.getElementById('kpi-carts')?.textContent) || 0;
+    const newCount = Object.keys(raw).length;
     Object.values(raw).forEach(e=>{if(e.variant)variants[e.variant]=(variants[e.variant]||0)+1;});
+    if (prevCount > 0 && newCount > prevCount && window._notifPrefs?.carts !== false) {
+      const latest = Object.values(raw).sort((a,b)=>(b.ts||0)-(a.ts||0))[0];
+      window.sendPushToSelf?.('New Cart Add', latest?.variant || 'Item added to cart', 'analytics');
+    }
     const total=Object.values(variants).reduce((a,b)=>a+b,0)||1;
     const colors={Black:'#374151',White:'#d1d5db',Blue:'#3b82f6',Pink:'#f472b6'};
     setHTML('variantStats', Object.entries(variants).sort((a,b)=>b[1]-a[1]).map(([v,n])=>{
@@ -876,6 +882,10 @@ function listenShares() {
   onValue(ref(db,'shares'), snap => {
     const raw=snap.val()||{};
     const shares=Object.entries(raw).map(([id,d])=>({id,...d})).sort((a,b)=>(b.ts||0)-(a.ts||0));
+    const prevShares = parseInt(document.getElementById('sh-total')?.textContent) || 0;
+    if (prevShares > 0 && shares.length > prevShares && window._notifPrefs?.shares !== false) {
+      window.sendPushToSelf?.('New Share', shares[0].platform + (shares[0].refCode ? ' · '+shares[0].refCode : ''), 'shares');
+    }
     setText('sh-total',shares.length.toString());
     setHTML('sharesList', shares.slice(0,30).map(s=>`
       <div class="list-row">
@@ -916,40 +926,54 @@ function listenAffiliates() {
 
 // ── NOTIFICATIONS ──
 const VAPID_PUBLIC = 'BMTBoZaETNkmPu3gl42TbHyU9CH6tRTS9_TBGB2-oor3nSvt5WhJyk1PcmOiOLIt5z5xRterBfR2xlY2Ubyq1Do';
-window._notifPrefs = JSON.parse(localStorage.getItem('notifPrefs')||'{"orders":true,"emails":true,"shares":false,"carts":false}');
-window._swReg = null;
 
-function urlBase64ToUint8Array(base64String) {
-  const padding = '='.repeat((4-base64String.length%4)%4);
-  const base64 = (base64String+padding).replace(/-/g,'+').replace(/_/g,'/');
-  const raw = window.atob(base64);
-  return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));
+// All 4 event types ON by default
+window._notifPrefs = JSON.parse(localStorage.getItem('notifPrefs') || '{"orders":true,"emails":true,"shares":true,"carts":true}');
+window._swReg = null;
+window._activeSub = null; // cached subscription, survives refresh
+
+function urlBase64ToUint8Array(b64) {
+  const pad = '='.repeat((4 - b64.length % 4) % 4);
+  const base64 = (b64 + pad).replace(/-/g, '+').replace(/_/g, '/');
+  return Uint8Array.from([...atob(base64)].map(c => c.charCodeAt(0)));
 }
 
+// Called on login — silently restores notification state without prompting
 window.checkNotificationStatus = async function() {
   if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
-  const toggle = document.getElementById('notifToggle');
-  const success = document.getElementById('notifSuccess');
-  const btn = document.getElementById('notifSetupBtn');
-  if (Notification.permission === 'granted') {
-    try {
-      const reg = await navigator.serviceWorker.ready;
-      const sub = await reg.pushManager.getSubscription();
-      if (sub) {
-        toggle?.classList.add('on');
-        if (success) success.style.display = 'block';
-        if (btn) btn.style.display = 'none';
-        window._swReg = reg;
-      }
-    } catch(e) {}
-  }
+
+  // Apply saved pref toggle states immediately
+  ['orders','emails','shares','carts'].forEach(key => {
+    const el = document.getElementById('ntf-' + key);
+    if (!el) return;
+    if (window._notifPrefs[key]) el.classList.add('on'); else el.classList.remove('on');
+  });
+
+  if (Notification.permission !== 'granted') return;
+
+  try {
+    // Register SW silently — safe to call multiple times
+    const reg = await navigator.serviceWorker.register('/sw.js');
+    await navigator.serviceWorker.ready;
+    window._swReg = reg;
+
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      window._activeSub = sub;
+      document.getElementById('notifToggle')?.classList.add('on');
+      const s = document.getElementById('notifSuccess');
+      const b = document.getElementById('notifSetupBtn');
+      if (s) s.style.display = 'block';
+      if (b) b.style.display = 'none';
+    }
+  } catch(e) { console.warn('SW restore failed:', e); }
 };
 
 window.setupNotifications = async function() {
   const btn = document.getElementById('notifSetupBtn');
-  const err = document.getElementById('notifError');
+  const errEl = document.getElementById('notifError');
   const success = document.getElementById('notifSuccess');
-  err.style.display = 'none';
+  errEl.style.display = 'none';
 
   if (!('Notification' in window)) { showNotifErr('Push notifications not supported in this browser.'); return; }
   if (!('serviceWorker' in navigator)) { showNotifErr('Service Worker not supported.'); return; }
@@ -959,21 +983,30 @@ window.setupNotifications = async function() {
 
   try {
     const permission = await Notification.requestPermission();
-    if (permission !== 'granted') { showNotifErr('Permission denied. Please allow notifications in your browser settings.'); btn.disabled=false; btn.textContent='Enable Push Notifications'; return; }
+    if (permission !== 'granted') {
+      showNotifErr('Permission denied. Allow notifications in your browser settings then try again.');
+      btn.disabled = false;
+      btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> Enable Push Notifications`;
+      return;
+    }
 
     const reg = await navigator.serviceWorker.register('/sw.js');
     await navigator.serviceWorker.ready;
     window._swReg = reg;
 
-    const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC) });
+    // Reuse existing sub if present — avoids re-registering on every visit
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC) });
+      // Save to Firebase via API
+      const res = await fetch('/api/save-subscription', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription: sub.toJSON(), uid: window._fbUser?.uid })
+      });
+      if (!res.ok) throw new Error('Failed to save subscription to server');
+    }
 
-    const res = await fetch('/api/save-subscription', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subscription: sub.toJSON(), uid: window._fbUser?.uid })
-    });
-
-    if (!res.ok) throw new Error('Failed to save subscription');
-
+    window._activeSub = sub;
     document.getElementById('notifToggle')?.classList.add('on');
     success.style.display = 'block';
     btn.style.display = 'none';
@@ -991,9 +1024,10 @@ window.toggleNotifications = async function() {
       const reg = await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.getSubscription();
       if (sub) await sub.unsubscribe();
+      window._activeSub = null;
       toggle.classList.remove('on');
-      document.getElementById('notifSuccess').style.display='none';
-      document.getElementById('notifSetupBtn').style.display='block';
+      document.getElementById('notifSuccess').style.display = 'none';
+      document.getElementById('notifSetupBtn').style.display = 'block';
     } catch(e) {}
   } else {
     window.setupNotifications();
@@ -1012,27 +1046,24 @@ window.togglePref = function(btn, key) {
 };
 
 window.sendTestNotification = async function() {
-  if (!window._swReg) { alert('Enable push notifications first.'); return; }
+  const sub = window._activeSub;
+  if (!sub) { alert('Enable push notifications first.'); return; }
   try {
-    const reg = await navigator.serviceWorker.ready;
-    const sub = await reg.pushManager.getSubscription();
-    if (!sub) { alert('No subscription found. Please enable notifications first.'); return; }
     const res = await fetch('/api/send-notification', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ subscription: sub.toJSON(), title:'Test Notification', body:'Minimisty admin notifications are working!', url:'/admin' })
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: sub.toJSON(), title: 'Test Notification', body: 'Minimisty admin notifications are working!', url: '/admin' })
     });
-    if (res.ok) { /* notification sent */ } else { alert('Failed to send test notification.'); }
-  } catch(e) { alert('Error: '+e.message); }
+    if (!res.ok) alert('Failed to send test notification.');
+  } catch(e) { alert('Error: ' + e.message); }
 };
 
 window.sendPushToSelf = async function(title, body, page) {
+  const sub = window._activeSub;
+  if (!sub) return;
   try {
-    const reg = await navigator.serviceWorker.ready;
-    const sub = await reg.pushManager.getSubscription();
-    if (!sub) return;
     await fetch('/api/send-notification', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ subscription:sub.toJSON(), title, body, url:'/admin#'+page })
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: sub.toJSON(), title, body, url: '/admin#' + page })
     });
   } catch(e) {}
 };
