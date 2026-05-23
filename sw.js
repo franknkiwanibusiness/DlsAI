@@ -1,112 +1,225 @@
-// ══════════════════════════════════════════════════════════
-//  MINIMISTY.store — Service Worker
-//  Handles: Push Notifications + Offline Cache
-// ══════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════
+   MINIMISTY.store — Service Worker
+   Handles: Push notifications · Offline cache · Background sync
+   ═══════════════════════════════════════════════════════════════ */
 
-const CACHE_NAME = 'minimisty-v1';
-const OFFLINE_URLS = ['/'];
+const CACHE_NAME   = 'minimisty-v1';
+const CACHE_URLS   = ['/'];          // add more static assets here if needed
+const STORE_URL    = 'https://minimisty.store/';
+const STORE_ICON   = 'https://i.imgur.com/h94iKss.jpeg';
+const STORE_BADGE  = '/badge-72.png'; // 72×72 monochrome PNG — swap for your own
 
-self.addEventListener('install', e => {
+// ── Notification defaults by type ─────────────────────────────
+const NOTIF_DEFAULTS = {
+  restock: {
+    title: '🧊 Back in Stock!',
+    body:  'FrostBlade Pro is available again. Grab yours before it sells out.',
+    tag:   'restock',
+  },
+  drop: {
+    title: '🚨 New Drop — Limited Stock',
+    body:  'Something new just landed at MINIMISTY.store. Be first.',
+    tag:   'drop',
+  },
+  cart: {
+    title: '🛒 You left something behind',
+    body:  'Your FrostBlade Pro is still waiting. Complete your order now.',
+    tag:   'cart-abandonment',
+  },
+  offer: {
+    title: '⚡ Exclusive offer — today only',
+    body:  'A special deal is waiting for you at MINIMISTY.store.',
+    tag:   'offer',
+  },
+  order: {
+    title: '📦 Your order is on its way!',
+    body:  'Your FrostBlade Pro has been shipped. Track it now.',
+    tag:   'order-update',
+  },
+  // fallback
+  general: {
+    title: 'MINIMISTY.store',
+    body:  'You have a new update from MINIMISTY.',
+    tag:   'general',
+  },
+};
+
+// ══════════════════════════════════════════════════════════════
+//  INSTALL — cache core assets
+// ══════════════════════════════════════════════════════════════
+self.addEventListener('install', event => {
   self.skipWaiting();
-  e.waitUntil(
-    caches.open(CACHE_NAME).then(c => c.addAll(OFFLINE_URLS))
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache => cache.addAll(CACHE_URLS)).catch(() => {})
   );
 });
 
-self.addEventListener('activate', e => {
-  e.waitUntil(
+// ══════════════════════════════════════════════════════════════
+//  ACTIVATE — clean old caches
+// ══════════════════════════════════════════════════════════════
+self.addEventListener('activate', event => {
+  event.waitUntil(
     caches.keys().then(keys =>
       Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
 });
 
-// ── Push handler ──
-self.addEventListener('push', e => {
-  let data = { title: 'MINIMISTY', body: 'You have a new message!', url: '/' };
-  try { data = { ...data, ...JSON.parse(e.data.text()) }; } catch(_) {}
+// ══════════════════════════════════════════════════════════════
+//  FETCH — network-first with cache fallback for navigation
+// ══════════════════════════════════════════════════════════════
+self.addEventListener('fetch', event => {
+  if (event.request.method !== 'GET') return;
+  if (!event.request.url.startsWith('http')) return;
 
-  const options = {
-    body:    data.body,
-    icon:    data.icon  || '/icon-192.png',
-    badge:   data.badge || '/badge-96.png',
-    image:   data.image || undefined,
-    tag:     data.tag   || 'minimisty-push',
-    renotify: true,
-    requireInteraction: data.requireInteraction || false,
-    data:    { url: data.url || '/', ...data },
-    actions: data.actions || [
-      { action: 'open',    title: '👀 View Now' },
-      { action: 'dismiss', title: 'Dismiss'     },
-    ],
-    vibrate: [100, 50, 100],
-  };
-
-  e.waitUntil(self.registration.showNotification(data.title, options));
+  // Only cache same-origin navigation requests
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match('/').then(r => r || Response.error()))
+    );
+  }
 });
 
-// ── Notification click ──
-self.addEventListener('notificationclick', e => {
-  e.notification.close();
-  if (e.action === 'dismiss') return;
+// ══════════════════════════════════════════════════════════════
+//  PUSH — receive and display notification
+// ══════════════════════════════════════════════════════════════
+self.addEventListener('push', event => {
+  let payload = {};
 
-  const url = (e.notification.data && e.notification.data.url) || '/';
-  e.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
-      const existing = list.find(c => c.url.includes(self.location.origin));
-      if (existing) return existing.focus().then(c => c.navigate(url));
-      return clients.openWindow(url);
+  // Try to parse JSON payload from server
+  if (event.data) {
+    try { payload = event.data.json(); } catch (_) {
+      payload = { body: event.data.text() };
+    }
+  }
+
+  // Pick the right defaults based on payload.type
+  const type     = payload.type || 'general';
+  const defaults = NOTIF_DEFAULTS[type] || NOTIF_DEFAULTS.general;
+
+  const title   = payload.title   || defaults.title;
+  const body    = payload.body    || defaults.body;
+  const tag     = payload.tag     || defaults.tag;
+  const url     = payload.url     || STORE_URL;
+  const icon    = payload.icon    || STORE_ICON;
+  const image   = payload.image   || undefined;
+  const actions = payload.actions || buildActions(type);
+
+  const options = {
+    body,
+    tag,
+    icon,
+    badge:              STORE_BADGE,
+    image,
+    vibrate:            [100, 50, 100],
+    requireInteraction: type === 'cart' || type === 'restock',
+    data:               { url, type, ...payload.data },
+    actions,
+    // Timestamp — use server-sent time or now
+    timestamp: payload.timestamp ? new Date(payload.timestamp).getTime() : Date.now(),
+  };
+
+  // Remove undefined keys (Safari / older browsers are strict)
+  Object.keys(options).forEach(k => options[k] === undefined && delete options[k]);
+
+  event.waitUntil(
+    self.registration.showNotification(title, options)
+  );
+});
+
+// ── Build contextual action buttons ───────────────────────────
+function buildActions(type) {
+  switch (type) {
+    case 'cart':
+      return [
+        { action: 'checkout', title: '🛒 Complete order' },
+        { action: 'dismiss',  title: 'Dismiss' },
+      ];
+    case 'restock':
+    case 'drop':
+      return [
+        { action: 'shop',    title: '🛍 Shop now' },
+        { action: 'dismiss', title: 'Later' },
+      ];
+    case 'offer':
+      return [
+        { action: 'claim',   title: '⚡ Claim offer' },
+        { action: 'dismiss', title: 'No thanks' },
+      ];
+    case 'order':
+      return [
+        { action: 'track',   title: '📦 Track order' },
+        { action: 'dismiss', title: 'OK' },
+      ];
+    default:
+      return [];
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  NOTIFICATION CLICK — open / focus correct URL
+// ══════════════════════════════════════════════════════════════
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+
+  const data   = event.notification.data || {};
+  const action = event.action;
+  let targetUrl = data.url || STORE_URL;
+
+  // Override URL based on action button clicked
+  if (action === 'dismiss') return;
+  if (action === 'checkout') targetUrl = STORE_URL + '#checkout';
+  if (action === 'track')    targetUrl = data.trackingUrl || STORE_URL;
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
+      // Focus existing tab if already open on the same origin
+      for (const client of clients) {
+        const clientUrl = new URL(client.url);
+        const target    = new URL(targetUrl);
+        if (clientUrl.origin === target.origin && 'focus' in client) {
+          client.navigate(targetUrl);
+          return client.focus();
+        }
+      }
+      // Otherwise open a new tab
+      if (self.clients.openWindow) return self.clients.openWindow(targetUrl);
     })
   );
 });
 
-// ── Background sync (abandoned cart) ──
-self.addEventListener('sync', e => {
-  if (e.tag === 'abandoned-cart-check') {
-    e.waitUntil(handleAbandonedCartSync());
-  }
-});
-
-async function handleAbandonedCartSync() {
-  // Reads cart data stored by the page and triggers a server-side notification
+// ══════════════════════════════════════════════════════════════
+//  NOTIFICATION CLOSE — optional analytics ping
+// ══════════════════════════════════════════════════════════════
+self.addEventListener('notificationclose', event => {
+  const data = event.notification.data || {};
+  // Fire-and-forget dismiss event — swap endpoint for your own
   try {
-    const db = await openIDB();
-    const cartData = await idbGet(db, 'pendingCart');
-    if (!cartData) return;
-
-    await fetch('/api/push-abandoned-cart', {
+    fetch('/api/push-event', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(cartData),
-      keepalive: true,
-    });
+      body: JSON.stringify({
+        event:    'dismissed',
+        tag:      event.notification.tag,
+        type:     data.type     || 'unknown',
+        deviceId: data.deviceId || 'unknown',
+      }),
+    }).catch(() => {});
+  } catch (_) {}
+});
 
-    await idbDelete(db, 'pendingCart');
-  } catch(_) {}
-}
-
-// ── Minimal IndexedDB helpers (no library needed) ──
-function openIDB() {
-  return new Promise((res, rej) => {
-    const req = indexedDB.open('minimisty-sw', 1);
-    req.onupgradeneeded = e => e.target.result.createObjectStore('store');
-    req.onsuccess  = e => res(e.target.result);
-    req.onerror    = e => rej(e.target.error);
-  });
-}
-function idbGet(db, key) {
-  return new Promise((res, rej) => {
-    const tx = db.transaction('store', 'readonly');
-    const req = tx.objectStore('store').get(key);
-    req.onsuccess = e => res(e.target.result);
-    req.onerror   = e => rej(e.target.error);
-  });
-}
-function idbDelete(db, key) {
-  return new Promise((res, rej) => {
-    const tx = db.transaction('store', 'readwrite');
-    const req = tx.objectStore('store').delete(key);
-    req.onsuccess = () => res();
-    req.onerror   = e => rej(e.target.error);
-  });
-}
+// ══════════════════════════════════════════════════════════════
+//  PUSH SUBSCRIPTION CHANGE — auto-resubscribe on key rotation
+// ══════════════════════════════════════════════════════════════
+self.addEventListener('pushsubscriptionchange', event => {
+  event.waitUntil(
+    self.registration.pushManager.subscribe(event.oldSubscription.options)
+      .then(sub =>
+        fetch('/api/push-subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subscription: sub.toJSON(), resubscribe: true }),
+        })
+      ).catch(() => {})
+  );
+});
