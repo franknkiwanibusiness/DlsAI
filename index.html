@@ -323,6 +323,92 @@
     .push-toggle.push-blocked .push-slider::before { background: #ff4444; }
 
     /* ══════════════════════════════════════
+       PUSH NOTIFICATION BOTTOM SHEET
+    ══════════════════════════════════════ */
+    #pushSheet {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      z-index: 88888;
+      display: flex; flex-direction: column;
+      background: #111;
+      border-top: 1px solid rgba(0,240,255,0.18);
+      border-radius: 22px 22px 0 0;
+      padding: 20px 24px 32px;
+      box-shadow: 0 -16px 60px rgba(0,0,0,0.7);
+      transform: translateY(110%);
+      transition: transform 0.42s cubic-bezier(0.16,1,0.3,1);
+      max-width: 540px;
+      margin: 0 auto;
+    }
+    #pushSheet.sheet-open { transform: translateY(0); }
+    #pushSheet.sheet-close { transform: translateY(110%); }
+
+    .push-sheet-handle {
+      width: 36px; height: 4px; border-radius: 4px;
+      background: #333; margin: 0 auto 18px; flex-shrink: 0;
+    }
+    .push-sheet-icon {
+      width: 52px; height: 52px; border-radius: 16px;
+      background: rgba(0,240,255,0.1);
+      border: 1px solid rgba(0,240,255,0.25);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 14px; font-size: 1.5rem;
+    }
+    .push-sheet-title {
+      font-family: var(--font); font-size: 1.05rem; font-weight: 900;
+      color: #fff; text-align: center; margin-bottom: 8px;
+      letter-spacing: -0.02em;
+    }
+    .push-sheet-sub {
+      font-family: var(--font); font-size: 0.78rem; font-weight: 600;
+      color: var(--text-muted); text-align: center;
+      line-height: 1.55; margin-bottom: 22px;
+    }
+    .push-sheet-sub strong { color: var(--cyan); }
+    .push-sheet-perks {
+      display: flex; flex-direction: column; gap: 8px;
+      margin-bottom: 22px;
+    }
+    .push-sheet-perk {
+      display: flex; align-items: center; gap: 10px;
+      font-family: var(--font); font-size: 0.75rem; font-weight: 700;
+      color: #ccc;
+    }
+    .push-sheet-perk-icon {
+      width: 28px; height: 28px; border-radius: 8px;
+      background: rgba(255,255,255,0.05);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem; flex-shrink: 0;
+    }
+    .push-sheet-btn-yes {
+      width: 100%; padding: 15px;
+      background: linear-gradient(135deg, var(--cyan), #0077ff);
+      color: #000; border: none; border-radius: 14px;
+      font-family: var(--font); font-size: 0.9rem; font-weight: 900;
+      cursor: pointer; letter-spacing: 0.02em;
+      margin-bottom: 10px;
+      transition: opacity 0.2s, transform 0.15s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .push-sheet-btn-yes:hover  { opacity: 0.9; }
+    .push-sheet-btn-yes:active { transform: scale(0.97); }
+    .push-sheet-btn-no {
+      width: 100%; padding: 11px;
+      background: transparent; color: #555;
+      border: none; border-radius: 10px;
+      font-family: var(--font); font-size: 0.75rem; font-weight: 700;
+      cursor: pointer; transition: color 0.2s;
+    }
+    .push-sheet-btn-no:hover { color: #888; }
+
+    /* Scrim behind sheet */
+    #pushSheetScrim {
+      position: fixed; inset: 0; z-index: 88887;
+      background: rgba(0,0,0,0.5);
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.35s;
+    }
+    #pushSheetScrim.scrim-on { opacity: 1; pointer-events: auto; }
+
+    /* ══════════════════════════════════════
        ENTRANCE ANIMATIONS
     ══════════════════════════════════════ */
     @keyframes fadeInDown {
@@ -4572,6 +4658,8 @@
     if (typeof trackClick === 'function') trackClick('add_to_cart', { bundle: k, variant: variantStr });
     // Schedule background sync so SW can send abandoned-cart push if user leaves
     if (typeof scheduleAbandonedCartSync === 'function') scheduleAbandonedCartSync();
+    // Show push sheet 4s after adding to cart (higher intent = better conversion)
+    if (typeof maybeTriggerPushSheet === 'function') maybeTriggerPushSheet(4000);
   }
 
   function upgradeToBundle() {
@@ -4759,6 +4847,8 @@ async function goToCheckout() {
   } catch(e) {}
 
   window.location.href = '/checkout';
+  // Clear abandoned cart from IDB — user is checking out
+  if (typeof clearAbandonedCartIDB === 'function') clearAbandonedCartIDB();
 }
 
   // ════════════════════════════════
@@ -5463,73 +5553,71 @@ async function submitFooterEmail() {
     return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
   }
 
-  // ── Check current notification permission state and update UI ──
+  // ── localStorage helpers ──
+  const LS = {
+    get: k => { try { return localStorage.getItem(k); } catch(_) { return null; } },
+    set: (k, v) => { try { localStorage.setItem(k, v); } catch(_) {} },
+    del: k => { try { localStorage.removeItem(k); } catch(_) {} },
+  };
+
+  // ── Sync footer toggle UI ──
   function syncPushUI() {
-    const toggle  = document.getElementById('pushToggle');
-    const row     = document.getElementById('pushOptinRow');
-    const note    = document.getElementById('pushOptinNote');
-    const label   = document.getElementById('pushOptinLabel');
-    const tLabel  = toggle ? toggle.closest('.push-toggle') : null;
+    const toggle = document.getElementById('pushToggle');
+    const row    = document.getElementById('pushOptinRow');
+    const note   = document.getElementById('pushOptinNote');
+    const label  = document.getElementById('pushOptinLabel');
+    const tLabel = toggle ? toggle.closest('.push-toggle') : null;
 
     if (!('Notification' in window) || !('serviceWorker' in navigator)) {
       if (row) row.style.display = 'none';
       return;
     }
 
-    const perm = Notification.permission;
-    const subscribed = localStorage.getItem('minimisty_push_subscribed') === 'true';
+    const perm       = Notification.permission;
+    const subscribed = LS.get('minimisty_push_subscribed') === 'true';
 
     if (perm === 'denied') {
-      if (toggle)  toggle.checked = false;
-      if (tLabel)  tLabel.classList.add('push-blocked');
-      if (label)   label.textContent = 'Notifications blocked';
-      if (note)    { note.textContent = 'Enable in browser settings to receive updates.'; note.classList.remove('push-active'); }
+      if (toggle) toggle.checked = false;
+      if (tLabel) tLabel.classList.add('push-blocked');
+      if (label)  label.textContent = 'Notifications blocked';
+      if (note)   { note.textContent = 'Enable in browser settings to receive updates.'; note.classList.remove('push-active'); }
       return;
     }
-
     if (perm === 'granted' && subscribed) {
-      if (toggle)  toggle.checked = true;
-      if (tLabel)  tLabel.classList.remove('push-blocked');
-      if (label)   label.textContent = 'Notifications on 🔔';
-      if (note)    { note.textContent = 'You\'ll get drops, restocks & cart reminders.'; note.classList.add('push-active'); }
+      if (toggle) toggle.checked = true;
+      if (tLabel) tLabel.classList.remove('push-blocked');
+      if (label)  label.textContent = 'Notifications on 🔔';
+      if (note)   { note.textContent = "You'll get drops, restocks & cart reminders."; note.classList.add('push-active'); }
     } else {
-      if (toggle)  toggle.checked = false;
-      if (tLabel)  tLabel.classList.remove('push-blocked');
-      if (label)   label.textContent = 'Drop alerts & restocks';
-      if (note)    { note.textContent = 'Get notified about drops, restocks & exclusive offers.'; note.classList.remove('push-active'); }
+      if (toggle) toggle.checked = false;
+      if (tLabel) tLabel.classList.remove('push-blocked');
+      if (label)  label.textContent = 'Drop alerts & restocks';
+      if (note)   { note.textContent = 'Get notified about drops, restocks & exclusive offers.'; note.classList.remove('push-active'); }
     }
   }
 
-  // ── Subscribe to push ──
+  // ── Subscribe / unsubscribe ──
   async function subscribePush() {
     try {
       const reg = await navigator.serviceWorker.ready;
       const existing = await reg.pushManager.getSubscription();
       if (existing) return existing;
-
       return await reg.pushManager.subscribe({
         userVisibleOnly:      true,
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
       });
-    } catch (err) {
-      console.warn('Push subscribe error:', err);
-      return null;
-    }
+    } catch (err) { console.warn('Push subscribe error:', err); return null; }
   }
 
-  // ── Unsubscribe from push ──
   async function unsubscribePush() {
     try {
-      const reg  = await navigator.serviceWorker.ready;
-      const sub  = await reg.pushManager.getSubscription();
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
       if (sub) await sub.unsubscribe();
-      localStorage.removeItem('minimisty_push_subscribed');
-    } catch (err) {
-      console.warn('Push unsubscribe error:', err);
-    }
+      LS.del('minimisty_push_subscribed');
+    } catch (err) { console.warn('Push unsubscribe error:', err); }
   }
 
-  // ── Save subscription to server ──
   async function savePushSubscription(subscription) {
     try {
       await fetch('/api/push-subscribe', {
@@ -5545,59 +5633,41 @@ async function submitFooterEmail() {
           },
         }),
       });
-    } catch (err) {
-      console.warn('Save subscription error:', err);
-    }
+    } catch (err) { console.warn('Save subscription error:', err); }
   }
 
-  // ── Toggle handler (called from checkbox) ──
+  // ── Core subscribe flow (used by sheet + footer toggle) ──
+  async function doEnablePush() {
+    if (!('Notification' in window)) {
+      showToast('Push notifications not supported in this browser.', 'error'); return false;
+    }
+    let perm = Notification.permission;
+    if (perm === 'denied') {
+      showToast('Notifications are blocked — enable them in browser settings.', 'error', 5000); return false;
+    }
+    if (perm !== 'granted') perm = await Notification.requestPermission();
+    if (perm !== 'granted') { showToast('Permission not granted.', 'error'); return false; }
+
+    try { await navigator.serviceWorker.register('/sw.js', { scope: '/' }); } catch(_) {}
+
+    const sub = await subscribePush();
+    if (!sub) { showToast('Could not enable notifications. Try again.', 'error'); return false; }
+
+    await savePushSubscription(sub);
+    LS.set('minimisty_push_subscribed', 'true');
+    LS.set('minimisty_push_answered', 'true');
+    syncPushUI();
+    showToast("🔔 You're in! We'll keep you posted.", 'success', 4000);
+    if (typeof trackClick === 'function') trackClick('push_subscribe');
+    return true;
+  }
+
+  // ── Footer toggle ──
   window.handlePushToggle = async function(checked) {
     const toggle = document.getElementById('pushToggle');
-
-    if (!('Notification' in window)) {
-      showToast('Push notifications not supported in this browser.', 'error');
-      if (toggle) toggle.checked = false;
-      return;
-    }
-
     if (checked) {
-      // Request permission if not yet granted
-      let perm = Notification.permission;
-      if (perm === 'denied') {
-        showToast('Notifications are blocked. Please enable them in your browser settings.', 'error', 5000);
-        if (toggle) toggle.checked = false;
-        syncPushUI();
-        return;
-      }
-      if (perm !== 'granted') {
-        perm = await Notification.requestPermission();
-      }
-      if (perm !== 'granted') {
-        showToast('Notification permission denied.', 'error');
-        if (toggle) toggle.checked = false;
-        syncPushUI();
-        return;
-      }
-
-      // Register service worker if not already
-      try {
-        await navigator.serviceWorker.register('/sw.js', { scope: '/' });
-      } catch (err) {
-        console.warn('SW register error:', err);
-      }
-
-      const sub = await subscribePush();
-      if (!sub) {
-        showToast('Could not enable notifications. Try again.', 'error');
-        if (toggle) toggle.checked = false;
-        return;
-      }
-
-      await savePushSubscription(sub);
-      localStorage.setItem('minimisty_push_subscribed', 'true');
-      syncPushUI();
-      showToast('🔔 Notifications enabled! You\'ll get drops & restocks.', 'success', 4000);
-      if (typeof trackClick === 'function') trackClick('push_subscribe');
+      const ok = await doEnablePush();
+      if (!ok && toggle) { toggle.checked = false; syncPushUI(); }
     } else {
       await unsubscribePush();
       syncPushUI();
@@ -5606,72 +5676,158 @@ async function submitFooterEmail() {
     }
   };
 
-  // ── Register SW and init push UI on load ──
-  async function initPushNotifications() {
-    if (!('serviceWorker' in navigator)) return;
-
-    // Register SW (idempotent)
-    try {
-      await navigator.serviceWorker.register('/sw.js', { scope: '/' });
-    } catch (err) {
-      console.warn('SW register error:', err);
-    }
-
-    syncPushUI();
-
-    // Auto-prompt after 45s if user has items in cart and hasn't been asked
-    setTimeout(() => {
-      const notAsked = !localStorage.getItem('minimisty_push_asked');
-      const hasCart  = state.cart && state.cart.length > 0;
-      const perm     = Notification.permission;
-      if (notAsked && hasCart && perm === 'default') {
-        localStorage.setItem('minimisty_push_asked', '1');
-        // Scroll to footer is too invasive — just show a toast nudge
-        showToast('🔔 Enable alerts so we can remind you about your cart!', 'info', 6000);
-      }
-    }, 45000);
+  // ══════════════════════════════════════
+  //  PUSH BOTTOM SHEET
+  // ══════════════════════════════════════
+  function openPushSheet() {
+    const sheet = document.getElementById('pushSheet');
+    const scrim = document.getElementById('pushSheetScrim');
+    if (!sheet) return;
+    sheet.classList.remove('sheet-close');
+    requestAnimationFrame(() => {
+      sheet.classList.add('sheet-open');
+      if (scrim) scrim.classList.add('scrim-on');
+    });
   }
 
-  // ── Store cart in IndexedDB for background sync (abandoned cart) ──
-  function scheduleAbandonedCartSync() {
-    if (!('serviceWorker' in navigator) || state.cart.length === 0) return;
+  function closePushSheet() {
+    const sheet = document.getElementById('pushSheet');
+    const scrim = document.getElementById('pushSheetScrim');
+    if (!sheet) return;
+    sheet.classList.remove('sheet-open');
+    sheet.classList.add('sheet-close');
+    if (scrim) scrim.classList.remove('scrim-on');
+  }
 
-    // Write cart snapshot to IndexedDB for the SW to read
+  // Accept — enable push then close
+  window.acceptPushSheet = async function() {
+    closePushSheet();
+    await doEnablePush();
+  };
+
+  // Dismiss — "Don't show again" → 48 hours
+  window.dismissPushSheet = function(permanent) {
+    closePushSheet();
+    LS.set('minimisty_push_answered', 'true');
+    if (permanent) {
+      LS.set('minimisty_push_snoozed', String(Date.now() + 48 * 60 * 60 * 1000));
+    }
+    if (typeof trackClick === 'function') trackClick('push_sheet_dismiss');
+  };
+
+  // Should we show the sheet?
+  function shouldShowPushSheet() {
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) return false;
+    if (Notification.permission === 'granted') return false;      // already subscribed
+    if (Notification.permission === 'denied')  return false;      // blocked — can't ask
+    if (LS.get('minimisty_push_subscribed') === 'true') return false;
+
+    // Check snooze (48h after "don't show again")
+    const snoozed = parseInt(LS.get('minimisty_push_snoozed') || '0', 10);
+    if (snoozed && Date.now() < snoozed) return false;
+
+    return true;
+  }
+
+  // ── Wait 10s on first visit, then show sheet ──
+  function maybeTriggerPushSheet(delay = 10000) {
+    if (!shouldShowPushSheet()) return;
+    setTimeout(() => {
+      if (!shouldShowPushSheet()) return; // re-check after delay
+      openPushSheet();
+      if (typeof trackClick === 'function') trackClick('push_sheet_shown');
+    }, delay);
+  }
+
+  // ══════════════════════════════════════
+  //  ABANDONED CART — IndexedDB + BackgroundSync
+  // ══════════════════════════════════════
+
+  // Write cart snapshot to IDB so SW can fire push if user leaves
+  function scheduleAbandonedCartSync() {
+    if (!('serviceWorker' in navigator)) return;
+
+    // Clear IDB if cart is empty (checkout completed or items removed)
+    if (!state.cart || state.cart.length === 0) {
+      clearAbandonedCartIDB();
+      return;
+    }
+
     const cartData = {
       deviceId:  window._deviceId || 'unknown',
       cartItems: state.cart.map(i => ({ qty: i.qty, variant: i.variant, bundle: i.bundle })),
-      cartValue: state.cart.reduce((a, i) => a + i.priceUSD, 0),
+      cartValue: state.cart.reduce((a, i) => a + (i.priceUSD || 0), 0),
       symbol:    window._currencySymbol || '$',
       ts:        Date.now(),
     };
 
     navigator.serviceWorker.ready.then(reg => {
-      // Write to IDB so SW can read it
       const dbReq = indexedDB.open('minimisty-sw', 1);
       dbReq.onupgradeneeded = e => e.target.result.createObjectStore('store');
       dbReq.onsuccess = e => {
-        const db  = e.target.result;
-        const tx  = db.transaction('store', 'readwrite');
+        const db = e.target.result;
+        const tx = db.transaction('store', 'readwrite');
         tx.objectStore('store').put(cartData, 'pendingCart');
+        tx.oncomplete = () => {
+          // Register background sync — fires when connectivity is available
+          if ('sync' in reg) {
+            reg.sync.register('abandoned-cart-check').catch(() => {});
+          }
+        };
       };
-
-      // Register background sync if supported
-      if ('sync' in reg) {
-        reg.sync.register('abandoned-cart-check').catch(() => {});
-      }
+      dbReq.onerror = () => {};
     }).catch(() => {});
   }
 
-  // ── Init on DOMContentLoaded ──
+  // Clear the IDB entry (after successful checkout)
+  function clearAbandonedCartIDB() {
+    try {
+      const dbReq = indexedDB.open('minimisty-sw', 1);
+      dbReq.onsuccess = e => {
+        const db = e.target.result;
+        try {
+          const tx = db.transaction('store', 'readwrite');
+          tx.objectStore('store').delete('pendingCart');
+        } catch(_) {}
+      };
+    } catch(_) {}
+  }
+  window.clearAbandonedCartIDB = clearAbandonedCartIDB;
+
+  // Also write cart on page hide / tab close
+  function onPageHide() {
+    if (state.cart && state.cart.length > 0) {
+      scheduleAbandonedCartSync();
+    } else {
+      clearAbandonedCartIDB();
+    }
+  }
+  window.addEventListener('pagehide',        onPageHide);
+  window.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') onPageHide();
+  });
+  window.addEventListener('beforeunload',    onPageHide);
+
+  // ── Init ──
+  async function initPushNotifications() {
+    if (!('serviceWorker' in navigator)) return;
+
+    // Always register SW so background sync works even before user opts in
+    try { await navigator.serviceWorker.register('/sw.js', { scope: '/' }); } catch(_) {}
+
+    syncPushUI();
+
+    // Show bottom sheet after 10s on first visit (or after 48h snooze expires)
+    maybeTriggerPushSheet(10000);
+  }
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initPushNotifications);
   } else {
     initPushNotifications();
   }
 
-  // ── Trigger abandoned-cart background sync whenever cart gets items ──
-  // This is called after addToCart already invoked openCart; the SW will
-  // pick it up if the user leaves without checking out.
+  // Expose for addToCart hook
   window._scheduleAbandonedCartSync = scheduleAbandonedCartSync;
 
   const AI_SYSTEM = `You are the MINIMISTY store assistant. You help customers with questions about the FrostBlade Pro portable fan.
@@ -6219,6 +6375,22 @@ Keep responses concise, friendly, and helpful. Use short paragraphs. If unsure, 
 
     </div>
   </div>
+</div>
+
+<!-- ═══ PUSH NOTIFICATION BOTTOM SHEET ═══ -->
+<div id="pushSheetScrim" onclick="dismissPushSheet(true)"></div>
+<div id="pushSheet" role="dialog" aria-modal="true" aria-label="Enable notifications">
+  <div class="push-sheet-handle"></div>
+  <div class="push-sheet-icon">🔔</div>
+  <div class="push-sheet-title">Stay one step ahead</div>
+  <div class="push-sheet-sub">Never miss a restock, flash sale, or your cart.<br><strong>We'll ping you — not spam you.</strong></div>
+  <div class="push-sheet-perks">
+    <div class="push-sheet-perk"><div class="push-sheet-perk-icon">🧊</div>Cart reminders before stock runs out</div>
+    <div class="push-sheet-perk"><div class="push-sheet-perk-icon">⚡</div>Flash deals & limited drops first</div>
+    <div class="push-sheet-perk"><div class="push-sheet-perk-icon">📦</div>Order shipped & delivery updates</div>
+  </div>
+  <button class="push-sheet-btn-yes" onclick="acceptPushSheet()">🔔 YES, NOTIFY ME</button>
+  <button class="push-sheet-btn-no"  onclick="dismissPushSheet(true)">Don't show again</button>
 </div>
 
 <!-- ═══ TOAST CONTAINER ═══ -->
