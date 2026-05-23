@@ -262,23 +262,215 @@
       border-top: 1px solid var(--border2);
     }
 
-    /* ── PAYMENT METHOD TABS ── */
-    .pay-tabs {
-      display: grid; grid-template-columns: 1fr 1fr;
-      gap: 8px; margin-bottom: 16px;
+    /* ── PAYMENT METHOD TABS — hidden, PayPal only ── */
+    .pay-tabs { display: none; }
+    .pay-tab { display: none; }
+
+    /* ── PAYPAL-ONLY HEADER ── */
+    .paypal-only-header {
+      display: flex; align-items: center; gap: 10px;
+      background: linear-gradient(135deg, rgba(0,112,200,0.08) 0%, rgba(0,176,255,0.06) 100%);
+      border: 1.5px solid rgba(0,112,200,0.22);
+      border-radius: 14px; padding: 14px 16px; margin-bottom: 16px;
     }
-    .pay-tab {
-      padding: 11px 8px;
-      background: var(--input-bg);
-      border: 1.5px solid var(--input-border);
-      border-radius: 11px; cursor: pointer;
+    .paypal-only-header svg { flex-shrink: 0; }
+    .paypal-only-text { flex: 1; }
+    .paypal-only-title { font-size: 0.82rem; font-weight: 800; color: var(--text); }
+    .paypal-only-sub { font-size: 0.68rem; font-weight: 600; color: var(--text-muted); margin-top: 2px; }
+    .paypal-only-badges { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+    .paypal-badge {
+      display: flex; align-items: center; gap: 4px;
+      background: var(--bg3); border: 1px solid var(--border2);
+      border-radius: 8px; padding: 4px 9px;
+      font-size: 0.62rem; font-weight: 800; color: var(--text-muted);
+    }
+
+    /* ── ERROR POPUP ── */
+    #errorPopup {
+      display: none; position: fixed; inset: 0; z-index: 99999;
+      background: rgba(0,0,0,0.72); backdrop-filter: blur(6px);
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    #errorPopup.show { display: flex; }
+    .error-popup-box {
+      background: #0d0d0d; border: 1.5px solid #ff3b30;
+      border-radius: 20px; padding: 28px 24px; max-width: 400px; width: 100%;
+      box-shadow: 0 0 40px rgba(255,59,48,0.25);
+      animation: popupIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    [data-theme="light"] .error-popup-box { background: #fff; }
+    @keyframes popupIn { from{transform:scale(0.85);opacity:0} to{transform:scale(1);opacity:1} }
+    .error-popup-icon {
+      width: 48px; height: 48px; border-radius: 50%;
+      background: rgba(255,59,48,0.12); border: 2px solid #ff3b30;
       display: flex; align-items: center; justify-content: center;
-      gap: 6px; font-family: var(--font);
-      font-size: 0.78rem; font-weight: 700; color: var(--text-muted);
-      transition: all 0.2s;
+      margin-bottom: 16px;
     }
-    .pay-tab.active { background: var(--bg3); border-color: var(--text); color: var(--text); }
-    .pay-tab svg { flex-shrink: 0; }
+    .error-popup-title {
+      font-size: 1.05rem; font-weight: 800; color: #ff3b30; margin-bottom: 8px;
+    }
+    .error-popup-msg {
+      font-size: 0.82rem; font-weight: 600; color: var(--text-dim);
+      line-height: 1.5; margin-bottom: 20px;
+    }
+    [data-theme="light"] .error-popup-msg { color: #444; }
+    .error-popup-close {
+      width: 100%; background: #ff3b30; color: #fff;
+      border: none; border-radius: 12px; padding: 13px;
+      font-family: var(--font); font-weight: 800; font-size: 0.88rem;
+      cursor: pointer; transition: opacity 0.15s;
+    }
+    .error-popup-close:hover { opacity: 0.85; }
+
+    /* ── PROCESSING OVERLAY ── */
+    #processingOverlay {
+      display: none; position: fixed; inset: 0; z-index: 99998;
+      background: var(--bg); align-items: center; justify-content: center;
+      flex-direction: column; gap: 20px;
+    }
+    #processingOverlay.show { display: flex; }
+    .proc-spinner {
+      width: 64px; height: 64px; border-radius: 50%;
+      border: 3px solid var(--border2);
+      border-top-color: var(--cyan);
+      animation: procSpin 0.8s linear infinite;
+    }
+    @keyframes procSpin { to { transform: rotate(360deg); } }
+    .proc-title { font-size: 1.1rem; font-weight: 800; color: var(--text); }
+    .proc-sub { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); }
+    .proc-dots span {
+      display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+      background: var(--cyan); margin: 0 3px;
+      animation: procDot 1.2s infinite;
+    }
+    .proc-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .proc-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes procDot { 0%,80%,100%{transform:scale(0.6);opacity:0.4} 40%{transform:scale(1);opacity:1} }
+
+    /* ── CHAT WIDGET ── */
+    #chatWidget {
+      position: fixed; bottom: 80px; right: 18px; z-index: 9000;
+    }
+    @media (min-width: 800px) { #chatWidget { bottom: 24px; } }
+    #chatToggleBtn {
+      width: 52px; height: 52px; border-radius: 50%;
+      background: linear-gradient(135deg, #0070c8, #00b0ff);
+      border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 20px rgba(0,112,200,0.45);
+      transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+      position: relative;
+    }
+    #chatToggleBtn:hover { transform: scale(1.08); }
+    #chatToggleBtn.open { background: linear-gradient(135deg, #333, #555); }
+    [data-theme="light"] #chatToggleBtn.open { background: linear-gradient(135deg, #999, #bbb); }
+    .chat-notif-dot {
+      position: absolute; top: 2px; right: 2px;
+      width: 10px; height: 10px; border-radius: 50%;
+      background: #ff3b30; border: 2px solid var(--bg);
+      animation: pulse 1.5s infinite;
+    }
+    #chatModal {
+      display: none; position: fixed;
+      bottom: 144px; right: 18px;
+      width: 340px; max-width: calc(100vw - 36px);
+      background: var(--card-bg); border: 1px solid var(--border2);
+      border-radius: 20px; overflow: hidden;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+      animation: chatPop 0.28s cubic-bezier(0.34,1.56,0.64,1);
+      flex-direction: column;
+      max-height: 480px;
+    }
+    @media (min-width: 800px) { #chatModal { bottom: 88px; } }
+    #chatModal.open { display: flex; }
+    @keyframes chatPop { from{transform:scale(0.88) translateY(16px);opacity:0} to{transform:scale(1) translateY(0);opacity:1} }
+    .chat-header {
+      padding: 14px 16px; display: flex; align-items: center; gap: 10px;
+      background: linear-gradient(135deg, rgba(0,112,200,0.12), rgba(0,176,255,0.08));
+      border-bottom: 1px solid var(--border2); flex-shrink: 0;
+    }
+    .chat-avatar {
+      width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg, #0070c8, #00b0ff);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.9rem;
+    }
+    .chat-header-name { font-size: 0.84rem; font-weight: 800; color: var(--text); }
+    .chat-header-status { font-size: 0.64rem; font-weight: 600; color: #4cd964; display: flex; align-items: center; gap: 4px; }
+    .chat-header-status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #4cd964; display: block; }
+    .chat-messages {
+      flex: 1; overflow-y: auto; padding: 14px 14px 6px;
+      display: flex; flex-direction: column; gap: 10px;
+      scrollbar-width: none;
+    }
+    .chat-messages::-webkit-scrollbar { display: none; }
+    .chat-msg {
+      max-width: 82%; padding: 10px 13px;
+      border-radius: 16px; font-size: 0.78rem; font-weight: 600; line-height: 1.4;
+      word-break: break-word;
+    }
+    .chat-msg.bot {
+      background: var(--bg3); color: var(--text);
+      border-radius: 4px 16px 16px 16px;
+      align-self: flex-start;
+    }
+    .chat-msg.user {
+      background: linear-gradient(135deg, #0070c8, #00b0ff); color: #fff;
+      border-radius: 16px 16px 4px 16px;
+      align-self: flex-end;
+    }
+    .chat-msg img { max-width: 180px; border-radius: 10px; display: block; margin-top: 6px; }
+    .chat-typing {
+      align-self: flex-start; background: var(--bg3);
+      border-radius: 4px 16px 16px 16px; padding: 10px 14px;
+      display: none; gap: 4px; align-items: center;
+    }
+    .chat-typing.show { display: flex; }
+    .chat-typing span {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--text-muted); animation: typingDot 1s infinite;
+    }
+    .chat-typing span:nth-child(2) { animation-delay: 0.15s; }
+    .chat-typing span:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes typingDot { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
+    .chat-input-area {
+      padding: 10px 12px; border-top: 1px solid var(--border2);
+      display: flex; gap: 8px; align-items: flex-end; flex-shrink: 0;
+    }
+    .chat-input-wrap { flex: 1; position: relative; }
+    .chat-input {
+      width: 100%; background: var(--input-bg); border: 1.5px solid var(--input-border);
+      border-radius: 12px; padding: 9px 12px 9px 12px;
+      color: var(--text); font-family: var(--font); font-size: 0.78rem; font-weight: 600;
+      resize: none; max-height: 80px; line-height: 1.4;
+      -webkit-user-select: auto; user-select: auto;
+    }
+    .chat-input:focus { border-color: #0070c8; }
+    .chat-input::placeholder { color: var(--text-faint); }
+    [data-theme="light"] .chat-input { color: #000; }
+    .chat-img-btn, .chat-send-btn {
+      width: 34px; height: 34px; border-radius: 10px; border: none;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: all 0.15s;
+    }
+    .chat-img-btn { background: var(--bg3); border: 1px solid var(--border2); }
+    .chat-img-btn:hover { background: var(--border2); }
+    .chat-send-btn { background: linear-gradient(135deg, #0070c8, #00b0ff); }
+    .chat-send-btn:hover { transform: scale(1.06); }
+    .chat-img-preview {
+      display: flex; gap: 6px; flex-wrap: wrap;
+      padding: 0 12px 8px; flex-shrink: 0;
+    }
+    .chat-img-thumb {
+      position: relative; width: 50px; height: 50px;
+    }
+    .chat-img-thumb img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+    .chat-img-thumb-remove {
+      position: absolute; top: -4px; right: -4px;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: #ff3b30; border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.55rem; color: #fff; font-weight: 800;
+    }
 
     /* Card fields */
     .card-number-wrap { position: relative; }
@@ -751,7 +943,7 @@
     .card-brand-icon { color: var(--cyan); font-size: 0.65rem; }
 
     /* Pay tab active */
-    .pay-tab.active { border-color: var(--cyan); color: var(--cyan); background: rgba(0,240,255,0.07); }
+    .pay-tab.active { border-color: #0070c8; color: #0070c8; background: rgba(0,112,200,0.07); }
 
     /* Mobile sticky bar */
     #mobileStickyTotal { background: var(--bg); border-top: 1px solid rgba(0,240,255,0.2); }
@@ -1095,52 +1287,43 @@
         Payment
       </div>
 
-      <div class="pay-tabs">
-        <div class="pay-tab active" onclick="setPayTab('card',this)" id="tabCard">
-          <svg width="16" height="12" viewBox="0 0 24 18" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="1" width="22" height="16" rx="2"/><line x1="1" y1="7" x2="23" y2="7"/></svg>
-          Credit Card
-        </div>
-        <div class="pay-tab" onclick="setPayTab('paypal',this)" id="tabPaypal">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/></svg>
-          PayPal
+      <!-- PayPal-only trust header -->
+      <div class="paypal-only-header">
+        <svg width="28" height="28" viewBox="0 0 124 33" xmlns="http://www.w3.org/2000/svg">
+          <path d="M46.211 6.749h-6.839a.95.95 0 0 0-.939.802l-2.766 17.537a.57.57 0 0 0 .564.658h3.265a.95.95 0 0 0 .939-.803l.746-4.73a.95.95 0 0 1 .938-.803h2.165c4.505 0 7.105-2.18 7.784-6.5.306-1.89.013-3.375-.872-4.415-.972-1.142-2.696-1.746-4.985-1.746z" fill="#009cde"/>
+          <path d="M82.056 6.749h-6.839a.95.95 0 0 0-.938.802l-2.767 17.537a.57.57 0 0 0 .564.658h3.499a.665.665 0 0 0 .657-.562l.785-4.971a.95.95 0 0 1 .938-.803h2.164c4.506 0 7.105-2.18 7.785-6.5.307-1.89.012-3.375-.873-4.415-.971-1.142-2.694-1.746-4.975-1.746z" fill="#003087"/>
+          <path d="M28.991 16.596c-.347 2.274-2.09 2.274-3.775 2.274h-.96l.672-4.25a.57.57 0 0 1 .563-.482h.44c1.148 0 2.23 0 2.79.653.334.39.436.97.27 1.805z" fill="#009cde"/>
+          <path d="M63.957 16.596c-.349 2.274-2.09 2.274-3.776 2.274h-.959l.672-4.25a.57.57 0 0 1 .563-.482h.44c1.148 0 2.231 0 2.79.653.334.39.435.97.27 1.805z" fill="#003087"/>
+        </svg>
+        <div class="paypal-only-text">
+          <div class="paypal-only-title">Pay securely with PayPal</div>
+          <div class="paypal-only-sub">Includes debit &amp; credit card, Pay Later, and your PayPal balance</div>
+          <div class="paypal-only-badges">
+            <div class="paypal-badge">
+              <svg width="10" height="12" viewBox="0 0 24 28" fill="none" stroke="#4cd964" stroke-width="2"><rect x="2" y="11" width="20" height="16" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Buyer Protection
+            </div>
+            <div class="paypal-badge">
+              <span style="color:#1a1f71;font-weight:900;font-size:0.7rem">VISA</span>
+            </div>
+            <div class="paypal-badge">
+              <svg width="16" height="10" viewBox="0 0 38 24"><circle cx="13" cy="12" r="12" fill="#eb001b"/><circle cx="25" cy="12" r="12" fill="#f79e1b"/><path d="M19 4.8a12 12 0 0 1 0 14.4A12 12 0 0 1 19 4.8z" fill="#ff5f00"/></svg>
+            </div>
+            <div class="paypal-badge" style="color:#2557d6;font-weight:900">AMEX</div>
+          </div>
         </div>
       </div>
 
-      <div id="cardFields">
-        <div class="field-group">
-          <label class="field-label">Card Number</label>
-          <div class="card-number-wrap">
-            <input class="field-input" id="cardNum" type="text" placeholder="0000 0000 0000 0000"
-              maxlength="19" oninput="formatCard(this)" autocomplete="cc-number" inputmode="numeric"
-              style="width:100%;padding-right:52px">
-            <span class="card-brand-icon" id="cardBrand">VISA</span>
-          </div>
-          <div class="field-error" id="cardNumErr"></div>
-        </div>
-        <div class="field-row">
-          <div class="field-group">
-            <label class="field-label">Expiry</label>
-            <input class="field-input" id="cardExp" type="text" placeholder="MM / YY"
-              maxlength="7" oninput="formatExpiry(this)" autocomplete="cc-exp" inputmode="numeric">
-            <div class="field-error" id="cardExpErr"></div>
-          </div>
-          <div class="field-group">
-            <label class="field-label">CVV</label>
-            <input class="field-input" id="cardCvv" type="text" placeholder="•••"
-              maxlength="4" autocomplete="cc-csc" inputmode="numeric">
-            <div class="field-error" id="cardCvvErr"></div>
-          </div>
-        </div>
-        <div class="field-group">
-          <label class="field-label">Cardholder Name</label>
-          <input class="field-input" id="cardName" type="text" placeholder="Jane Smith" autocomplete="cc-name">
-          <div class="field-error" id="cardNameErr"></div>
-        </div>
-      </div>
-
-      <div id="paypalFields" style="display:none;padding:16px 0">
+      <div id="paypalFields" style="padding:4px 0">
         <div id="paypal-button-container"></div>
-        <p style="font-size:0.72rem;color:var(--text-muted);font-weight:600;margin-top:10px;text-align:center">Complete your payment securely via PayPal.</p>
+        <p style="font-size:0.68rem;color:var(--text-muted);font-weight:600;margin-top:10px;text-align:center;line-height:1.5">You'll be redirected to PayPal's secure checkout. Cards &amp; Pay Later accepted — no PayPal account needed.</p>
+      </div>
+
+      <!-- Keep hidden card fields for validation compatibility (unused) -->
+      <div id="cardFields" style="display:none">
+        <input id="cardNum" type="hidden"><input id="cardExp" type="hidden">
+        <input id="cardCvv" type="hidden"><input id="cardName" type="hidden">
+        <div id="cardNumErr"></div><div id="cardExpErr"></div><div id="cardCvvErr"></div><div id="cardNameErr"></div>
       </div>
 
       <!-- Trust row -->
@@ -1231,19 +1414,75 @@
   </button>
 </div>
 
-<!-- SUCCESS SCREEN -->
-<div id="successScreen">
-  <div class="success-checkmark">
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--lime)" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+<!-- SUCCESS SCREEN — hidden, redirect handled by JS -->
+<div id="successScreen" style="display:none"></div>
+
+<!-- ═══ ERROR POPUP ═══ -->
+<div id="errorPopup">
+  <div class="error-popup-box">
+    <div class="error-popup-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ff3b30" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    </div>
+    <div class="error-popup-title" id="errorPopupTitle">Something went wrong</div>
+    <div class="error-popup-msg" id="errorPopupMsg">Please check your details and try again.</div>
+    <button class="error-popup-close" onclick="closeErrorPopup()">Got it, try again</button>
   </div>
-  <h2 style="font-size:1.5rem;font-weight:700;margin-bottom:8px;color:var(--text)">Order Confirmed!</h2>
-  <p style="font-size:0.85rem;color:var(--text-muted);font-weight:600;max-width:320px;line-height:1.5;margin-bottom:6px">
-    Your FrostBlade Pro is on its way. A confirmation has been sent to your email.
-  </p>
-  <p style="font-size:0.75rem;color:var(--text-faint);font-weight:600;margin-bottom:28px" id="successOrderId"></p>
-  <a href="/" style="background:var(--text);color:var(--bg);padding:14px 28px;border-radius:13px;font-family:var(--font);font-weight:800;font-size:0.9rem;text-decoration:none;display:inline-block">
-    CONTINUE SHOPPING
-  </a>
+</div>
+
+<!-- ═══ PROCESSING OVERLAY ═══ -->
+<div id="processingOverlay">
+  <div class="proc-spinner"></div>
+  <div class="proc-title">Processing order…</div>
+  <div class="proc-sub">Please don't close this page</div>
+  <div class="proc-dots">
+    <span></span><span></span><span></span>
+  </div>
+</div>
+
+<!-- ═══ STICKY CHAT WIDGET ═══ -->
+<div id="chatWidget">
+  <div id="chatModal">
+    <div class="chat-header">
+      <div class="chat-avatar">💬</div>
+      <div style="flex:1">
+        <div class="chat-header-name">MINIMISTY Support</div>
+        <div class="chat-header-status">Online — replies in seconds</div>
+      </div>
+      <button onclick="toggleChat()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);padding:4px" aria-label="Close chat">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+      <!-- messages rendered by JS -->
+    </div>
+    <div class="chat-typing" id="chatTyping">
+      <span></span><span></span><span></span>
+    </div>
+    <div class="chat-img-preview" id="chatImgPreview"></div>
+    <div class="chat-input-area">
+      <button class="chat-img-btn" onclick="document.getElementById('chatFileInput').click()" title="Attach image">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      </button>
+      <input type="file" id="chatFileInput" accept="image/*" style="display:none" onchange="handleChatImage(this)">
+      <div class="chat-input-wrap">
+        <textarea class="chat-input" id="chatInput" placeholder="Ask anything about your order…" rows="1"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMsg();}"
+          oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,80)+'px'"></textarea>
+      </div>
+      <button class="chat-send-btn" onclick="sendChatMsg()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+  </div>
+  <button id="chatToggleBtn" onclick="toggleChat()" aria-label="Open support chat">
+    <span class="chat-notif-dot" id="chatNotifDot"></span>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" id="chatOpenIcon">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    </svg>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" id="chatCloseIcon" style="display:none">
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  </button>
 </div>
 
 <!-- ═══ FIREBASE + LOGIC ═══ -->
@@ -1690,20 +1929,27 @@
   };
 
   // ════════════════════════════════
-  //  PAYMENT TAB
+  //  PAYMENT TAB — PayPal only, auto-init
   // ════════════════════════════════
-  let activePayTab = 'card';
+  let activePayTab = 'paypal';
   let paypalRendered = false;
 
   window.setPayTab = function(tab, el) {
     activePayTab = tab;
     document.querySelectorAll('.pay-tab').forEach(t => t.classList.remove('active'));
-    el.classList.add('active');
-    document.getElementById('cardFields').style.display   = tab === 'card'   ? 'block' : 'none';
-    document.getElementById('paypalFields').style.display = tab === 'paypal' ? 'block' : 'none';
+    if (el) el.classList.add('active');
+    document.getElementById('cardFields').style.display   = 'none';
+    document.getElementById('paypalFields').style.display = 'block';
 
-    if (tab === 'paypal' && !paypalRendered && typeof paypal !== 'undefined') {
-      paypalRendered = true;
+    if (!paypalRendered && typeof paypal !== 'undefined') {
+      renderPaypalButtons();
+    }
+  };
+
+  function renderPaypalButtons() {
+    if (paypalRendered) return;
+    if (typeof paypal === 'undefined') return;
+    paypalRendered = true;
       const p = order ? order.pricing : null;
       const codeDisc    = appliedCode ? getCodeDiscount(p ? p.subtotalUSD : 0) : 0;
       const expressCost = selectedShipping === 'express' ? getExpressShippingCost() : 0;
@@ -1745,7 +1991,7 @@
         // ── Step 2: Capture server-side after buyer approves ──────
         onApprove: async function(data) {
           const btn = document.getElementById('placeOrderBtn');
-          if (btn) { btn.disabled = true; btn.textContent = 'Verifying payment…'; }
+          if (btn) { btn.disabled = true; }
 
           const email   = document.getElementById('emailField').value.trim();
           const name    = document.getElementById('firstName').value.trim() + ' ' + document.getElementById('lastName').value.trim();
@@ -1778,14 +2024,15 @@
 
           if (!res.ok) {
             const err = await res.json();
-            if (btn) { btn.disabled = false; btn.textContent = 'PLACE ORDER'; }
-            alert(err.error || 'Payment capture failed. Please try again.');
+            if (btn) { btn.disabled = false; }
+            showErrorPopup('Payment Failed', err.error || 'Payment capture failed. Please try again.');
             return;
           }
 
           const result = await res.json();
+          const finalOrderId = (order?.orderId || result.orderId);
 
-          // Clear storage + show success screen
+          // Clear storage
           try {
             sessionStorage.removeItem('pendingOrderId');
             sessionStorage.removeItem('minimisty_applied_code');
@@ -1796,21 +2043,19 @@
           } catch(e) {}
           try { localStorage.removeItem('minimisty_cart'); } catch(e) {}
 
-          document.getElementById('successOrderId').textContent = 'Order ID: ' + (order?.orderId || result.orderId);
-          document.getElementById('successScreen').classList.add('show');
-          document.getElementById('progressFill').style.width = '100%';
+          showProcessingAndRedirect(finalOrderId, true);
         },
 
         onError: function(err) {
           console.error('PayPal error', err);
           const btn = document.getElementById('placeOrderBtn');
-          if (btn) { btn.disabled = false; btn.textContent = 'PLACE ORDER'; }
-          alert('PayPal encountered an error. Please try again or pay by card.');
+          if (btn) { btn.disabled = false; }
+          showErrorPopup('PayPal Error', 'Something went wrong with PayPal. Please try again or use a different payment method.');
         },
 
         onCancel: function() {
           const btn = document.getElementById('placeOrderBtn');
-          if (btn) { btn.disabled = false; btn.textContent = 'PLACE ORDER'; }
+          if (btn) { btn.disabled = false; }
         },
 
       }).render('#paypal-button-container');
@@ -1861,14 +2106,19 @@
     if (!document.getElementById('city').value.trim())  { setErr('cityErr','Required'); ok = false; }
     if (!document.getElementById('country').value)      { setErr('countryErr','Select a country'); ok = false; }
 
-    if (activePayTab === 'card') {
-      const num = document.getElementById('cardNum').value.replace(/\s/g,'');
-      if (num.length < 13) { setErr('cardNumErr','Enter valid card number'); ok = false; }
-      const exp = document.getElementById('cardExp').value;
-      if (exp.replace(/\D/g,'').length < 4) { setErr('cardExpErr','Enter MM / YY'); ok = false; }
-      const cvv = document.getElementById('cardCvv').value;
-      if (cvv.length < 3) { setErr('cardCvvErr','Enter CVV'); ok = false; }
-      if (!document.getElementById('cardName').value.trim()) { setErr('cardNameErr','Required'); ok = false; }
+    // PayPal handles card validation — no card fields to check
+
+    if (!ok) {
+      // Show popup listing what's wrong
+      const errors = [];
+      ['firstNameErr','lastNameErr','emailErr','addr1Err','cityErr','countryErr'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && el.textContent) errors.push(el.textContent);
+      });
+      const unique = [...new Set(errors)];
+      showErrorPopup('Please fix the following', unique.length > 0
+        ? unique.map(e => '• ' + e).join('\n')
+        : 'Please fill in all required fields before placing your order.');
     }
 
     return ok;
@@ -1881,7 +2131,6 @@
     ['firstNameErr','lastNameErr','emailErr','addr1Err','cityErr','countryErr','cardNumErr','cardExpErr','cardCvvErr','cardNameErr'].forEach(clearErr);
 
     if (!isPaypal && !validate()) {
-      // Scroll to first error
       const firstError = document.querySelector('.field-input.error');
       if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
@@ -2036,18 +2285,50 @@
     } catch(e) {}
     try { localStorage.removeItem('minimisty_cart'); } catch(e) {}
 
-    // Show success
-    document.getElementById('successOrderId').textContent = 'Order ID: ' + orderId;
-    document.getElementById('successScreen').classList.add('show');
-
-    // Track progress fill
-    document.getElementById('progressFill').style.width = '100%';
+    // Show processing overlay then redirect
+    showProcessingAndRedirect(orderId, true);
   }
 
   window.placeOrder = placeOrder;
 
   // ════════════════════════════════
-  //  COUNTDOWN — sync with main page
+  //  ERROR POPUP
+  // ════════════════════════════════
+  window.showErrorPopup = function(title, msg) {
+    document.getElementById('errorPopupTitle').textContent = title || 'Something went wrong';
+    document.getElementById('errorPopupMsg').style.whiteSpace = 'pre-line';
+    document.getElementById('errorPopupMsg').textContent = msg || 'Please try again.';
+    document.getElementById('errorPopup').classList.add('show');
+    document.body.style.overflow = 'hidden';
+  };
+  window.closeErrorPopup = function() {
+    document.getElementById('errorPopup').classList.remove('show');
+    document.body.style.overflow = '';
+  };
+  // Close on backdrop click
+  document.getElementById('errorPopup').addEventListener('click', function(e) {
+    if (e.target === this) window.closeErrorPopup();
+  });
+
+  // ════════════════════════════════
+  //  PROCESSING OVERLAY + REDIRECT
+  // ════════════════════════════════
+  function showProcessingAndRedirect(orderId, success) {
+    // Lock body scroll
+    document.body.style.overflow = 'hidden';
+    const overlay = document.getElementById('processingOverlay');
+    overlay.classList.add('show');
+    document.getElementById('progressFill').style.width = '100%';
+
+    // After 5 seconds, redirect to myorder page
+    setTimeout(() => {
+      const status = success ? 'success' : 'failed';
+      window.location.href = '/myorder?id=' + encodeURIComponent(orderId) + '&status=' + status;
+    }, 5000);
+  }
+
+  // ════════════════════════════════
+  //  INIT PAYPAL on page load (auto)
   // ════════════════════════════════
   (function() {
     let deadline = parseInt(sessionStorage.getItem('minimisty_cd') || '0');
@@ -2157,6 +2438,18 @@
         : fx(appliedCode.value) + ' off';
       if (msgEl) msgEl.innerHTML = `<span style="color:var(--lime)">✓ ${displayDiscount} applied!</span>`;
     }
+
+    // Auto-render PayPal buttons now that order is loaded
+    setTimeout(() => {
+      if (typeof paypal !== 'undefined') renderPaypalButtons();
+      else {
+        // Wait a bit more for PayPal SDK
+        const iv = setInterval(() => {
+          if (typeof paypal !== 'undefined') { clearInterval(iv); renderPaypalButtons(); }
+        }, 200);
+        setTimeout(() => clearInterval(iv), 5000);
+      }
+    }, 100);
   });
 
   // Strip is always visible — no inactivity timer needed
@@ -2377,6 +2670,185 @@
       document.getElementById('dialCodeDisplay').textContent = '+?';
     }
   })();
+</script>
+
+<!-- ═══ CHAT WIDGET JS ═══ -->
+<script>
+(function() {
+  const IMGUR_CLIENT_ID = "891e5bb4aa94282";
+  const CLAUDE_API = "https://api.anthropic.com/v1/messages";
+  const CLAUDE_MODEL = "claude-sonnet-4-20250514";
+
+  let chatOpen = false;
+  let chatHistory = [];
+  let pendingImages = []; // { dataUrl, base64, mediaType }
+  let chatGreeted = false;
+
+  const SYSTEM_PROMPT = `You are a friendly and helpful customer support agent for MINIMISTY.store, an online store selling the FrostBlade Pro — a portable ice-cold handheld fan. You assist customers with:
+- Order status and tracking questions
+- Product questions (specs: 4000mAh battery, 16h runtime, 100-speed brushless motor, USB-C charging, foldable)
+- Shipping information (standard 7–14 business days, free on 2+ bundles)
+- Returns and warranty (30-day returns, 1-year warranty)
+- Payment and checkout questions
+- General store questions
+Be concise, warm, and professional. Keep responses brief (2-4 sentences max unless detail is needed). Don't reveal you are an AI.`;
+
+  window.toggleChat = function() {
+    chatOpen = !chatOpen;
+    const modal = document.getElementById('chatModal');
+    const btn = document.getElementById('chatToggleBtn');
+    const openIcon = document.getElementById('chatOpenIcon');
+    const closeIcon = document.getElementById('chatCloseIcon');
+    const dot = document.getElementById('chatNotifDot');
+
+    modal.classList.toggle('open', chatOpen);
+    btn.classList.toggle('open', chatOpen);
+    openIcon.style.display = chatOpen ? 'none' : 'block';
+    closeIcon.style.display = chatOpen ? 'block' : 'none';
+    if (dot) dot.style.display = chatOpen ? 'none' : '';
+
+    if (chatOpen && !chatGreeted) {
+      chatGreeted = true;
+      setTimeout(() => {
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('bot', "Hi! 👋 I'm here to help with your order or any questions about FrostBlade Pro. What can I help you with?");
+        }, 1000);
+      }, 300);
+    }
+    if (chatOpen) scrollChat();
+  };
+
+  function addMessage(role, text, imgDataUrl) {
+    chatHistory.push({ role: role === 'bot' ? 'assistant' : 'user', content: text });
+    const el = document.createElement('div');
+    el.className = 'chat-msg ' + role;
+    if (text) el.textContent = text;
+    if (imgDataUrl) {
+      const img = document.createElement('img');
+      img.src = imgDataUrl;
+      el.appendChild(img);
+    }
+    document.getElementById('chatMessages').appendChild(el);
+    scrollChat();
+  }
+
+  function showTyping() {
+    const t = document.getElementById('chatTyping');
+    if (t) { t.classList.add('show'); scrollChat(); }
+  }
+  function hideTyping() {
+    const t = document.getElementById('chatTyping');
+    if (t) t.classList.remove('show');
+  }
+  function scrollChat() {
+    const msgs = document.getElementById('chatMessages');
+    if (msgs) setTimeout(() => { msgs.scrollTop = msgs.scrollHeight; }, 50);
+  }
+
+  window.sendChatMsg = async function() {
+    const input = document.getElementById('chatInput');
+    const text = input ? input.value.trim() : '';
+    if (!text && pendingImages.length === 0) return;
+
+    // Build user message display
+    const displayText = text || (pendingImages.length > 0 ? '📷' : '');
+    const imgPreview = pendingImages.length > 0 ? pendingImages[0].dataUrl : null;
+    addMessage('user', text, imgPreview);
+    if (input) { input.value = ''; input.style.height = 'auto'; }
+
+    // Build API message content
+    const contentParts = [];
+    for (const img of pendingImages) {
+      contentParts.push({
+        type: 'image',
+        source: { type: 'base64', media_type: img.mediaType, data: img.base64 }
+      });
+    }
+    if (text) contentParts.push({ type: 'text', text });
+
+    // Build history for API
+    const messages = chatHistory.slice(0, -1).map(m => ({
+      role: m.role,
+      content: m.content
+    }));
+    messages.push({ role: 'user', content: contentParts.length === 1 && contentParts[0].type === 'text' ? text : contentParts });
+
+    // Clear pending images
+    pendingImages = [];
+    document.getElementById('chatImgPreview').innerHTML = '';
+
+    showTyping();
+
+    try {
+      const res = await fetch(CLAUDE_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: CLAUDE_MODEL,
+          max_tokens: 1000,
+          system: SYSTEM_PROMPT,
+          messages
+        })
+      });
+      const data = await res.json();
+      hideTyping();
+      const reply = data.content && data.content[0] && data.content[0].text
+        ? data.content[0].text
+        : "Sorry, I couldn't get a response. Please try again.";
+      addMessage('bot', reply);
+    } catch(e) {
+      hideTyping();
+      addMessage('bot', "I'm having trouble connecting right now. Please email us at support@minimisty.store for help.");
+    }
+  };
+
+  window.handleChatImage = async function(input) {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    input.value = '';
+
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+      const dataUrl = e.target.result;
+      const base64 = dataUrl.split(',')[1];
+      const mediaType = file.type || 'image/jpeg';
+
+      pendingImages.push({ dataUrl, base64, mediaType });
+
+      // Show thumbnail
+      const preview = document.getElementById('chatImgPreview');
+      const thumb = document.createElement('div');
+      thumb.className = 'chat-img-thumb';
+      thumb.innerHTML = `<img src="${dataUrl}"><button class="chat-img-thumb-remove" onclick="removeChatImg(${pendingImages.length-1})">✕</button>`;
+      preview.appendChild(thumb);
+      scrollChat();
+    };
+    reader.readAsDataURL(file);
+  };
+
+  window.removeChatImg = function(idx) {
+    pendingImages.splice(idx, 1);
+    const preview = document.getElementById('chatImgPreview');
+    if (preview) preview.innerHTML = '';
+    // Re-render remaining
+    pendingImages.forEach((img, i) => {
+      const thumb = document.createElement('div');
+      thumb.className = 'chat-img-thumb';
+      thumb.innerHTML = `<img src="${img.dataUrl}"><button class="chat-img-thumb-remove" onclick="removeChatImg(${i})">✕</button>`;
+      preview.appendChild(thumb);
+    });
+  };
+
+  // Show notification dot after 3 seconds to invite engagement
+  setTimeout(() => {
+    if (!chatOpen) {
+      const dot = document.getElementById('chatNotifDot');
+      if (dot) dot.style.display = 'block';
+    }
+  }, 3000);
+})();
 </script>
 
 </body>
