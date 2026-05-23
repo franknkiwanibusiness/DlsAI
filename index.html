@@ -264,6 +264,65 @@
     }
 
     /* ══════════════════════════════════════
+       PUSH NOTIFICATION OPT-IN
+    ══════════════════════════════════════ */
+    .push-optin-row {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 14px; margin-bottom: 5px;
+      padding: 10px 12px;
+      background: rgba(0,240,255,0.05);
+      border: 1px solid rgba(0,240,255,0.15);
+      border-radius: 11px;
+      transition: border-color 0.25s;
+    }
+    .push-optin-row:hover { border-color: rgba(0,240,255,0.3); }
+
+    .push-optin-left {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .push-optin-label {
+      font-size: 0.75rem; font-weight: 700; color: var(--text);
+    }
+    .push-optin-note {
+      font-size: 0.65rem; color: var(--text-muted); font-weight: 600;
+      margin-bottom: 4px; padding: 0 2px;
+      transition: color 0.3s;
+    }
+    .push-optin-note.push-active { color: #00e676; }
+
+    /* Toggle slider */
+    .push-toggle {
+      position: relative; display: inline-block;
+      width: 42px; height: 24px; flex-shrink: 0;
+    }
+    .push-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .push-slider {
+      position: absolute; inset: 0;
+      background: #222; border-radius: 24px;
+      cursor: pointer;
+      transition: background 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      border: 1px solid #333;
+    }
+    .push-slider::before {
+      content: '';
+      position: absolute; height: 18px; width: 18px;
+      left: 2px; bottom: 2px;
+      background: #555; border-radius: 50%;
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), background 0.3s;
+    }
+    .push-toggle input:checked + .push-slider {
+      background: #00c853;
+      border-color: #00c853;
+    }
+    .push-toggle input:checked + .push-slider::before {
+      transform: translateX(18px);
+      background: #fff;
+    }
+    /* Blocked state */
+    .push-toggle.push-blocked .push-slider { background: #2a0000; border-color: #400; }
+    .push-toggle.push-blocked .push-slider::before { background: #ff4444; }
+
+    /* ══════════════════════════════════════
        ENTRANCE ANIMATIONS
     ══════════════════════════════════════ */
     @keyframes fadeInDown {
@@ -3741,6 +3800,19 @@
         <button class="footer-email-btn" onclick="submitFooterEmail()">JOIN</button>
       </div>
       <div class="footer-email-note" id="footerEmailNote">Get 10% off your first order. No spam, unsubscribe anytime.</div>
+
+      <!-- ── Push Notification Opt-in ── -->
+      <div class="push-optin-row" id="pushOptinRow">
+        <div class="push-optin-left">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="push-optin-label" id="pushOptinLabel">Drop alerts &amp; restocks</span>
+        </div>
+        <label class="push-toggle" title="Enable push notifications">
+          <input type="checkbox" id="pushToggle" onchange="handlePushToggle(this.checked)">
+          <span class="push-slider"></span>
+        </label>
+      </div>
+      <div class="push-optin-note" id="pushOptinNote">Get notified about drops, restocks &amp; exclusive offers.</div>
     </div>
 
     <!-- Col 2: Links -->
@@ -4498,6 +4570,8 @@
 
     if (typeof trackCartAdd === 'function') trackCartAdd(item);
     if (typeof trackClick === 'function') trackClick('add_to_cart', { bundle: k, variant: variantStr });
+    // Schedule background sync so SW can send abandoned-cart push if user leaves
+    if (typeof scheduleAbandonedCartSync === 'function') scheduleAbandonedCartSync();
   }
 
   function upgradeToBundle() {
@@ -5378,8 +5452,228 @@ async function submitFooterEmail() {
 
 
   // ════════════════════════════════
-  //  AI CHAT PANEL
+  //  PUSH NOTIFICATIONS
   // ════════════════════════════════
+  const VAPID_PUBLIC_KEY = 'BMTBoZaETNkmPu3gl42TbHyU9CH6tRTS9_TBGB2-oor3nSvt5WhJyk1PcmOiOLIt5z5xRterBfR2xlY2Ubyq1Do';
+
+  function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const raw     = atob(base64);
+    return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+  }
+
+  // ── Check current notification permission state and update UI ──
+  function syncPushUI() {
+    const toggle  = document.getElementById('pushToggle');
+    const row     = document.getElementById('pushOptinRow');
+    const note    = document.getElementById('pushOptinNote');
+    const label   = document.getElementById('pushOptinLabel');
+    const tLabel  = toggle ? toggle.closest('.push-toggle') : null;
+
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+      if (row) row.style.display = 'none';
+      return;
+    }
+
+    const perm = Notification.permission;
+    const subscribed = localStorage.getItem('minimisty_push_subscribed') === 'true';
+
+    if (perm === 'denied') {
+      if (toggle)  toggle.checked = false;
+      if (tLabel)  tLabel.classList.add('push-blocked');
+      if (label)   label.textContent = 'Notifications blocked';
+      if (note)    { note.textContent = 'Enable in browser settings to receive updates.'; note.classList.remove('push-active'); }
+      return;
+    }
+
+    if (perm === 'granted' && subscribed) {
+      if (toggle)  toggle.checked = true;
+      if (tLabel)  tLabel.classList.remove('push-blocked');
+      if (label)   label.textContent = 'Notifications on 🔔';
+      if (note)    { note.textContent = 'You\'ll get drops, restocks & cart reminders.'; note.classList.add('push-active'); }
+    } else {
+      if (toggle)  toggle.checked = false;
+      if (tLabel)  tLabel.classList.remove('push-blocked');
+      if (label)   label.textContent = 'Drop alerts & restocks';
+      if (note)    { note.textContent = 'Get notified about drops, restocks & exclusive offers.'; note.classList.remove('push-active'); }
+    }
+  }
+
+  // ── Subscribe to push ──
+  async function subscribePush() {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const existing = await reg.pushManager.getSubscription();
+      if (existing) return existing;
+
+      return await reg.pushManager.subscribe({
+        userVisibleOnly:      true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+    } catch (err) {
+      console.warn('Push subscribe error:', err);
+      return null;
+    }
+  }
+
+  // ── Unsubscribe from push ──
+  async function unsubscribePush() {
+    try {
+      const reg  = await navigator.serviceWorker.ready;
+      const sub  = await reg.pushManager.getSubscription();
+      if (sub) await sub.unsubscribe();
+      localStorage.removeItem('minimisty_push_subscribed');
+    } catch (err) {
+      console.warn('Push unsubscribe error:', err);
+    }
+  }
+
+  // ── Save subscription to server ──
+  async function savePushSubscription(subscription) {
+    try {
+      await fetch('/api/push-subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subscription: subscription.toJSON(),
+          deviceId: window._deviceId || 'unknown',
+          metadata: {
+            country:   window._geoData?.country_code || 'unknown',
+            city:      window._geoData?.city         || 'unknown',
+            userAgent: navigator.userAgent.substring(0, 200),
+          },
+        }),
+      });
+    } catch (err) {
+      console.warn('Save subscription error:', err);
+    }
+  }
+
+  // ── Toggle handler (called from checkbox) ──
+  window.handlePushToggle = async function(checked) {
+    const toggle = document.getElementById('pushToggle');
+
+    if (!('Notification' in window)) {
+      showToast('Push notifications not supported in this browser.', 'error');
+      if (toggle) toggle.checked = false;
+      return;
+    }
+
+    if (checked) {
+      // Request permission if not yet granted
+      let perm = Notification.permission;
+      if (perm === 'denied') {
+        showToast('Notifications are blocked. Please enable them in your browser settings.', 'error', 5000);
+        if (toggle) toggle.checked = false;
+        syncPushUI();
+        return;
+      }
+      if (perm !== 'granted') {
+        perm = await Notification.requestPermission();
+      }
+      if (perm !== 'granted') {
+        showToast('Notification permission denied.', 'error');
+        if (toggle) toggle.checked = false;
+        syncPushUI();
+        return;
+      }
+
+      // Register service worker if not already
+      try {
+        await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+      } catch (err) {
+        console.warn('SW register error:', err);
+      }
+
+      const sub = await subscribePush();
+      if (!sub) {
+        showToast('Could not enable notifications. Try again.', 'error');
+        if (toggle) toggle.checked = false;
+        return;
+      }
+
+      await savePushSubscription(sub);
+      localStorage.setItem('minimisty_push_subscribed', 'true');
+      syncPushUI();
+      showToast('🔔 Notifications enabled! You\'ll get drops & restocks.', 'success', 4000);
+      if (typeof trackClick === 'function') trackClick('push_subscribe');
+    } else {
+      await unsubscribePush();
+      syncPushUI();
+      showToast('Notifications turned off.', 'info', 2500);
+      if (typeof trackClick === 'function') trackClick('push_unsubscribe');
+    }
+  };
+
+  // ── Register SW and init push UI on load ──
+  async function initPushNotifications() {
+    if (!('serviceWorker' in navigator)) return;
+
+    // Register SW (idempotent)
+    try {
+      await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    } catch (err) {
+      console.warn('SW register error:', err);
+    }
+
+    syncPushUI();
+
+    // Auto-prompt after 45s if user has items in cart and hasn't been asked
+    setTimeout(() => {
+      const notAsked = !localStorage.getItem('minimisty_push_asked');
+      const hasCart  = state.cart && state.cart.length > 0;
+      const perm     = Notification.permission;
+      if (notAsked && hasCart && perm === 'default') {
+        localStorage.setItem('minimisty_push_asked', '1');
+        // Scroll to footer is too invasive — just show a toast nudge
+        showToast('🔔 Enable alerts so we can remind you about your cart!', 'info', 6000);
+      }
+    }, 45000);
+  }
+
+  // ── Store cart in IndexedDB for background sync (abandoned cart) ──
+  function scheduleAbandonedCartSync() {
+    if (!('serviceWorker' in navigator) || state.cart.length === 0) return;
+
+    // Write cart snapshot to IndexedDB for the SW to read
+    const cartData = {
+      deviceId:  window._deviceId || 'unknown',
+      cartItems: state.cart.map(i => ({ qty: i.qty, variant: i.variant, bundle: i.bundle })),
+      cartValue: state.cart.reduce((a, i) => a + i.priceUSD, 0),
+      symbol:    window._currencySymbol || '$',
+      ts:        Date.now(),
+    };
+
+    navigator.serviceWorker.ready.then(reg => {
+      // Write to IDB so SW can read it
+      const dbReq = indexedDB.open('minimisty-sw', 1);
+      dbReq.onupgradeneeded = e => e.target.result.createObjectStore('store');
+      dbReq.onsuccess = e => {
+        const db  = e.target.result;
+        const tx  = db.transaction('store', 'readwrite');
+        tx.objectStore('store').put(cartData, 'pendingCart');
+      };
+
+      // Register background sync if supported
+      if ('sync' in reg) {
+        reg.sync.register('abandoned-cart-check').catch(() => {});
+      }
+    }).catch(() => {});
+  }
+
+  // ── Init on DOMContentLoaded ──
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initPushNotifications);
+  } else {
+    initPushNotifications();
+  }
+
+  // ── Trigger abandoned-cart background sync whenever cart gets items ──
+  // This is called after addToCart already invoked openCart; the SW will
+  // pick it up if the user leaves without checking out.
+  window._scheduleAbandonedCartSync = scheduleAbandonedCartSync;
+
   const AI_SYSTEM = `You are the MINIMISTY store assistant. You help customers with questions about the FrostBlade Pro portable fan.
 
 PRODUCT: FrostBlade Pro — Portable Ice-Cold Handheld Electric Fan
