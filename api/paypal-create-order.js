@@ -2,17 +2,18 @@
 //  /api/paypal-create-order.js
 //  Vercel Serverless Function
 //
-//  Receives:  { orderId }
+//  Receives:  { orderId, appliedCode }
 //  Fetches the verified order from Firebase, calculates the real
 //  total server-side, then creates a PayPal order via the REST API.
-//  Returns:   { paypalOrderId }
+//  Returns:   { paypalOrderId, total }
 //
-//  Env vars required (Vercel → Settings → Environment Variables):
-//    PAYPAL_CLIENT_ID      — your PayPal app client ID
-//    PAYPAL_SECRET_KEY     — your PayPal app secret
-//    PAYPAL_ENV            — "sandbox" | "live"  (defaults to "live")
-//    FIREBASE_DB_URL       — e.g. https://your-project-default-rtdb.firebaseio.com
-//    FIREBASE_SERVICE_KEY  — JSON string of your Firebase service account key
+//  Env vars (Vercel → Settings → Environment Variables):
+//    PAYPAL_CLIENT_ID       — PayPal app client ID
+//    PAYPAL_SECRET_KEY      — PayPal app secret
+//    FIREBASE_PROJECT_ID    — Firebase project ID
+//    FIREBASE_DATABASE_URL  — e.g. https://your-project-default-rtdb.firebaseio.com
+//    FIREBASE_CLIENT_EMAIL  — Firebase service account email
+//    FIREBASE_PRIVATE_KEY   — Firebase service account private key (with \n newlines)
 // ─────────────────────────────────────────────────────────────────
 
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
@@ -21,19 +22,21 @@ import { getDatabase }                   from 'firebase-admin/database';
 // ── Firebase Admin (lazy singleton) ──────────────────────────────
 function getFirebaseDb() {
   if (!getApps().length) {
-    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_KEY);
     initializeApp({
-      credential: cert(serviceAccount),
-      databaseURL: process.env.FIREBASE_DB_URL,
+      credential: cert({
+        projectId:   process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        // Vercel stores \n as literal \\n — replace back to real newlines
+        privateKey:  process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+      }),
+      databaseURL: process.env.FIREBASE_DATABASE_URL,
     });
   }
   return getDatabase();
 }
 
 // ── PayPal helpers ────────────────────────────────────────────────
-const PAYPAL_BASE = process.env.PAYPAL_ENV === 'sandbox'
-  ? 'https://api-m.sandbox.paypal.com'
-  : 'https://api-m.paypal.com';
+const PAYPAL_BASE = 'https://api-m.paypal.com';
 
 async function getPayPalAccessToken() {
   const credentials = Buffer.from(
@@ -49,20 +52,13 @@ async function getPayPalAccessToken() {
     body: 'grant_type=client_credentials',
   });
 
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`PayPal auth failed: ${err}`);
-  }
-
-  const data = await res.json();
-  return data.access_token;
+  if (!res.ok) throw new Error(`PayPal auth failed: ${await res.text()}`);
+  return (await res.json()).access_token;
 }
 
 // ── Price calculator (mirrors checkout.html logic) ────────────────
 function calculateTotal(order, appliedCode) {
-  const p            = order.pricing;
-  const subtotal     = p.subtotalUSD;
-  const shipping     = p.shippingUSD;
+  const { subtotalUSD: subtotal, shippingUSD: shipping } = order.pricing;
 
   let codeDisc = 0;
   if (appliedCode) {
@@ -78,7 +74,6 @@ function calculateTotal(order, appliedCode) {
 
 // ── Main handler ──────────────────────────────────────────────────
 export default async function handler(req, res) {
-  // CORS
   res.setHeader('Access-Control-Allow-Origin',  'https://minimisty.store');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -87,83 +82,58 @@ export default async function handler(req, res) {
 
   try {
     const { orderId, appliedCode } = req.body;
+    if (!orderId) return res.status(400).json({ error: 'orderId is required' });
 
-    if (!orderId) {
-      return res.status(400).json({ error: 'orderId is required' });
-    }
-
-    // 1. Fetch the order from Firebase (server-side — cannot be spoofed)
+    // 1. Fetch order from Firebase — cannot be spoofed by the client
     const db       = getFirebaseDb();
     const snapshot = await db.ref(`orders/${orderId}`).get();
 
-    if (!snapshot.exists()) {
-      return res.status(404).json({ error: 'Order not found' });
-    }
+    if (!snapshot.exists()) return res.status(404).json({ error: 'Order not found' });
 
     const order = snapshot.val();
 
-    // 2. Reject orders that weren't priced server-side
     if (order.pricingSource !== 'server') {
       return res.status(400).json({ error: 'Order pricing not verified' });
     }
-
-    // 3. Reject orders already paid
     if (order.status === 'paid') {
       return res.status(400).json({ error: 'Order already completed' });
     }
 
-    // 4. Calculate the authoritative total (server-side)
-    const { total } = calculateTotal(order, appliedCode || null);
+    // 2. Calculate authoritative total server-side
+    const { total, subtotal, shipping, codeDisc, tax } = calculateTotal(order, appliedCode || null);
+    if (total <= 0) return res.status(400).json({ error: 'Invalid order total' });
 
-    if (total <= 0) {
-      return res.status(400).json({ error: 'Invalid order total' });
-    }
-
-    // 5. Get PayPal access token
+    // 3. Get PayPal access token using secret from Vercel env
     const accessToken = await getPayPalAccessToken();
 
-    // 6. Create PayPal order via REST API
+    // 4. Create PayPal order via REST API with the verified amount
     const paypalRes = await fetch(`${PAYPAL_BASE}/v2/checkout/orders`, {
       method:  'POST',
       headers: {
-        Authorization:              `Bearer ${accessToken}`,
-        'Content-Type':             'application/json',
-        'PayPal-Request-Id':        `${orderId}-${Date.now()}`, // idempotency key
-        'Prefer':                   'return=representation',
+        Authorization:       `Bearer ${accessToken}`,
+        'Content-Type':      'application/json',
+        'PayPal-Request-Id': `${orderId}-${Date.now()}`,
+        'Prefer':            'return=representation',
       },
       body: JSON.stringify({
         intent: 'CAPTURE',
-        purchase_units: [
-          {
-            reference_id: orderId,
-            description:  'FrostBlade Pro — MINIMISTY.store',
-            amount: {
-              currency_code: 'USD',
-              value:         String(total),
-              breakdown: {
-                item_total: {
-                  currency_code: 'USD',
-                  value:         String((order.pricing.subtotalUSD).toFixed(2)),
-                },
-                shipping: {
-                  currency_code: 'USD',
-                  value:         String((order.pricing.shippingUSD).toFixed(2)),
-                },
-                tax_total: {
-                  currency_code: 'USD',
-                  value:         String(((order.pricing.subtotalUSD) * 0.05).toFixed(2)),
-                },
-                discount: {
-                  currency_code: 'USD',
-                  value:         String((0).toFixed(2)), // bundle discount already in subtotal
-                },
-              },
+        purchase_units: [{
+          reference_id: orderId,
+          description:  'FrostBlade Pro — MINIMISTY.store',
+          amount: {
+            currency_code: 'USD',
+            value:         String(total),
+            breakdown: {
+              item_total:  { currency_code: 'USD', value: String(subtotal.toFixed(2)) },
+              shipping:    { currency_code: 'USD', value: String(shipping.toFixed(2)) },
+              tax_total:   { currency_code: 'USD', value: String(tax.toFixed(2)) },
+              discount:    { currency_code: 'USD', value: String(codeDisc.toFixed(2)) },
             },
           },
-        ],
+        }],
         application_context: {
           brand_name:          'MINIMISTY.store',
-          shipping_preference: 'NO_SHIPPING', // we collect address ourselves
+          shipping_preference: 'NO_SHIPPING',
           user_action:         'PAY_NOW',
         },
       }),
@@ -177,17 +147,14 @@ export default async function handler(req, res) {
 
     const paypalOrder = await paypalRes.json();
 
-    // 7. Store the PayPal order ID against our Firebase order (for capture verification)
+    // 5. Store PayPal order ID in Firebase so capture can verify it later
     await db.ref(`orders/${orderId}`).update({
-      paypalOrderId:    paypalOrder.id,
+      paypalOrderId:     paypalOrder.id,
       paypalOrderStatus: 'CREATED',
-      paypalCreatedAt:  Date.now(),
+      paypalCreatedAt:   Date.now(),
     });
 
-    return res.status(200).json({
-      paypalOrderId: paypalOrder.id,
-      total,
-    });
+    return res.status(200).json({ paypalOrderId: paypalOrder.id, total });
 
   } catch (err) {
     console.error('paypal-create-order error:', err);
