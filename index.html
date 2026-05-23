@@ -4660,6 +4660,21 @@
     if (typeof scheduleAbandonedCartSync === 'function') scheduleAbandonedCartSync();
     // Show push sheet 4s after adding to cart (higher intent = better conversion)
     if (typeof maybeTriggerPushSheet === 'function') maybeTriggerPushSheet(4000);
+    // Send immediate push notification if user is already subscribed
+    if (localStorage.getItem('minimisty_push_subscribed') === 'true') {
+      fetch('/api/push-abandoned-cart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          deviceId:  window._deviceId || 'unknown',
+          cartItems: [{ qty: item.qty, variant: item.variant, bundle: item.bundle }],
+          cartValue: item.priceUSD,
+          symbol:    window._currencySymbol || '$',
+          immediate: true,
+        }),
+        keepalive: true,
+      }).catch(() => {});
+    }
   }
 
   function upgradeToBundle() {
