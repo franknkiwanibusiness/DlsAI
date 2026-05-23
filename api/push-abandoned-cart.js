@@ -28,7 +28,7 @@ function getAdminApp() {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { deviceId, cartItems = [], cartValue, symbol = '$' } = req.body || {};
+  const { deviceId, cartItems = [], cartValue, symbol = '$', immediate = false } = req.body || {};
   if (!deviceId) return res.status(400).json({ error: 'deviceId required' });
 
   try {
@@ -42,18 +42,28 @@ export default async function handler(req, res) {
 
     if (!entries.length) return res.status(200).json({ ok: true, sent: 0, reason: 'no subscription' });
 
-    // Build notification
+    // Build notification — immediate (just added) vs reminder (abandoned)
     const qty   = cartItems.reduce((a, i) => a + (i.qty || 1), 0);
     const total = cartValue ? `${symbol}${Number(cartValue).toFixed(2)}` : '';
-    const body  = qty === 1
-      ? `You left a FrostBlade Pro in your cart${total ? ` — ${total}` : ''}. Grab it before stock runs out! 🧊`
-      : `You left ${qty} items in your cart${total ? ` (${total})` : ''}. Don't let them melt away! 🧊`;
+    const variant = cartItems[0]?.variant || 'FrostBlade Pro';
+
+    let title, body;
+    if (immediate) {
+      title = '🛒 Item added to your cart!';
+      body  = `${variant}${total ? ` — ${total}` : ''} is saved. Complete your order before stock runs out! 🧊`;
+    } else {
+      const bodyBase = qty === 1
+        ? `You left a FrostBlade Pro in your cart${total ? ` — ${total}` : ''}`
+        : `You left ${qty} items in your cart${total ? ` (${total})` : ''}`;
+      title = '🧊 Your cart is waiting!';
+      body  = bodyBase + '. Grab it before stock runs out!';
+    }
 
     const payload = JSON.stringify({
-      title: '🧊 Your cart is waiting!',
+      title,
       body,
-      url:  '/?utm_source=push&utm_medium=abandoned_cart',
-      tag:  'abandoned-cart',
+      url:  '/?utm_source=push&utm_medium=' + (immediate ? 'cart_add' : 'abandoned_cart'),
+      tag:  immediate ? 'cart-add' : 'abandoned-cart',
       requireInteraction: false,
       actions: [
         { action: 'open',    title: '✅ Complete Order' },
