@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en" style="background:#000">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>My Order – MINIMISTY.store</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --cyan: #00f0ff;
+      --lime: #a3ff12;
+      --red: #ff3b30;
+      --yellow: #ffeb3b;
+      --font: 'Fredoka', sans-serif;
+      --bg: #000000;
+      --bg2: #0a0a0a;
+      --bg3: #111111;
+      --border2: #1e1e1e;
+      --text: #ffffff;
+      --text-dim: #aaaaaa;
+      --text-muted: #666666;
+      --text-faint: #444444;
+      --card-bg: #0d0d0d;
+    }
+
+    [data-theme="light"] {
+      --bg: #f5f5f5;
+      --bg2: #ffffff;
+      --bg3: #eeeeee;
+      --border2: #dddddd;
+      --text: #0a0a0a;
+      --text-dim: #444444;
+      --text-muted: #666666;
+      --text-faint: #999999;
+      --card-bg: #ffffff;
+      --cyan: #0077cc;
+      --lime: #2a8a00;
+    }
+
+    html, body {
+      background: var(--bg); color: var(--text);
+      font-family: var(--font); min-height: 100vh;
+      -webkit-user-select: none; user-select: none;
+      scrollbar-width: none;
+    }
+    ::-webkit-scrollbar { display: none; }
+    * { -webkit-tap-highlight-color: transparent !important; }
+    *:focus, *:focus-visible { outline: none !important; box-shadow: none !important; }
+
+    /* ── HEADER ── */
+    header {
+      position: sticky; top: 0; width: 100%; height: 56px;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 16px; z-index: 100;
+      border-bottom: 1px solid var(--border2);
+    }
+    [data-theme="light"] header { background: rgba(245,245,245,0.85); }
+    .brand-name { font-weight: 700; font-size: 1.2rem; color: var(--text); }
+    .brand-suffix { font-weight: 600; font-size: 0.8rem; color: var(--cyan); }
+    .fan-icon { width: 30px; height: 30px; animation: spin 5s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── LOADING STATE ── */
+    #loadingState {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; min-height: calc(100vh - 56px);
+      gap: 16px;
+    }
+    .loading-spinner {
+      width: 52px; height: 52px; border-radius: 50%;
+      border: 3px solid var(--border2); border-top-color: var(--cyan);
+      animation: spin 0.8s linear infinite;
+    }
+    .loading-text { font-size: 0.9rem; font-weight: 700; color: var(--text-muted); }
+
+    /* ── MAIN CONTENT ── */
+    #mainContent { display: none; }
+    main {
+      max-width: 620px; margin: 0 auto;
+      padding: 28px 16px 80px;
+    }
+
+    /* ── STATUS HERO ── */
+    .status-hero {
+      text-align: center; padding: 36px 20px 28px;
+      margin-bottom: 20px;
+    }
+    .status-icon {
+      width: 80px; height: 80px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px;
+      animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes popIn { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }
+    .status-icon.success {
+      background: rgba(163,255,18,0.10); border: 2px solid var(--lime);
+    }
+    .status-icon.failed {
+      background: rgba(255,59,48,0.10); border: 2px solid var(--red);
+    }
+    .status-title { font-size: 1.6rem; font-weight: 800; margin-bottom: 8px; }
+    .status-title.success { color: var(--lime); }
+    .status-title.failed { color: var(--red); }
+    .status-sub {
+      font-size: 0.88rem; font-weight: 600; color: var(--text-muted);
+      line-height: 1.55; max-width: 360px; margin: 0 auto;
+    }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--card-bg); border: 1px solid var(--border2);
+      border-radius: 18px; padding: 20px; margin-bottom: 14px;
+      border-left: 3px solid transparent;
+    }
+    .card.success-card { border-left-color: var(--lime); }
+    .card.info-card { border-left-color: var(--cyan); }
+    .card.failed-card { border-left-color: var(--red); }
+    .card-title {
+      font-size: 0.7rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 1.2px; color: var(--text-muted);
+      margin-bottom: 14px; display: flex; align-items: center; gap: 7px;
+    }
+    .card-title.cyan { color: var(--cyan); }
+    .card-title.lime { color: var(--lime); }
+    .card-title.red { color: var(--red); }
+
+    /* ── ORDER ID CHIP ── */
+    .order-id-chip {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--bg3); border: 1px solid var(--border2);
+      border-radius: 10px; padding: 10px 14px;
+      font-size: 0.82rem; font-weight: 800; color: var(--text);
+      letter-spacing: 0.5px;
+    }
+    .copy-btn {
+      background: none; border: none; cursor: pointer;
+      color: var(--text-muted); padding: 2px;
+      transition: color 0.15s;
+    }
+    .copy-btn:hover { color: var(--cyan); }
+
+    /* ── DETAIL ROW ── */
+    .detail-row {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      padding: 9px 0; border-bottom: 1px solid var(--border2);
+      gap: 12px;
+    }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-label { font-size: 0.74rem; font-weight: 700; color: var(--text-muted); flex-shrink: 0; }
+    .detail-value { font-size: 0.8rem; font-weight: 700; color: var(--text); text-align: right; line-height: 1.4; word-break: break-word; max-width: 60%; }
+    .detail-value.lime { color: var(--lime); }
+    .detail-value.cyan { color: var(--cyan); }
+    .detail-value.red { color: var(--red); }
+
+    /* ── ORDER ITEMS ── */
+    .order-item {
+      display: flex; gap: 12px; align-items: center;
+      padding: 10px 0; border-bottom: 1px solid var(--border2);
+    }
+    .order-item:last-child { border-bottom: none; }
+    .item-img {
+      width: 52px; height: 52px; border-radius: 10px;
+      background-size: cover; background-position: center;
+      background-color: var(--bg3);
+      flex-shrink: 0; border: 1px solid var(--border2);
+      position: relative;
+    }
+    .item-qty-badge {
+      position: absolute; top: -5px; right: -5px;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: var(--text-muted); color: var(--bg);
+      font-size: 0.56rem; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      border: 2px solid var(--card-bg);
+    }
+    .item-name { font-size: 0.82rem; font-weight: 800; color: var(--text); }
+    .item-variant { font-size: 0.68rem; font-weight: 600; color: var(--text-muted); margin-top: 2px; }
+    .item-price { font-size: 0.86rem; font-weight: 800; color: var(--text); margin-left: auto; flex-shrink: 0; }
+
+    /* ── TIMELINE (order tracking) ── */
+    .timeline { display: flex; flex-direction: column; gap: 0; }
+    .tl-step { display: flex; gap: 12px; position: relative; }
+    .tl-step:not(:last-child) .tl-line {
+      position: absolute; left: 10px; top: 22px;
+      width: 1px; height: calc(100% + 8px);
+      background: var(--border2);
+    }
+    .tl-dot {
+      width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.6rem; margin-top: 2px;
+    }
+    .tl-dot.done { background: var(--lime); color: #000; }
+    .tl-dot.active { background: var(--cyan); color: #000; animation: pulse 1.5s infinite; }
+    .tl-dot.pending { background: var(--bg3); border: 1px solid var(--border2); color: var(--text-faint); }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+    .tl-content { padding: 0 0 20px 2px; }
+    .tl-title { font-size: 0.82rem; font-weight: 800; color: var(--text); }
+    .tl-sub { font-size: 0.68rem; font-weight: 600; color: var(--text-muted); margin-top: 3px; }
+
+    /* ── PRICING ── */
+    .price-row {
+      display: flex; justify-content: space-between;
+      font-size: 0.8rem; font-weight: 600; padding: 7px 0;
+    }
+    .price-row .lbl { color: var(--text-muted); }
+    .price-row .val { color: var(--text); }
+    .price-row .val.green { color: var(--lime); }
+    .price-row .val.red { color: var(--red); }
+    .price-total {
+      display: flex; justify-content: space-between;
+      font-size: 1.1rem; font-weight: 800;
+      padding: 12px 0 0; margin-top: 6px;
+      border-top: 1px solid var(--border2);
+      color: var(--lime);
+    }
+
+    /* ── FAIL ACTIONS ── */
+    .fail-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+    .btn-primary {
+      width: 100%; background: var(--text); color: var(--bg);
+      border: none; padding: 15px; border-radius: 13px;
+      font-family: var(--font); font-weight: 800; font-size: 0.95rem;
+      cursor: pointer; text-decoration: none; display: block; text-align: center;
+      transition: opacity 0.15s;
+    }
+    .btn-primary:hover { opacity: 0.88; }
+    .btn-primary.lime { background: linear-gradient(135deg, #e8ff80, var(--lime)); color: #000; }
+    .btn-secondary {
+      width: 100%; background: var(--bg3); color: var(--text);
+      border: 1px solid var(--border2); padding: 13px; border-radius: 13px;
+      font-family: var(--font); font-weight: 800; font-size: 0.88rem;
+      cursor: pointer; text-decoration: none; display: block; text-align: center;
+      transition: background 0.15s;
+    }
+    .btn-secondary:hover { background: var(--border2); }
+
+    /* ── UNKNOWN ORDER ── */
+    #noOrderState {
+      display: none; flex-direction: column; align-items: center;
+      justify-content: center; min-height: calc(100vh - 56px);
+      gap: 16px; text-align: center; padding: 24px;
+    }
+    .no-order-icon { font-size: 3rem; margin-bottom: 8px; }
+    .no-order-title { font-size: 1.2rem; font-weight: 800; color: var(--text-muted); }
+    .no-order-sub { font-size: 0.82rem; font-weight: 600; color: var(--text-faint); max-width: 280px; line-height: 1.5; }
+
+    /* ── CONFETTI ── */
+    .confetti-piece {
+      position: fixed; top: -10px; z-index: 9999;
+      border-radius: 2px; animation: confettiFall linear forwards;
+      pointer-events: none;
+    }
+    @keyframes confettiFall {
+      0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="/" style="display:flex;align-items:center;gap:6px;color:var(--text-muted);font-size:0.82rem;font-weight:700;text-decoration:none;transition:color 0.2s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-muted)'">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    Shop
+  </a>
+  <div style="display:flex;align-items:center;gap:8px">
+    <svg class="fan-icon" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="50" cy="50" r="16" fill="var(--text)" stroke="var(--bg)" stroke-width="4"/>
+      <path d="M50 34 C30 30 30 4 50 4 C70 4 70 30 50 34 Z" fill="var(--text)"/>
+      <path d="M66 50 C70 30 96 30 96 50 C96 70 70 70 66 50 Z" fill="var(--text)"/>
+      <path d="M50 66 C70 70 70 96 50 96 C30 96 30 70 50 66 Z" fill="var(--text)"/>
+      <path d="M34 50 C30 70 4 70 4 50 C4 30 30 30 34 50 Z" fill="var(--text)"/>
+      <circle cx="50" cy="50" r="6" fill="var(--bg)"/>
+    </svg>
+    <span class="brand-name">MINIMISTY</span><span class="brand-suffix">.store</span>
+  </div>
+  <div style="width:60px"></div>
+</header>
+
+<!-- Loading -->
+<div id="loadingState">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Loading your order…</div>
+</div>
+
+<!-- No order found -->
+<div id="noOrderState">
+  <div class="no-order-icon">📦</div>
+  <div class="no-order-title">No order found</div>
+  <div class="no-order-sub">We couldn't find order details for this link. If you just placed an order, check your confirmation email.</div>
+  <a href="/" class="btn-primary" style="max-width:220px;margin-top:8px">Back to Shop</a>
+</div>
+
+<!-- Main order content -->
+<div id="mainContent">
+<main>
+
+  <!-- Status Hero -->
+  <div class="status-hero">
+    <div class="status-icon" id="statusIcon">
+      <!-- filled by JS -->
+    </div>
+    <div class="status-title" id="statusTitle"></div>
+    <div class="status-sub" id="statusSub"></div>
+  </div>
+
+  <!-- Order ID -->
+  <div class="card info-card">
+    <div class="card-title cyan">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+      Order Reference
+    </div>
+    <div class="order-id-chip">
+      <span id="orderIdDisplay">—</span>
+      <button class="copy-btn" onclick="copyOrderId()" title="Copy order ID">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Order Details (shown for success) -->
+  <div id="orderDetailsSection" style="display:none">
+
+    <!-- Customer & Shipping -->
+    <div class="card success-card">
+      <div class="card-title lime">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Customer Details
+      </div>
+      <div id="customerDetails"></div>
+    </div>
+
+    <!-- Order Items -->
+    <div class="card success-card">
+      <div class="card-title lime">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
+        Items Ordered
+      </div>
+      <div id="orderItems"></div>
+    </div>
+
+    <!-- Pricing Breakdown -->
+    <div class="card success-card">
+      <div class="card-title lime">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+        Order Total
+      </div>
+      <div id="pricingBreakdown"></div>
+    </div>
+
+    <!-- Order Tracking Timeline -->
+    <div class="card info-card">
+      <div class="card-title cyan">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Order Status
+      </div>
+      <div class="timeline" id="orderTimeline"></div>
+    </div>
+
+  </div>
+
+  <!-- Failed Order Actions -->
+  <div id="failedSection" style="display:none">
+    <div class="card failed-card">
+      <div class="card-title red">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        What happened?
+      </div>
+      <div style="font-size:0.8rem;font-weight:600;color:var(--text-muted);line-height:1.6" id="failReason">
+        Your payment could not be processed. No charge was made to your account.
+      </div>
+    </div>
+    <div class="fail-actions">
+      <a href="/checkout" class="btn-primary lime">Try Again → Checkout</a>
+      <a href="/" class="btn-secondary">Return to Shop</a>
+    </div>
+    <p style="text-align:center;font-size:0.68rem;color:var(--text-faint);font-weight:600;margin-top:14px">
+      Need help? Email <a href="mailto:support@minimisty.store" style="color:var(--cyan);text-decoration:none">support@minimisty.store</a>
+    </p>
+  </div>
+
+  <!-- Success continue shopping -->
+  <div id="successActions" style="display:none">
+    <a href="/" class="btn-primary lime" style="margin-bottom:10px">Continue Shopping</a>
+    <p style="text-align:center;font-size:0.7rem;color:var(--text-faint);font-weight:600;margin-top:10px;line-height:1.5">
+      A confirmation email has been sent to your inbox.<br>
+      Questions? <a href="mailto:support@minimisty.store" style="color:var(--cyan);text-decoration:none">support@minimisty.store</a>
+    </p>
+  </div>
+
+</main>
+</div>
+
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+  import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
+    authDomain: "itzhoyoo-f9f7e.firebaseapp.com",
+    databaseURL: "https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com",
+    projectId: "itzhoyoo-f9f7e",
+    storageBucket: "itzhoyoo-f9f7e.filestorage.app",
+    messagingSenderId: "1094792075584",
+    appId: "1:1094792075584:web:d49e9c3f899d3cd31082a5"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  window._orderDb = db;
+  window._orderRef = ref;
+  window._orderGet = get;
+  window._fbReady = true;
+</script>
+
+<script>
+(function() {
+  // ── Read URL params ──
+  const params = new URLSearchParams(window.location.search);
+  const orderId = params.get('id') || '';
+  const statusParam = params.get('status') || ''; // 'success' | 'failed' | ''
+
+  if (!orderId) {
+    showNoOrder();
+    return;
+  }
+
+  // Apply theme
+  try {
+    const saved = localStorage.getItem('minimisty_theme');
+    if (saved === 'light') {
+      document.documentElement.setAttribute('data-theme', 'light');
+      document.documentElement.style.background = '#f5f5f5';
+    }
+  } catch(e) {}
+
+  document.getElementById('orderIdDisplay').textContent = orderId;
+
+  // Wait for Firebase then load
+  let waitAttempts = 0;
+  const waitInterval = setInterval(async () => {
+    waitAttempts++;
+    if (window._fbReady || waitAttempts > 40) {
+      clearInterval(waitInterval);
+      await loadOrder(orderId, statusParam);
+    }
+  }, 100);
+
+  async function loadOrder(id, urlStatus) {
+    try {
+      const snap = await window._orderGet(window._orderRef(window._orderDb, 'orders/' + id));
+      if (snap.exists()) {
+        const data = snap.val();
+        renderOrder(data, urlStatus || data.status);
+      } else {
+        // Not in DB yet — use URL status to render partial view
+        if (urlStatus) {
+          renderOrder({ orderId: id, status: urlStatus }, urlStatus);
+        } else {
+          showNoOrder();
+        }
+      }
+    } catch(e) {
+      if (urlStatus) {
+        renderOrder({ orderId: id, status: urlStatus }, urlStatus);
+      } else {
+        showNoOrder();
+      }
+    }
+  }
+
+  function renderOrder(data, status) {
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('mainContent').style.display = 'block';
+
+    const isSuccess = status === 'success' || status === 'paid';
+
+    // Status hero
+    const icon = document.getElementById('statusIcon');
+    const title = document.getElementById('statusTitle');
+    const sub = document.getElementById('statusSub');
+
+    if (isSuccess) {
+      icon.className = 'status-icon success';
+      icon.innerHTML = '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--lime)" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>';
+      title.className = 'status-title success';
+      title.textContent = 'Order Confirmed!';
+      sub.textContent = 'Your FrostBlade Pro has been received and is being prepared for dispatch. You\'ll receive a tracking email once it ships.';
+      document.getElementById('orderDetailsSection').style.display = 'block';
+      document.getElementById('successActions').style.display = 'block';
+      renderOrderDetails(data);
+      spawnConfetti();
+    } else {
+      icon.className = 'status-icon failed';
+      icon.innerHTML = '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+      title.className = 'status-title failed';
+      title.textContent = 'Payment Failed';
+      sub.textContent = 'Something went wrong processing your payment. Your cart is still saved — you can try again without re-entering your details.';
+      document.getElementById('failedSection').style.display = 'block';
+      if (data.failReason) {
+        document.getElementById('failReason').textContent = data.failReason;
+      }
+    }
+  }
+
+  function renderOrderDetails(data) {
+    const fx = (usd) => {
+      const rate = data.exchangeRate || 1;
+      const sym = data.currencySymbol || '$';
+      const val = usd * rate;
+      return sym + val.toFixed(2);
+    };
+
+    // Customer details
+    const custEl = document.getElementById('customerDetails');
+    const addr = data.shippingAddress || {};
+    custEl.innerHTML = [
+      ['Name', data.customerName],
+      ['Email', data.customerEmail],
+      ['Phone', data.customerPhone || '—'],
+      ['Ship to', [addr.line1, addr.line2, addr.city, addr.postal, addr.country].filter(Boolean).join(', ') || '—'],
+      ['Shipping', data.shippingMethod === 'express' ? 'Express' : 'Standard (7–14 days)'],
+      ['Payment', 'PayPal'],
+    ].filter(r => r[1]).map(([lbl, val]) => `
+      <div class="detail-row">
+        <span class="detail-label">${lbl}</span>
+        <span class="detail-value">${val}</span>
+      </div>`).join('');
+
+    // Items
+    const itemsEl = document.getElementById('orderItems');
+    if (data.items && data.items.length > 0) {
+      itemsEl.innerHTML = data.items.map(item => `
+        <div class="order-item">
+          <div class="item-img" style="background-image:url('${item.variantImg || item.img || ''}')">
+            <div class="item-qty-badge">${item.qty}</div>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div class="item-name">${item.name || 'FrostBlade Pro'}</div>
+            <div class="item-variant">${item.variant || ''} · ${item.qty > 1 ? item.qty + ' units' : '1 unit'}</div>
+          </div>
+          <div class="item-price">${fx(item.priceUSD)}</div>
+        </div>`).join('');
+    } else {
+      itemsEl.innerHTML = '<div style="font-size:0.8rem;color:var(--text-muted);font-weight:600">Order items unavailable</div>';
+    }
+
+    // Pricing
+    const p = data.pricing || {};
+    const pricingEl = document.getElementById('pricingBreakdown');
+    let html = '';
+    if (p.subtotalUSD > 0) html += `<div class="price-row"><span class="lbl">Subtotal</span><span class="val">${fx(p.subtotalUSD)}</span></div>`;
+    if (p.discountUSD > 0) html += `<div class="price-row"><span class="lbl">Discount</span><span class="val red">−${fx(p.discountUSD)}</span></div>`;
+    if (p.codeDiscUSD > 0) html += `<div class="price-row"><span class="lbl">Code Discount</span><span class="val red">−${fx(p.codeDiscUSD)}</span></div>`;
+    const shipTotal = (p.shippingUSD || 0) + (p.expressCostUSD || 0);
+    if (shipTotal === 0) html += `<div class="price-row"><span class="lbl">Shipping</span><span class="val green">FREE</span></div>`;
+    else html += `<div class="price-row"><span class="lbl">Shipping</span><span class="val">${fx(shipTotal)}</span></div>`;
+    if (p.giftCostUSD > 0) html += `<div class="price-row"><span class="lbl">Gift Wrapping</span><span class="val">+${fx(p.giftCostUSD)}</span></div>`;
+    if (p.protectCostUSD > 0) html += `<div class="price-row"><span class="lbl">Shipping Protection</span><span class="val">+${fx(p.protectCostUSD)}</span></div>`;
+    if (p.taxUSD > 0) html += `<div class="price-row"><span class="lbl">Tax (5%)</span><span class="val">${fx(p.taxUSD)}</span></div>`;
+    const totalUSD = p.finalTotalUSD || p.totalUSD || 0;
+    if (totalUSD > 0) html += `<div class="price-total"><span>Total</span><span>${fx(totalUSD)}</span></div>`;
+    pricingEl.innerHTML = html;
+
+    // Timeline
+    const tl = document.getElementById('orderTimeline');
+    tl.innerHTML = [
+      { title: 'Order Placed', sub: 'Payment received successfully', state: 'done' },
+      { title: 'Preparing', sub: 'Your FrostBlade Pro is being packed', state: 'active' },
+      { title: 'Dispatched', sub: 'Tracking link sent to your email', state: 'pending' },
+      { title: 'Delivered', sub: 'Expected in 7–14 business days', state: 'pending' },
+    ].map(step => `
+      <div class="tl-step">
+        <div style="position:relative;display:flex;flex-direction:column;align-items:center">
+          <div class="tl-dot ${step.state}">${step.state === 'done' ? '✓' : step.state === 'active' ? '●' : ''}</div>
+          <div class="tl-line"></div>
+        </div>
+        <div class="tl-content">
+          <div class="tl-title">${step.title}</div>
+          <div class="tl-sub">${step.sub}</div>
+        </div>
+      </div>`).join('');
+  }
+
+  function showNoOrder() {
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('noOrderState').style.display = 'flex';
+  }
+
+  window.copyOrderId = function() {
+    const id = document.getElementById('orderIdDisplay').textContent;
+    navigator.clipboard.writeText(id).then(() => {
+      const btn = document.querySelector('.copy-btn');
+      if (btn) {
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--lime)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>';
+        setTimeout(() => { btn.innerHTML = orig; }, 1500);
+      }
+    }).catch(() => {});
+  };
+
+  function spawnConfetti() {
+    const colors = ['#a3ff12','#00f0ff','#ffeb3b','#ff9500','#ff3b30','#ffffff'];
+    for (let i = 0; i < 60; i++) {
+      setTimeout(() => {
+        const el = document.createElement('div');
+        el.className = 'confetti-piece';
+        const size = 6 + Math.random() * 8;
+        el.style.cssText = `
+          left: ${Math.random() * 100}vw;
+          width: ${size}px; height: ${size * (0.5 + Math.random())}px;
+          background: ${colors[Math.floor(Math.random() * colors.length)]};
+          animation-duration: ${1.5 + Math.random() * 2}s;
+          animation-delay: ${Math.random() * 0.5}s;
+          transform: rotate(${Math.random() * 360}deg);
+        `;
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 4000);
+      }, i * 25);
+    }
+  }
+})();
+</script>
+
+</body>
+</html>
