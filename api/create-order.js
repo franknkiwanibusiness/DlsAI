@@ -45,7 +45,7 @@ export default async function handler(req, res) {
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'No items provided' });
     }
-    if (items.length > 10) {
+    if (items.length > 200) {
       return res.status(400).json({ error: 'Too many items' });
     }
 
