@@ -31,71 +31,218 @@
   }
 </script>
 <style>
-  * { box-sizing: border-box; }
-  body { background: #0f0f11; color: #fafafa; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif; margin: 0; overflow-x: hidden; }
-  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { height: 100%; -webkit-text-size-adjust: 100%; }
+  body {
+    background: #0f0f11;
+    color: #fafafa;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+    height: 100%;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::-webkit-scrollbar { width: 3px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: #2a2a30; border-radius: 4px; }
-  .nav-item { transition: background 0.15s, color 0.15s; }
-  .nav-item.active { background: rgba(59,130,246,0.12); color: #60a5fa; }
-  .nav-item:hover:not(.active) { background: rgba(255,255,255,0.04); }
-  .card { background: #18181b; border: 1px solid #2a2a30; border-radius: 14px; }
+  ::-webkit-scrollbar-thumb { background: #2a2a30; border-radius: 3px; }
+
+  /* ── Layout shell ── */
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ── Top bar ── */
+  #topbar {
+    flex-shrink: 0;
+    height: 52px;
+    background: #0f0f11;
+    border-bottom: 1px solid #2a2a30;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 10px;
+    z-index: 40;
+  }
+  #topbar h1 { font-size: 15px; font-weight: 700; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ── Scroll area ── */
+  #scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  #scroll-inner { padding: 14px 14px 16px; }
+
+  /* ── Bottom tab bar ── */
+  #bottom-nav {
+    flex-shrink: 0;
+    height: 60px;
+    padding-bottom: env(safe-area-inset-bottom);
+    background: #0f0f11;
+    border-top: 1px solid #2a2a30;
+    display: flex;
+    align-items: stretch;
+    z-index: 40;
+  }
+  .tab-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    cursor: pointer;
+    color: #52525b;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    border: none;
+    background: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.15s;
+    padding: 6px 2px;
+    position: relative;
+  }
+  .tab-btn svg { flex-shrink: 0; }
+  .tab-btn.active { color: #60a5fa; }
+  .tab-btn .tab-badge {
+    position: absolute;
+    top: 6px;
+    right: calc(50% - 14px);
+    background: #3b82f6;
+    color: #fff;
+    font-size: 8px;
+    font-weight: 800;
+    min-width: 14px;
+    height: 14px;
+    border-radius: 7px;
+    padding: 0 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+
+  /* ── Sections ── */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* ── Cards ── */
+  .card { background: #18181b; border: 1px solid #2a2a30; border-radius: 14px; overflow: hidden; }
   .card-sm { background: #1e1e22; border: 1px solid #2a2a30; border-radius: 12px; }
-  .badge { font-size: 10px; font-weight: 700; letter-spacing: 0.03em; padding: 2px 7px; border-radius: 20px; }
+  .card + .card, .card + .card-sm { margin-top: 10px; }
+
+  /* ── Stat cards ── */
+  .stat-card {
+    background: #18181b;
+    border: 1px solid #2a2a30;
+    border-radius: 14px;
+    padding: 14px 16px;
+  }
+  .stat-label { font-size: 10px; font-weight: 700; color: #71717a; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
+  .stat-value { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+  .stat-sub { font-size: 11px; font-weight: 600; margin-top: 3px; }
+
+  /* ── Badges ── */
+  .badge { font-size: 10px; font-weight: 700; letter-spacing: 0.03em; padding: 2px 7px; border-radius: 20px; white-space: nowrap; }
   .badge-green { background: rgba(34,197,94,0.12); color: #22c55e; }
   .badge-yellow { background: rgba(245,158,11,0.12); color: #f59e0b; }
   .badge-red { background: rgba(239,68,68,0.12); color: #ef4444; }
   .badge-blue { background: rgba(59,130,246,0.12); color: #60a5fa; }
   .badge-gray { background: rgba(113,113,122,0.15); color: #a1a1aa; }
-  .stat-card { background: #18181b; border: 1px solid #2a2a30; border-radius: 14px; padding: 18px 20px; }
+
+  /* ── Tabs (filter row) ── */
   .tab { font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 8px; cursor: pointer; transition: all 0.15s; color: #71717a; }
   .tab.active { background: #1e1e22; color: #fafafa; }
-  .tab:hover:not(.active) { color: #a1a1aa; }
-  .row-hover:hover { background: rgba(255,255,255,0.025); }
-  .input { background: #1e1e22; border: 1px solid #2a2a30; border-radius: 10px; color: #fafafa; padding: 8px 12px; font-size: 13px; outline: none; transition: border 0.15s; width: 100%; }
+
+  /* ── Inputs / buttons ── */
+  .input {
+    background: #1e1e22;
+    border: 1px solid #2a2a30;
+    border-radius: 10px;
+    color: #fafafa;
+    padding: 9px 12px;
+    font-size: 14px;
+    outline: none;
+    transition: border 0.15s;
+    width: 100%;
+    -webkit-appearance: none;
+  }
   .input:focus { border-color: #3b82f6; }
-  .btn { font-size: 13px; font-weight: 600; padding: 8px 16px; border-radius: 10px; cursor: pointer; border: none; transition: all 0.15s; }
+  textarea.input { resize: vertical; line-height: 1.5; }
+  select.input { appearance: none; -webkit-appearance: none; }
+  .btn { font-size: 13px; font-weight: 600; padding: 9px 16px; border-radius: 10px; cursor: pointer; border: none; transition: all 0.15s; -webkit-tap-highlight-color: transparent; }
   .btn-primary { background: #3b82f6; color: #fff; }
-  .btn-primary:hover { background: #2563eb; }
   .btn-ghost { background: transparent; color: #a1a1aa; border: 1px solid #2a2a30; }
-  .btn-ghost:hover { background: #1e1e22; color: #fafafa; }
   .btn-danger { background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid rgba(239,68,68,0.2); }
-  .btn-danger:hover { background: rgba(239,68,68,0.18); }
-  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 16px; }
-  .modal { background: #18181b; border: 1px solid #2a2a30; border-radius: 18px; padding: 24px; max-width: 540px; width: 100%; max-height: 90vh; overflow-y: auto; }
-  .pulse-dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 0 rgba(34,197,94,0.4); animation: pulse 1.8s infinite; }
-  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(34,197,94,0.4); } 70% { box-shadow: 0 0 0 7px rgba(34,197,94,0); } 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); } }
-  .section { display: none; }
-  .section.active { display: block; }
+
+  /* ── Tables — horizontal scroll wrapper ── */
+  .table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { font-size: 12px; width: 100%; border-collapse: collapse; min-width: 520px; }
+  table th { font-size: 10px; font-weight: 700; color: #71717a; text-transform: uppercase; letter-spacing: .04em; padding: 10px 14px; border-bottom: 1px solid #2a2a30; text-align: left; }
+  table td { padding: 10px 14px; border-bottom: 1px solid #1e1e22; vertical-align: middle; }
+  .row-hover:hover { background: rgba(255,255,255,0.025); }
+
+  /* ── Modal — sheet from bottom ── */
+  .modal-bg {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    display: flex;
+    align-items: flex-end;
+    padding: 0;
+  }
+  .modal {
+    background: #18181b;
+    border: 1px solid #2a2a30;
+    border-radius: 20px 20px 0 0;
+    padding: 20px 16px;
+    width: 100%;
+    max-height: 88dvh;
+    max-height: 88vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .modal-handle {
+    width: 36px; height: 4px;
+    background: #3f3f46;
+    border-radius: 2px;
+    margin: 0 auto 16px;
+  }
+
+  /* ── Grids — always single col on mobile ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+
+  /* ── Form rows ── */
+  .form-row { display: flex; flex-direction: column; gap: 10px; }
+  .form-label { font-size: 11px; font-weight: 700; color: #71717a; text-transform: uppercase; letter-spacing: .04em; display: block; margin-bottom: 4px; }
+
+  /* ── Misc ── */
+  .pulse-dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; flex-shrink: 0; animation: pulse 1.8s infinite; }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.4); } 70% { box-shadow: 0 0 0 6px rgba(34,197,94,0); } }
   .chart-bar { background: rgba(59,130,246,0.25); border-radius: 4px 4px 0 0; transition: background 0.15s; }
   .chart-bar:hover { background: rgba(59,130,246,0.5); }
-  .sidebar { width: 220px; min-width: 220px; }
-  @media (max-width: 768px) {
-    .sidebar { position: fixed; left: -220px; top: 0; bottom: 0; z-index: 50; transition: left 0.25s; background: #0f0f11; border-right: 1px solid #2a2a30; }
-    .sidebar.open { left: 0; }
-    .main-content { margin-left: 0 !important; }
-    .hide-mobile { display: none !important; }
-    .topbar-search { display: none !important; }
-    .stat-card { padding: 14px 16px; }
-    .stat-card > div:first-child { font-size: 10px; }
-    .stat-card > div:nth-child(2) { font-size: 20px; }
-    .section { padding-bottom: 80px; }
-    .modal { border-radius: 18px 18px 0 0; max-height: 88vh; position: fixed; bottom: 0; left: 0; right: 0; max-width: 100%; }
-    .modal-bg { align-items: flex-end; padding: 0; }
-    table { font-size: 11px; }
-    table td, table th { padding: 8px 10px; }
-    .overview-grid-2 { grid-template-columns: 1fr !important; }
-  }
-  @media (max-width: 480px) {
-    .stats-grid-auto { grid-template-columns: 1fr 1fr !important; }
-  }
   .skeleton { background: linear-gradient(90deg, #1e1e22 25%, #2a2a30 50%, #1e1e22 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 6px; }
   @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-  .toast { position: fixed; bottom: 24px; right: 24px; background: #1e1e22; border: 1px solid #2a2a30; border-radius: 12px; padding: 12px 18px; font-size: 13px; font-weight: 600; z-index: 999; transform: translateY(80px); opacity: 0; transition: all 0.3s; }
-  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast {
+    position: fixed; bottom: 72px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: #1e1e22; border: 1px solid #2a2a30; border-radius: 12px;
+    padding: 10px 18px; font-size: 13px; font-weight: 600; z-index: 999;
+    opacity: 0; transition: all 0.25s; white-space: nowrap; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   .flag { font-size: 1.1em; }
-  .overflow-hidden { overflow: hidden; }
   .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .section-gap { margin-bottom: 10px; }
+  /* hide old sidebar and desktop-only elements */
+  .sidebar, #sidebarOverlay, #menuBtn, .topbar-search, .hide-mobile { display: none !important; }
 </style>
 </head>
 <body>
@@ -103,169 +250,81 @@
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
-<!-- Mobile Overlay -->
-<div id="sidebarOverlay" onclick="closeSidebar()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:49;backdrop-filter:blur(2px)"></div>
-
-<!-- Layout -->
-<div style="display:flex;min-height:100vh;">
-
-  <!-- Sidebar -->
-  <div class="sidebar" id="sidebar" style="background:#0f0f11;border-right:1px solid #2a2a30;display:flex;flex-direction:column;padding:0 12px 24px;">
-    <!-- Logo -->
-    <div style="padding:20px 8px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #2a2a30;margin-bottom:12px;">
-      <div style="width:30px;height:30px;background:#3b82f6;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2L14 5.5V10.5L8 14L2 10.5V5.5L8 2Z" fill="white"/></svg>
-      </div>
-      <div>
-        <div style="font-size:13px;font-weight:800;letter-spacing:-0.01em">MINIMISTY</div>
-        <div style="font-size:10px;color:#71717a;font-weight:600">Admin Panel</div>
-      </div>
+<!-- App Shell -->
+<div id="app">
+  <!-- Top Bar -->
+  <div id="topbar">
+    <div style="width:26px;height:26px;background:#3b82f6;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M8 2L14 5.5V10.5L8 14L2 10.5V5.5L8 2Z" fill="white"/></svg>
     </div>
-
-    <!-- Nav -->
-    <nav style="flex:1;display:flex;flex-direction:column;gap:2px;">
-      <div class="nav-item active" onclick="navigate('overview')" style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5" height="5" rx="1.5" fill="currentColor"/><rect x="9" y="2" width="5" height="5" rx="1.5" fill="currentColor"/><rect x="2" y="9" width="5" height="5" rx="1.5" fill="currentColor"/><rect x="9" y="9" width="5" height="5" rx="1.5" fill="currentColor"/></svg>
-        Overview
-      </div>
-      <div class="nav-item" onclick="navigate('orders')" style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="7" width="9" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="11" width="11" height="1.5" rx=".75" fill="currentColor"/></svg>
-        Orders
-        <span class="badge badge-blue" id="ordersNavBadge" style="margin-left:auto">0</span>
-      </div>
-      <div class="nav-item" onclick="navigate('customers')" style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5.5" r="2.5" fill="currentColor"/><path d="M2.5 13c0-3.038 2.462-5.5 5.5-5.5s5.5 2.462 5.5 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
-        Customers
-      </div>
-      <div class="nav-item" onclick="navigate('visits')" style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M8 4v4l2.5 2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
-        Visits
-      </div>
-      <div class="nav-item" onclick="navigate('abandoned')" style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 4h10l-1 7H4L3 4Z" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="6" cy="13.5" r="1" fill="currentColor"/><circle cx="10" cy="13.5" r="1" fill="currentColor"/><path d="M1 2h2l.5 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
-        Abandoned
-      </div>
-      <div class="nav-item" onclick="navigate('devices')" style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="3" y="2" width="10" height="12" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="8" cy="11.5" r=".75" fill="currentColor"/></svg>
-        Devices
-      </div>
-      <div class="nav-item" onclick="navigate('analytics')" style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 12l3.5-4 3 2 2.5-5 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
-        Analytics
-      </div>
-
-      <div class="nav-item" onclick="navigate('messaging')" style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 3h12v8H2z" rx="1.5" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M2 3l6 5 6-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
-        Messaging
-      </div>
-
-      <div style="height:1px;background:#2a2a30;margin:8px 0;"></div>
-
-      <div class="nav-item" onclick="navigate('settings')" style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2" fill="currentColor"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        Settings
-      </div>
-    </nav>
-
-    <!-- Live indicator -->
-    <div style="display:flex;align-items:center;gap:8px;padding:10px;background:#1e1e22;border-radius:10px;margin-top:8px;">
-      <div class="pulse-dot"></div>
-      <span style="font-size:11px;font-weight:600;color:#71717a">Live — <span id="liveTime">--:--</span></span>
-      <button onclick="refreshAll()" style="margin-left:auto;background:none;border:none;cursor:pointer;color:#71717a;padding:0;" title="Refresh">
-        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 6.5A4.5 4.5 0 0 1 11 4M11 6.5A4.5 4.5 0 0 1 2 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M11 1.5v2.5H8.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 11.5V9H4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
+    <h1 id="pageTitle">Overview</h1>
+    <div style="display:flex;align-items:center;gap:6px;margin-left:auto;">
+      <div style="display:flex;align-items:center;gap:5px;"><div class="pulse-dot"></div><span style="font-size:11px;font-weight:600;color:#52525b" id="liveTime">--:--</span></div>
+      <button class="btn btn-ghost" onclick="refreshAll()" style="padding:6px 10px;font-size:12px;">↻ Refresh</button>
     </div>
   </div>
+  <!-- Scroll Area -->
+  <div id="scroll-area"><div id="scroll-inner">
 
-  <!-- Main -->
-  <div class="main-content" style="flex:1;min-width:0;display:flex;flex-direction:column;">
 
-    <!-- Top Bar -->
-    <div style="height:56px;border-bottom:1px solid #2a2a30;display:flex;align-items:center;padding:0 20px;gap:12px;position:sticky;top:0;background:#0f0f11;z-index:40;">
-      <button onclick="toggleSidebar()" style="background:none;border:none;cursor:pointer;color:#71717a;display:none;" id="menuBtn">
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="5" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="3" y="9" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="3" y="13" width="14" height="1.5" rx=".75" fill="currentColor"/></svg>
-      </button>
-      <h1 id="pageTitle" style="font-size:16px;font-weight:700;flex:1">Overview</h1>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <input class="input topbar-search" id="globalSearch" placeholder="Search orders, emails..." style="width:200px;" oninput="handleSearch(this.value)">
-        <button class="btn btn-primary" onclick="refreshAll()">
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="display:inline;margin-right:5px;vertical-align:-1px"><path d="M2 6.5A4.5 4.5 0 0 1 11 4M11 6.5A4.5 4.5 0 0 1 2 9" stroke="white" stroke-width="1.5" stroke-linecap="round"/><path d="M11 1.5v2.5H8.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 11.5V9H4.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Refresh
-        </button>
-      </div>
+<!-- OVERVIEW -->
+<div class="section active" id="section-overview">
+  <div class="stats-grid" id="statsGrid">
+    <div class="stat-card"><div class="stat-label">Revenue</div><div class="stat-value" id="statRevenue">—</div><div class="stat-sub" style="color:#22c55e" id="statRevenueSub">USD</div></div>
+    <div class="stat-card"><div class="stat-label">Orders</div><div class="stat-value" id="statOrders">—</div><div class="stat-sub" style="color:#60a5fa">Total paid</div></div>
+    <div class="stat-card"><div class="stat-label">Visitors</div><div class="stat-value" id="statVisits">—</div><div class="stat-sub" style="color:#a1a1aa">Sessions</div></div>
+    <div class="stat-card"><div class="stat-label">Conv. Rate</div><div class="stat-value" id="statConv">—</div><div class="stat-sub" style="color:#a1a1aa">Orders/Visits</div></div>
+    <div class="stat-card"><div class="stat-label">Abandoned</div><div class="stat-value" id="statAbandoned">—</div><div class="stat-sub" style="color:#f59e0b">Cart captures</div></div>
+    <div class="stat-card"><div class="stat-label">Cart Adds</div><div class="stat-value" id="statCartAdds">—</div><div class="stat-sub" style="color:#a1a1aa">Events</div></div>
+  </div>
+  <div class="card section-gap">
+    <div style="padding:14px 16px;border-bottom:1px solid #2a2a30;display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-size:14px;font-weight:700;">Recent Orders</span>
+      <button class="btn btn-ghost" onclick="navigate('orders')" style="font-size:12px;padding:5px 10px">View all</button>
     </div>
+    <div id="recentOrdersList" style="padding:4px 0;"></div>
+  </div>
+  <div class="grid-2">
+    <div class="card"><div style="padding:14px 16px;border-bottom:1px solid #2a2a30;font-size:13px;font-weight:700;">Top Countries</div><div id="topCountries" style="padding:8px 0;"></div></div>
+    <div class="card"><div style="padding:14px 16px;border-bottom:1px solid #2a2a30;font-size:13px;font-weight:700;">Traffic Sources</div><div id="topReferrers" style="padding:8px 0;"></div></div>
+  </div>
+</div>
 
-    <!-- Content -->
-    <div style="flex:1;padding:20px;overflow-y:auto;">
+<!-- ORDERS -->
+<div class="section" id="section-orders">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+    <div style="display:flex;gap:4px;" id="orderTabs">
+      <div class="tab active" onclick="filterOrders('all')">All</div>
+      <div class="tab" onclick="filterOrders('paid')">Paid</div>
+      <div class="tab" onclick="filterOrders('pending')">Pending</div>
+    </div>
+    <input class="input" id="orderSearch" placeholder="Search email or ID..." oninput="filterOrderSearch(this.value)" style="flex:1;min-width:0;">
+  </div>
+  <div class="card" id="ordersTableBody" style="padding:4px 0;">
+    <div style="padding:32px;text-align:center;color:#71717a;">Loading orders...</div>
+  </div>
+</div>
 
-      <!-- OVERVIEW -->
-      <div class="section active" id="section-overview">
-        <div class="stats-grid-auto" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px;" id="statsGrid">
-          <div class="stat-card"><div style="font-size:11px;font-weight:700;color:#71717a;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Total Revenue</div><div style="font-size:26px;font-weight:800;letter-spacing:-0.02em" id="statRevenue">—</div><div style="font-size:11px;color:#22c55e;font-weight:600;margin-top:4px" id="statRevenueSub">USD</div></div>
-          <div class="stat-card"><div style="font-size:11px;font-weight:700;color:#71717a;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Orders</div><div style="font-size:26px;font-weight:800;letter-spacing:-0.02em" id="statOrders">—</div><div style="font-size:11px;color:#60a5fa;font-weight:600;margin-top:4px">Total paid</div></div>
-          <div class="stat-card"><div style="font-size:11px;font-weight:700;color:#71717a;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Visitors</div><div style="font-size:26px;font-weight:800;letter-spacing:-0.02em" id="statVisits">—</div><div style="font-size:11px;color:#a1a1aa;font-weight:600;margin-top:4px">Sessions tracked</div></div>
-          <div class="stat-card"><div style="font-size:11px;font-weight:700;color:#71717a;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Conv. Rate</div><div style="font-size:26px;font-weight:800;letter-spacing:-0.02em" id="statConv">—</div><div style="font-size:11px;color:#a1a1aa;font-weight:600;margin-top:4px">Orders / Visits</div></div>
-          <div class="stat-card"><div style="font-size:11px;font-weight:700;color:#71717a;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Abandoned</div><div style="font-size:26px;font-weight:800;letter-spacing:-0.02em" id="statAbandoned">—</div><div style="font-size:11px;color:#f59e0b;font-weight:600;margin-top:4px">Cart captures</div></div>
-          <div class="stat-card"><div style="font-size:11px;font-weight:700;color:#71717a;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Cart Adds</div><div style="font-size:26px;font-weight:800;letter-spacing:-0.02em" id="statCartAdds">—</div><div style="font-size:11px;color:#a1a1aa;font-weight:600;margin-top:4px">Events</div></div>
-        </div>
+<!-- CUSTOMERS -->
+<div class="section" id="section-customers">
+  <div class="card" id="customersTableBody" style="padding:4px 0;">
+    <div style="padding:32px;text-align:center;color:#71717a;">Loading customers...</div>
+  </div>
+</div>
 
-        <!-- Recent Orders -->
-        <div class="card" style="margin-bottom:16px;">
-          <div style="padding:16px 18px;border-bottom:1px solid #2a2a30;display:flex;align-items:center;justify-content:space-between;">
-            <span style="font-size:14px;font-weight:700;">Recent Orders</span>
-            <button class="btn btn-ghost" onclick="navigate('orders')" style="font-size:12px;padding:5px 10px">View all</button>
-          </div>
-          <div id="recentOrdersList" style="padding:4px 0;"></div>
-        </div>
+<!-- VISITS -->
+<div class="section" id="section-visits">
+  <div class="card" id="visitsTableBody" style="padding:4px 0;">
+    <div style="padding:32px;text-align:center;color:#71717a;">Loading visits...</div>
+  </div>
+</div>
 
-        <!-- Countries + Referrers -->
-        <div class="overview-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-          <div class="card">
-            <div style="padding:14px 16px;border-bottom:1px solid #2a2a30;font-size:13px;font-weight:700;">Top Countries</div>
-            <div id="topCountries" style="padding:8px 0;"></div>
-          </div>
-          <div class="card">
-            <div style="padding:14px 16px;border-bottom:1px solid #2a2a30;font-size:13px;font-weight:700;">Traffic Sources</div>
-            <div id="topReferrers" style="padding:8px 0;"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ORDERS -->
-      <div class="section" id="section-orders">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
-          <div style="display:flex;gap:4px;" id="orderTabs">
-            <div class="tab active" onclick="filterOrders('all')">All</div>
-            <div class="tab" onclick="filterOrders('paid')">Paid</div>
-            <div class="tab" onclick="filterOrders('pending')">Pending</div>
-          </div>
-          <input class="input" id="orderSearch" placeholder="Search email or ID..." oninput="filterOrderSearch(this.value)" style="max-width:200px;margin-left:auto;">
-        </div>
-        <div class="card" id="ordersTableBody" style="padding:4px 0;">
-          <div style="padding:32px;text-align:center;color:#71717a;">Loading orders...</div>
-        </div>
-      </div>
-
-      <!-- CUSTOMERS -->
-      <div class="section" id="section-customers">
-        <div class="card" id="customersTableBody" style="padding:4px 0;">
-          <div style="padding:32px;text-align:center;color:#71717a;">Loading customers...</div>
-        </div>
-      </div>
-
-      <!-- VISITS -->
-      <div class="section" id="section-visits">
-        <div class="card" id="visitsTableBody" style="padding:4px 0;">
-          <div style="padding:32px;text-align:center;color:#71717a;">Loading visits...</div>
-        </div>
-      </div>
-
-      <!-- ABANDONED -->
-      <div class="section" id="section-abandoned">
-        <div class="card" id="abandonedTableBody" style="padding:4px 0;">
-          <div style="padding:32px;text-align:center;color:#71717a;">Loading abandoned carts...</div>
-        </div>
-      </div>
+<!-- ABANDONED -->
+<div class="section" id="section-abandoned">
+  <div class="card" id="abandonedTableBody" style="padding:4px 0;">
+    <div style="padding:32px;text-align:center;color:#71717a;">Loading abandoned carts...</div>
+  </div>
+</div>
 
       <!-- DEVICES -->
       <div class="section" id="section-devices">
@@ -276,136 +335,74 @@
 
       <!-- ANALYTICS -->
       <div class="section" id="section-analytics">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
-          <div class="card" style="padding:18px;">
+        <div class="grid-2" style="margin-bottom:10px;">
+          <div class="card" style="padding:16px;">
             <div style="font-size:13px;font-weight:700;margin-bottom:14px;">Funnel</div>
             <div id="funnelChart"></div>
           </div>
-          <div class="card" style="padding:18px;">
+          <div class="card" style="padding:16px;">
             <div style="font-size:13px;font-weight:700;margin-bottom:14px;">Click Events</div>
             <div id="clickEvents" style="display:flex;flex-direction:column;gap:8px;"></div>
           </div>
         </div>
-        <div class="card" style="padding:18px;">
+        <div class="card" style="padding:16px;">
           <div style="font-size:13px;font-weight:700;margin-bottom:14px;">Raw Analytics Node</div>
-          <pre id="rawAnalytics" style="font-size:11px;color:#a1a1aa;white-space:pre-wrap;word-break:break-all;max-height:300px;overflow-y:auto;"></pre>
+          <pre id="rawAnalytics" style="font-size:11px;color:#a1a1aa;white-space:pre-wrap;word-break:break-all;max-height:260px;overflow-y:auto;"></pre>
         </div>
       </div>
 
       <!-- MESSAGING -->
       <div class="section" id="section-messaging">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;" class="overview-grid-2">
-
+        <div class="grid-2" style="margin-bottom:10px;">
           <!-- Push Notifications -->
-          <div class="card" style="padding:20px;">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-              <div style="width:32px;height:32px;background:rgba(139,92,246,0.15);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1.5a5 5 0 0 1 5 5v2.5l1 2H2l1-2V6.5a5 5 0 0 1 5-5Z" stroke="#8b5cf6" stroke-width="1.4" fill="none"/><path d="M6.5 13.5a1.5 1.5 0 0 0 3 0" stroke="#8b5cf6" stroke-width="1.4" fill="none"/></svg>
+          <div class="card" style="padding:16px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+              <div style="width:30px;height:30px;background:rgba(139,92,246,0.15);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M8 1.5a5 5 0 0 1 5 5v2.5l1 2H2l1-2V6.5a5 5 0 0 1 5-5Z" stroke="#8b5cf6" stroke-width="1.4" fill="none"/><path d="M6.5 13.5a1.5 1.5 0 0 0 3 0" stroke="#8b5cf6" stroke-width="1.4" fill="none"/></svg>
               </div>
-              <div>
-                <div style="font-size:14px;font-weight:700;">Push Notification</div>
-                <div style="font-size:11px;color:#71717a;">Send to subscribed devices</div>
-              </div>
+              <div><div style="font-size:14px;font-weight:700;">Push Notification</div><div style="font-size:11px;color:#71717a;">Send to subscribed devices</div></div>
             </div>
-            <div style="display:flex;flex-direction:column;gap:10px;">
-              <div>
-                <label style="font-size:11px;font-weight:700;color:#71717a;display:block;margin-bottom:4px;">TITLE</label>
-                <input class="input" id="pushTitle" placeholder="e.g. Limited Time Offer">
-              </div>
-              <div>
-                <label style="font-size:11px;font-weight:700;color:#71717a;display:block;margin-bottom:4px;">MESSAGE</label>
-                <textarea class="input" id="pushBody" rows="3" placeholder="Your message here..." style="resize:vertical;line-height:1.5;"></textarea>
-              </div>
-              <div>
-                <label style="font-size:11px;font-weight:700;color:#71717a;display:block;margin-bottom:4px;">URL (optional)</label>
-                <input class="input" id="pushUrl" placeholder="https://minimisty.store/">
-              </div>
-              <div>
-                <label style="font-size:11px;font-weight:700;color:#71717a;display:block;margin-bottom:4px;">TARGET</label>
-                <select class="input" id="pushTarget">
-                  <option value="all">All subscribers</option>
-                  <option value="abandoned">Abandoned cart only</option>
-                </select>
-              </div>
-              <div style="display:flex;gap:8px;">
-                <button class="btn btn-ghost" style="flex:1;" onclick="previewPush()">Preview</button>
-                <button class="btn btn-primary" style="flex:1;background:#8b5cf6;" onclick="sendPushNotification()">Send Push</button>
-              </div>
-              <div id="pushStatus" style="font-size:11px;color:#71717a;min-height:16px;text-align:center;"></div>
+            <div class="form-row">
+              <div><label class="form-label">Title</label><input class="input" id="pushTitle" placeholder="e.g. Limited Time Offer"></div>
+              <div><label class="form-label">Message</label><textarea class="input" id="pushBody" rows="3" placeholder="Your message here..."></textarea></div>
+              <div><label class="form-label">URL (optional)</label><input class="input" id="pushUrl" placeholder="https://minimisty.store/"></div>
+              <div><label class="form-label">Target</label><select class="input" id="pushTarget"><option value="all">All subscribers</option><option value="abandoned">Abandoned cart only</option></select></div>
+              <div style="display:flex;gap:8px;"><button class="btn btn-ghost" style="flex:1;" onclick="previewPush()">Preview</button><button class="btn btn-primary" style="flex:1;background:#8b5cf6;" onclick="sendPushNotification()">Send Push</button></div>
+              <div id="pushStatus" style="font-size:11px;color:#71717a;min-height:14px;text-align:center;"></div>
             </div>
           </div>
-
           <!-- Email -->
-          <div class="card" style="padding:20px;">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-              <div style="width:32px;height:32px;background:rgba(59,130,246,0.15);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="10" rx="1.5" stroke="#3b82f6" stroke-width="1.4" fill="none"/><path d="M2 5l6 4 6-4" stroke="#3b82f6" stroke-width="1.4" stroke-linecap="round" fill="none"/></svg>
+          <div class="card" style="padding:16px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+              <div style="width:30px;height:30px;background:rgba(59,130,246,0.15);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="10" rx="1.5" stroke="#3b82f6" stroke-width="1.4" fill="none"/><path d="M2 5l6 4 6-4" stroke="#3b82f6" stroke-width="1.4" stroke-linecap="round" fill="none"/></svg>
               </div>
-              <div>
-                <div style="font-size:14px;font-weight:700;">Send Email</div>
-                <div style="font-size:11px;color:#71717a;">Direct to customer inbox</div>
-              </div>
+              <div><div style="font-size:14px;font-weight:700;">Send Email</div><div style="font-size:11px;color:#71717a;">Direct to customer inbox</div></div>
             </div>
-            <div style="display:flex;flex-direction:column;gap:10px;">
-              <div>
-                <label style="font-size:11px;font-weight:700;color:#71717a;display:block;margin-bottom:4px;">TO (email address)</label>
-                <input class="input" id="emailTo" placeholder="customer@email.com">
-              </div>
-              <div>
-                <label style="font-size:11px;font-weight:700;color:#71717a;display:block;margin-bottom:4px;">SUBJECT</label>
-                <input class="input" id="emailSubject" placeholder="Your order update">
-              </div>
-              <div>
-                <label style="font-size:11px;font-weight:700;color:#71717a;display:block;margin-bottom:4px;">MESSAGE</label>
-                <textarea class="input" id="emailBody" rows="4" placeholder="Write your message..." style="resize:vertical;line-height:1.5;"></textarea>
-              </div>
-              <div>
-                <label style="font-size:11px;font-weight:700;color:#71717a;display:block;margin-bottom:4px;">QUICK FILL</label>
-                <div style="display:flex;flex-wrap:wrap;gap:6px;">
-                  <button class="btn btn-ghost" style="font-size:11px;padding:4px 9px;" onclick="quickFillEmail('abandoned')">Abandoned Cart</button>
-                  <button class="btn btn-ghost" style="font-size:11px;padding:4px 9px;" onclick="quickFillEmail('confirm')">Order Confirm</button>
-                  <button class="btn btn-ghost" style="font-size:11px;padding:4px 9px;" onclick="quickFillEmail('promo')">Promo</button>
-                </div>
-              </div>
-              <div style="display:flex;gap:8px;">
-                <button class="btn btn-ghost" style="flex:1;" onclick="previewEmail()">Preview</button>
-                <button class="btn btn-primary" style="flex:1;" onclick="sendEmail()">Send Email</button>
-              </div>
-              <div id="emailStatus" style="font-size:11px;color:#71717a;min-height:16px;text-align:center;"></div>
+            <div class="form-row">
+              <div><label class="form-label">To</label><input class="input" id="emailTo" placeholder="customer@email.com"></div>
+              <div><label class="form-label">Subject</label><input class="input" id="emailSubject" placeholder="Your order update"></div>
+              <div><label class="form-label">Message</label><textarea class="input" id="emailBody" rows="4" placeholder="Write your message..."></textarea></div>
+              <div><label class="form-label">Quick Fill</label><div style="display:flex;flex-wrap:wrap;gap:6px;"><button class="btn btn-ghost" style="font-size:11px;padding:4px 9px;" onclick="quickFillEmail('abandoned')">Abandoned Cart</button><button class="btn btn-ghost" style="font-size:11px;padding:4px 9px;" onclick="quickFillEmail('confirm')">Order Confirm</button><button class="btn btn-ghost" style="font-size:11px;padding:4px 9px;" onclick="quickFillEmail('promo')">Promo</button></div></div>
+              <div style="display:flex;gap:8px;"><button class="btn btn-ghost" style="flex:1;" onclick="previewEmail()">Preview</button><button class="btn btn-primary" style="flex:1;" onclick="sendEmail()">Send Email</button></div>
+              <div id="emailStatus" style="font-size:11px;color:#71717a;min-height:14px;text-align:center;"></div>
             </div>
           </div>
         </div>
-
-        <!-- Broadcast to all customers -->
-        <div class="card" style="padding:20px;">
+        <!-- Broadcast -->
+        <div class="card" style="padding:16px;margin-bottom:10px;">
           <div style="font-size:14px;font-weight:700;margin-bottom:4px;">Broadcast Email</div>
-          <div style="font-size:12px;color:#71717a;margin-bottom:14px;">Send one email to all captured customer emails</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;" class="overview-grid-2">
-            <div>
-              <label style="font-size:11px;font-weight:700;color:#71717a;display:block;margin-bottom:4px;">SUBJECT</label>
-              <input class="input" id="broadcastSubject" placeholder="Big news from MINIMISTY">
-            </div>
-            <div>
-              <label style="font-size:11px;font-weight:700;color:#71717a;display:block;margin-bottom:4px;">TARGET SEGMENT</label>
-              <select class="input" id="broadcastSegment">
-                <option value="all">All customers</option>
-                <option value="abandoned">Abandoned carts only</option>
-              </select>
-            </div>
-          </div>
-          <div style="margin-bottom:10px;">
-            <label style="font-size:11px;font-weight:700;color:#71717a;display:block;margin-bottom:4px;">MESSAGE</label>
-            <textarea class="input" id="broadcastBody" rows="3" placeholder="Write your broadcast..." style="resize:vertical;"></textarea>
-          </div>
-          <div style="display:flex;align-items:center;gap:10px;">
-            <button class="btn btn-primary" onclick="sendBroadcast()">Send Broadcast</button>
-            <span id="broadcastStatus" style="font-size:12px;color:#71717a;"></span>
+          <div style="font-size:12px;color:#71717a;margin-bottom:12px;">Send to all captured customer emails</div>
+          <div class="form-row">
+            <div><label class="form-label">Subject</label><input class="input" id="broadcastSubject" placeholder="Big news from MINIMISTY"></div>
+            <div><label class="form-label">Target Segment</label><select class="input" id="broadcastSegment"><option value="all">All customers</option><option value="abandoned">Abandoned carts only</option></select></div>
+            <div><label class="form-label">Message</label><textarea class="input" id="broadcastBody" rows="3" placeholder="Write your broadcast..."></textarea></div>
+            <div style="display:flex;align-items:center;gap:10px;"><button class="btn btn-primary" onclick="sendBroadcast()">Send Broadcast</button><span id="broadcastStatus" style="font-size:12px;color:#71717a;"></span></div>
           </div>
         </div>
-
         <!-- Push subscriber list -->
-        <div class="card" style="margin-top:12px;">
-          <div style="padding:14px 18px;border-bottom:1px solid #2a2a30;display:flex;align-items:center;justify-content:space-between;">
+        <div class="card">
+          <div style="padding:14px 16px;border-bottom:1px solid #2a2a30;display:flex;align-items:center;justify-content:space-between;">
             <span style="font-size:13px;font-weight:700;">Push Subscribers</span>
             <span class="badge badge-blue" id="pushSubCount">—</span>
           </div>
@@ -415,49 +412,87 @@
 
       <!-- SETTINGS -->
       <div class="section" id="section-settings">
-        <div style="max-width:540px;">
-          <div class="card" style="padding:20px;margin-bottom:12px;">
-            <div style="font-size:14px;font-weight:700;margin-bottom:16px;">Firebase Configuration</div>
-            <div style="display:flex;flex-direction:column;gap:10px;">
-              <div>
-                <label style="font-size:11px;font-weight:700;color:#71717a;display:block;margin-bottom:4px;">DATABASE URL</label>
-                <input class="input" id="cfgDbUrl" value="https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com">
-              </div>
-              <div>
-                <label style="font-size:11px;font-weight:700;color:#71717a;display:block;margin-bottom:4px;">API KEY</label>
-                <input class="input" id="cfgApiKey" value="AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo">
-              </div>
-              <div>
-                <label style="font-size:11px;font-weight:700;color:#71717a;display:block;margin-bottom:4px;">PROJECT ID</label>
-                <input class="input" id="cfgProjectId" value="itzhoyoo-f9f7e">
-              </div>
-              <button class="btn btn-primary" onclick="saveSettings()">Save & Reconnect</button>
-            </div>
+        <div class="card" style="padding:16px;margin-bottom:10px;">
+          <div style="font-size:14px;font-weight:700;margin-bottom:14px;">Firebase Configuration</div>
+          <div class="form-row">
+            <div><label class="form-label">Database URL</label><input class="input" id="cfgDbUrl" value="https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com"></div>
+            <div><label class="form-label">API Key</label><input class="input" id="cfgApiKey" value="AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo"></div>
+            <div><label class="form-label">Project ID</label><input class="input" id="cfgProjectId" value="itzhoyoo-f9f7e"></div>
+            <button class="btn btn-primary" onclick="saveSettings()">Save & Reconnect</button>
           </div>
-          <div class="card" style="padding:20px;">
-            <div style="font-size:14px;font-weight:700;margin-bottom:16px;">Dashboard</div>
-            <div style="display:flex;flex-direction:column;gap:10px;">
-              <div>
-                <label style="font-size:11px;font-weight:700;color:#71717a;display:block;margin-bottom:4px;">STORE NAME</label>
-                <input class="input" id="cfgStoreName" value="MINIMISTY">
-              </div>
-              <div>
-                <label style="font-size:11px;font-weight:700;color:#71717a;display:block;margin-bottom:4px;">AUTO-REFRESH INTERVAL (seconds)</label>
-                <input class="input" id="cfgRefreshInterval" type="number" value="30">
-              </div>
-              <button class="btn btn-primary" onclick="saveDashSettings()">Save</button>
-            </div>
+        </div>
+        <div class="card" style="padding:16px;">
+          <div style="font-size:14px;font-weight:700;margin-bottom:14px;">Dashboard</div>
+          <div class="form-row">
+            <div><label class="form-label">Store Name</label><input class="input" id="cfgStoreName" value="MINIMISTY"></div>
+            <div><label class="form-label">Auto-refresh Interval (seconds)</label><input class="input" id="cfgRefreshInterval" type="number" value="30"></div>
+            <button class="btn btn-primary" onclick="saveDashSettings()">Save</button>
           </div>
         </div>
       </div>
 
+  </div></div><!-- /scroll-inner /scroll-area -->
+
+  <!-- Bottom Tab Nav -->
+  <nav id="bottom-nav">
+    <button class="tab-btn active" onclick="navigate('overview')" data-section="overview">
+      <svg width="20" height="20" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5" height="5" rx="1.5" fill="currentColor"/><rect x="9" y="2" width="5" height="5" rx="1.5" fill="currentColor"/><rect x="2" y="9" width="5" height="5" rx="1.5" fill="currentColor"/><rect x="9" y="9" width="5" height="5" rx="1.5" fill="currentColor"/></svg>
+      Home
+    </button>
+    <button class="tab-btn" onclick="navigate('orders')" data-section="orders">
+      <svg width="20" height="20" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="7" width="9" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="11" width="11" height="1.5" rx=".75" fill="currentColor"/></svg>
+      Orders
+      <span class="tab-badge" id="ordersNavBadge" style="display:none">0</span>
+    </button>
+    <button class="tab-btn" onclick="navigate('customers')" data-section="customers">
+      <svg width="20" height="20" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5.5" r="2.5" fill="currentColor"/><path d="M2.5 13c0-3.038 2.462-5.5 5.5-5.5s5.5 2.462 5.5 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
+      Customers
+    </button>
+    <button class="tab-btn" onclick="navigate('messaging')" data-section="messaging">
+      <svg width="20" height="20" viewBox="0 0 16 16" fill="none"><path d="M2 3h12v8H2z" rx="1.5" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M2 3l6 5 6-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
+      Messaging
+    </button>
+    <button class="tab-btn" onclick="showMoreMenu()" id="moreTabBtn">
+      <svg width="20" height="20" viewBox="0 0 16 16" fill="none"><circle cx="3.5" cy="8" r="1.25" fill="currentColor"/><circle cx="8" cy="8" r="1.25" fill="currentColor"/><circle cx="12.5" cy="8" r="1.25" fill="currentColor"/></svg>
+      More
+    </button>
+  </nav>
+
+</div><!-- /app -->
+
+<!-- More Menu Sheet -->
+<div class="modal-bg" id="moreMenu" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal" style="padding:0;overflow:hidden;">
+    <div style="padding:12px 16px 0;"><div class="modal-handle"></div></div>
+    <div style="padding:4px 0 8px;">
+      <button onclick="navigate('visits');document.getElementById('moreMenu').style.display='none'" style="width:100%;background:none;border:none;color:#fafafa;text-align:left;padding:14px 20px;font-size:15px;font-weight:600;display:flex;align-items:center;gap:12px;cursor:pointer;">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M8 4v4l2.5 2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
+        Visits
+      </button>
+      <button onclick="navigate('abandoned');document.getElementById('moreMenu').style.display='none'" style="width:100%;background:none;border:none;color:#fafafa;text-align:left;padding:14px 20px;font-size:15px;font-weight:600;display:flex;align-items:center;gap:12px;cursor:pointer;">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M3 4h10l-1 7H4L3 4Z" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="6" cy="13.5" r="1" fill="currentColor"/><circle cx="10" cy="13.5" r="1" fill="currentColor"/><path d="M1 2h2l.5 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
+        Abandoned
+      </button>
+      <button onclick="navigate('devices');document.getElementById('moreMenu').style.display='none'" style="width:100%;background:none;border:none;color:#fafafa;text-align:left;padding:14px 20px;font-size:15px;font-weight:600;display:flex;align-items:center;gap:12px;cursor:pointer;">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><rect x="3" y="2" width="10" height="12" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="8" cy="11.5" r=".75" fill="currentColor"/></svg>
+        Devices
+      </button>
+      <button onclick="navigate('analytics');document.getElementById('moreMenu').style.display='none'" style="width:100%;background:none;border:none;color:#fafafa;text-align:left;padding:14px 20px;font-size:15px;font-weight:600;display:flex;align-items:center;gap:12px;cursor:pointer;">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M2 12l3.5-4 3 2 2.5-5 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+        Analytics
+      </button>
+      <button onclick="navigate('settings');document.getElementById('moreMenu').style.display='none'" style="width:100%;background:none;border:none;color:#a1a1aa;text-align:left;padding:14px 20px;font-size:15px;font-weight:600;display:flex;align-items:center;gap:12px;cursor:pointer;">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2" fill="currentColor"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Settings
+      </button>
     </div>
   </div>
 </div>
 
 <!-- Push Preview Modal -->
 <div class="modal-bg" id="pushPreviewModal" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
-  <div class="modal" style="max-width:380px;">
+  <div class="modal">
+    <div class="modal-handle"></div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
       <span style="font-size:14px;font-weight:700;">Push Preview</span>
       <button class="btn btn-ghost" style="padding:4px 8px;font-size:11px;" onclick="document.getElementById('pushPreviewModal').style.display='none'">Close</button>
@@ -478,23 +513,24 @@
 
 <!-- Email Preview Modal -->
 <div class="modal-bg" id="emailPreviewModal" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
-  <div class="modal" style="max-width:500px;">
+  <div class="modal">
+    <div class="modal-handle"></div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
       <span style="font-size:14px;font-weight:700;">Email Preview</span>
       <button class="btn btn-ghost" style="padding:4px 8px;font-size:11px;" onclick="document.getElementById('emailPreviewModal').style.display='none'">Close</button>
     </div>
-    <div style="background:#fff;border-radius:12px;padding:24px;color:#111;">
+    <div style="background:#fff;border-radius:12px;padding:20px;color:#111;">
       <div style="font-size:11px;color:#888;margin-bottom:4px;">To: <span id="epTo" style="color:#111;"></span></div>
       <div style="font-size:11px;color:#888;margin-bottom:16px;border-bottom:1px solid #eee;padding-bottom:12px;">Subject: <span id="epSubject" style="color:#111;font-weight:700;"></span></div>
       <div style="font-family:Georgia,serif;font-size:14px;line-height:1.7;color:#222;white-space:pre-wrap;" id="epBody"></div>
-      <div style="margin-top:24px;padding-top:16px;border-top:1px solid #eee;font-size:11px;color:#aaa;">MINIMISTY.store — Sent from Admin Dashboard</div>
+      <div style="margin-top:20px;padding-top:14px;border-top:1px solid #eee;font-size:11px;color:#aaa;">MINIMISTY.store — Sent from Admin Dashboard</div>
     </div>
   </div>
 </div>
 
 <!-- Order Modal -->
 <div class="modal-bg" id="orderModal" style="display:none;" onclick="if(event.target===this)closeModal()">
-  <div class="modal" id="orderModalContent"></div>
+  <div class="modal"><div class="modal-handle"></div><div id="orderModalContent"></div></div>
 </div>
 
 <script type="module">
@@ -531,36 +567,33 @@ let currentOrderFilter = 'all', currentOrderSearch = '';
 let refreshTimer = null;
 
 // ── Nav ──
+const MORE_SECTIONS = ['visits','abandoned','devices','analytics','settings'];
 function navigate(section) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('section-' + section).classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(n => {
-    if (n.getAttribute('onclick') && n.getAttribute('onclick').includes("'" + section + "'")) n.classList.add('active');
-  });
-  const titles = { overview:'Overview', orders:'Orders', customers:'Customers', visits:'Visits', abandoned:'Abandoned Carts', devices:'Devices', analytics:'Analytics', settings:'Settings' };
+  const sec = document.getElementById('section-' + section);
+  if (sec) sec.classList.add('active');
+  // Scroll to top
+  const sa = document.getElementById('scroll-area');
+  if (sa) sa.scrollTop = 0;
+  // Update bottom tab bar
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  const primarySections = ['overview','orders','customers','messaging'];
+  if (primarySections.includes(section)) {
+    const btn = document.querySelector('.tab-btn[data-section="' + section + '"]');
+    if (btn) btn.classList.add('active');
+  } else {
+    document.getElementById('moreTabBtn').classList.add('active');
+  }
+  const titles = { overview:'Overview', orders:'Orders', customers:'Customers', visits:'Visits', abandoned:'Abandoned Carts', devices:'Devices', analytics:'Analytics', messaging:'Messaging', settings:'Settings' };
   document.getElementById('pageTitle').textContent = titles[section] || section;
 }
 window.navigate = navigate;
 
-function toggleSidebar() {
-  const s = document.getElementById('sidebar');
-  const o = document.getElementById('sidebarOverlay');
-  s.classList.toggle('open');
-  o.style.display = s.classList.contains('open') ? 'block' : 'none';
-}
-function closeSidebar() {
-  document.getElementById('sidebar').classList.remove('open');
-  document.getElementById('sidebarOverlay').style.display = 'none';
-}
+function toggleSidebar() {}
+function closeSidebar() {}
 window.toggleSidebar = toggleSidebar;
 window.closeSidebar = closeSidebar;
-
-// Mobile menu
-if (window.innerWidth <= 768) document.getElementById('menuBtn').style.display = 'block';
-window.addEventListener('resize', () => {
-  document.getElementById('menuBtn').style.display = window.innerWidth <= 768 ? 'block' : 'none';
-});
+window.showMoreMenu = function() { document.getElementById('moreMenu').style.display = 'flex'; };
 
 // ── Live Time ──
 function updateTime() {
@@ -760,18 +793,18 @@ function renderCustomers() {
 function renderVisits() {
   const tbody = document.getElementById('visitsTableBody');
   const visits = allVisits.slice(0, 200);
-  tbody.innerHTML = visits.length ? visits.map(v => `
+  tbody.innerHTML = visits.length ? `<div class="table-wrap"><table><thead><tr><th>ID</th><th>Country</th><th>City</th><th>IP</th><th>Currency</th><th>Referrer</th><th>Screen</th><th>Time</th></tr></thead><tbody>` + visits.map(v => `
     <tr class="row-hover" style="border-bottom:1px solid #1a1a1e;">
-      <td style="padding:10px 16px;font-size:10px;color:#71717a;font-family:monospace;">${shortId(v._key)}</td>
-      <td style="padding:10px 16px;font-size:13px;">${countryFlag(v.country)} ${v.country||'—'}</td>
-      <td style="padding:10px 16px;font-size:12px;color:#a1a1aa;">${v.city||'—'}</td>
-      <td style="padding:10px 16px;font-size:11px;color:#71717a;font-family:monospace;">${v.ip||'—'}</td>
-      <td style="padding:10px 16px;font-size:12px;">${v.currency||'—'}</td>
-      <td style="padding:10px 16px;font-size:11px;color:#a1a1aa;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${v.referrer||'direct'}</td>
-      <td style="padding:10px 16px;font-size:11px;color:#71717a;">${v.screen||'—'}</td>
-      <td style="padding:10px 16px;font-size:11px;color:#71717a;white-space:nowrap;">${fmtDate(v.ts)}</td>
+      <td style="padding:10px 14px;font-size:10px;color:#71717a;font-family:monospace;">${shortId(v._key)}</td>
+      <td style="padding:10px 14px;font-size:13px;">${countryFlag(v.country)} ${v.country||'—'}</td>
+      <td style="padding:10px 14px;font-size:12px;color:#a1a1aa;">${v.city||'—'}</td>
+      <td style="padding:10px 14px;font-size:11px;color:#71717a;font-family:monospace;">${v.ip||'—'}</td>
+      <td style="padding:10px 14px;font-size:12px;">${v.currency||'—'}</td>
+      <td style="padding:10px 14px;font-size:11px;color:#a1a1aa;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${v.referrer||'direct'}</td>
+      <td style="padding:10px 14px;font-size:11px;color:#71717a;">${v.screen||'—'}</td>
+      <td style="padding:10px 14px;font-size:11px;color:#71717a;white-space:nowrap;">${fmtDate(v.ts)}</td>
     </tr>
-  `).join('') : `<tr><td colspan="8" style="padding:32px;text-align:center;color:#71717a;">No visits recorded</td></tr>`;
+  `).join('') + `</tbody></table></div>` : `<div style="padding:32px;text-align:center;color:#71717a;">No visits recorded</div>`;
 }
 
 // ── Abandoned ──
@@ -945,44 +978,156 @@ async function loadPushSubscribers() {
     const subs = snap.exists() ? Object.entries(snap.val()).map(([k,v])=>({_key:k,...v})) : [];
     document.getElementById('pushSubCount').textContent = subs.length;
     const list = document.getElementById('pushSubscriberList');
-    list.innerHTML = subs.length ? subs.map(s => `
+    const validSubs = subs.filter(s => (s.subscription?.endpoint || s.endpoint));
+    const invalidSubs = subs.length - validSubs.length;
+    document.getElementById('pushSubCount').textContent = `${validSubs.length} ready${invalidSubs > 0 ? ` · ${invalidSubs} missing endpoint` : ''}`;
+    list.innerHTML = subs.length ? subs.map(s => {
+      const hasEndpoint = !!(s.subscription?.endpoint || s.endpoint);
+      const lastNotified = s.lastNotifiedAt ? fmtDate(s.lastNotifiedAt) : 'Never';
+      const country = s.metadata?.country || s.country || '—';
+      return `
       <div class="row-hover" style="padding:10px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #1a1a1e;">
         <div style="flex:1;min-width:0;">
           <div style="font-size:11px;font-family:monospace;color:#60a5fa;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.deviceId||s._key}</div>
-          <div style="font-size:10px;color:#71717a;margin-top:1px;">${s.country||'—'} · ${fmtDate(s.ts||s.subscribedAt)}</div>
+          <div style="font-size:10px;color:#71717a;margin-top:1px;">${country} · Subscribed ${fmtDate(s.ts||s.subscribedAt)} · Last notified: ${lastNotified}</div>
+          ${!hasEndpoint ? `<div style="font-size:10px;color:#ef4444;margin-top:1px;">⚠ Missing endpoint — subscription not deliverable</div>` : ''}
         </div>
-        <span class="badge badge-green">Active</span>
-      </div>
-    `).join('') : '<div style="padding:20px;text-align:center;color:#71717a;font-size:12px;">No push subscribers yet</div>';
+        <span class="badge ${hasEndpoint ? 'badge-green' : 'badge-red'}">${hasEndpoint ? 'Ready' : 'Invalid'}</span>
+      </div>`;
+    }).join('') : '<div style="padding:20px;text-align:center;color:#71717a;font-size:12px;">No push subscribers yet</div>';
   } catch(e) { console.warn('pushSubs err', e); }
 }
 
 // Write a push notification record to Firebase (your SW reads this)
 window.sendPushNotification = async function() {
-  const title = document.getElementById('pushTitle').value.trim();
-  const body  = document.getElementById('pushBody').value.trim();
-  const url   = document.getElementById('pushUrl').value.trim() || 'https://minimisty.store/';
+  const title  = document.getElementById('pushTitle').value.trim();
+  const body   = document.getElementById('pushBody').value.trim();
+  const url    = document.getElementById('pushUrl').value.trim() || 'https://minimisty.store/';
   const target = document.getElementById('pushTarget').value;
   const status = document.getElementById('pushStatus');
-  if (!title || !body) { status.textContent = 'Title and message are required.'; status.style.color='#ef4444'; return; }
-  status.textContent = 'Sending…'; status.style.color='#71717a';
+
+  if (!title || !body) {
+    status.textContent = 'Title and message are required.';
+    status.style.color = '#ef4444';
+    return;
+  }
+
+  status.textContent = 'Loading subscribers…';
+  status.style.color = '#71717a';
+
   try {
-    const { push: fbPush, serverTimestamp: fbTs } = await import('https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js');
-    const notifRef = window._ref(window._db, 'adminNotifications');
-    await fbPush(notifRef, {
-      title, body, url, target,
-      sentAt: fbTs(),
-      sentBy: 'dashboard',
-      delivered: false
-    });
-    await window._update(window._ref(window._db, 'analytics'), { totalPushSent: 1 });
-    status.textContent = 'Push queued — subscribers will receive it shortly.'; status.style.color='#22c55e';
-    document.getElementById('pushTitle').value = '';
-    document.getElementById('pushBody').value = '';
-    toast('Push notification sent', 'success');
-  } catch(e) {
-    status.textContent = 'Error: ' + e.message; status.style.color='#ef4444';
+    // ── 1. Read all Web Push subscriptions from Firebase ──
+    const subsSnap = await window._get(window._ref(window._db, 'pushSubscriptions'));
+    if (!subsSnap.exists()) {
+      status.textContent = 'No push subscribers found.';
+      status.style.color = '#f59e0b';
+      return;
+    }
+
+    let subscribers = Object.entries(subsSnap.val()).map(([k, v]) => ({ _key: k, ...v }));
+
+    // ── 2. Filter by target ──
+    if (target === 'abandoned') {
+      const abandonedSnap = await window._get(window._ref(window._db, 'abandonedCarts'));
+      const abandonedDeviceIds = new Set();
+      if (abandonedSnap.exists()) {
+        Object.values(abandonedSnap.val()).forEach(a => {
+          if (a.deviceId) abandonedDeviceIds.add(a.deviceId);
+        });
+      }
+      subscribers = subscribers.filter(s => abandonedDeviceIds.has(s.deviceId));
+    }
+
+    if (!subscribers.length) {
+      status.textContent = target === 'abandoned'
+        ? 'No push subscribers with abandoned carts.'
+        : 'No push subscribers found.';
+      status.style.color = '#f59e0b';
+      return;
+    }
+
+    status.textContent = `Sending to ${subscribers.length} device(s)…`;
+
+    // ── 3. Send a real Web Push to each subscriber via the server endpoint ──
+    // The server at /api/send-push signs the payload with the VAPID private key
+    // and delivers it to the browser push service (FCM, Mozilla, etc.)
+    let sent = 0, failed = 0;
+    const payload = { title, body, url, icon: '/icon-192.png', badge: '/badge-72.png' };
+
+    await Promise.all(subscribers.map(async (sub) => {
+      // Each subscriber record must have a `subscription` object with
+      // { endpoint, keys: { p256dh, auth } } — saved by the storefront's
+      // /api/push-subscribe handler from subscription.toJSON()
+      const subscriptionObj = sub.subscription || sub;
+
+      if (!subscriptionObj.endpoint) {
+        // Subscription record is missing the endpoint — skip gracefully
+        console.warn('Subscriber missing endpoint, skipping:', sub._key);
+        failed++;
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/send-push', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subscription: subscriptionObj, payload }),
+        });
+
+        if (res.ok) {
+          sent++;
+          // Mark delivered in Firebase
+          await window._update(window._ref(window._db, 'pushSubscriptions/' + sub._key), {
+            lastNotifiedAt: Date.now(),
+          });
+        } else {
+          const errBody = await res.text().catch(() => res.status);
+          console.warn('Push delivery failed for', sub._key, ':', errBody);
+          // 410 Gone / 404 = subscription expired — remove it
+          if (res.status === 410 || res.status === 404) {
+            await window._remove(window._ref(window._db, 'pushSubscriptions/' + sub._key));
+          }
+          failed++;
+        }
+      } catch (e) {
+        console.warn('Push fetch error for', sub._key, ':', e);
+        failed++;
+      }
+    }));
+
+    // ── 4. Log to adminNotifications for audit trail ──
+    try {
+      const { push: fbPush, serverTimestamp: fbTs } = await import('https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js');
+      await fbPush(window._ref(window._db, 'adminNotifications'), {
+        title, body, url, target,
+        sentAt: fbTs(),
+        sentBy: 'dashboard',
+        totalSubscribers: subscribers.length,
+        delivered: sent,
+        failed,
+      });
+      await window._update(window._ref(window._db, 'analytics'), { totalPushSent: sent });
+    } catch (_) {}
+
+    // ── 5. Show result ──
+    if (sent > 0) {
+      const failNote = failed > 0 ? ` (${failed} failed — expired subscriptions removed)` : '';
+      status.textContent = `✓ Delivered to ${sent} device(s)${failNote}`;
+      status.style.color = '#22c55e';
+      document.getElementById('pushTitle').value = '';
+      document.getElementById('pushBody').value = '';
+      toast(`Push sent to ${sent} device(s)`, 'success');
+    } else {
+      status.textContent = `Delivery failed for all ${failed} subscriber(s). Check your /api/send-push endpoint and VAPID keys.`;
+      status.style.color = '#ef4444';
+      toast('Push delivery failed — see status for details', 'error');
+    }
+
+  } catch (e) {
+    status.textContent = 'Error: ' + e.message;
+    status.style.color = '#ef4444';
     toast('Push failed: ' + e.message, 'error');
+    console.error('sendPushNotification error:', e);
   }
 };
 
