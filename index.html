@@ -10152,6 +10152,25 @@ async function submitFooterEmail() {
         localStorage.setItem('minimisty_spin_ts', Date.now().toString());
         localStorage.removeItem('minimisty_spin_dismissed');
       } catch(e) {}
+
+      // Write the spin code to Firebase with 2-hour expiry so checkout can validate it
+      (async () => {
+        try {
+          const { getDatabase, ref: fbR, set: fbS, serverTimestamp: fbTs } = await import('https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js');
+          const dbSpin = getDatabase();
+          const expiresAt = Date.now() + 2 * 60 * 60 * 1000; // 2 hours
+          await fbS(fbR(dbSpin, 'codes/' + prize.code), {
+            type: prize.discount >= 1 ? 'fixed' : 'pct',
+            value: prize.discount >= 1 ? prize.discount : prize.discount * 100,
+            active: true,
+            maxUses: 1,
+            uses: 0,
+            expiresAt: expiresAt,
+            source: 'spin_wheel',
+            createdAt: fbTs()
+          });
+        } catch(e) { console.warn('Spin code Firebase write failed:', e); }
+      })();
       updateSpinDiscountDisplay();
       syncSpinToggleUI();
       updateSpinBtnCooldown();
@@ -11559,7 +11578,7 @@ Keep responses concise, friendly, and helpful. Use short paragraphs. If unsure, 
         const statusKey = o.status === 'paid' || o.status === 'success' ? 'paid' : o.status === 'failed' ? 'failed' : 'pending';
         const date = o.createdAt ? new Date(o.createdAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '';
         const total = o.pricing && o.pricing.finalTotalUSD ? '$' + o.pricing.finalTotalUSD.toFixed(2) : '';
-        return `<a class="tm-order-card" href="/order.html?id=${encodeURIComponent(id)}" onclick="closeTrackModal()">
+        return `<a class="tm-order-card" href="/order?id=${encodeURIComponent(id)}" onclick="closeTrackModal()">
           <div>
             <div class="tm-order-id">${id}</div>
             <div class="tm-order-meta">${[date, total].filter(Boolean).join(' · ')}</div>
@@ -11592,7 +11611,7 @@ Keep responses concise, friendly, and helpful. Use short paragraphs. If unsure, 
       setTimeout(() => input.style.borderColor = '#3a3a3a', 1500);
       return;
     }
-    window.location.href = '/order.html?id=' + encodeURIComponent(id);
+    window.location.href = '/order?id=' + encodeURIComponent(id);
   }
   window.goToOrder = goToOrder;
 })();
@@ -12984,5 +13003,527 @@ section, .reviews-section, .how-section, .trust-section,
 })();
 </script>
 
+
+<!-- ═══════════════════════════════════════════════════════════
+     MINIMISTY MASTER TRACKING v2.0  — PAGE: index
+     Saves: visits · device IDs · geo · currency · referrer
+            scroll depth · time on page · addresses · emails
+            orders · payments · manual pays  → Firebase
+═══════════════════════════════════════════════════════════ -->
+<script type="module">
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+import { getDatabase, ref, set, push, get, update, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+
+const FB_CFG = {
+  apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
+  authDomain: "itzhoyoo-f9f7e.firebaseapp.com",
+  databaseURL: "https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com",
+  projectId: "itzhoyoo-f9f7e",
+  storageBucket: "itzhoyoo-f9f7e.filestorage.app",
+  messagingSenderId: "1094792075584",
+  appId: "1:1094792075584:web:d49e9c3f899d3cd31082a5"
+};
+
+// Reuse existing Firebase app if already initialized (index page has one)
+const fbApp = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
+const db = getDatabase(fbApp);
+
+// ── Expose globals so placeOrder / manual pay can use them ──
+window._db       = db;
+window._fbSet    = set;
+window._fbRef    = ref;
+window._fbGet    = get;
+window._fbUpdate = update;
+window._fbPush   = push;
+window._fbTs     = serverTimestamp;
+window._fbInc    = increment;
+
+const PAGE_NAME = "index";
+
+// ── Device ID (persistent per browser) ──
+function getDeviceId() {
+  let did = null;
+  try { did = localStorage.getItem('minimisty_did'); } catch(e) {}
+  if (!did) {
+    did = 'dev_' + Math.random().toString(36).substr(2,9) + '_' + Date.now().toString(36);
+    try { localStorage.setItem('minimisty_did', did); } catch(e) {}
+  }
+  window._deviceId = did;
+  return did;
+}
+const deviceId = getDeviceId();
+
+// ── Session ID ──
+const sessionId = window._sessionId || ('sess_' + Math.random().toString(36).substr(2,9) + '_' + Date.now());
+window._sessionId = sessionId;
+
+function getReferrer() {
+  const r = document.referrer;
+  if (!r) return 'direct';
+  if (r.includes('google')) return 'google';
+  if (r.includes('facebook') || r.includes('fb.com')) return 'facebook';
+  if (r.includes('instagram')) return 'instagram';
+  if (r.includes('tiktok')) return 'tiktok';
+  if (r.includes('twitter') || r.includes('t.co')) return 'twitter';
+  if (r.includes('minimisty.store')) return 'internal';
+  return (r.split('/')[2] || r).substring(0,60);
+}
+function getUTM() {
+  const p = new URLSearchParams(location.search);
+  return {
+    utm_source:   p.get('utm_source')   || '',
+    utm_medium:   p.get('utm_medium')   || '',
+    utm_campaign: p.get('utm_campaign') || '',
+    utm_content:  p.get('utm_content')  || '',
+    ref_code:     p.get('ref')          || ''
+  };
+}
+function getDeviceType() {
+  const ua = navigator.userAgent;
+  if (/Mobi|Android/i.test(ua)) return 'mobile';
+  if (/iPad|Tablet/i.test(ua)) return 'tablet';
+  return 'desktop';
+}
+function getCurrencyData() {
+  return {
+    currency:       window._currency       || sessionStorage.getItem('pendingCurrency')       || 'USD',
+    currencySymbol: window._currencySymbol || sessionStorage.getItem('pendingCurrencySymbol') || '$',
+    exchangeRate:   window._exchangeRate   || parseFloat(sessionStorage.getItem('pendingExchangeRate') || '1') || 1
+  };
+}
+
+// ═══════════════════════════════
+// VISIT TRACKER
+// ═══════════════════════════════
+async function trackPageVisit(geoData) {
+  try {
+    const utm = getUTM();
+    const curData = getCurrencyData();
+    const visitData = {
+      ts:           serverTimestamp(),
+      page:         PAGE_NAME,
+      url:          location.href,
+      path:         location.pathname,
+      referrer:     getReferrer(),
+      rawReferrer:  document.referrer.substring(0, 200),
+      deviceId,
+      sessionId,
+      deviceType:   getDeviceType(),
+      screenW:      window.screen.width,
+      screenH:      window.screen.height,
+      viewportW:    window.innerWidth,
+      viewportH:    window.innerHeight,
+      timezone:     Intl.DateTimeFormat().resolvedOptions().timeZone,
+      language:     navigator.language,
+      localTime:    new Date().toISOString(),
+      localHour:    new Date().getHours(),
+      dayOfWeek:    new Date().getDay(),
+      country:      (geoData && (geoData.country_code || geoData.country)) || 'unknown',
+      city:         (geoData && geoData.city) || 'unknown',
+      region:       (geoData && geoData.region) || '',
+      ip:           (geoData && geoData.ip)    || '',
+      currency:     (geoData && geoData.currency) || curData.currency,
+      currencySymbol: curData.currencySymbol,
+      exchangeRate:   curData.exchangeRate,
+      utm_source:   utm.utm_source,
+      utm_medium:   utm.utm_medium,
+      utm_campaign: utm.utm_campaign,
+      ref_code:     utm.ref_code
+    };
+    await set(ref(db, 'visits/' + PAGE_NAME + '/' + sessionId), visitData);
+    const analUpdate = {};
+    analUpdate['visits_' + PAGE_NAME] = increment(1);
+    analUpdate['totalVisits'] = increment(1);
+    await update(ref(db, 'analytics'), analUpdate);
+    // Upsert device profile
+    const devUpdate = {
+      lastSeen:     serverTimestamp(),
+      lastPage:     PAGE_NAME,
+      deviceType:   getDeviceType(),
+      language:     navigator.language,
+      timezone:     Intl.DateTimeFormat().resolvedOptions().timeZone
+    };
+    if (geoData && geoData.country_code) {
+      devUpdate.lastCountry  = geoData.country_code;
+      devUpdate.lastCity     = geoData.city || 'unknown';
+      devUpdate.lastCurrency = geoData.currency || curData.currency;
+    }
+    devUpdate.sessionCount = increment(1);
+    await update(ref(db, 'devices/' + deviceId), devUpdate);
+  } catch(e) { console.warn('[MINIMISTY] Visit track err:', e); }
+}
+
+// ═══════════════════════════════
+// GEO INIT (checkout/order pages — index handles its own)
+// ═══════════════════════════════
+async function initGeoIfNeeded() {
+  if (window._geoData) {
+    await trackPageVisit(window._geoData);
+    return;
+  }
+  let geoData = null;
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const r = await fetch('https://ipapi.co/json/', { signal: controller.signal });
+    clearTimeout(timeout);
+    geoData = await r.json();
+    if (!geoData || !geoData.country_code) throw new Error('bad geo');
+    window._geoData = geoData;
+    if (!window._currency && geoData.currency) {
+      window._currency = geoData.currency;
+      const symbols = {
+        EUR:'€',GBP:'£',JPY:'¥',KRW:'₩',INR:'₹',AUD:'A$',CAD:'C$',
+        CHF:'Fr',CNY:'¥',ZAR:'R',BRL:'R$',MXN:'$',AED:'د.إ',
+        SAR:'﷼',SGD:'S$',HKD:'HK$',NOK:'kr',SEK:'kr',DKK:'kr',
+        NZD:'NZ$',TRY:'₺',PLN:'zł',THB:'฿',PHP:'₱',IDR:'Rp',
+        MYR:'RM',NGN:'₦',KES:'KSh',GHS:'₵',EGP:'£'
+      };
+      window._currencySymbol = symbols[geoData.currency] || geoData.currency + ' ';
+      if (!window._exchangeRate || window._exchangeRate === 1) {
+        if (geoData.currency !== 'USD') {
+          try {
+            const ec = new AbortController();
+            const et = setTimeout(() => ec.abort(), 5000);
+            const er = await fetch('https://open.er-api.com/v6/latest/USD', { signal: ec.signal });
+            clearTimeout(et);
+            const erData = await er.json();
+            if (erData.result === 'success' && erData.rates[geoData.currency]) {
+              window._exchangeRate = erData.rates[geoData.currency];
+            }
+          } catch(e2) {}
+        }
+      }
+    }
+  } catch(e) {
+    const stored = sessionStorage.getItem('pendingCurrency');
+    if (stored) window._currency = stored;
+    geoData = { country_code: 'unknown', city: 'unknown' };
+  }
+  await trackPageVisit(geoData);
+}
+
+// ═══════════════════════════════
+// SCROLL DEPTH + TIME ON PAGE
+// ═══════════════════════════════
+let maxScrollPct = 0;
+window.addEventListener('scroll', () => {
+  const docH = document.body.scrollHeight - window.innerHeight;
+  if (docH > 0) {
+    const pct = Math.round((window.scrollY / docH) * 100);
+    if (pct > maxScrollPct) maxScrollPct = pct;
+  }
+}, { passive: true });
+
+const pageLoadTime = Date.now();
+window.addEventListener('beforeunload', () => {
+  const timeOnPage = Math.round((Date.now() - pageLoadTime) / 1000);
+  // Use sendBeacon for reliability on page close
+  try {
+    navigator.sendBeacon(
+      'https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com/pageExit/' + sessionId + '.json',
+      JSON.stringify({
+        page: PAGE_NAME, deviceId,
+        maxScrollPct, timeOnPageSec: timeOnPage, ts: Date.now()
+      })
+    );
+  } catch(e) {}
+});
+
+// ═══════════════════════════════
+// CHECKOUT PAGE FUNCTIONS
+// ═══════════════════════════════
+if (PAGE_NAME === 'checkout') {
+
+  window.saveCompletedOrder = async function(order) {
+    try {
+      const curData = getCurrencyData();
+      const enriched = Object.assign({}, order, {
+        savedAt:        serverTimestamp(),
+        deviceId:       deviceId,
+        sessionId:      sessionId,
+        page:           'checkout',
+        ip:             (window._geoData && window._geoData.ip)           || '',
+        geoCountry:     (window._geoData && window._geoData.country_code) || (order.shippingAddress && order.shippingAddress.country) || '',
+        geoCity:        (window._geoData && window._geoData.city)         || '',
+        referrer:       getReferrer(),
+        currency:       order.currency       || curData.currency,
+        currencySymbol: order.currencySymbol || curData.currencySymbol,
+        exchangeRate:   order.exchangeRate   || curData.exchangeRate,
+        localTime:      new Date().toISOString(),
+        ua:             navigator.userAgent.substring(0,200)
+      });
+
+      // Save main order record
+      await set(ref(db, 'orders/' + order.orderId), enriched);
+
+      // Device→order index
+      await set(ref(db, 'deviceOrders/' + deviceId + '/' + order.orderId), {
+        orderId:   order.orderId,
+        status:    order.status || 'paid',
+        createdAt: Date.now(),
+        totalUSD:  (order.pricing && (order.pricing.finalTotalUSD || order.pricing.totalUSD)) || 0
+      });
+
+      // Email→order index + customer profile
+      if (order.customerEmail) {
+        const emailKey = order.customerEmail.replace(/[.@]/g, '_');
+        await set(ref(db, 'emailOrders/' + emailKey + '/' + order.orderId), {
+          orderId:   order.orderId,
+          status:    order.status || 'paid',
+          createdAt: Date.now(),
+          email:     order.customerEmail,
+          name:      order.customerName || ''
+        });
+        const custUpdate = {
+          email:         order.customerEmail,
+          name:          order.customerName  || '',
+          phone:         order.customerPhone || '',
+          lastOrderId:   order.orderId,
+          lastOrderAt:   serverTimestamp(),
+          deviceId,
+          country:       (order.shippingAddress && order.shippingAddress.country) || (window._geoData && window._geoData.country_code) || '',
+          orderCount:    increment(1),
+          totalSpentUSD: increment((order.pricing && order.pricing.finalTotalUSD) || 0)
+        };
+        await update(ref(db, 'customers/' + emailKey), custUpdate);
+      }
+
+      // Full address record (all address fields individually for easy admin view)
+      if (order.shippingAddress) {
+        await set(ref(db, 'addresses/' + order.orderId), {
+          name:     order.shippingAddress.name    || order.customerName  || '',
+          line1:    order.shippingAddress.line1   || '',
+          line2:    order.shippingAddress.line2   || '',
+          city:     order.shippingAddress.city    || '',
+          postal:   order.shippingAddress.postal  || '',
+          country:  order.shippingAddress.country || '',
+          email:    order.customerEmail  || '',
+          phone:    order.customerPhone  || '',
+          orderId:  order.orderId,
+          deviceId,
+          currency: order.currency || curData.currency,
+          totalPaidUSD: (order.pricing && order.pricing.finalTotalUSD) || 0,
+          totalPaidLocal: ((order.pricing && order.pricing.finalTotalUSD) || 0) * (order.exchangeRate || curData.exchangeRate),
+          savedAt: serverTimestamp()
+        });
+      }
+
+      // Analytics
+      await update(ref(db, 'analytics'), {
+        totalOrders:  increment(1),
+        totalRevUSD:  increment((order.pricing && order.pricing.finalTotalUSD) || 0)
+      });
+
+      console.log('[MINIMISTY] Order saved to Firebase:', order.orderId);
+    } catch(e) { console.warn('[MINIMISTY] saveCompletedOrder err:', e); }
+  };
+
+  window.saveAbandonedCartEmail = async function(email, items, orderId) {
+    if (!email) return;
+    try {
+      const curData = getCurrencyData();
+      await set(ref(db, 'abandonedCarts/' + deviceId + '_' + Date.now()), {
+        email, orderId: orderId || '', deviceId, sessionId,
+        items:    JSON.stringify(items || []),
+        currency: curData.currency,
+        country:  (window._geoData && window._geoData.country_code) || '',
+        savedAt:  serverTimestamp()
+      });
+      await update(ref(db, 'analytics'), { totalAbandonedCarts: increment(1) });
+    } catch(e) {}
+  };
+
+  window.saveCheckoutEmail = async function(email, name, orderId) {
+    if (!email) return;
+    try {
+      const emailKey = email.replace(/[.@]/g, '_');
+      await update(ref(db, 'customers/' + emailKey), {
+        email, name, orderId, deviceId,
+        country:   (window._geoData && window._geoData.country_code) || '',
+        updatedAt: serverTimestamp()
+      });
+    } catch(e) {}
+  };
+
+  window.checkDiscountCode = async function(code) {
+    try {
+      const snap = await get(ref(db, 'codes/' + code));
+      if (!snap.exists()) return { valid: false, reason: 'Code not found' };
+      const d = snap.val();
+      if (!d.active) return { valid: false, reason: 'Code is inactive' };
+      if (d.expiresAt && Date.now() > d.expiresAt) return { valid: false, reason: 'Code has expired' };
+      if (d.maxUses && d.uses >= d.maxUses) return { valid: false, reason: 'Code has reached its usage limit' };
+      return { valid: true, type: d.type || 'pct', value: d.value || 10 };
+    } catch(e) {
+      return { valid: false, reason: 'Could not verify code. Please try again.' };
+    }
+  };
+
+  window.incrementCodeUse = async function(code) {
+    try { await update(ref(db, 'codes/' + code), { uses: increment(1) }); } catch(e) {}
+  };
+
+  // saveManualPayRequest — augments existing submitManualPay in the page
+  window.saveManualPayRequest = async function(data) {
+    try {
+      const curData = getCurrencyData();
+      await set(ref(db, 'manualPayRequests/' + (data.orderId || ('MP_' + Date.now()))), Object.assign({}, data, {
+        deviceId, sessionId,
+        ip:           (window._geoData && window._geoData.ip)           || '',
+        country:      (window._geoData && window._geoData.country_code) || '',
+        city:         (window._geoData && window._geoData.city)         || '',
+        currency:     data.currency       || curData.currency,
+        currencySymbol: data.currencySymbol || curData.currencySymbol,
+        exchangeRate:   data.exchangeRate   || curData.exchangeRate,
+        localTime:    new Date().toISOString(),
+        savedAt:      serverTimestamp(),
+        status:       'pending'
+      }));
+      await update(ref(db, 'analytics'), { totalManualPayRequests: increment(1) });
+    } catch(e) { console.warn('[MINIMISTY] saveManualPayRequest err:', e); }
+  };
+
+  // Load pending order for checkout page sidebar
+  window.loadOrderFromFirebase = async function() {
+    let orderId = null;
+    try { orderId = sessionStorage.getItem('pendingOrderId'); } catch(e) {}
+    if (!orderId) return null;
+    try {
+      const snap = await get(ref(db, 'orders/' + orderId));
+      if (!snap.exists()) return null;
+      const orderData = snap.val();
+      const cur  = sessionStorage.getItem('pendingCurrency')       || 'USD';
+      const sym  = sessionStorage.getItem('pendingCurrencySymbol') || '$';
+      const rate = parseFloat(sessionStorage.getItem('pendingExchangeRate') || '1') || 1;
+      let code = null;
+      try { code = JSON.parse(sessionStorage.getItem('minimisty_applied_code') || 'null'); } catch(e2) {}
+      // Update order with current display currency
+      await update(ref(db, 'orders/' + orderId), {
+        currency:            cur,
+        currencySymbol:      sym,
+        exchangeRate:        rate,
+        checkoutVisitAt:     serverTimestamp(),
+        checkoutDeviceId:    deviceId,
+        checkoutCountry:     (window._geoData && window._geoData.country_code) || '',
+        checkoutCity:        (window._geoData && window._geoData.city)         || ''
+      });
+      return Object.assign({}, orderData, {
+        currency: cur, currencySymbol: sym, exchangeRate: rate,
+        appliedCode: code || orderData.appliedCode
+      });
+    } catch(e) {
+      console.warn('[MINIMISTY] loadOrderFromFirebase err:', e);
+      return null;
+    }
+  };
+}
+
+// ═══════════════════════════════
+// ORDER PAGE FUNCTIONS
+// ═══════════════════════════════
+if (PAGE_NAME === 'order') {
+
+  window.markOrderConfirmed = async function(orderId) {
+    if (!orderId) return;
+    try {
+      await update(ref(db, 'orders/' + orderId), {
+        orderPageVisitedAt: serverTimestamp(),
+        orderPageDeviceId:  deviceId,
+        confirmedByUser:    true,
+        status:             'confirmed'
+      });
+      await update(ref(db, 'analytics'), { totalConfirmedOrders: increment(1) });
+    } catch(e) { console.warn('[MINIMISTY] markOrderConfirmed err:', e); }
+  };
+
+  window.loadOrderForDisplay = async function() {
+    const urlParams = new URLSearchParams(location.search);
+    let orderId = urlParams.get('order') || urlParams.get('orderId');
+    if (!orderId) { try { orderId = sessionStorage.getItem('pendingOrderId'); } catch(e) {} }
+    if (!orderId) { try { orderId = localStorage.getItem('minimisty_last_order_id'); } catch(e) {} }
+    if (!orderId) return null;
+    try {
+      const snap = await get(ref(db, 'orders/' + orderId));
+      if (!snap.exists()) return null;
+      const order = snap.val();
+      await window.markOrderConfirmed(orderId);
+      return order;
+    } catch(e) {
+      console.warn('[MINIMISTY] loadOrderForDisplay err:', e);
+      return null;
+    }
+  };
+
+  window.lookupOrderById = async function(orderId) {
+    if (!orderId) return null;
+    try {
+      const snap = await get(ref(db, 'orders/' + orderId));
+      return snap.exists() ? snap.val() : null;
+    } catch(e) { return null; }
+  };
+
+  window.loadDeviceOrders = async function() {
+    try {
+      const snap = await get(ref(db, 'deviceOrders/' + deviceId));
+      if (!snap.exists()) return [];
+      const entries = Object.values(snap.val());
+      entries.sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
+      const details = await Promise.all(entries.slice(0,5).map(async e => {
+        try {
+          const os = await get(ref(db, 'orders/' + e.orderId));
+          return os.exists() ? os.val() : null;
+        } catch(e2) { return null; }
+      }));
+      return details.filter(Boolean);
+    } catch(e) { return []; }
+  };
+}
+
+// ═══════════════════════════════
+// FOOTER EMAIL (all pages)
+// ═══════════════════════════════
+window.pfSubmitEmail = async function() {
+  const input = document.getElementById('pfEmailInput');
+  const note  = document.getElementById('pfEmailNote');
+  if (!input) return;
+  const email = (input.value || '').trim();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    input.style.borderColor='var(--red)';
+    setTimeout(() => { input.style.borderColor=''; }, 1500);
+    return;
+  }
+  try {
+    const emailKey = email.replace(/[.@]/g,'_');
+    await update(ref(db, 'customers/' + emailKey), {
+      email, source: 'footer_' + PAGE_NAME, deviceId,
+      country: (window._geoData && window._geoData.country_code) || '',
+      updatedAt: serverTimestamp()
+    });
+    await update(ref(db, 'analytics'), { totalEmailCaptures: increment(1) });
+    try {
+      await fetch('/api/send-email', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          to: email,
+          subject: 'Your 10% OFF Code - MINIMISTY.store',
+          html: '<div style="font-family:Arial;max-width:600px;padding:20px;background:#000;color:#fff"><h2 style="color:#4db8d4">Welcome to MINIMISTY!</h2><p>Use code <strong style="color:#a3ff12">CHILL10</strong> at checkout for 10% off your FrostBlade Pro.</p><hr style="border-color:#222"><p style="font-size:11px;color:#555">MINIMISTY.store</p></div>'
+        })
+      });
+    } catch(e) {}
+  } catch(e) {}
+  if (input) { input.value = ''; input.disabled = true; }
+  if (note)  { note.innerHTML = '<span style="color:var(--lime);font-weight:700">✓ 10% code sent to your inbox!</span>'; }
+};
+
+// ═══════════════════════════════
+// INIT — fire tracking on page load
+// ═══════════════════════════════
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => { initGeoIfNeeded(); });
+} else {
+  initGeoIfNeeded();
+}
+</script>
 </body>
 </html>
