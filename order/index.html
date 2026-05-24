@@ -1,0 +1,1791 @@
+<!DOCTYPE html>
+<html lang="en" style="background:#050508">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>My Order – MINIMISTY.store</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --cyan: #4db8d4;
+      --lime: #6dbd3a;
+      --red: #e05555;
+      --yellow: #d4a843;
+      --font: 'Fredoka', sans-serif;
+      --bg:        #0b0b0f;
+      --bg2:       #0f0f14;
+      --bg3:       #141420;
+      --border2:   #1e1e2e;
+      --text:      #e8e8f0;
+      --text-dim:  #a8a8c0;
+      --text-muted:#606080;
+      --text-faint:#363650;
+      --card-bg:   #0f0f14;
+    }
+
+    [data-theme="light"] {
+      --bg:        #fef9f0;
+      --bg2:       #ffffff;
+      --bg3:       #f0ebff;
+      --border2:   #d0c8f0;
+      --text:      #1a0a3a;
+      --text-dim:  #3a2a5a;
+      --text-muted:#6a5a7a;
+      --text-faint:#a090b0;
+      --card-bg:   #ffffff;
+      --cyan:      #2a7aaa;
+      --lime:      #3c8c14;
+    }
+
+    html, body {
+      background: var(--bg); color: var(--text);
+      font-family: var(--font); min-height: 100vh;
+      -webkit-user-select: none; user-select: none;
+      scrollbar-width: none;
+    }
+    ::-webkit-scrollbar { display: none; }
+    * { -webkit-tap-highlight-color: transparent !important; }
+    *:focus, *:focus-visible { outline: none !important; box-shadow: none !important; }
+
+    /* ── HEADER ── */
+    header {
+      position: sticky; top: 0; width: 100%; height: 56px;
+      background: rgba(5,5,8,0.92);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 16px; z-index: 100;
+      border-bottom: 1.5px solid var(--border2);
+      
+    }
+    [data-theme="light"] header { background: rgba(254,249,240,0.95); }
+    .brand-name { font-weight: 700; font-size: 1.2rem; color: var(--text); }
+    .brand-suffix { font-weight: 600; font-size: 0.8rem; color: var(--cyan); }
+    .fan-icon { width: 30px; height: 30px; animation: spin 5s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── LOADING STATE ── */
+    #loadingState {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; min-height: calc(100vh - 56px);
+      gap: 16px;
+    }
+    .loading-spinner {
+      width: 56px; height: 56px; border-radius: 50%;
+      border: 4px solid #2e2e2e;
+      border-top-color: var(--cyan);
+      border-right-color: rgba(0,240,255,0.4);
+      animation: spin 0.8s linear infinite;
+      
+    }
+    .loading-text { font-size: 0.9rem; font-weight: 700; color: var(--text-muted); }
+
+    /* ── MAIN CONTENT ── */
+    #mainContent { display: none; }
+    main {
+      max-width: 620px; margin: 0 auto;
+      padding: 28px 16px 80px;
+    }
+
+    /* ── STATUS HERO ── */
+    .status-hero {
+      text-align: center; padding: 36px 20px 28px;
+      margin-bottom: 20px;
+    }
+    .status-icon {
+      width: 80px; height: 80px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px;
+      animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes popIn { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }
+    .status-icon.success {
+      background: rgba(163,255,18,0.12);
+      border: 2px solid var(--lime);
+      
+    }
+    .status-icon.failed {
+      background: rgba(255,59,48,0.12);
+      border: 2px solid var(--red);
+      
+    }
+    .status-title { font-size: 1.6rem; font-weight: 800; margin-bottom: 8px; }
+    .status-title.success { color: var(--lime); }
+    .status-title.failed { color: var(--red); }
+    .status-sub {
+      font-size: 0.88rem; font-weight: 600; color: var(--text-muted);
+      line-height: 1.55; max-width: 360px; margin: 0 auto;
+    }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--card-bg);
+      border: 1.5px solid var(--border2);
+      border-radius: 20px; padding: 20px; margin-bottom: 14px;
+      border-left-width: 4px;
+      box-shadow: 4px 4px 0px rgba(0,0,0,0.6);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .card:hover { transform: translateY(-2px); box-shadow: 5px 5px 0px rgba(0,0,0,0.7); }
+    .card.success-card { border-left-color: var(--lime);  }
+    .card.success-card:hover {  }
+    .card.info-card { border-left-color: var(--cyan);  }
+    .card.info-card:hover {  }
+    .card.failed-card { border-left-color: var(--red);  }
+    .card.failed-card:hover {  }
+    .card-title {
+      font-size: 0.7rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 1.2px; color: var(--text-muted);
+      margin-bottom: 14px; display: flex; align-items: center; gap: 7px;
+    }
+    .card-title.cyan { color: var(--cyan); }
+    .card-title.lime { color: var(--lime); }
+    .card-title.red { color: var(--red); }
+
+    /* ── ORDER ID CHIP ── */
+    .order-id-chip {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--bg3); border: 1.5px solid var(--border2);
+      border-radius: 12px; padding: 10px 14px;
+      font-size: 0.82rem; font-weight: 800; color: var(--text);
+      letter-spacing: 0.5px;
+      box-shadow: 3px 3px 0px rgba(0,0,0,0.5);
+    }
+    .copy-btn {
+      background: var(--bg3); border: 1px solid var(--border2); border-radius: 7px;
+      cursor: pointer; color: var(--text-muted); padding: 4px 6px;
+      transition: all 0.15s;
+      box-shadow: 2px 2px 0px rgba(0,0,0,0.4);
+    }
+    .copy-btn:hover { color: var(--cyan); border-color: var(--cyan);  transform: translateY(-1px); }
+    .copy-btn:active { transform: translateY(1px); box-shadow: 1px 1px 0px rgba(0,0,0,0.3); }
+
+    /* ── DETAIL ROW ── */
+    .detail-row {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      padding: 9px 0; border-bottom: 1px solid var(--border2);
+      gap: 12px;
+    }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-label { font-size: 0.74rem; font-weight: 700; color: var(--text-muted); flex-shrink: 0; }
+    .detail-value { font-size: 0.8rem; font-weight: 700; color: var(--text); text-align: right; line-height: 1.4; word-break: break-word; max-width: 60%; }
+    .detail-value.lime { color: var(--lime); }
+    .detail-value.cyan { color: var(--cyan); }
+    .detail-value.red { color: var(--red); }
+
+    /* ── ORDER ITEMS ── */
+    .order-item {
+      display: flex; gap: 12px; align-items: center;
+      padding: 10px 0; border-bottom: 1px solid var(--border2);
+    }
+    .order-item:last-child { border-bottom: none; }
+    .item-img {
+      width: 56px; height: 56px; border-radius: 12px;
+      background-size: cover; background-position: center;
+      background-color: var(--bg3);
+      flex-shrink: 0;
+      border: 1.5px solid var(--border2);
+      position: relative;
+      box-shadow: 3px 3px 0px rgba(0,0,0,0.5);
+    }
+    .item-qty-badge {
+      position: absolute; top: -6px; right: -6px;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: var(--cyan); color: #000;
+      font-size: 0.58rem; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      border: 1px solid var(--border2);
+      box-shadow: 2px 2px 0px rgba(0,0,0,0.4);
+    }
+    .item-name { font-size: 0.82rem; font-weight: 800; color: var(--text); }
+    .item-variant { font-size: 0.68rem; font-weight: 600; color: var(--text-muted); margin-top: 2px; }
+    .item-price { font-size: 0.86rem; font-weight: 800; color: var(--text); margin-left: auto; flex-shrink: 0; }
+
+    /* ── TIMELINE (order tracking) ── */
+    .timeline { display: flex; flex-direction: column; gap: 0; }
+    .tl-step { display: flex; gap: 12px; position: relative; }
+    .tl-step:not(:last-child) .tl-line {
+      position: absolute; left: 10px; top: 22px;
+      width: 2px; height: calc(100% + 8px);
+      background: #2e2e2e;
+    }
+    .tl-dot {
+      width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.62rem; font-weight: 800; margin-top: 2px;
+    }
+    .tl-dot.done {
+      background: var(--lime); color: #000;
+      border: 1.5px solid var(--lime);
+      
+    }
+    .tl-dot.active {
+      background: var(--cyan); color: #000;
+      border: 1.5px solid var(--cyan);
+      animation: pulse 1.5s infinite;
+      
+    }
+    .tl-dot.pending {
+      background: var(--bg3);
+      border: 1.5px solid var(--border2);
+      color: var(--text-faint);
+      box-shadow: 2px 2px 0px rgba(0,0,0,0.4);
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+    .tl-content { padding: 0 0 20px 2px; }
+    .tl-title { font-size: 0.82rem; font-weight: 800; color: var(--text); }
+    .tl-sub { font-size: 0.68rem; font-weight: 600; color: var(--text-muted); margin-top: 3px; }
+
+    /* ── PRICING ── */
+    .price-row {
+      display: flex; justify-content: space-between;
+      font-size: 0.8rem; font-weight: 600; padding: 7px 0;
+    }
+    .price-row .lbl { color: var(--text-muted); }
+    .price-row .val { color: var(--text); }
+    .price-row .val.green { color: var(--lime); }
+    .price-row .val.red { color: var(--red); }
+    .price-total {
+      display: flex; justify-content: space-between;
+      font-size: 1.1rem; font-weight: 800;
+      padding: 12px 0 0; margin-top: 6px;
+      border-top: 1.5px solid var(--border2);
+      color: var(--lime);
+    }
+
+    /* ── FAIL ACTIONS ── */
+    .fail-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+    .btn-primary {
+      width: 100%; background: var(--text); color: var(--bg);
+      border: 3px solid rgba(0,0,0,0.2); padding: 15px; border-radius: 15px;
+      font-family: var(--font); font-weight: 800; font-size: 0.95rem;
+      cursor: pointer; text-decoration: none; display: block; text-align: center;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 4px 4px 0px rgba(0,0,0,0.4);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 5px 5px 0px rgba(0,0,0,0.4); }
+    .btn-primary:active { transform: translateY(1px); box-shadow: 2px 2px 0px rgba(0,0,0,0.3); }
+    .btn-primary.lime {
+      background: linear-gradient(135deg, #d4ff60, var(--lime)); color: #000;
+      border-color: #7acc00;
+      
+    }
+    .btn-primary.lime:hover {  }
+    .btn-secondary {
+      width: 100%; background: var(--bg3); color: var(--text);
+      border: 1.5px solid var(--border2); padding: 13px; border-radius: 15px;
+      font-family: var(--font); font-weight: 800; font-size: 0.88rem;
+      cursor: pointer; text-decoration: none; display: block; text-align: center;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 3px 3px 0px rgba(0,0,0,0.5);
+    }
+    .btn-secondary:hover { transform: translateY(-1px); box-shadow: 4px 4px 0px rgba(0,0,0,0.5); border-color: #555; }
+    .btn-secondary:active { transform: translateY(1px); box-shadow: 1px 1px 0px rgba(0,0,0,0.4); }
+
+    /* ── UNKNOWN ORDER ── */
+    #noOrderState {
+      display: none; flex-direction: column; align-items: center;
+      justify-content: center; min-height: calc(100vh - 56px);
+      gap: 16px; text-align: center; padding: 24px;
+    }
+    .no-order-icon { font-size: 3rem; margin-bottom: 8px; }
+    .no-order-title { font-size: 1.2rem; font-weight: 800; color: var(--text-muted); }
+    .no-order-sub { font-size: 0.82rem; font-weight: 600; color: var(--text-faint); max-width: 280px; line-height: 1.5; }
+
+    /* ── CONFETTI ── */
+    .confetti-piece {
+      position: fixed; top: -10px; z-index: 9999;
+      border-radius: 3px;
+      border: 1.5px solid rgba(0,0,0,0.2);
+      animation: confettiFall linear forwards;
+      pointer-events: none;
+    }
+    @keyframes confettiFall {
+      0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+    }
+  </style>
+
+<style>
+    /* ══ FOOTER ══════════════════════════════════════════════════ */
+    :root {
+      --footer-bg:     #020204;
+      --footer-title:  #b0b0d0;
+      --footer-text:   #7070a0;
+      --footer-note:   #504870;
+      --footer-copy:   #404060;
+      --footer-bottom: #040408;
+      --font-body:     'Fredoka', sans-serif;
+    }
+    [data-theme="light"] {
+      --footer-bg:     #f5f0ff;
+      --footer-title:  #3a2a5a;
+      --footer-text:   #6a5a7a;
+      --footer-note:   #9080a0;
+      --footer-copy:   #b0a0c0;
+      --footer-bottom: #eee8ff;
+    }
+    .page-footer {
+      background: var(--footer-bg);
+      border-top: 1px solid var(--border2);
+      padding: 40px 20px 0;
+      margin-top: 40px;
+    }
+    .page-footer-grid {
+      max-width: 900px; margin: 0 auto;
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 32px 40px;
+    }
+    @media (min-width: 700px) {
+      .page-footer-grid { grid-template-columns: 1.5fr 1fr 1fr; }
+    }
+    .pf-col-title {
+      font-size: 0.62rem; font-weight: 800; color: var(--footer-title);
+      text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px;
+    }
+    .pf-brand {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+    }
+    .pf-fan-icon { width: 24px; height: 24px; animation: spin 6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .pf-tagline {
+      font-size: 0.7rem; color: var(--footer-text); font-weight: 600;
+      line-height: 1.6; margin-bottom: 16px;
+    }
+    .pf-links {
+      display: flex; flex-direction: column; gap: 9px;
+    }
+    .pf-links a {
+      font-size: 0.72rem; font-weight: 600; color: var(--footer-text);
+      text-decoration: none; transition: color 0.15s; cursor: pointer;
+    }
+    .pf-links a:hover { color: var(--footer-title); }
+    .pf-email-row {
+      display: flex; gap: 7px; margin-top: 4px;
+    }
+    .pf-email-input {
+      flex: 1; min-width: 0;
+      background: var(--bg3); border: 1px solid var(--border2);
+      border-radius: 8px; padding: 9px 11px;
+      color: var(--text); font-family: var(--font);
+      font-size: 0.78rem; font-weight: 600;
+      -webkit-user-select: auto; user-select: auto;
+    }
+    .pf-email-input::placeholder { color: var(--text-faint); }
+    .pf-email-input:focus { border-color: var(--text-muted); outline: none; }
+    .pf-email-btn {
+      background: var(--text); color: var(--bg);
+      border: none; border-radius: 8px; padding: 9px 13px;
+      font-family: var(--font); font-weight: 800;
+      font-size: 0.72rem; cursor: pointer; flex-shrink: 0;
+      transition: opacity 0.15s;
+    }
+    .pf-email-btn:hover { opacity: 0.88; }
+    .pf-email-note {
+      font-size: 0.62rem; color: var(--footer-note);
+      font-weight: 600; margin-top: 6px; line-height: 1.4;
+    }
+    .pf-bottom {
+      max-width: 900px; margin: 32px auto 0;
+      padding: 20px 0 28px;
+      border-top: 1px solid var(--border2);
+      display: flex; flex-wrap: wrap; align-items: center;
+      justify-content: space-between; gap: 12px;
+    }
+    .pf-copy {
+      font-size: 0.62rem; color: var(--footer-copy); font-weight: 600;
+    }
+    .pf-badges {
+      display: flex; gap: 7px; align-items: center; flex-wrap: wrap;
+    }
+    .pf-badge {
+      display: flex; align-items: center; gap: 4px;
+      background: var(--bg3); border: 1px solid var(--border2);
+      border-radius: 5px; padding: 4px 7px;
+      font-size: 0.58rem; font-weight: 700; color: var(--text-faint);
+    }
+    .pf-badge svg { width: 9px; height: 9px; flex-shrink: 0; }
+
+    /* ── POLICY MODAL ── */
+    #pfPolicyModal {
+      display: none; position: fixed; inset: 0; z-index: 9300;
+      align-items: flex-end; justify-content: center;
+    }
+    #pfPolicyModal.open { display: flex; }
+    .pf-policy-backdrop {
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,0.88);
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    }
+    .pf-policy-drawer {
+      position: relative; width: 100%; max-width: 600px;
+      background: var(--bg2); border: 1px solid var(--border2);
+      border-radius: 22px 22px 0 0; max-height: 88dvh;
+      display: flex; flex-direction: column;
+      animation: pfSlideUp 0.35s cubic-bezier(0.16,1,0.3,1); overflow: hidden;
+    }
+    @keyframes pfSlideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .pf-policy-handle {
+      width: 36px; height: 4px; background: var(--border2);
+      border-radius: 2px; margin: 12px auto 0; flex-shrink: 0;
+    }
+    .pf-policy-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px 14px; border-bottom: 1px solid var(--border2);
+      flex-shrink: 0;
+    }
+    .pf-policy-title {
+      font-family: var(--font); font-size: 1rem; font-weight: 800;
+      color: var(--text); display: flex; align-items: center; gap: 9px;
+    }
+    .pf-policy-title-icon {
+      width: 26px; height: 26px; border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(77,184,212,0.08);
+    }
+    .pf-policy-close {
+      width: 28px; height: 28px; background: var(--bg3); border: none;
+      border-radius: 50%; color: var(--text-muted); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem; font-family: var(--font); font-weight: 700;
+      transition: background 0.15s;
+    }
+    .pf-policy-close:hover { background: var(--border2); color: var(--text); }
+    .pf-policy-body {
+      overflow-y: auto; padding: 20px 20px calc(env(safe-area-inset-bottom) + 24px); flex: 1;
+      scrollbar-width: thin; scrollbar-color: var(--border2) transparent;
+    }
+    .pf-policy-body::-webkit-scrollbar { width: 4px; }
+    .pf-policy-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+    .pf-policy-section { margin-bottom: 20px; }
+    .pf-policy-section h3 {
+      font-family: var(--font); font-size: 0.86rem; font-weight: 800;
+      color: var(--cyan); margin-bottom: 7px;
+    }
+    .pf-policy-section p, .pf-policy-section li {
+      font-family: var(--font-body); font-size: 0.76rem; font-weight: 600;
+      color: var(--text-dim); line-height: 1.65;
+    }
+    .pf-policy-section ul { padding-left: 16px; margin-top: 5px; }
+    .pf-policy-section li { margin-bottom: 4px; }
+    .pf-policy-last-updated {
+      font-size: 0.62rem; font-weight: 600; color: var(--text-muted); margin-bottom: 16px;
+    }
+    .pf-contact-card {
+      background: var(--bg3); border: 1px solid var(--border2);
+      border-radius: 12px; padding: 14px; margin-top: 8px;
+    }
+    .pf-contact-card a { color: var(--cyan); text-decoration: none; font-weight: 700; }
+    .pf-contact-card a:hover { text-decoration: underline; }
+    .pf-contact-row { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 11px; }
+    .pf-contact-row:last-child { margin-bottom: 0; }
+    .pf-contact-icon {
+      width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(77,184,212,0.08);
+    }
+    .pf-contact-label { font-family: var(--font); font-size: 0.68rem; color: var(--text-muted); font-weight: 700; }
+    .pf-contact-val { font-family: var(--font-body); font-size: 0.78rem; font-weight: 700; color: var(--text); }
+    [data-theme="light"] .pf-policy-section h3 { color: #0088aa; }
+    [data-theme="light"] .pf-policy-section p,
+    [data-theme="light"] .pf-policy-section li { color: #444; }
+    [data-theme="light"] .pf-contact-card { background: #f4f4f8; border-color: #ddd; }
+    [data-theme="light"] .pf-contact-val { color: #111; }
+
+    /* ── CHAT WIDGET ── */
+    #chatWidget { position:fixed; bottom:24px; right:18px; z-index:9000; }
+    #chatToggleBtn { width:52px; height:52px; border-radius:50%; background:linear-gradient(135deg,#1a6090,#2a8ab4); border:3px solid #155070; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:transform 0.2s cubic-bezier(0.34,1.56,0.64,1); position:relative; }
+    #chatToggleBtn:hover { transform:scale(1.08); }
+    #chatToggleBtn.open { background:linear-gradient(135deg,#282830,#383840); border-color:#444; }
+    .chat-notif-dot { position:absolute; top:2px; right:2px; width:10px; height:10px; border-radius:50%; background:#e05555; border:2px solid var(--bg); animation:chatpulse 1.5s infinite; display:none; }
+    @keyframes chatpulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    #chatModal { display:none; position:fixed; bottom:88px; right:18px; width:340px; max-width:calc(100vw - 36px); background:var(--card-bg); border:1.5px solid var(--border2); border-radius:22px; overflow:hidden; box-shadow:4px 4px 0px rgba(0,0,0,0.6); flex-direction:column; max-height:480px; animation:chatPop 0.28s cubic-bezier(0.34,1.56,0.64,1); }
+    #chatModal.open { display:flex; }
+    @keyframes chatPop { from{transform:scale(0.88) translateY(16px);opacity:0} to{transform:scale(1) translateY(0);opacity:1} }
+    .chat-header { padding:14px 16px; display:flex; align-items:center; gap:10px; background:rgba(26,96,144,0.12); border-bottom:1.5px solid var(--border2); flex-shrink:0; }
+    .chat-avatar { width:34px; height:34px; border-radius:50%; flex-shrink:0; background:linear-gradient(135deg,#1a6090,#2a8ab4); border:2px solid #155070; display:flex; align-items:center; justify-content:center; font-size:0.9rem; }
+    .chat-header-name { font-size:0.84rem; font-weight:800; color:var(--text); }
+    .chat-header-status { font-size:0.64rem; font-weight:600; color:#4ca864; display:flex; align-items:center; gap:4px; }
+    .chat-header-status::before { content:''; width:6px; height:6px; border-radius:50%; background:#4ca864; display:block; }
+    .chat-messages { flex:1; overflow-y:auto; padding:14px 14px 6px; display:flex; flex-direction:column; gap:10px; scrollbar-width:none; }
+    .chat-messages::-webkit-scrollbar { display:none; }
+    .chat-msg { max-width:82%; padding:10px 13px; border-radius:16px; font-size:0.78rem; font-weight:600; line-height:1.4; word-break:break-word; }
+    .chat-msg.bot { background:var(--bg3); color:var(--text); border-radius:4px 16px 16px 16px; border:1.5px solid var(--border2); align-self:flex-start; }
+    .chat-msg.user { background:linear-gradient(135deg,#1a6090,#2a8ab4); color:#fff; border-radius:16px 16px 4px 16px; border:1.5px solid #155070; align-self:flex-end; }
+    .chat-msg img { max-width:180px; border-radius:10px; display:block; margin-top:6px; }
+    .chat-typing { align-self:flex-start; background:var(--bg3); border-radius:4px 16px 16px 16px; padding:10px 14px; display:none; gap:4px; align-items:center; border:1.5px solid var(--border2); }
+    .chat-typing.show { display:flex; }
+    .chat-typing span { width:6px; height:6px; border-radius:50%; background:var(--text-muted); animation:typingDot 1s infinite; }
+    .chat-typing span:nth-child(2) { animation-delay:0.15s; }
+    .chat-typing span:nth-child(3) { animation-delay:0.3s; }
+    @keyframes typingDot { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
+    .chat-input-area { padding:10px 12px; border-top:1px solid var(--border2); display:flex; gap:8px; align-items:flex-end; flex-shrink:0; }
+    .chat-input-wrap { flex:1; }
+    .chat-input { width:100%; background:var(--bg3); border:1.5px solid var(--border2); border-radius:12px; padding:9px 12px; color:var(--text); font-family:var(--font); font-size:0.78rem; font-weight:600; resize:none; max-height:80px; line-height:1.4; -webkit-user-select:auto; user-select:auto; transition:border-color 0.2s; }
+    .chat-input:focus { border-color:var(--cyan); }
+    .chat-input::placeholder { color:var(--text-faint); }
+    .chat-img-btn, .chat-send-btn { width:34px; height:34px; border-radius:10px; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all 0.15s; }
+    .chat-img-btn { background:var(--bg3); border:1.5px solid var(--border2); }
+    .chat-img-btn:hover { transform:translateY(-1px); }
+    .chat-send-btn { background:linear-gradient(135deg,#1a6090,#2a8ab4); border:1.5px solid #155070; }
+    .chat-send-btn:hover { transform:scale(1.06); }
+    .chat-img-preview { display:flex; gap:6px; flex-wrap:wrap; padding:0 12px 8px; flex-shrink:0; }
+    .chat-img-thumb { position:relative; width:50px; height:50px; }
+    .chat-img-thumb img { width:100%; height:100%; object-fit:cover; border-radius:8px; }
+    .chat-img-thumb-remove { position:absolute; top:-4px; right:-4px; width:16px; height:16px; border-radius:50%; background:#e05555; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:0.55rem; color:#fff; font-weight:800; }
+</style>
+</head>
+<body>
+
+<!-- ═══ STICKY CHAT WIDGET ═══ -->
+<div id="chatWidget" style="position:fixed;bottom:24px;right:18px;z-index:9000">
+  <div id="chatModal">
+    <div class="chat-header">
+      <div class="chat-avatar">💬</div>
+      <div style="flex:1">
+        <div class="chat-header-name">MINIMISTY Support</div>
+        <div class="chat-header-status">Online — replies in seconds</div>
+      </div>
+      <button onclick="toggleChat()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);padding:4px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="chat-messages" id="chatMessages"></div>
+    <div class="chat-typing" id="chatTyping"><span></span><span></span><span></span></div>
+    <div class="chat-img-preview" id="chatImgPreview"></div>
+    <div class="chat-input-area">
+      <button class="chat-img-btn" onclick="document.getElementById('chatFileInput').click()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      </button>
+      <input type="file" id="chatFileInput" accept="image/*" style="display:none" onchange="handleChatImage(this)">
+      <div class="chat-input-wrap">
+        <textarea class="chat-input" id="chatInput" placeholder="Ask about your order…" rows="1"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMsg();}"
+          oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,80)+'px'"></textarea>
+      </div>
+      <button class="chat-send-btn" onclick="sendChatMsg()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+  </div>
+  <button id="chatToggleBtn" onclick="toggleChat()">
+    <span class="chat-notif-dot" id="chatNotifDot"></span>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" id="chatOpenIcon"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" id="chatCloseIcon" style="display:none"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+</div>
+
+<header>
+  <a href="/" style="display:flex;align-items:center;gap:6px;color:var(--text-muted);font-size:0.82rem;font-weight:700;text-decoration:none;transition:color 0.2s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-muted)'">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    Shop
+  </a>
+  <div style="display:flex;align-items:center;gap:8px">
+    <svg class="fan-icon" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="50" cy="50" r="16" fill="var(--text)" stroke="var(--bg)" stroke-width="4"/>
+      <path d="M50 34 C30 30 30 4 50 4 C70 4 70 30 50 34 Z" fill="var(--text)"/>
+      <path d="M66 50 C70 30 96 30 96 50 C96 70 70 70 66 50 Z" fill="var(--text)"/>
+      <path d="M50 66 C70 70 70 96 50 96 C30 96 30 70 50 66 Z" fill="var(--text)"/>
+      <path d="M34 50 C30 70 4 70 4 50 C4 30 30 30 34 50 Z" fill="var(--text)"/>
+      <circle cx="50" cy="50" r="6" fill="var(--bg)"/>
+    </svg>
+    <span class="brand-name">MINIMISTY</span><span class="brand-suffix">.store</span>
+  </div>
+  <!-- Profile Button -->
+  <button id="profileBtn" onclick="toggleProfile()" style="
+    width:38px; height:38px; border-radius:50%;
+    border: 1.5px solid var(--border2);
+    background: var(--bg3);
+    cursor:pointer; position:relative;
+    overflow:hidden;
+    box-shadow: 3px 3px 0px rgba(0,0,0,0.6);
+    transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1);
+    flex-shrink:0; padding:0;
+    display:flex; align-items:center; justify-content:center;
+  " onmouseover="this.style.transform='scale(1.08) translateY(-1px)';this.style.borderColor='var(--cyan)'"
+     onmouseout="this.style.transform='';this.style.borderColor='#3a3a3a'">
+    <img id="profileAvatar" src="" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:none">
+    <svg id="profileAvatarFallback" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    <div id="profileNotifDot" style="display:none;position:absolute;top:0;right:0;width:9px;height:9px;border-radius:50%;background:#6dbd3a;border:2px solid var(--bg);"></div>
+  </button>
+</header>
+
+<!-- Loading -->
+<div id="loadingState">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Loading your order…</div>
+</div>
+
+<!-- No order found -->
+<div id="noOrderState">
+  <div class="no-order-icon">📦</div>
+  <div class="no-order-title">No order found</div>
+  <div class="no-order-sub">We couldn't find order details for this link. If you just placed an order, check your confirmation email.</div>
+  <a href="/" class="btn-primary" style="max-width:220px;margin-top:8px">Back to Shop</a>
+</div>
+
+<!-- Main order content -->
+<div id="mainContent">
+<main>
+
+  <!-- Status Hero -->
+  <div class="status-hero">
+    <div class="status-icon" id="statusIcon">
+      <!-- filled by JS -->
+    </div>
+    <div class="status-title" id="statusTitle"></div>
+    <div class="status-sub" id="statusSub"></div>
+  </div>
+
+  <!-- Order ID -->
+  <div class="card info-card">
+    <div class="card-title cyan">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+      Order Reference
+    </div>
+    <div class="order-id-chip">
+      <span id="orderIdDisplay">—</span>
+      <button class="copy-btn" onclick="copyOrderId()" title="Copy order ID">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Order Details (shown for success) -->
+  <div id="orderDetailsSection" style="display:none">
+
+    <!-- Customer & Shipping -->
+    <div class="card success-card">
+      <div class="card-title lime">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Customer Details
+      </div>
+      <div id="customerDetails"></div>
+    </div>
+
+    <!-- Order Items -->
+    <div class="card success-card">
+      <div class="card-title lime">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
+        Items Ordered
+      </div>
+      <div id="orderItems"></div>
+    </div>
+
+    <!-- Pricing Breakdown -->
+    <div class="card success-card">
+      <div class="card-title lime">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+        Order Total
+      </div>
+      <div id="pricingBreakdown"></div>
+    </div>
+
+    <!-- Order Tracking Timeline -->
+    <div class="card info-card">
+      <div class="card-title cyan">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Order Status
+      </div>
+      <div class="timeline" id="orderTimeline"></div>
+    </div>
+
+  </div>
+
+  <!-- Failed Order Actions -->
+  <div id="failedSection" style="display:none">
+    <div class="card failed-card">
+      <div class="card-title red">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        What happened?
+      </div>
+      <div style="font-size:0.8rem;font-weight:600;color:var(--text-muted);line-height:1.6" id="failReason">
+        Your payment could not be processed. No charge was made to your account.
+      </div>
+    </div>
+    <div class="fail-actions">
+      <a href="/checkout" class="btn-primary lime">Try Again → Checkout</a>
+      <a href="/" class="btn-secondary">Return to Shop</a>
+    </div>
+    <p style="text-align:center;font-size:0.68rem;color:var(--text-faint);font-weight:600;margin-top:14px">
+      Need help? Email <a href="mailto:support@minimisty.store" style="color:var(--cyan);text-decoration:none">support@minimisty.store</a>
+    </p>
+  </div>
+
+  <!-- Success continue shopping -->
+  <div id="successActions" style="display:none">
+    <a href="/" class="btn-primary lime" style="margin-bottom:10px">Continue Shopping</a>
+    <p style="text-align:center;font-size:0.7rem;color:var(--text-faint);font-weight:600;margin-top:10px;line-height:1.5">
+      A confirmation email has been sent to your inbox.<br>
+      Questions? <a href="mailto:support@minimisty.store" style="color:var(--cyan);text-decoration:none">support@minimisty.store</a>
+    </p>
+  </div>
+
+</main>
+</div>
+
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+  import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
+    authDomain: "itzhoyoo-f9f7e.firebaseapp.com",
+    databaseURL: "https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com",
+    projectId: "itzhoyoo-f9f7e",
+    storageBucket: "itzhoyoo-f9f7e.filestorage.app",
+    messagingSenderId: "1094792075584",
+    appId: "1:1094792075584:web:d49e9c3f899d3cd31082a5"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  window._orderDb = db;
+  window._orderRef = ref;
+  window._orderGet = get;
+  window._fbReady = true;
+</script>
+
+<script>
+(function() {
+  // ── Read URL params ──
+  const params = new URLSearchParams(window.location.search);
+  const orderId = params.get('id') || '';
+  const statusParam = params.get('status') || ''; // 'success' | 'failed' | ''
+
+  if (!orderId) {
+    showNoOrder();
+    return;
+  }
+
+  // Apply theme
+  try {
+    const saved = localStorage.getItem('minimisty_theme');
+    if (saved === 'light') {
+      document.documentElement.setAttribute('data-theme', 'light');
+      document.documentElement.style.background = '#f5f5f5';
+    }
+  } catch(e) {}
+
+  // ── Device ID — read the persistent ID generated by home.html ──
+  (function() {
+    let did = null;
+    try { did = localStorage.getItem('minimisty_did'); } catch(e) {}
+    if (did) window._deviceId = did;
+  })();
+
+  document.getElementById('orderIdDisplay').textContent = orderId;
+
+  // Wait for Firebase then load
+  let waitAttempts = 0;
+  const waitInterval = setInterval(async () => {
+    waitAttempts++;
+    if (window._fbReady || waitAttempts > 40) {
+      clearInterval(waitInterval);
+      await loadOrder(orderId, statusParam);
+    }
+  }, 100);
+
+  async function loadOrder(id, urlStatus) {
+    try {
+      const snap = await window._orderGet(window._orderRef(window._orderDb, 'orders/' + id));
+      if (snap.exists()) {
+        const data = snap.val();
+        renderOrder(data, urlStatus || data.status);
+      } else {
+        // Not in DB yet — use URL status to render partial view
+        if (urlStatus) {
+          renderOrder({ orderId: id, status: urlStatus }, urlStatus);
+        } else {
+          showNoOrder();
+        }
+      }
+    } catch(e) {
+      if (urlStatus) {
+        renderOrder({ orderId: id, status: urlStatus }, urlStatus);
+      } else {
+        showNoOrder();
+      }
+    }
+  }
+
+  function renderOrder(data, status) {
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('mainContent').style.display = 'block';
+
+    // Save last order ID so index track modal can find it
+    if (data.orderId) {
+      try { localStorage.setItem('minimisty_last_order_id', data.orderId); } catch(e) {}
+    }
+
+    const isSuccess = status === 'success' || status === 'paid';
+
+    // Status hero
+    const icon = document.getElementById('statusIcon');
+    const title = document.getElementById('statusTitle');
+    const sub = document.getElementById('statusSub');
+
+    if (isSuccess) {
+      icon.className = 'status-icon success';
+      icon.innerHTML = '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--lime)" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>';
+      title.className = 'status-title success';
+      title.textContent = 'Order Confirmed!';
+      sub.textContent = 'Your FrostBlade Pro has been received and is being prepared for dispatch. You\'ll receive a tracking email once it ships.';
+      document.getElementById('orderDetailsSection').style.display = 'block';
+      document.getElementById('successActions').style.display = 'block';
+      renderOrderDetails(data);
+      spawnConfetti();
+    } else {
+      icon.className = 'status-icon failed';
+      icon.innerHTML = '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+      title.className = 'status-title failed';
+      title.textContent = 'Payment Failed';
+      sub.textContent = 'Something went wrong processing your payment. Your cart is still saved — you can try again without re-entering your details.';
+      document.getElementById('failedSection').style.display = 'block';
+      if (data.failReason) {
+        document.getElementById('failReason').textContent = data.failReason;
+      }
+    }
+  }
+
+  function renderOrderDetails(data) {
+    const fx = (usd) => {
+      const rate = data.exchangeRate || 1;
+      const sym = data.currencySymbol || '$';
+      const val = usd * rate;
+      return sym + val.toFixed(2);
+    };
+
+    // Customer details
+    const custEl = document.getElementById('customerDetails');
+    const addr = data.shippingAddress || {};
+    custEl.innerHTML = [
+      ['Name', data.customerName],
+      ['Email', data.customerEmail],
+      ['Phone', data.customerPhone || '—'],
+      ['Ship to', [addr.line1, addr.line2, addr.city, addr.postal, addr.country].filter(Boolean).join(', ') || '—'],
+      ['Shipping', data.shippingMethod === 'express' ? 'Express' : 'Standard (7–14 days)'],
+      ['Payment', 'PayPal'],
+    ].filter(r => r[1]).map(([lbl, val]) => `
+      <div class="detail-row">
+        <span class="detail-label">${lbl}</span>
+        <span class="detail-value">${val}</span>
+      </div>`).join('');
+
+    // Items
+    const itemsEl = document.getElementById('orderItems');
+    if (data.items && data.items.length > 0) {
+      itemsEl.innerHTML = data.items.map(item => `
+        <div class="order-item">
+          <div class="item-img" style="background-image:url('${item.variantImg || item.img || ''}')">
+            <div class="item-qty-badge">${item.qty}</div>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div class="item-name">${item.name || 'FrostBlade Pro'}</div>
+            <div class="item-variant">${item.variant || ''} · ${item.qty > 1 ? item.qty + ' units' : '1 unit'}</div>
+          </div>
+          <div class="item-price">${fx(item.priceUSD)}</div>
+        </div>`).join('');
+    } else {
+      itemsEl.innerHTML = '<div style="font-size:0.8rem;color:var(--text-muted);font-weight:600">Order items unavailable</div>';
+    }
+
+    // Pricing
+    const p = data.pricing || {};
+    const pricingEl = document.getElementById('pricingBreakdown');
+    let html = '';
+    if (p.subtotalUSD > 0) html += `<div class="price-row"><span class="lbl">Subtotal</span><span class="val">${fx(p.subtotalUSD)}</span></div>`;
+    if (p.discountUSD > 0) html += `<div class="price-row"><span class="lbl">Discount</span><span class="val red">−${fx(p.discountUSD)}</span></div>`;
+    if (p.codeDiscUSD > 0) html += `<div class="price-row"><span class="lbl">Code Discount</span><span class="val red">−${fx(p.codeDiscUSD)}</span></div>`;
+    const shipTotal = (p.shippingUSD || 0) + (p.expressCostUSD || 0);
+    if (shipTotal === 0) html += `<div class="price-row"><span class="lbl">Shipping</span><span class="val green">FREE</span></div>`;
+    else html += `<div class="price-row"><span class="lbl">Shipping</span><span class="val">${fx(shipTotal)}</span></div>`;
+    if (p.giftCostUSD > 0) html += `<div class="price-row"><span class="lbl">Gift Wrapping</span><span class="val">+${fx(p.giftCostUSD)}</span></div>`;
+    if (p.protectCostUSD > 0) html += `<div class="price-row"><span class="lbl">Shipping Protection</span><span class="val">+${fx(p.protectCostUSD)}</span></div>`;
+    if (p.taxUSD > 0) html += `<div class="price-row"><span class="lbl">Tax (5%)</span><span class="val">${fx(p.taxUSD)}</span></div>`;
+    const totalUSD = p.finalTotalUSD || p.totalUSD || 0;
+    if (totalUSD > 0) html += `<div class="price-total"><span>Total</span><span>${fx(totalUSD)}</span></div>`;
+    pricingEl.innerHTML = html;
+
+    // Timeline
+    const tl = document.getElementById('orderTimeline');
+    tl.innerHTML = [
+      { title: 'Order Placed', sub: 'Payment received successfully', state: 'done' },
+      { title: 'Preparing', sub: 'Your FrostBlade Pro is being packed', state: 'active' },
+      { title: 'Dispatched', sub: 'Tracking link sent to your email', state: 'pending' },
+      { title: 'Delivered', sub: 'Expected in 7–14 business days', state: 'pending' },
+    ].map(step => `
+      <div class="tl-step">
+        <div style="position:relative;display:flex;flex-direction:column;align-items:center">
+          <div class="tl-dot ${step.state}">${step.state === 'done' ? '✓' : step.state === 'active' ? '●' : ''}</div>
+          <div class="tl-line"></div>
+        </div>
+        <div class="tl-content">
+          <div class="tl-title">${step.title}</div>
+          <div class="tl-sub">${step.sub}</div>
+        </div>
+      </div>`).join('');
+  }
+
+  function showNoOrder() {
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('noOrderState').style.display = 'flex';
+  }
+
+  window.copyOrderId = function() {
+    const id = document.getElementById('orderIdDisplay').textContent;
+    navigator.clipboard.writeText(id).then(() => {
+      const btn = document.querySelector('.copy-btn');
+      if (btn) {
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--lime)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>';
+        setTimeout(() => { btn.innerHTML = orig; }, 1500);
+      }
+    }).catch(() => {});
+  };
+
+  function spawnConfetti() {
+    const colors = ['#6dbd3a','#4db8d4','#ffeb3b','#ff9500','#ff3b30','#ffffff'];
+    for (let i = 0; i < 60; i++) {
+      setTimeout(() => {
+        const el = document.createElement('div');
+        el.className = 'confetti-piece';
+        const size = 6 + Math.random() * 8;
+        el.style.cssText = `
+          left: ${Math.random() * 100}vw;
+          width: ${size}px; height: ${size * (0.5 + Math.random())}px;
+          background: ${colors[Math.floor(Math.random() * colors.length)]};
+          animation-duration: ${1.5 + Math.random() * 2}s;
+          animation-delay: ${Math.random() * 0.5}s;
+          transform: rotate(${Math.random() * 360}deg);
+        `;
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 4000);
+      }, i * 25);
+    }
+  }
+})();
+</script>
+
+
+<!-- ══════════════════════════════════════════════════
+     PROFILE PANEL
+══════════════════════════════════════════════════ -->
+<style>
+  /* ── PANEL OVERLAY ── */
+  #profileOverlay {
+    display: none; position: fixed; inset: 0; z-index: 8888;
+    background: rgba(0,0,0,0.55); backdrop-filter: blur(4px);
+  }
+  #profileOverlay.open { display: block; }
+
+  /* ── PANEL ── */
+  #profilePanel {
+    position: fixed; top: 64px; right: 12px; z-index: 8999;
+    width: 320px; max-width: calc(100vw - 24px);
+    background: #1a1a1a;
+    border: 1.5px solid var(--border2);
+    border-radius: 22px;
+    box-shadow: 6px 6px 0px rgba(0,0,0,0.7);
+    overflow: hidden;
+    display: none;
+    flex-direction: column;
+    max-height: calc(100vh - 80px);
+    animation: panelSlideIn 0.28s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  #profilePanel.open { display: flex; }
+  @keyframes panelSlideIn {
+    from { transform: scale(0.88) translateY(-12px); opacity: 0; transform-origin: top right; }
+    to   { transform: scale(1) translateY(0); opacity: 1; transform-origin: top right; }
+  }
+
+  /* ── PANEL HEADER ── */
+  .pp-head {
+    padding: 18px 18px 14px;
+    background: linear-gradient(135deg, rgba(77,184,212,0.06), rgba(163,255,18,0.04));
+    border-bottom: 2.5px solid #2e2e2e;
+    flex-shrink: 0;
+  }
+  .pp-user-row {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+  }
+  .pp-avatar-wrap {
+    width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0;
+    border: 1.5px solid var(--border2);
+    background: #222;
+    box-shadow: 3px 3px 0px rgba(0,0,0,0.5);
+    overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pp-avatar-wrap img { width: 100%; height: 100%; object-fit: cover; }
+  .pp-avatar-wrap svg { flex-shrink: 0; }
+  .pp-name { font-size: 0.95rem; font-weight: 800; color: #fff; line-height: 1.2; }
+  .pp-email { font-size: 0.68rem; font-weight: 600; color: #888; margin-top: 2px; }
+
+  /* email input row (when no email saved) */
+  .pp-email-form { display: flex; gap: 8px; }
+  .pp-email-input {
+    flex: 1; background: #252525; border: 1.5px solid var(--border2);
+    border-radius: 11px; padding: 9px 12px;
+    color: #fff; font-family: var(--font); font-size: 0.8rem; font-weight: 600;
+    box-shadow: 2px 2px 0px rgba(0,0,0,0.5);
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .pp-email-input::placeholder { color: #555; }
+  .pp-email-input:focus { border-color: var(--cyan);  outline: none; }
+  .pp-email-btn {
+    background: var(--cyan); color: #000;
+    border: 1.5px solid var(--cyan); border-radius: 11px; padding: 9px 14px;
+    font-family: var(--font); font-weight: 800; font-size: 0.78rem;
+    cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    
+    transition: all 0.15s;
+  }
+  .pp-email-btn:hover { transform: translateY(-1px);  }
+  .pp-email-btn:active { transform: translateY(1px);  }
+
+  /* ── STATS ROW ── */
+  .pp-stats {
+    display: flex; gap: 8px;
+  }
+  .pp-stat {
+    flex: 1; background: #222; border: 2px solid #333;
+    border-radius: 12px; padding: 9px 10px; text-align: center;
+    box-shadow: 2px 2px 0px rgba(0,0,0,0.4);
+  }
+  .pp-stat-val { font-size: 1.1rem; font-weight: 800; color: #fff; }
+  .pp-stat-val.cyan { color: var(--cyan); }
+  .pp-stat-val.lime { color: var(--lime); }
+  .pp-stat-val.yellow { color: var(--yellow); }
+  .pp-stat-lbl { font-size: 0.58rem; font-weight: 700; color: #666; text-transform: uppercase; letter-spacing: 0.6px; margin-top: 2px; }
+
+  /* ── PANEL BODY ── */
+  .pp-body {
+    overflow-y: auto; flex: 1;
+    scrollbar-width: none;
+  }
+  .pp-body::-webkit-scrollbar { display: none; }
+
+  /* ── SECTION LABEL ── */
+  .pp-section-lbl {
+    font-size: 0.62rem; font-weight: 800; color: #555;
+    text-transform: uppercase; letter-spacing: 1.2px;
+    padding: 14px 18px 6px;
+  }
+
+  /* ── ORDER CARD ── */
+  .pp-order {
+    margin: 0 12px 10px;
+    background: #222; border: 2.5px solid #333;
+    border-radius: 16px; overflow: hidden;
+    box-shadow: 3px 3px 0px rgba(0,0,0,0.5);
+    transition: transform 0.15s, box-shadow 0.15s;
+    cursor: pointer;
+  }
+  .pp-order:hover { transform: translateY(-2px); box-shadow: 4px 4px 0px rgba(0,0,0,0.6); }
+  .pp-order:active { transform: translateY(1px); }
+  .pp-order-head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 14px 10px;
+  }
+  .pp-order-status-dot {
+    width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
+    border: 2px solid transparent;
+  }
+  .pp-order-status-dot.paid   { background: var(--lime); border-color: #7acc00;  }
+  .pp-order-status-dot.failed { background: var(--red);  border-color: #cc2020; }
+  .pp-order-status-dot.pending { background: var(--yellow); border-color: #ccaa00; animation: pulse 1.5s infinite; }
+  .pp-order-id { font-size: 0.78rem; font-weight: 800; color: #fff; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pp-order-date { font-size: 0.64rem; font-weight: 600; color: #666; flex-shrink: 0; }
+
+  /* mini timeline inside card */
+  .pp-mini-tl {
+    display: flex; align-items: center;
+    padding: 0 14px 12px; gap: 0;
+  }
+  .pp-tl-step {
+    display: flex; flex-direction: column; align-items: center; flex: 1;
+  }
+  .pp-tl-dot {
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 2.5px solid #333;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.5rem; font-weight: 800;
+    background: #1a1a1a;
+    box-shadow: 2px 2px 0px rgba(0,0,0,0.4);
+  }
+  .pp-tl-dot.done   { background: var(--lime); border-color: #7acc00; color: #000; }
+  .pp-tl-dot.active { background: var(--cyan); border-color: #00b0cc; color: #000; animation: pulse 1.5s infinite; }
+  .pp-tl-dot.pending { background: #222; border-color: #3a3a3a; }
+  .pp-tl-label { font-size: 0.5rem; font-weight: 700; color: #555; margin-top: 4px; text-align: center; }
+  .pp-tl-line {
+    flex: 1; height: 2.5px; margin-bottom: 22px;
+    background: #2e2e2e;
+  }
+  .pp-tl-line.done { background: var(--lime); }
+
+  /* order footer row */
+  .pp-order-foot {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 14px 12px; border-top: 2px solid #2a2a2a;
+  }
+  .pp-order-items-preview { font-size: 0.68rem; font-weight: 600; color: #777; }
+  .pp-order-total { font-size: 0.82rem; font-weight: 800; color: var(--lime); }
+
+  /* ── LOADING / EMPTY STATES ── */
+  .pp-spinner {
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 3px solid #2e2e2e; border-top-color: var(--cyan);
+    animation: spin 0.8s linear infinite;
+    margin: 24px auto;
+  }
+  .pp-empty {
+    text-align: center; padding: 28px 20px;
+  }
+  .pp-empty-icon { font-size: 2.2rem; margin-bottom: 10px; }
+  .pp-empty-title { font-size: 0.88rem; font-weight: 800; color: #777; margin-bottom: 6px; }
+  .pp-empty-sub { font-size: 0.72rem; font-weight: 600; color: #555; line-height: 1.5; }
+
+  /* ── PANEL FOOTER ── */
+  .pp-foot {
+    padding: 10px 12px 12px;
+    border-top: 2.5px solid #2e2e2e;
+    display: flex; gap: 8px;
+    flex-shrink: 0;
+  }
+  .pp-foot-btn {
+    flex: 1; background: #222; border: 2.5px solid #333;
+    border-radius: 12px; padding: 9px;
+    font-family: var(--font); font-weight: 800; font-size: 0.72rem;
+    color: #888; cursor: pointer; text-align: center;
+    box-shadow: 2px 2px 0px rgba(0,0,0,0.4);
+    transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 5px;
+  }
+  .pp-foot-btn:hover { color: #fff; border-color: #555; transform: translateY(-1px); box-shadow: 3px 3px 0px rgba(0,0,0,0.5); }
+  .pp-foot-btn.danger:hover { color: var(--red); border-color: var(--red); }
+</style>
+
+<!-- Profile Overlay (backdrop) -->
+<div id="profileOverlay" onclick="closeProfile()"></div>
+
+<!-- Profile Panel -->
+<div id="profilePanel">
+
+  <!-- Head -->
+  <div class="pp-head">
+    <div class="pp-user-row">
+      <div class="pp-avatar-wrap" id="ppAvatarWrap">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2.5" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </div>
+      <div>
+        <div class="pp-name" id="ppName">Your Orders</div>
+        <div class="pp-email" id="ppEmailDisplay">Enter your email to load orders</div>
+      </div>
+    </div>
+
+    <!-- Email form (shown when no email saved) -->
+    <div class="pp-email-form" id="ppEmailForm">
+      <input class="pp-email-input" id="ppEmailInput" type="email" placeholder="your@email.com" onkeydown="if(event.key==='Enter')loadProfileOrders()">
+      <button class="pp-email-btn" onclick="loadProfileOrders()">Find</button>
+    </div>
+
+    <!-- Stats row (shown when orders loaded) -->
+    <div class="pp-stats" id="ppStats" style="display:none">
+      <div class="pp-stat">
+        <div class="pp-stat-val cyan" id="ppStatOrders">0</div>
+        <div class="pp-stat-lbl">Orders</div>
+      </div>
+      <div class="pp-stat">
+        <div class="pp-stat-val lime" id="ppStatSpent">$0</div>
+        <div class="pp-stat-lbl">Spent</div>
+      </div>
+      <div class="pp-stat">
+        <div class="pp-stat-val yellow" id="ppStatItems">0</div>
+        <div class="pp-stat-lbl">Items</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="pp-body" id="ppBody">
+    <div class="pp-spinner" id="ppSpinner" style="display:none"></div>
+    <div id="ppOrdersList"></div>
+  </div>
+
+  <!-- Footer -->
+  <div class="pp-foot">
+    <button class="pp-foot-btn" onclick="window.location.href='/'">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Shop
+    </button>
+    <button class="pp-foot-btn" onclick="refreshProfileOrders()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+      Refresh
+    </button>
+    <button class="pp-foot-btn danger" onclick="clearProfileEmail()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      Sign out
+    </button>
+  </div>
+</div>
+
+<script>
+(function() {
+  const AVATAR_API = 'https://api.dicebear.com/9.x/lorelei/svg?seed=';
+
+  let profileOpen = false;
+  let profileEmail = '';
+  let profileOrdersCache = null;
+
+  // ── Load saved email on page load ──
+  try {
+    const saved = localStorage.getItem('minimisty_profile_email')
+      || localStorage.getItem('minimisty_last_email')
+      || sessionStorage.getItem('minimisty_checkout_email');
+    if (saved) {
+      profileEmail = saved;
+      applyProfileEmail(profileEmail);
+    }
+  } catch(e) {}
+
+  // Also try to detect email from current order once Firebase loads
+  setTimeout(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const orderId = params.get('id');
+      if (orderId && window._orderGet && window._orderRef && window._orderDb) {
+        window._orderGet(window._orderRef(window._orderDb, 'orders/' + orderId)).then(snap => {
+          if (snap.exists()) {
+            const d = snap.val();
+            if (d.customerEmail && !profileEmail) {
+              profileEmail = d.customerEmail;
+              try { localStorage.setItem('minimisty_profile_email', profileEmail); } catch(e) {}
+              applyProfileEmail(profileEmail);
+              document.getElementById('profileNotifDot').style.display = 'block';
+            }
+          }
+        }).catch(() => {});
+      }
+    } catch(e) {}
+  }, 1200);
+
+  function applyProfileEmail(email) {
+    if (!email) return;
+    // Avatar
+    const seed = encodeURIComponent(email);
+    const avatarUrl = AVATAR_API + seed + '&backgroundColor=1a1a1a&radius=50';
+    const img1 = document.getElementById('profileAvatar');
+    const fb1  = document.getElementById('profileAvatarFallback');
+    const ppWrap = document.getElementById('ppAvatarWrap');
+
+    if (img1) {
+      img1.src = avatarUrl;
+      img1.onload = () => { img1.style.display = 'block'; if (fb1) fb1.style.display = 'none'; };
+      img1.onerror = () => {};
+    }
+    // Panel avatar
+    ppWrap.innerHTML = `<img src="${avatarUrl}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+
+    // Name / email display
+    const nameParts = email.split('@')[0].replace(/[._-]/g,' ').replace(/\w/g, c => c.toUpperCase());
+    document.getElementById('ppName').textContent = nameParts || 'My Account';
+    document.getElementById('ppEmailDisplay').textContent = email;
+    document.getElementById('ppEmailForm').style.display = 'none';
+  }
+
+  window.toggleProfile = function() {
+    profileOpen = !profileOpen;
+    document.getElementById('profilePanel').classList.toggle('open', profileOpen);
+    document.getElementById('profileOverlay').classList.toggle('open', profileOpen);
+    document.getElementById('profileNotifDot').style.display = 'none';
+    if (profileOpen && profileEmail && !profileOrdersCache) {
+      fetchOrdersByEmail(profileEmail);
+    }
+  };
+
+  window.closeProfile = function() {
+    profileOpen = false;
+    document.getElementById('profilePanel').classList.remove('open');
+    document.getElementById('profileOverlay').classList.remove('open');
+  };
+
+  window.loadProfileOrders = function() {
+    const input = document.getElementById('ppEmailInput');
+    const email = input ? input.value.trim() : '';
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      if (input) { input.style.borderColor = '#ff3b30'; setTimeout(() => input.style.borderColor = '#444', 1500); }
+      return;
+    }
+    profileEmail = email;
+    profileOrdersCache = null;
+    try { localStorage.setItem('minimisty_profile_email', email); } catch(e) {}
+    applyProfileEmail(email);
+    fetchOrdersByEmail(email);
+  };
+
+  window.refreshProfileOrders = function() {
+    profileOrdersCache = null;
+    if (profileEmail) fetchOrdersByEmail(profileEmail);
+  };
+
+  window.clearProfileEmail = function() {
+    profileEmail = '';
+    profileOrdersCache = null;
+    try { localStorage.removeItem('minimisty_profile_email'); } catch(e) {}
+    // Reset UI
+    document.getElementById('ppName').textContent = 'Your Orders';
+    document.getElementById('ppEmailDisplay').textContent = 'Enter your email to load orders';
+    document.getElementById('ppEmailForm').style.display = 'flex';
+    document.getElementById('ppStats').style.display = 'none';
+    document.getElementById('ppOrdersList').innerHTML = '';
+    document.getElementById('ppAvatarWrap').innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2.5" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+    const img1 = document.getElementById('profileAvatar');
+    const fb1  = document.getElementById('profileAvatarFallback');
+    if (img1) { img1.style.display = 'none'; img1.src = ''; }
+    if (fb1)  { fb1.style.display = 'block'; }
+    closeProfile();
+  };
+
+  async function fetchOrdersByEmail(email) {
+    const spinner   = document.getElementById('ppSpinner');
+    const listEl    = document.getElementById('ppOrdersList');
+    const statsEl   = document.getElementById('ppStats');
+
+    spinner.style.display = 'block';
+    listEl.innerHTML = '';
+    statsEl.style.display = 'none';
+
+    // Wait for Firebase
+    let attempts = 0;
+    while (!window._orderGet && attempts < 40) {
+      await new Promise(r => setTimeout(r, 100));
+      attempts++;
+    }
+    if (!window._orderGet) {
+      spinner.style.display = 'none';
+      listEl.innerHTML = renderEmpty('Firebase unavailable', 'Could not connect to the database. Try refreshing the page.');
+      return;
+    }
+
+    try {
+      // Query all orders and filter by email (Firebase Realtime DB has no server-side filter by child)
+      const snap = await window._orderGet(window._orderRef(window._orderDb, 'orders'));
+      spinner.style.display = 'none';
+
+      if (!snap.exists()) {
+        listEl.innerHTML = renderEmpty('No orders yet', 'Once you place an order it will appear here.');
+        return;
+      }
+
+      const all = snap.val();
+      const matched = Object.entries(all)
+        .map(([id, d]) => ({ ...d, orderId: d.orderId || id }))
+        .filter(d => d.customerEmail && d.customerEmail.toLowerCase() === email.toLowerCase())
+        .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+      profileOrdersCache = matched;
+
+      if (matched.length === 0) {
+        listEl.innerHTML = renderEmpty('No orders found', "We couldn't find any orders linked to " + email + ". Double-check the email you used at checkout.");
+        return;
+      }
+
+      // Stats
+      const totalSpent = matched.reduce((s, o) => s + ((o.pricing && (o.pricing.finalTotalUSD || o.pricing.totalUSD)) || 0), 0);
+      const totalItems = matched.reduce((s, o) => s + ((o.items || []).reduce((a, i) => a + (i.qty || 1), 0)), 0);
+      const sym = matched[0].currencySymbol || '$';
+      const rate = matched[0].exchangeRate || 1;
+      document.getElementById('ppStatOrders').textContent = matched.length;
+      document.getElementById('ppStatSpent').textContent  = sym + (totalSpent * rate).toFixed(0);
+      document.getElementById('ppStatItems').textContent  = totalItems;
+      statsEl.style.display = 'flex';
+
+      // Notification dot badge update
+      document.getElementById('profileNotifDot').style.display = 'none';
+
+      // Render order cards
+      listEl.innerHTML = '';
+      const sectionLbl = document.createElement('div');
+      sectionLbl.className = 'pp-section-lbl';
+      sectionLbl.textContent = matched.length + ' order' + (matched.length !== 1 ? 's' : '');
+      listEl.appendChild(sectionLbl);
+
+      matched.forEach(order => {
+        const card = document.createElement('div');
+        card.className = 'pp-order';
+        card.onclick = () => {
+          closeProfile();
+          window.location.href = '/order?id=' + encodeURIComponent(order.orderId) + '&status=' + encodeURIComponent(order.status || 'paid');
+        };
+
+        const status = order.status || 'paid';
+        const isPaid = status === 'paid' || status === 'success';
+        const isFailed = status === 'failed';
+
+        const dotClass = isPaid ? 'paid' : isFailed ? 'failed' : 'pending';
+        const statusLabel = isPaid ? 'Confirmed' : isFailed ? 'Failed' : 'Pending';
+
+        // Date
+        let dateStr = '—';
+        if (order.createdAt) {
+          const d = new Date(order.createdAt);
+          dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        // Pricing
+        const p = order.pricing || {};
+        const totalUSD = p.finalTotalUSD || p.totalUSD || 0;
+        const fxRate = order.exchangeRate || 1;
+        const fxSym  = order.currencySymbol || '$';
+        const totalDisplay = totalUSD > 0 ? fxSym + (totalUSD * fxRate).toFixed(2) : '—';
+
+        // Items summary
+        const items = order.items || [];
+        const itemSummary = items.length > 0
+          ? items.map(i => (i.qty > 1 ? i.qty + '× ' : '') + (i.name || 'FrostBlade Pro')).join(', ')
+          : 'No items';
+        const shortSummary = itemSummary.length > 38 ? itemSummary.substring(0, 36) + '…' : itemSummary;
+
+        // Mini timeline steps
+        const tlSteps = [
+          { lbl: 'Placed',    state: isPaid ? 'done' : isFailed ? 'done' : 'active' },
+          { lbl: 'Packing',   state: isPaid ? 'active' : 'pending' },
+          { lbl: 'Shipped',   state: 'pending' },
+          { lbl: 'Delivered', state: 'pending' },
+        ];
+        if (isFailed) {
+          tlSteps[0].state = 'pending';
+        }
+        const doneIdx = tlSteps.map(s => s.state).lastIndexOf('done');
+
+        const tlHtml = tlSteps.map((step, i) => `
+          <div class="pp-tl-step">
+            <div class="pp-tl-dot ${step.state}">${step.state === 'done' ? '✓' : step.state === 'active' ? '●' : ''}</div>
+            <div class="pp-tl-label">${step.lbl}</div>
+          </div>
+          ${i < tlSteps.length - 1 ? `<div class="pp-tl-line ${i < doneIdx ? 'done' : ''}"></div>` : ''}
+        `).join('');
+
+        card.innerHTML = `
+          <div class="pp-order-head">
+            <div class="pp-order-status-dot ${dotClass}"></div>
+            <span class="pp-order-id">${order.orderId}</span>
+            <span class="pp-order-date">${dateStr}</span>
+          </div>
+          <div class="pp-mini-tl">${tlHtml}</div>
+          <div class="pp-order-foot">
+            <span class="pp-order-items-preview">${shortSummary}</span>
+            <span class="pp-order-total">${totalDisplay}</span>
+          </div>
+        `;
+        listEl.appendChild(card);
+      });
+
+    } catch(e) {
+      spinner.style.display = 'none';
+      listEl.innerHTML = renderEmpty('Error loading orders', 'Something went wrong. Try refreshing.');
+      console.error('Profile fetch error', e);
+    }
+  }
+
+  function renderEmpty(title, sub) {
+    return `<div class="pp-empty">
+      <div class="pp-empty-icon">📦</div>
+      <div class="pp-empty-title">${title}</div>
+      <div class="pp-empty-sub">${sub}</div>
+    </div>`;
+  }
+
+  // Close panel on Escape
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && profileOpen) closeProfile();
+  });
+})();
+</script>
+
+
+<!-- ══ PAGE FOOTER ══════════════════════════════════════════════════ -->
+<footer class="page-footer">
+  <div class="page-footer-grid">
+
+    <!-- Brand + newsletter -->
+    <div>
+      <div class="pf-brand">
+        <svg class="pf-fan-icon" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="50" cy="50" r="16" fill="var(--text)" stroke="var(--bg)" stroke-width="4"/>
+          <path d="M50 34 C30 30 30 4 50 4 C70 4 70 30 50 34 Z" fill="var(--text)"/>
+          <path d="M66 50 C70 30 96 30 96 50 C96 70 70 70 66 50 Z" fill="var(--text)"/>
+          <path d="M50 66 C70 70 70 96 50 96 C30 96 30 70 50 66 Z" fill="var(--text)"/>
+          <path d="M34 50 C30 70 4 70 4 50 C4 30 30 30 34 50 Z" fill="var(--text)"/>
+          <circle cx="50" cy="50" r="6" fill="var(--bg)"/>
+        </svg>
+        <span style="font-family:var(--font);font-weight:700;font-size:0.98rem;color:var(--text)">MINIMISTY</span><span style="font-family:var(--font);font-weight:600;font-size:0.72rem;color:var(--cyan)">.store</span>
+      </div>
+      <p class="pf-tagline">The cooler that goes everywhere you do.<br>Engineered for heat, built for life.</p>
+      <div class="pf-col-title">Stay in the loop</div>
+      <div class="pf-email-row">
+        <input class="pf-email-input" id="pfEmailInput" type="email" placeholder="your@email.com" autocomplete="email">
+        <button class="pf-email-btn" onclick="pfSubmitEmail()">JOIN</button>
+      </div>
+      <div class="pf-email-note" id="pfEmailNote">Get 10% off your first order. No spam, unsubscribe anytime.</div>
+    </div>
+
+    <!-- Support links -->
+    <div>
+      <div class="pf-col-title">Support</div>
+      <div class="pf-links">
+        <a href="#" onclick="openPolicyModal('privacy');return false;">Privacy Policy</a>
+        <a href="#" onclick="openPolicyModal('terms');return false;">Terms of Service</a>
+        <a href="#" onclick="openPolicyModal('refund');return false;">Refund Policy</a>
+        <a href="#" onclick="openPolicyModal('shipping');return false;">Shipping Info</a>
+        <a href="#" onclick="openPolicyModal('contact');return false;">Contact Us</a>
+      </div>
+    </div>
+
+    <!-- Quick links -->
+    <div>
+      <div class="pf-col-title">Quick Links</div>
+      <div class="pf-links">
+        <a href="/">Shop</a>
+        <a href="/order">Track Order</a>
+        <a href="mailto:support@minimisty.store">support@minimisty.store</a>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Bottom bar -->
+  <div class="pf-bottom">
+    <div class="pf-copy">© <span id="pfYear"></span> MINIMISTY.store · Mini Tech for Every Season · All rights reserved</div>
+    <div class="pf-badges">
+      <div class="pf-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>SSL Secured</div>
+      <div class="pf-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>1-Year Warranty</div>
+      <div class="pf-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.08-4.61"/></svg>30-Day Returns</div>
+      <div class="pf-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Secure Payment</div>
+    </div>
+  </div>
+</footer>
+
+<!-- ══ POLICY MODAL ════════════════════════════════════════════════ -->
+<div id="pfPolicyModal">
+  <div class="pf-policy-backdrop" onclick="pfClosePolicy()"></div>
+  <div class="pf-policy-drawer">
+    <div class="pf-policy-handle"></div>
+    <div class="pf-policy-header">
+      <div class="pf-policy-title">
+        <div class="pf-policy-title-icon" id="pfPolicyIcon"></div>
+        <span id="pfPolicyTitleText">Policy</span>
+      </div>
+      <button class="pf-policy-close" onclick="pfClosePolicy()">✕</button>
+    </div>
+    <div class="pf-policy-body" id="pfPolicyBody"></div>
+  </div>
+</div>
+
+<script>
+(function() {
+  // Year
+  const yr = document.getElementById('pfYear');
+  if (yr) yr.textContent = new Date().getFullYear();
+
+  // Email submit
+  window.pfSubmitEmail = async function() {
+    const input = document.getElementById('pfEmailInput');
+    const note  = document.getElementById('pfEmailNote');
+    const email = input ? input.value.trim() : '';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      if (input) { input.style.borderColor = 'var(--red)'; setTimeout(() => input.style.borderColor = '', 1500); }
+      return;
+    }
+    input.disabled = true;
+    try {
+      await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: email,
+          subject: 'Welcome to MINIMISTY.store — Your 10% off code inside',
+          html: '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#000;color:#fff;"><h2 style="color:#6dbd3a;">Welcome to MINIMISTY! 🎉</h2><p>Thanks for signing up. Here's your exclusive 10% off code:</p><div style="background:#0a0a0a;border:2px solid #6dbd3a;border-radius:12px;padding:20px;margin:20px 0;text-align:center;"><span style="font-size:24px;font-weight:bold;color:#6dbd3a;letter-spacing:4px">WELCOME10</span></div><a href="https://minimisty.store" style="display:inline-block;background:#fff;color:#000;padding:14px 28px;border-radius:10px;font-weight:bold;font-size:15px;text-decoration:none">SHOP NOW →</a><hr style="border-color:#222;margin:24px 0;"><p style="font-size:11px;color:#555;">MINIMISTY.store · Reply to unsubscribe.</p></div>'
+        })
+      });
+    } catch(e) {}
+    if (note) note.innerHTML = '<span style="color:var(--lime)">✓ Subscribed! Check your inbox for 10% off.</span>';
+  };
+
+  // Policy modal
+  const PF_POLICIES = {
+    privacy: {
+      title: 'Privacy Policy',
+      icon: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+      html: `<p class="pf-policy-last-updated">Last updated: January 1, 2025</p>
+      <div class="pf-policy-section"><h3>1. Information We Collect</h3><p>We collect only what we need to fulfil your order and improve your experience:</p><ul><li>Name, email address, and shipping address when you place an order</li><li>Payment details processed securely by PayPal — we never store card numbers</li><li>Device type and browsing behaviour via anonymised analytics (no personal identifiers)</li><li>Email address if you subscribe to our newsletter or discount offers</li></ul></div>
+      <div class="pf-policy-section"><h3>2. How We Use Your Information</h3><ul><li>To process and ship your order, and send order confirmations</li><li>To send you tracking updates and delivery notifications</li><li>To send promotional emails (only if you opted in — unsubscribe any time)</li><li>To improve our store and product offerings through aggregate analytics</li></ul></div>
+      <div class="pf-policy-section"><h3>3. We Never Sell Your Data</h3><p>Your personal information is never sold, rented, or traded to third parties for their marketing purposes. Period.</p></div>
+      <div class="pf-policy-section"><h3>4. Third-Party Services</h3><p>We use trusted services to operate our store:</p><ul><li><strong>PayPal</strong> — payment processing (PCI DSS Level 1 certified)</li><li><strong>Firebase</strong> — order management and real-time database</li><li><strong>Google Analytics</strong> — anonymised traffic analytics</li></ul></div>
+      <div class="pf-policy-section"><h3>5. Your Rights</h3><ul><li>Request a copy of the personal data we hold about you</li><li>Request correction or deletion of your data at any time</li><li>Unsubscribe from marketing emails via the link in any email</li></ul><p style="margin-top:8px">To exercise any of these rights, email us at <strong style="color:var(--cyan)">support@minimisty.store</strong>.</p></div>
+      <div class="pf-policy-section"><h3>6. Data Retention</h3><p>Order data is retained for 7 years as required by tax regulations. Email marketing data is deleted within 30 days of unsubscribing.</p></div>`
+    },
+    terms: {
+      title: 'Terms of Service',
+      icon: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
+      html: `<p class="pf-policy-last-updated">Last updated: January 1, 2025</p>
+      <div class="pf-policy-section"><h3>1. Acceptance of Terms</h3><p>By accessing or purchasing from MINIMISTY.store, you agree to be bound by these Terms of Service.</p></div>
+      <div class="pf-policy-section"><h3>2. Products & Pricing</h3><ul><li>All prices are listed in USD and are subject to change without notice</li><li>We reserve the right to limit quantities or refuse any order</li><li>Product images are representative — minor colour variations may exist due to screen calibration</li><li>Promotional pricing is valid only for the stated period and cannot be applied retroactively</li></ul></div>
+      <div class="pf-policy-section"><h3>3. Orders & Payment</h3><p>Orders are confirmed once payment is successfully processed. We accept all major credit/debit cards and PayPal. In cases of suspected fraud, orders may be cancelled and refunded.</p></div>
+      <div class="pf-policy-section"><h3>4. Warranty</h3><p>Every FrostBlade Pro comes with a <strong style="color:var(--lime)">12-month manufacturer's warranty</strong> covering defects in materials and workmanship, motor failure, and battery degradation beyond normal use.</p></div>
+      <div class="pf-policy-section"><h3>5. Limitation of Liability</h3><p>MINIMISTY is not liable for indirect, incidental, or consequential damages arising from product use. Our maximum liability is limited to the purchase price of the item in question.</p></div>
+      <div class="pf-policy-section"><h3>6. Governing Law</h3><p>These terms are governed by applicable commercial law. Disputes will be resolved through good-faith negotiation first.</p></div>`
+    },
+    refund: {
+      title: 'Refund Policy',
+      icon: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.08-4.61"/></svg>',
+      html: `<p class="pf-policy-last-updated">Last updated: January 1, 2025</p>
+      <div class="pf-policy-section"><h3>30-Day No-Questions Return Window</h3><p>Not happy with your FrostBlade Pro? Return it within <strong style="color:var(--lime)">30 days of delivery</strong> for a full refund — no questions asked.</p></div>
+      <div class="pf-policy-section"><h3>Return Conditions</h3><ul><li>Item must be in its original condition and packaging</li><li>Include your order confirmation or order ID</li><li>Accessories (USB-C cable, pouch) must be included in the return</li></ul></div>
+      <div class="pf-policy-section"><h3>How to Start a Return</h3><p>Email <strong style="color:var(--cyan)">support@minimisty.store</strong> with your order ID and reason for return. We'll send instructions within 24 hours.</p></div>
+      <div class="pf-policy-section"><h3>Refund Timeline</h3><ul><li>Refunds processed within <strong>5–7 business days</strong> of receiving your return</li><li>Refund goes back to your original payment method</li><li>Your bank may take an additional 2–3 business days</li></ul></div>
+      <div class="pf-policy-section"><h3>Defective or Wrong Item</h3><p>If your item arrives defective or wrong — we cover all return shipping and send a replacement or full refund immediately.</p></div>
+      <div class="pf-policy-section"><h3>Shipping Costs</h3><p>Original shipping fees are non-refundable unless the item was defective or we made an error.</p></div>`
+    },
+    shipping: {
+      title: 'Shipping Info',
+      icon: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>',
+      html: `<p class="pf-policy-last-updated">Last updated: January 1, 2025</p>
+      <div class="pf-policy-section"><h3>Shipping Rates</h3><ul><li><strong>Single Pack</strong> — $1.99 flat rate shipping</li><li><strong>Dual Pack (2 units)</strong> — FREE shipping</li><li><strong>Family Pack (3 units)</strong> — FREE shipping</li></ul></div>
+      <div class="pf-policy-section"><h3>Delivery Times</h3><ul><li><strong>United States:</strong> 6–14 business days</li><li><strong>Canada & UK:</strong> 8–16 business days</li><li><strong>Europe:</strong> 8–18 business days</li><li><strong>Australia & NZ:</strong> 10–20 business days</li><li><strong>Rest of World:</strong> 10–25 business days</li></ul></div>
+      <div class="pf-policy-section"><h3>Order Processing</h3><p>Orders are processed within <strong>1–3 business days</strong> of payment confirmation. You'll receive a shipping confirmation email with tracking details once dispatched.</p></div>
+      <div class="pf-policy-section"><h3>Order Tracking</h3><p>Every order includes a tracking number sent to your email. You can also track your order directly on our <a href="/order" style="color:var(--cyan)">order page</a>.</p></div>
+      <div class="pf-policy-section"><h3>Customs & Duties</h3><p>International orders may be subject to customs duties or import taxes imposed by your country. These charges are the buyer's responsibility.</p></div>
+      <div class="pf-policy-section"><h3>Lost or Delayed Packages</h3><p>If your package hasn't arrived within the maximum estimated timeframe, contact us at <strong style="color:var(--cyan)">support@minimisty.store</strong>.</p></div>`
+    },
+    contact: {
+      title: 'Contact Us',
+      icon: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+      html: `<div class="pf-policy-section"><h3>We're Here to Help</h3><p>Our support team responds within <strong style="color:var(--lime)">24 hours</strong>, Monday–Friday. For urgent issues we aim to reply within 4 hours during business hours.</p></div>
+      <div class="pf-contact-card">
+        <div class="pf-contact-row"><div class="pf-contact-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div><div><div class="pf-contact-label">Email Support</div><div class="pf-contact-val"><a href="mailto:support@minimisty.store">support@minimisty.store</a></div></div></div>
+        <div class="pf-contact-row"><div class="pf-contact-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div><div class="pf-contact-label">Response Time</div><div class="pf-contact-val">Within 24 hours (Mon–Fri)</div></div></div>
+        <div class="pf-contact-row"><div class="pf-contact-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="var(--cyan)"/></svg></div><div><div class="pf-contact-label">Instagram DMs</div><div class="pf-contact-val"><a href="https://instagram.com/minimisty.store" target="_blank" rel="noopener">@minimisty.store</a></div></div></div>
+      </div>
+      <div class="pf-policy-section" style="margin-top:18px"><h3>Common Queries</h3><ul><li><strong>Where's my order?</strong> — <a href="/order" style="color:var(--cyan)">Track it here</a></li><li><strong>Can I change my address?</strong> — Email us within 12 hours of ordering</li><li><strong>How do I return an item?</strong> — See our Refund Policy above</li><li><strong>My fan isn't working</strong> — Check it's fully charged; if still faulty, email us for a free replacement under warranty</li></ul></div>
+      <div class="pf-policy-section"><h3>Business Enquiries</h3><p>For wholesale, affiliate partnerships, or press enquiries, email <strong style="color:var(--cyan)">hello@minimisty.store</strong>.</p></div>`
+    }
+  };
+
+  window.pfOpenPolicy = function(page) {
+    const data = PF_POLICIES[page];
+    if (!data) return;
+    document.getElementById('pfPolicyTitleText').textContent = data.title;
+    document.getElementById('pfPolicyIcon').innerHTML = data.icon;
+    document.getElementById('pfPolicyBody').innerHTML = data.html;
+    document.getElementById('pfPolicyModal').classList.add('open');
+    document.getElementById('pfPolicyBody').scrollTop = 0;
+    document.body.style.overflow = 'hidden';
+  };
+
+  window.pfClosePolicy = function() {
+    document.getElementById('pfPolicyModal').classList.remove('open');
+    document.body.style.overflow = '';
+  };
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      const m = document.getElementById('pfPolicyModal');
+      if (m && m.classList.contains('open')) { window.pfClosePolicy(); }
+    }
+  });
+})();
+</script>
+
+<script>
+(function() {
+  const CLAUDE_MODEL = "claude-sonnet-4-20250514";
+  let chatOpen = false, chatHistory = [], pendingImages = [], chatGreeted = false;
+
+  const SYSTEM_PROMPT = `You are a friendly customer support agent for MINIMISTY.store, selling the FrostBlade Pro portable fan. Help with: order status/tracking, product specs (4000mAh, 16h runtime, USB-C, foldable), shipping (standard 8–16 days, free on 2+ bundles, single $1.99), returns (30-day), warranty (1-year), payment questions. Be concise and warm. 2-4 sentences max unless more detail is needed. Don't reveal you are an AI.`;
+
+  window.toggleChat = function() {
+    chatOpen = !chatOpen;
+    document.getElementById('chatModal').classList.toggle('open', chatOpen);
+    document.getElementById('chatToggleBtn').classList.toggle('open', chatOpen);
+    document.getElementById('chatOpenIcon').style.display = chatOpen ? 'none' : 'block';
+    document.getElementById('chatCloseIcon').style.display = chatOpen ? 'block' : 'none';
+    const dot = document.getElementById('chatNotifDot');
+    if (dot) dot.style.display = chatOpen ? 'none' : '';
+    if (chatOpen && !chatGreeted) {
+      chatGreeted = true;
+      setTimeout(() => { showTyping(); setTimeout(() => { hideTyping(); addMsg('bot', "Hi! 👋 I can help with your order or any questions. What do you need?"); }, 1000); }, 300);
+    }
+    if (chatOpen) scrollChat();
+  };
+
+  function addMsg(role, text, img) {
+    chatHistory.push({ role: role === 'bot' ? 'assistant' : 'user', content: text });
+    const el = document.createElement('div');
+    el.className = 'chat-msg ' + role;
+    if (text) el.textContent = text;
+    if (img) { const i = document.createElement('img'); i.src = img; el.appendChild(i); }
+    document.getElementById('chatMessages').appendChild(el);
+    scrollChat();
+  }
+  function showTyping() { const t = document.getElementById('chatTyping'); if (t) { t.classList.add('show'); scrollChat(); } }
+  function hideTyping() { const t = document.getElementById('chatTyping'); if (t) t.classList.remove('show'); }
+  function scrollChat() { const m = document.getElementById('chatMessages'); if (m) setTimeout(() => { m.scrollTop = m.scrollHeight; }, 50); }
+
+  window.sendChatMsg = async function() {
+    const input = document.getElementById('chatInput');
+    const text = input ? input.value.trim() : '';
+    if (!text && pendingImages.length === 0) return;
+    addMsg('user', text, pendingImages[0] ? pendingImages[0].dataUrl : null);
+    if (input) { input.value = ''; input.style.height = 'auto'; }
+    const parts = [];
+    pendingImages.forEach(img => parts.push({ type:'image', source:{ type:'base64', media_type:img.mediaType, data:img.base64 } }));
+    if (text) parts.push({ type:'text', text });
+    const msgs = chatHistory.slice(0,-1).map(m => ({ role:m.role, content:m.content }));
+    msgs.push({ role:'user', content: parts.length===1 && parts[0].type==='text' ? text : parts });
+    pendingImages = []; document.getElementById('chatImgPreview').innerHTML = '';
+    showTyping();
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ model:CLAUDE_MODEL, max_tokens:1000, system:SYSTEM_PROMPT, messages:msgs })
+      });
+      const data = await res.json();
+      hideTyping();
+      addMsg('bot', data.content?.[0]?.text || "Sorry, couldn't get a response. Please try again.");
+    } catch(e) {
+      hideTyping();
+      addMsg('bot', "Trouble connecting right now. Email support@minimisty.store for help.");
+    }
+  };
+
+  window.handleChatImage = function(input) {
+    const file = input.files?.[0]; if (!file) return; input.value = '';
+    const reader = new FileReader();
+    reader.onload = e => {
+      const dataUrl = e.target.result, base64 = dataUrl.split(',')[1];
+      pendingImages.push({ dataUrl, base64, mediaType: file.type || 'image/jpeg' });
+      const preview = document.getElementById('chatImgPreview');
+      const thumb = document.createElement('div'); thumb.className = 'chat-img-thumb';
+      thumb.innerHTML = `<img src="${dataUrl}"><button class="chat-img-thumb-remove" onclick="removeChatImg(${pendingImages.length-1})">✕</button>`;
+      preview.appendChild(thumb); scrollChat();
+    };
+    reader.readAsDataURL(file);
+  };
+
+  window.removeChatImg = function(idx) {
+    pendingImages.splice(idx, 1);
+    const p = document.getElementById('chatImgPreview'); if (!p) return;
+    p.innerHTML = '';
+    pendingImages.forEach((img, i) => { const t = document.createElement('div'); t.className='chat-img-thumb'; t.innerHTML=`<img src="${img.dataUrl}"><button class="chat-img-thumb-remove" onclick="removeChatImg(${i})">✕</button>`; p.appendChild(t); });
+  };
+
+  setTimeout(() => { if (!chatOpen) { const d = document.getElementById('chatNotifDot'); if (d) d.style.display='block'; } }, 4000);
+})();
+</script>
+
+</body>
