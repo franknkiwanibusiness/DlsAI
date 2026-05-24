@@ -1,104 +1,94 @@
-// api/push-abandoned-cart.js
-// Called by service worker background sync OR by the cron job
-// Sends a push notification to a user who left items in their cart
-// POST { deviceId, cartItems, cartValue, currency, symbol }
+/* ═══════════════════════════════════════════════════════════════
+   /api/push-abandoned-cart
+   Sends a "you left something behind" push to a device.
+   Called in two modes:
+     immediate: true  — fired right when item is added to cart
+     immediate: false — fired by the SW background sync after
+                        the user has been away >3 minutes
+   ═══════════════════════════════════════════════════════════════
+
+   ENV VARS required:
+     VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT
+*/
 
 import webpush from 'web-push';
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
-import { getDatabase } from 'firebase-admin/database';
 
 webpush.setVapidDetails(
-  process.env.VAPID_EMAIL || 'mailto:admin@minimisty.store',
+  process.env.VAPID_SUBJECT  || 'mailto:support@minimisty.store',
   process.env.VAPID_PUBLIC_KEY,
-  process.env.VAPID_PRIVATE_KEY
+  process.env.VAPID_PRIVATE_KEY,
 );
 
-function getAdminApp() {
-  if (getApps().length) return getApps()[0];
-  return initializeApp({
-    credential: cert({
-      projectId:   process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey:  process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    }),
-    databaseURL: process.env.FIREBASE_DATABASE_URL,
-  });
+// ── Swap this for your real subscription lookup ───────────────
+// e.g. look up by deviceId in Firebase / Postgres
+async function getSubscription(deviceId, providedSub) {
+  // If the page sent the subscription object directly, use it
+  if (providedSub && providedSub.endpoint) return providedSub;
+  // Otherwise look up from your DB by deviceId
+  // const row = await db.query('SELECT sub FROM push_subscriptions WHERE device_id=$1', [deviceId]);
+  // return row?.sub ?? null;
+  return null;
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-
-  const { deviceId, cartItems = [], cartValue, symbol = '$', immediate = false } = req.body || {};
-  if (!deviceId) return res.status(400).json({ error: 'deviceId required' });
+  res.setHeader('Access-Control-Allow-Origin', 'https://minimisty.store');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.status(204).end();
+  if (req.method !== 'POST')   return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const app = getAdminApp();
-    const db  = getDatabase(app);
+    const {
+      subscription: providedSub,
+      deviceId   = 'unknown',
+      cartItems  = [],
+      cartData   = {},
+      cartValue,
+      symbol     = '$',
+      immediate  = false,
+    } = req.body;
 
-    // Find subscription(s) for this device
-    const snap = await db.ref('pushSubscriptions').orderByChild('deviceId').equalTo(deviceId).once('value');
-    const subs = snap.val() || {};
-    const entries = Object.entries(subs).filter(([, v]) => v.active !== false);
+    const sub = await getSubscription(deviceId, providedSub);
+    if (!sub) return res.status(404).json({ error: 'No subscription found' });
 
-    if (!entries.length) return res.status(200).json({ ok: true, sent: 0, reason: 'no subscription' });
+    // If this is an immediate add-to-cart ping, delay 30 minutes
+    // server-side before sending — gives the user time to actually
+    // check out without being spammed the moment they click Add.
+    // (The SW background sync already has its own 3-minute delay
+    //  client-side, so we don't double-delay for that path.)
+    const delayMs = immediate ? 30 * 60 * 1000 : 0;
 
-    // Build notification — immediate (just added) vs reminder (abandoned)
-    const qty   = cartItems.reduce((a, i) => a + (i.qty || 1), 0);
-    const total = cartValue ? `${symbol}${Number(cartValue).toFixed(2)}` : '';
-    const variant = cartItems[0]?.variant || 'FrostBlade Pro';
-
-    let title, body;
-    if (immediate) {
-      title = '🛒 Item added to your cart!';
-      body  = `${variant}${total ? ` — ${total}` : ''} is saved. Complete your order before stock runs out! 🧊`;
-    } else {
-      const bodyBase = qty === 1
-        ? `You left a FrostBlade Pro in your cart${total ? ` — ${total}` : ''}`
-        : `You left ${qty} items in your cart${total ? ` (${total})` : ''}`;
-      title = '🧊 Your cart is waiting!';
-      body  = bodyBase + '. Grab it before stock runs out!';
-    }
+    const val   = cartValue ? `${symbol}${Number(cartValue).toFixed(2)}` : '';
+    const items = cartItems.length > 0 ? cartItems : cartData.cartItems || [];
+    const qty   = items.reduce((s, i) => s + (i.qty || 1), 0);
+    const label = qty > 1 ? `${qty} items` : 'your item';
 
     const payload = JSON.stringify({
-      title,
-      body,
-      url:  '/?utm_source=push&utm_medium=' + (immediate ? 'cart_add' : 'abandoned_cart'),
-      tag:  immediate ? 'cart-add' : 'abandoned-cart',
-      requireInteraction: false,
-      actions: [
-        { action: 'open',    title: '✅ Complete Order' },
-        { action: 'dismiss', title: 'Maybe Later'       },
-      ],
+      type:  'cart',
+      title: 'Complete your order!',
+      body:  `${label}${val ? ` (${val})` : ''} in your cart. Checkout before it sells out.`,
+      tag:   'cart-abandonment',
+      url:   'https://minimisty.store/#checkout',
     });
 
-    const results = await Promise.allSettled(
-      entries.map(async ([key, { subscription }]) => {
-        try {
-          await webpush.sendNotification(subscription, payload, { TTL: 86400, urgency: 'normal' });
-          return { sent: true };
-        } catch (err) {
-          if (err.statusCode === 410 || err.statusCode === 404) {
-            await db.ref(`pushSubscriptions/${key}`).remove();
-          }
-          return { sent: false };
-        }
-      })
-    );
+    if (delayMs > 0) {
+      // Fire and forget after delay — use a job queue in production
+      setTimeout(async () => {
+        try { await webpush.sendNotification(sub, payload); } catch (_) {}
+      }, delayMs);
+      return res.status(202).json({ ok: true, scheduledIn: delayMs });
+    }
 
-    const sent = results.filter(r => r.value?.sent).length;
-
-    // Log the abandoned cart notification
-    await db.ref(`abandonedCartPush/${deviceId}_${Date.now()}`).set({
-      deviceId,
-      cartItems,
-      cartValue: cartValue || 0,
-      sentAt: Date.now(),
-      sent,
-    });
-
-    return res.status(200).json({ ok: true, sent });
+    await webpush.sendNotification(sub, payload);
+    return res.status(200).json({ ok: true });
   } catch (err) {
-    console.error('push-abandoned-cart error:', err);
-    return res.status(500).json({ error: err.message });
+    // 410 Gone = subscription expired, remove from DB
+    if (err.statusCode === 410) {
+      console.log('[push-abandoned-cart] subscription expired, remove from DB:', req.body.deviceId);
+      // await db.query('DELETE FROM push_subscriptions WHERE device_id=$1', [req.body.deviceId]);
+      return res.status(410).json({ error: 'Subscription expired' });
+    }
+    console.error('[push-abandoned-cart]', err);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }
