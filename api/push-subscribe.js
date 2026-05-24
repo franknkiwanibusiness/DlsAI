@@ -1,54 +1,74 @@
-// api/push-subscribe.js
-// Saves a browser push subscription to Firebase Realtime Database
-// POST { subscription: PushSubscriptionJSON, deviceId, metadata }
+/* ═══════════════════════════════════════════════════════════════
+   /api/push-subscribe
+   Saves a Web Push subscription to your database.
+   Works on Vercel / Netlify Edge / Node.js (Express / Fastify).
+   ═══════════════════════════════════════════════════════════════
 
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
-import { getDatabase } from 'firebase-admin/database';
+   ENV VARS required:
+     VAPID_PUBLIC_KEY   — your VAPID public key (base64url)
+     VAPID_PRIVATE_KEY  — your VAPID private key (base64url)
+     VAPID_SUBJECT      — mailto: or https: contact URL
+     FIREBASE_DB_URL    — (optional) if you store subs in Firebase
 
-function getAdminApp() {
-  if (getApps().length) return getApps()[0];
-  return initializeApp({
-    credential: cert({
-      projectId:   process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey:  process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    }),
-    databaseURL: process.env.FIREBASE_DATABASE_URL,
-  });
-}
+   Generate VAPID keys once with:
+     npx web-push generate-vapid-keys
+*/
+
+import webpush from 'web-push';
+
+// ── VAPID config (set these in your hosting env vars) ─────────
+webpush.setVapidDetails(
+  process.env.VAPID_SUBJECT  || 'mailto:support@minimisty.store',
+  process.env.VAPID_PUBLIC_KEY,
+  process.env.VAPID_PRIVATE_KEY,
+);
+
+// ── In-memory store (swap for a real DB in production) ────────
+// For Firebase: import and use firebase-admin to write to
+//   /pushSubscriptions/<deviceId>
+// For Supabase / Postgres: INSERT INTO push_subscriptions ...
+const subscriptions = new Map();
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // CORS pre-flight
+  res.setHeader('Access-Control-Allow-Origin', 'https://minimisty.store');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-
-  const { subscription, deviceId, metadata = {} } = req.body || {};
-
-  if (!subscription?.endpoint) {
-    return res.status(400).json({ error: 'Invalid subscription object' });
-  }
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.status(204).end();
+  if (req.method !== 'POST')   return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const app = getAdminApp();
-    const db  = getDatabase(app);
+    const { subscription, deviceId = 'unknown', metadata = {}, resubscribe = false } = req.body;
 
-    // Key by endpoint hash so re-subscribing the same browser just overwrites
-    const key = Buffer.from(subscription.endpoint).toString('base64').replace(/[/+=]/g, '').slice(-40);
+    if (!subscription || !subscription.endpoint) {
+      return res.status(400).json({ error: 'Missing subscription' });
+    }
 
-    await db.ref(`pushSubscriptions/${key}`).set({
+    // Persist — replace this block with your DB write
+    subscriptions.set(deviceId, {
       subscription,
-      deviceId:  deviceId || 'unknown',
-      createdAt: Date.now(),
-      country:   metadata.country  || 'unknown',
-      city:      metadata.city     || 'unknown',
-      userAgent: metadata.userAgent || '',
-      active:    true,
+      deviceId,
+      metadata,
+      resubscribe,
+      savedAt: new Date().toISOString(),
     });
 
-    return res.status(200).json({ ok: true, key });
+    // Optional: send a welcome notification on first subscribe
+    if (!resubscribe) {
+      await webpush.sendNotification(
+        subscription,
+        JSON.stringify({
+          type:  'general',
+          title: 'You\'re all set!',
+          body:  'You\'ll get drop alerts, restock notices and exclusive offers.',
+          url:   'https://minimisty.store/',
+        }),
+      ).catch(() => {}); // don't fail the request if this errors
+    }
+
+    return res.status(200).json({ ok: true });
   } catch (err) {
-    console.error('push-subscribe error:', err);
-    return res.status(500).json({ error: err.message });
+    console.error('[push-subscribe]', err);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }
