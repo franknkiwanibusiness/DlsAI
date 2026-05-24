@@ -94,10 +94,66 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@600;700;800;900&family=Fredoka:wght@600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@600;700;800;900&family=Fredoka:wght@600;700&display=block" rel="stylesheet">
 
   <style>
-    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    *, *::before, *::after {
+      margin: 0; padding: 0; box-sizing: border-box;
+      /* Kill all browser decoration */
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      outline: none;
+    }
+
+    html {
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+      -moz-osx-font-smoothing: grayscale;
+      -webkit-font-smoothing: antialiased;
+      overscroll-behavior: none;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      overscroll-behavior: none;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* Kill input/button browser chrome */
+    input, textarea, select, button {
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      border-radius: 0;
+      outline: none;
+      box-shadow: none;
+    }
+
+    input:focus, textarea:focus, select:focus, button:focus {
+      outline: none;
+      box-shadow: none;
+    }
+
+    /* Kill autofill yellow flash */
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus,
+    input:-webkit-autofill:active {
+      -webkit-box-shadow: 0 0 0 1000px var(--input-bg, #080810) inset !important;
+      -webkit-text-fill-color: var(--text, #f0f0ff) !important;
+      transition: background-color 9999s ease-in-out 0s;
+      caret-color: var(--text, #f0f0ff);
+    }
+
+    /* Kill link tap blue flash on mobile */
+    a { -webkit-tap-highlight-color: transparent; }
+
+    /* Kill scrollbar on webkit */
+    ::-webkit-scrollbar { width: 0; height: 0; background: transparent; }
+
+    /* Kill text selection highlight styling */
+    ::selection { background: rgba(255,255,255,0.12); color: inherit; }
+    ::-moz-selection { background: rgba(255,255,255,0.12); color: inherit; }
 
     /* ═══════════════════════════════════════
        🎨 CARTOON DESIGN SYSTEM
@@ -2689,180 +2745,120 @@
       .below-col-left .video-section iframe-wrapper { height: 100%; }
     }
 
-    /* ══════════════════════════════════════
-       STORE LOADING SCREEN — CLEAN MINIMAL
-    ══════════════════════════════════════ */
+
+    /* ══════════════════════════════════════════
+       MINIMISTY — UNIVERSAL PAGE LOADER
+       Clean, premium, no neon. Million-dollar.
+    ══════════════════════════════════════════ */
     #storeLoader {
       position: fixed;
       inset: 0;
-      background: #000;
+      background: rgba(0,0,0,0.72);
+      backdrop-filter: blur(18px) saturate(0.4);
+      -webkit-backdrop-filter: blur(18px) saturate(0.4);
       z-index: 99999;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 0;
-      transition: opacity 0.55s ease, visibility 0.55s;
       overflow: hidden;
-      width: 100vw;
-      height: 100vh;
-      left: 0;
-      top: 0;
+      transition: opacity 0.6s cubic-bezier(0.4,0,0.2,1), visibility 0.6s;
     }
-
     #storeLoader.hiding {
       opacity: 0;
       visibility: hidden;
-    }
-
-    /* Subtle grid bg */
-    #storeLoader::before {
-      content: '';
-      position: absolute; inset: 0;
-      background-image:
-        linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
-      background-size: 60px 60px;
       pointer-events: none;
     }
 
-    /* Card container */
-    .loader-card {
+    /* Fine noise texture overlay */
+    #storeLoader::after {
+      content: '';
+      position: absolute; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      background-size: 256px 256px;
+      pointer-events: none;
+      opacity: 0.5;
+    }
+
+    .ldr-inner {
       position: relative;
       z-index: 2;
       display: flex;
       flex-direction: column;
       align-items: center;
-      background: transparent;
-      border: none;
-      border-radius: 0;
-      padding: 0;
-      width: auto;
-      box-shadow: none;
-      backdrop-filter: none;
+      gap: 0;
+      width: 220px;
     }
 
-    /* ── Animated fan gadget ── */
-    .loader-gadget {
-      width: 120px; height: 120px;
-      margin-bottom: 28px;
-      position: relative;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .gadget-body {
-      width: 60px; height: 88px;
-      background: #0a0a0a;
-      border: 1.5px solid #1e1e1e;
-      border-radius: 14px 14px 18px 18px;
-      position: relative;
-      display: flex; flex-direction: column; align-items: center;
-      padding-top: 10px; gap: 5px;
-    }
-    .gadget-usb {
-      position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%);
-      width: 16px; height: 8px;
-      background: #1e1e1e;
-      border-radius: 0 0 5px 5px;
-    }
-    .gadget-dot {
-      width: 5px; height: 5px; border-radius: 50%;
-      background: #1a1a1a;
-    }
-    .gadget-dot.on {
-      background: var(--accent, #7fff00);
-      box-shadow: 0 0 6px var(--accent, #7fff00);
-    }
-    .loader-fan-wrap {
-      position: absolute;
-      top: -28px; left: 50%; transform: translateX(-50%);
-      width: 76px; height: 76px;
-    }
-    .loader-fan-svg {
-      width: 100%; height: 100%;
-      animation: fanSpin 0.45s linear infinite;
-    }
-    @keyframes fanSpin { to { transform: rotate(360deg); } }
-
-    .wind-lines {
-      position: absolute;
-      top: -28px; left: 50%; transform: translateX(-50%);
-      width: 76px; height: 76px;
-      pointer-events: none;
-    }
-    .wind-line {
-      position: absolute;
-      height: 1.5px;
-      background: linear-gradient(90deg, rgba(255,255,255,0.3), transparent);
-      border-radius: 1px;
-      animation: windShoot 0.7s ease-out infinite;
-      transform-origin: left center;
-    }
-    .wind-line:nth-child(1) { width: 28px; top: 28px; left: 76px; animation-delay: 0s; }
-    .wind-line:nth-child(2) { width: 20px; top: 22px; left: 76px; animation-delay: 0.1s; }
-    .wind-line:nth-child(3) { width: 24px; top: 34px; left: 76px; animation-delay: 0.2s; }
-    .wind-line:nth-child(4) { width: 16px; top: 18px; left: 76px; animation-delay: 0.35s; }
-    @keyframes windShoot {
-      0%   { opacity: 0; transform: translateX(0); }
-      20%  { opacity: 1; }
-      100% { opacity: 0; transform: translateX(22px); }
-    }
-
-    .loader-brand {
-      display: flex; align-items: center; gap: 3px;
-      margin-bottom: 28px;
-    }
-    .loader-brand-name {
-      font-family: var(--font);
-      font-size: 1.2rem;
+    /* Wordmark */
+    .ldr-brand {
+      font-family: var(--font, 'Fredoka One', cursive);
+      font-size: 1.05rem;
       font-weight: 700;
-      color: #fff;
-      letter-spacing: 2px;
-      line-height: 1;
-    }
-    .loader-brand-suffix {
-      font-size: 0.78rem;
-      color: #444;
-      font-weight: 600;
-    }
-
-    .loader-bar-track { display: none; }
-    .loader-bar-fill { display: none; }
-
-    .loader-status {
-      font-family: var(--font);
-      font-size: 0.58rem;
-      font-weight: 700;
-      color: #333;
-      letter-spacing: 0.2em;
+      letter-spacing: 0.22em;
+      color: rgba(255,255,255,0.92);
       text-transform: uppercase;
-      min-height: 1em;
-      align-self: center;
+      margin-bottom: 52px;
+      display: flex;
+      align-items: baseline;
+      gap: 2px;
+    }
+    .ldr-brand-dot {
+      font-size: 0.7rem;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 0;
+    }
+
+    /* Main message — animated word reveal */
+    .ldr-msg {
+      font-family: var(--font, 'Fredoka One', cursive);
+      font-size: 2.1rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: #fff;
+      line-height: 1.1;
+      text-align: center;
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+    .ldr-msg-word {
+      display: inline-block;
+      opacity: 0;
+      transform: translateY(18px);
+      animation: ldrWordIn 0.55s cubic-bezier(0.22,1,0.36,1) forwards;
+    }
+    .ldr-msg-word:nth-child(1) { animation-delay: 0.05s; }
+    .ldr-msg-word:nth-child(2) { animation-delay: 0.18s; }
+    .ldr-msg-word:nth-child(3) { animation-delay: 0.31s; }
+    .ldr-msg-word:nth-child(4) { animation-delay: 0.44s; }
+    @keyframes ldrWordIn {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Sub-label */
+    .ldr-sub {
+      font-family: var(--font-body, 'Nunito', sans-serif);
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.22);
+      margin-bottom: 44px;
       text-align: center;
     }
 
-    .loader-dots {
-      display: flex;
-      gap: 7px;
-      margin-top: 18px;
-      align-self: center;
-    }
-    .loader-dot {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: #222;
-      animation: dotPulse 1.4s infinite ease-in-out;
-    }
-    .loader-dot.active,
-    .loader-dot:first-child { background: #fff; }
-    .loader-dot:nth-child(2) { animation-delay: 0.2s; }
-    .loader-dot:nth-child(3) { animation-delay: 0.4s; }
-    @keyframes dotPulse {
-      0%, 100% { opacity: 0.2; transform: scale(0.8); }
-      50% { opacity: 1; transform: scale(1.15); background: #fff; }
-    }
+    /* Progress line — ultra thin */
 
-    /* Ice particles — removed for clean look */
-    .ice-particle { display: none; }
+    /* Status line */
+
+    [data-theme="light"] #storeLoader { background: #fafafa; }
+    [data-theme="light"] .ldr-brand { color: rgba(0,0,0,0.85); }
+    [data-theme="light"] .ldr-brand-dot { color: rgba(0,0,0,0.25); }
+    [data-theme="light"] .ldr-msg { color: #111; }
+    [data-theme="light"] .ldr-sub { color: rgba(0,0,0,0.2); }
+    [data-theme="light"]
+    [data-theme="light"]
+    [data-theme="light"]
 
 
 
@@ -6167,11 +6163,177 @@
     [data-theme="light"] .stat-card { background: linear-gradient(135deg, #fff, #f5f0ff) !important; border-color: #d0c8f0 !important; }
     [data-theme="light"] .stat-card:hover { box-shadow: 8px 8px 0 rgba(100,60,180,0.2) !important; }
 
-</style>
+
+    /* ══════════════════════════════════════════
+       MINIMISTY — PREMIUM PAGE LOADER v2
+    ══════════════════════════════════════════ */
+
+    #storeLoader {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.72);
+      backdrop-filter: blur(18px) saturate(0.4);
+      -webkit-backdrop-filter: blur(18px) saturate(0.4);
+      z-index: 99999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      transition: opacity 0.7s cubic-bezier(0.4,0,0.2,1), visibility 0.7s;
+    }
+    #storeLoader.hiding {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    /* Subtle vignette */
+    #storeLoader::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.6) 100%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .ldr-inner {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 260px;
+    }
+
+    /* ── Spinning fan ── */
+    .ldr-fan-wrap {
+      width: 88px;
+      height: 88px;
+      margin-bottom: 32px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ldr-fan-svg {
+      width: 88px;
+      height: 88px;
+      animation: ldrFanSpin 0.55s linear infinite;
+      transform-origin: center;
+    }
+    @keyframes ldrFanSpin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ── Brand wordmark ── */
+    .ldr-brand {
+      font-family: 'Fredoka One', 'Fredoka', cursive;
+      font-size: 1.45rem;
+      font-weight: 400;
+      letter-spacing: 0.14em;
+      color: #fff;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      line-height: 1;
+    }
+    .ldr-brand sup {
+      font-family: 'Nunito', sans-serif;
+      font-size: 0.48rem;
+      font-weight: 800;
+      letter-spacing: 0.15em;
+      color: rgba(255,255,255,0.38);
+      vertical-align: super;
+      margin-left: 1px;
+    }
+
+    /* ── Page message ── */
+    .ldr-msg {
+      font-family: 'Fredoka One', 'Fredoka', cursive;
+      font-size: 0.72rem;
+      font-weight: 400;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.38);
+      margin-bottom: 36px;
+      text-align: center;
+    }
+
+    
+
+    /* ── Animated dots ── */
+    .ldr-dots {
+      display: flex;
+      gap: 7px;
+      align-items: center;
+      justify-content: center;
+      margin-top: 4px;
+    }
+    .ldr-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.25);
+      animation: ldrDotPulse 1.4s ease-in-out infinite;
+    }
+    .ldr-dot:nth-child(1) { animation-delay: 0s; }
+    .ldr-dot:nth-child(2) { animation-delay: 0.22s; }
+    .ldr-dot:nth-child(3) { animation-delay: 0.44s; }
+    @keyframes ldrDotPulse {
+      0%, 80%, 100% { transform: scale(0.75); opacity: 0.3; }
+      40% { transform: scale(1.15); opacity: 1; background: var(--cyan, #00d4ff); }
+    }
+
+    /* Prevent scroll while loader is active */
+    body.loader-active {
+      overflow: hidden !important;
+      position: fixed !important;
+      width: 100% !important;
+    }
+
+    /* ── Status ── */
+
+    /* Light theme */
+    [data-theme="light"] #storeLoader { background: rgba(247,245,242,0.75); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+    [data-theme="light"] .ldr-brand { color: #111; }
+    [data-theme="light"] .ldr-fan-svg path, [data-theme="light"] .ldr-fan-svg circle { fill: #111 !important; }
+    [data-theme="light"] .ldr-fan-hole { fill: #f7f5f2 !important; }
+    [data-theme="light"]
+    [data-theme="light"]
+    [data-theme="light"]
+    [data-theme="light"] .ldr-msg { color: rgba(0,0,0,0.35); }
+
+    </style>
 </head>
 <body>
 
-
+<!-- ══ MINIMISTY LOADER ══ -->
+<div id="storeLoader">
+  <div class="ldr-inner">
+    <div class="ldr-fan-wrap">
+      <svg class="ldr-fan-svg" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="50" cy="50" r="16" fill="#fff"/>
+        <path d="M50 34 C30 30 30 4 50 4 C70 4 70 30 50 34 Z" fill="#fff"/>
+        <path d="M66 50 C70 30 96 30 96 50 C96 70 70 70 66 50 Z" fill="#fff"/>
+        <path d="M50 66 C70 70 70 96 50 96 C30 96 30 70 50 66 Z" fill="#fff"/>
+        <path d="M34 50 C30 70 4 70 4 50 C4 30 30 30 34 50 Z" fill="#fff"/>
+        <circle class="ldr-fan-hole" cx="50" cy="50" r="7" fill="#000"/>
+      </svg>
+    </div>
+    <div class="ldr-brand">MINIMISTY<sup>.STORE</sup></div>
+    <div class="ldr-msg">Getting prices ready</div>
+    <div class="ldr-dots">
+      <div class="ldr-dot"></div>
+      <div class="ldr-dot"></div>
+      <div class="ldr-dot"></div>
+    </div>
+  </div>
+</div>
+  
+  <span id="loaderBar" style="display:none"></span><span id="loaderStatus" style="display:none"></span>
+  </div>
+</div>
 
 <!-- ═══ HEADER ═══ -->
 <header>
@@ -9610,91 +9772,45 @@ function sendAbandonedCartPush() {
   }, 500);
 
   // ════════════════════════════════
-  //  STORE LOADER — GADGET EDITION
+  //  MINIMISTY LOADER
   // ════════════════════════════════
   (function() {
-    const loader   = document.getElementById('storeLoader');
-    const bar      = document.getElementById('loaderBar');
-    const status   = document.getElementById('loaderStatus');
+    var loader = document.getElementById('storeLoader');
+    var bar    = document.getElementById('loaderBar');
+    var status = document.getElementById('loaderStatus');
     if (!loader || !bar || !status) return;
-    const dots     = [document.getElementById('ldot0'), document.getElementById('ldot1'), document.getElementById('ldot2')];
-    const gdots    = ['gdot0','gdot1','gdot2','gdot3','gdot4'].map(id => document.getElementById(id));
+    document.body.classList.add('loader-active');
 
-    const steps = [
-      { pct: 15,  label: 'POWERING ON',     t: 400  },
-      { pct: 30,  label: 'SPINNING UP',      t: 600  },
-      { pct: 50,  label: 'LOADING STORE',    t: 700  },
-      { pct: 65,  label: 'FETCHING LOCATION',t: 600  },
-      { pct: 78,  label: 'LOADING PRICES',   t: 700  },
-      { pct: 90,  label: 'ALMOST READY',     t: 500  },
-      { pct: 100, label: 'WELCOME ❄️',       t: 300  },
-    ];
-
-    // Dot chase animation
-    let dotIdx = 0;
-    const dotTimer = setInterval(() => {
-      dots.forEach(d => d && d.classList.remove('active'));
-      if (dots[dotIdx % 3]) dots[dotIdx % 3].classList.add('active');
-      dotIdx++;
-    }, 380);
-
-    // Gadget speed LEDs
-    let gLevel = 0;
-    const gdotTimer = setInterval(() => {
-      if (gLevel < gdots.length) { gdots[gLevel] && gdots[gLevel].classList.add('on'); gLevel++; }
-      else { gdots.forEach(d => d && d.classList.toggle('on')); }
-    }, 500);
-
-    let step = 0;
+    var steps = [{pct:20,label:'Locating',t:420},{pct:44,label:'Fetching prices',t:560},{pct:68,label:'Almost there',t:500},{pct:88,label:'Getting ready',t:400}];
+    var step = 0;
     function advance() {
       if (step >= steps.length) return;
-      const s = steps[step];
+      var s = steps[step++];
       bar.style.width = s.pct + '%';
       status.textContent = s.label;
-      step++;
-      if (step < steps.length - 1) setTimeout(advance, s.t); // stop before last step
+      if (step < steps.length) setTimeout(advance, s.t);
     }
     advance();
 
-    // Track readiness flags
-    let pageLoaded = false;
-    let geoReady   = false;
-    let priceReady = false;
-    let hidden     = false;
-
-    function tryHide() {
-      if (hidden) return;
-      if (!pageLoaded || !geoReady || !priceReady) return;
-      hidden = true;
-      clearInterval(dotTimer);
-      clearInterval(gdotTimer);
-      bar.style.width = '100%';
-      status.textContent = 'WELCOME ❄️';
-      setTimeout(() => {
+    var hidden = false;
+    function hide() {
+      if (hidden) return; hidden = true;
+      bar.style.width = '100%'; status.textContent = '';
+      setTimeout(function() {
         loader.classList.add('hiding');
-        setTimeout(() => { loader.style.display = 'none'; document.body.style.overflow = ''; }, 650);
-      }, 300);
+        setTimeout(function() { loader.style.display='none'; document.body.classList.remove('loader-active'); }, 700);
+      }, 220);
     }
 
-    // Hard 10-second fallback — force close regardless
-    const hardFallback = setTimeout(() => {
-      if (hidden) return;
-      hidden = true;
-      clearInterval(dotTimer);
-      clearInterval(gdotTimer);
-      bar.style.width = '100%';
-      status.textContent = 'WELCOME ❄️';
-      loader.classList.add('hiding');
-      setTimeout(() => { loader.style.display = 'none'; document.body.style.overflow = ''; }, 650);
-    }, 10000);
+    
+    var pageLoaded=false, geoReady=false, priceReady=false;
+    function tryHide(){ if(pageLoaded&&geoReady&&priceReady) hide(); }
+    if(document.readyState==='complete'){pageLoaded=true;tryHide();}
+    else{window.addEventListener('load',function(){pageLoaded=true;tryHide();});}
+    window._loaderGeoReady=function(){geoReady=true;tryHide();};
+    window._loaderPriceReady=function(){priceReady=true;tryHide();};
 
-    // Page load
-    if (document.readyState === 'complete') { pageLoaded = true; tryHide(); }
-    else { window.addEventListener('load', () => { pageLoaded = true; tryHide(); }); }
-
-    // Expose hooks so geo + price code can signal readiness
-    window._loaderGeoReady   = () => { geoReady   = true; tryHide(); };
-    window._loaderPriceReady = () => { priceReady = true; tryHide(); };
+    setTimeout(hide, 10000);
   })();
 
   // ════════════════════════════════
