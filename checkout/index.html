@@ -4426,16 +4426,43 @@ async function submitManualPay() {
   btn.disabled = true;
   btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="animation:spin 0.8s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Sending…`;
 
-  // Save to Firebase
+  // Save to Firebase — both via legacy method and new comprehensive tracker
   try {
+    const manualPayData = {
+      orderId, name:fullName, email:em, when, method,
+      baseTotal:base, feeAmount:added, totalDue:total,
+      dueDateStr, ctaLink, timingLabel,
+      currency:(window.order && window.order.currency)||'USD',
+      currencySymbol:sym, exchangeRate:rate,
+      status:'pending', createdAt:Date.now(),
+      // Extra data for full record
+      firstName: document.getElementById('firstName') ? document.getElementById('firstName').value.trim() : '',
+      lastName:  document.getElementById('lastName')  ? document.getElementById('lastName').value.trim()  : '',
+      phone:     document.getElementById('phoneField') ? ((document.getElementById('dialCodeDisplay') ? document.getElementById('dialCodeDisplay').textContent.trim() : '') + ' ' + document.getElementById('phoneField').value.trim()).trim() : '',
+      addr1:     document.getElementById('addr1')    ? document.getElementById('addr1').value.trim()    : '',
+      addr2:     document.getElementById('addr2')    ? document.getElementById('addr2').value.trim()    : '',
+      city:      document.getElementById('city')     ? document.getElementById('city').value.trim()     : '',
+      postal:    document.getElementById('postal')   ? document.getElementById('postal').value.trim()   : '',
+      country:   document.getElementById('country')  ? document.getElementById('country').value         : '',
+      items:     window.order ? JSON.stringify(window.order.items || []) : '',
+      localTime: new Date().toISOString()
+    };
     if (window._fbSet && window._fbRef && window._db) {
-      await window._fbSet(window._fbRef(window._db, 'manualPayRequests/' + orderId), {
-        orderId, name:fullName, email:em, when, method,
-        baseTotal:base, feeAmount:added, totalDue:total,
-        dueDateStr, ctaLink, timingLabel,
-        currency:(window.order && window.order.currency)||'USD',
-        currencySymbol:sym, exchangeRate:rate,
-        status:'pending', createdAt:Date.now()
+      await window._fbSet(window._fbRef(window._db, 'manualPayRequests/' + orderId), manualPayData);
+    }
+    // Also call the enhanced tracker (saves extra geo/device data)
+    if (window.saveManualPayRequest) {
+      await window.saveManualPayRequest(manualPayData);
+    }
+    // Save address separately for admin
+    if (window._fbSet && window._fbRef && window._db) {
+      await window._fbSet(window._fbRef(window._db, 'addresses/' + orderId + '_manual'), {
+        name: fullName, email: em,
+        addr1: manualPayData.addr1, addr2: manualPayData.addr2,
+        city: manualPayData.city, postal: manualPayData.postal,
+        country: manualPayData.country, phone: manualPayData.phone,
+        orderId, currency: manualPayData.currency,
+        totalDue: total, savedAt: Date.now()
       });
     }
   } catch(e) { console.warn('Firebase manualPay save:', e); }
@@ -4505,6 +4532,657 @@ document.addEventListener('keydown', function(e) {
     if (o && o.style.display !== 'none') closeManualModal();
   }
 });
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MINIMISTY MASTER TRACKING v2.0  — PAGE: checkout
+     Saves: visits · device IDs · geo · currency · referrer
+            scroll depth · time on page · addresses · emails
+            orders · payments · manual pays  → Firebase
+═══════════════════════════════════════════════════════════ -->
+<script type="module">
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+import { getDatabase, ref, set, push, get, update, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+
+const FB_CFG = {
+  apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
+  authDomain: "itzhoyoo-f9f7e.firebaseapp.com",
+  databaseURL: "https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com",
+  projectId: "itzhoyoo-f9f7e",
+  storageBucket: "itzhoyoo-f9f7e.filestorage.app",
+  messagingSenderId: "1094792075584",
+  appId: "1:1094792075584:web:d49e9c3f899d3cd31082a5"
+};
+
+// Reuse existing Firebase app if already initialized (index page has one)
+const fbApp = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
+const db = getDatabase(fbApp);
+
+// ── Expose globals so placeOrder / manual pay can use them ──
+window._db       = db;
+window._fbSet    = set;
+window._fbRef    = ref;
+window._fbGet    = get;
+window._fbUpdate = update;
+window._fbPush   = push;
+window._fbTs     = serverTimestamp;
+window._fbInc    = increment;
+
+const PAGE_NAME = "checkout";
+
+// ── Device ID (persistent per browser) ──
+function getDeviceId() {
+  let did = null;
+  try { did = localStorage.getItem('minimisty_did'); } catch(e) {}
+  if (!did) {
+    did = 'dev_' + Math.random().toString(36).substr(2,9) + '_' + Date.now().toString(36);
+    try { localStorage.setItem('minimisty_did', did); } catch(e) {}
+  }
+  window._deviceId = did;
+  return did;
+}
+const deviceId = getDeviceId();
+
+// ── Session ID ──
+const sessionId = window._sessionId || ('sess_' + Math.random().toString(36).substr(2,9) + '_' + Date.now());
+window._sessionId = sessionId;
+
+function getReferrer() {
+  const r = document.referrer;
+  if (!r) return 'direct';
+  if (r.includes('google')) return 'google';
+  if (r.includes('facebook') || r.includes('fb.com')) return 'facebook';
+  if (r.includes('instagram')) return 'instagram';
+  if (r.includes('tiktok')) return 'tiktok';
+  if (r.includes('twitter') || r.includes('t.co')) return 'twitter';
+  if (r.includes('minimisty.store')) return 'internal';
+  return (r.split('/')[2] || r).substring(0,60);
+}
+function getUTM() {
+  const p = new URLSearchParams(location.search);
+  return {
+    utm_source:   p.get('utm_source')   || '',
+    utm_medium:   p.get('utm_medium')   || '',
+    utm_campaign: p.get('utm_campaign') || '',
+    utm_content:  p.get('utm_content')  || '',
+    ref_code:     p.get('ref')          || ''
+  };
+}
+function getDeviceType() {
+  const ua = navigator.userAgent;
+  if (/Mobi|Android/i.test(ua)) return 'mobile';
+  if (/iPad|Tablet/i.test(ua)) return 'tablet';
+  return 'desktop';
+}
+function getCurrencyData() {
+  return {
+    currency:       window._currency       || sessionStorage.getItem('pendingCurrency')       || 'USD',
+    currencySymbol: window._currencySymbol || sessionStorage.getItem('pendingCurrencySymbol') || '$',
+    exchangeRate:   window._exchangeRate   || parseFloat(sessionStorage.getItem('pendingExchangeRate') || '1') || 1
+  };
+}
+
+// ═══════════════════════════════
+// VISIT TRACKER
+// ═══════════════════════════════
+async function trackPageVisit(geoData) {
+  try {
+    const utm = getUTM();
+    const curData = getCurrencyData();
+    const visitData = {
+      ts:           serverTimestamp(),
+      page:         PAGE_NAME,
+      url:          location.href,
+      path:         location.pathname,
+      referrer:     getReferrer(),
+      rawReferrer:  document.referrer.substring(0, 200),
+      deviceId,
+      sessionId,
+      deviceType:   getDeviceType(),
+      screenW:      window.screen.width,
+      screenH:      window.screen.height,
+      viewportW:    window.innerWidth,
+      viewportH:    window.innerHeight,
+      timezone:     Intl.DateTimeFormat().resolvedOptions().timeZone,
+      language:     navigator.language,
+      localTime:    new Date().toISOString(),
+      localHour:    new Date().getHours(),
+      dayOfWeek:    new Date().getDay(),
+      country:      (geoData && (geoData.country_code || geoData.country)) || 'unknown',
+      city:         (geoData && geoData.city) || 'unknown',
+      region:       (geoData && geoData.region) || '',
+      ip:           (geoData && geoData.ip)    || '',
+      currency:     (geoData && geoData.currency) || curData.currency,
+      currencySymbol: curData.currencySymbol,
+      exchangeRate:   curData.exchangeRate,
+      utm_source:   utm.utm_source,
+      utm_medium:   utm.utm_medium,
+      utm_campaign: utm.utm_campaign,
+      ref_code:     utm.ref_code
+    };
+    await set(ref(db, 'visits/' + PAGE_NAME + '/' + sessionId), visitData);
+    const analUpdate = {};
+    analUpdate['visits_' + PAGE_NAME] = increment(1);
+    analUpdate['totalVisits'] = increment(1);
+    await update(ref(db, 'analytics'), analUpdate);
+    // Upsert device profile
+    const devUpdate = {
+      lastSeen:     serverTimestamp(),
+      lastPage:     PAGE_NAME,
+      deviceType:   getDeviceType(),
+      language:     navigator.language,
+      timezone:     Intl.DateTimeFormat().resolvedOptions().timeZone
+    };
+    if (geoData && geoData.country_code) {
+      devUpdate.lastCountry  = geoData.country_code;
+      devUpdate.lastCity     = geoData.city || 'unknown';
+      devUpdate.lastCurrency = geoData.currency || curData.currency;
+    }
+    devUpdate.sessionCount = increment(1);
+    await update(ref(db, 'devices/' + deviceId), devUpdate);
+  } catch(e) { console.warn('[MINIMISTY] Visit track err:', e); }
+}
+
+// ═══════════════════════════════
+// GEO INIT (checkout/order pages — index handles its own)
+// ═══════════════════════════════
+async function initGeoIfNeeded() {
+  if (window._geoData) {
+    await trackPageVisit(window._geoData);
+    return;
+  }
+  let geoData = null;
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const r = await fetch('https://ipapi.co/json/', { signal: controller.signal });
+    clearTimeout(timeout);
+    geoData = await r.json();
+    if (!geoData || !geoData.country_code) throw new Error('bad geo');
+    window._geoData = geoData;
+    if (!window._currency && geoData.currency) {
+      window._currency = geoData.currency;
+      const symbols = {
+        EUR:'€',GBP:'£',JPY:'¥',KRW:'₩',INR:'₹',AUD:'A$',CAD:'C$',
+        CHF:'Fr',CNY:'¥',ZAR:'R',BRL:'R$',MXN:'$',AED:'د.إ',
+        SAR:'﷼',SGD:'S$',HKD:'HK$',NOK:'kr',SEK:'kr',DKK:'kr',
+        NZD:'NZ$',TRY:'₺',PLN:'zł',THB:'฿',PHP:'₱',IDR:'Rp',
+        MYR:'RM',NGN:'₦',KES:'KSh',GHS:'₵',EGP:'£'
+      };
+      window._currencySymbol = symbols[geoData.currency] || geoData.currency + ' ';
+      if (!window._exchangeRate || window._exchangeRate === 1) {
+        if (geoData.currency !== 'USD') {
+          try {
+            const ec = new AbortController();
+            const et = setTimeout(() => ec.abort(), 5000);
+            const er = await fetch('https://open.er-api.com/v6/latest/USD', { signal: ec.signal });
+            clearTimeout(et);
+            const erData = await er.json();
+            if (erData.result === 'success' && erData.rates[geoData.currency]) {
+              window._exchangeRate = erData.rates[geoData.currency];
+            }
+          } catch(e2) {}
+        }
+      }
+    }
+  } catch(e) {
+    const stored = sessionStorage.getItem('pendingCurrency');
+    if (stored) window._currency = stored;
+    geoData = { country_code: 'unknown', city: 'unknown' };
+  }
+  await trackPageVisit(geoData);
+}
+
+// ═══════════════════════════════
+// SCROLL DEPTH + TIME ON PAGE
+// ═══════════════════════════════
+let maxScrollPct = 0;
+window.addEventListener('scroll', () => {
+  const docH = document.body.scrollHeight - window.innerHeight;
+  if (docH > 0) {
+    const pct = Math.round((window.scrollY / docH) * 100);
+    if (pct > maxScrollPct) maxScrollPct = pct;
+  }
+}, { passive: true });
+
+const pageLoadTime = Date.now();
+window.addEventListener('beforeunload', () => {
+  const timeOnPage = Math.round((Date.now() - pageLoadTime) / 1000);
+  // Use sendBeacon for reliability on page close
+  try {
+    navigator.sendBeacon(
+      'https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com/pageExit/' + sessionId + '.json',
+      JSON.stringify({
+        page: PAGE_NAME, deviceId,
+        maxScrollPct, timeOnPageSec: timeOnPage, ts: Date.now()
+      })
+    );
+  } catch(e) {}
+});
+
+// ═══════════════════════════════
+// CHECKOUT PAGE FUNCTIONS
+// ═══════════════════════════════
+if (PAGE_NAME === 'checkout') {
+
+  window.saveCompletedOrder = async function(order) {
+    try {
+      const curData = getCurrencyData();
+      const enriched = Object.assign({}, order, {
+        savedAt:        serverTimestamp(),
+        deviceId:       deviceId,
+        sessionId:      sessionId,
+        page:           'checkout',
+        ip:             (window._geoData && window._geoData.ip)           || '',
+        geoCountry:     (window._geoData && window._geoData.country_code) || (order.shippingAddress && order.shippingAddress.country) || '',
+        geoCity:        (window._geoData && window._geoData.city)         || '',
+        referrer:       getReferrer(),
+        currency:       order.currency       || curData.currency,
+        currencySymbol: order.currencySymbol || curData.currencySymbol,
+        exchangeRate:   order.exchangeRate   || curData.exchangeRate,
+        localTime:      new Date().toISOString(),
+        ua:             navigator.userAgent.substring(0,200)
+      });
+
+      // Save main order record
+      await set(ref(db, 'orders/' + order.orderId), enriched);
+
+      // Device→order index
+      await set(ref(db, 'deviceOrders/' + deviceId + '/' + order.orderId), {
+        orderId:   order.orderId,
+        status:    order.status || 'paid',
+        createdAt: Date.now(),
+        totalUSD:  (order.pricing && (order.pricing.finalTotalUSD || order.pricing.totalUSD)) || 0
+      });
+
+      // Email→order index + customer profile
+      if (order.customerEmail) {
+        const emailKey = order.customerEmail.replace(/[.@]/g, '_');
+        await set(ref(db, 'emailOrders/' + emailKey + '/' + order.orderId), {
+          orderId:   order.orderId,
+          status:    order.status || 'paid',
+          createdAt: Date.now(),
+          email:     order.customerEmail,
+          name:      order.customerName || ''
+        });
+        const custUpdate = {
+          email:         order.customerEmail,
+          name:          order.customerName  || '',
+          phone:         order.customerPhone || '',
+          lastOrderId:   order.orderId,
+          lastOrderAt:   serverTimestamp(),
+          deviceId,
+          country:       (order.shippingAddress && order.shippingAddress.country) || (window._geoData && window._geoData.country_code) || '',
+          orderCount:    increment(1),
+          totalSpentUSD: increment((order.pricing && order.pricing.finalTotalUSD) || 0)
+        };
+        await update(ref(db, 'customers/' + emailKey), custUpdate);
+      }
+
+      // Full address record (all address fields individually for easy admin view)
+      if (order.shippingAddress) {
+        await set(ref(db, 'addresses/' + order.orderId), {
+          name:     order.shippingAddress.name    || order.customerName  || '',
+          line1:    order.shippingAddress.line1   || '',
+          line2:    order.shippingAddress.line2   || '',
+          city:     order.shippingAddress.city    || '',
+          postal:   order.shippingAddress.postal  || '',
+          country:  order.shippingAddress.country || '',
+          email:    order.customerEmail  || '',
+          phone:    order.customerPhone  || '',
+          orderId:  order.orderId,
+          deviceId,
+          currency: order.currency || curData.currency,
+          totalPaidUSD: (order.pricing && order.pricing.finalTotalUSD) || 0,
+          totalPaidLocal: ((order.pricing && order.pricing.finalTotalUSD) || 0) * (order.exchangeRate || curData.exchangeRate),
+          savedAt: serverTimestamp()
+        });
+      }
+
+      // Analytics
+      await update(ref(db, 'analytics'), {
+        totalOrders:  increment(1),
+        totalRevUSD:  increment((order.pricing && order.pricing.finalTotalUSD) || 0)
+      });
+
+      console.log('[MINIMISTY] Order saved to Firebase:', order.orderId);
+    } catch(e) { console.warn('[MINIMISTY] saveCompletedOrder err:', e); }
+  };
+
+  window.saveAbandonedCartEmail = async function(email, items, orderId) {
+    if (!email) return;
+    try {
+      const curData = getCurrencyData();
+      await set(ref(db, 'abandonedCarts/' + deviceId + '_' + Date.now()), {
+        email, orderId: orderId || '', deviceId, sessionId,
+        items:    JSON.stringify(items || []),
+        currency: curData.currency,
+        country:  (window._geoData && window._geoData.country_code) || '',
+        savedAt:  serverTimestamp()
+      });
+      await update(ref(db, 'analytics'), { totalAbandonedCarts: increment(1) });
+    } catch(e) {}
+  };
+
+  window.saveCheckoutEmail = async function(email, name, orderId) {
+    if (!email) return;
+    try {
+      const emailKey = email.replace(/[.@]/g, '_');
+      await update(ref(db, 'customers/' + emailKey), {
+        email, name, orderId, deviceId,
+        country:   (window._geoData && window._geoData.country_code) || '',
+        updatedAt: serverTimestamp()
+      });
+    } catch(e) {}
+  };
+
+  window.checkDiscountCode = async function(code) {
+    try {
+      const snap = await get(ref(db, 'codes/' + code));
+      if (!snap.exists()) return { valid: false, reason: 'Code not found' };
+      const d = snap.val();
+      if (!d.active) return { valid: false, reason: 'Code is inactive' };
+      if (d.expiresAt && Date.now() > d.expiresAt) return { valid: false, reason: 'Code has expired' };
+      if (d.maxUses && d.uses >= d.maxUses) return { valid: false, reason: 'Code has reached its usage limit' };
+      return { valid: true, type: d.type || 'pct', value: d.value || 10 };
+    } catch(e) {
+      return { valid: false, reason: 'Could not verify code. Please try again.' };
+    }
+  };
+
+  window.incrementCodeUse = async function(code) {
+    try { await update(ref(db, 'codes/' + code), { uses: increment(1) }); } catch(e) {}
+  };
+
+  // saveManualPayRequest — augments existing submitManualPay in the page
+  window.saveManualPayRequest = async function(data) {
+    try {
+      const curData = getCurrencyData();
+      await set(ref(db, 'manualPayRequests/' + (data.orderId || ('MP_' + Date.now()))), Object.assign({}, data, {
+        deviceId, sessionId,
+        ip:           (window._geoData && window._geoData.ip)           || '',
+        country:      (window._geoData && window._geoData.country_code) || '',
+        city:         (window._geoData && window._geoData.city)         || '',
+        currency:     data.currency       || curData.currency,
+        currencySymbol: data.currencySymbol || curData.currencySymbol,
+        exchangeRate:   data.exchangeRate   || curData.exchangeRate,
+        localTime:    new Date().toISOString(),
+        savedAt:      serverTimestamp(),
+        status:       'pending'
+      }));
+      await update(ref(db, 'analytics'), { totalManualPayRequests: increment(1) });
+    } catch(e) { console.warn('[MINIMISTY] saveManualPayRequest err:', e); }
+  };
+
+  // Load pending order for checkout page sidebar
+  window.loadOrderFromFirebase = async function() {
+    let orderId = null;
+    try { orderId = sessionStorage.getItem('pendingOrderId'); } catch(e) {}
+    if (!orderId) return null;
+    try {
+      const snap = await get(ref(db, 'orders/' + orderId));
+      if (!snap.exists()) return null;
+      const orderData = snap.val();
+      const cur  = sessionStorage.getItem('pendingCurrency')       || 'USD';
+      const sym  = sessionStorage.getItem('pendingCurrencySymbol') || '$';
+      const rate = parseFloat(sessionStorage.getItem('pendingExchangeRate') || '1') || 1;
+      let code = null;
+      try { code = JSON.parse(sessionStorage.getItem('minimisty_applied_code') || 'null'); } catch(e2) {}
+      // Update order with current display currency
+      await update(ref(db, 'orders/' + orderId), {
+        currency:            cur,
+        currencySymbol:      sym,
+        exchangeRate:        rate,
+        checkoutVisitAt:     serverTimestamp(),
+        checkoutDeviceId:    deviceId,
+        checkoutCountry:     (window._geoData && window._geoData.country_code) || '',
+        checkoutCity:        (window._geoData && window._geoData.city)         || ''
+      });
+      return Object.assign({}, orderData, {
+        currency: cur, currencySymbol: sym, exchangeRate: rate,
+        appliedCode: code || orderData.appliedCode
+      });
+    } catch(e) {
+      console.warn('[MINIMISTY] loadOrderFromFirebase err:', e);
+      return null;
+    }
+  };
+}
+
+// ═══════════════════════════════
+// ORDER PAGE FUNCTIONS
+// ═══════════════════════════════
+if (PAGE_NAME === 'order') {
+
+  window.markOrderConfirmed = async function(orderId) {
+    if (!orderId) return;
+    try {
+      await update(ref(db, 'orders/' + orderId), {
+        orderPageVisitedAt: serverTimestamp(),
+        orderPageDeviceId:  deviceId,
+        confirmedByUser:    true,
+        status:             'confirmed'
+      });
+      await update(ref(db, 'analytics'), { totalConfirmedOrders: increment(1) });
+    } catch(e) { console.warn('[MINIMISTY] markOrderConfirmed err:', e); }
+  };
+
+  window.loadOrderForDisplay = async function() {
+    const urlParams = new URLSearchParams(location.search);
+    let orderId = urlParams.get('order') || urlParams.get('orderId');
+    if (!orderId) { try { orderId = sessionStorage.getItem('pendingOrderId'); } catch(e) {} }
+    if (!orderId) { try { orderId = localStorage.getItem('minimisty_last_order_id'); } catch(e) {} }
+    if (!orderId) return null;
+    try {
+      const snap = await get(ref(db, 'orders/' + orderId));
+      if (!snap.exists()) return null;
+      const order = snap.val();
+      await window.markOrderConfirmed(orderId);
+      return order;
+    } catch(e) {
+      console.warn('[MINIMISTY] loadOrderForDisplay err:', e);
+      return null;
+    }
+  };
+
+  window.lookupOrderById = async function(orderId) {
+    if (!orderId) return null;
+    try {
+      const snap = await get(ref(db, 'orders/' + orderId));
+      return snap.exists() ? snap.val() : null;
+    } catch(e) { return null; }
+  };
+
+  window.loadDeviceOrders = async function() {
+    try {
+      const snap = await get(ref(db, 'deviceOrders/' + deviceId));
+      if (!snap.exists()) return [];
+      const entries = Object.values(snap.val());
+      entries.sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
+      const details = await Promise.all(entries.slice(0,5).map(async e => {
+        try {
+          const os = await get(ref(db, 'orders/' + e.orderId));
+          return os.exists() ? os.val() : null;
+        } catch(e2) { return null; }
+      }));
+      return details.filter(Boolean);
+    } catch(e) { return []; }
+  };
+}
+
+// ═══════════════════════════════
+// FOOTER EMAIL (all pages)
+// ═══════════════════════════════
+window.pfSubmitEmail = async function() {
+  const input = document.getElementById('pfEmailInput');
+  const note  = document.getElementById('pfEmailNote');
+  if (!input) return;
+  const email = (input.value || '').trim();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    input.style.borderColor='var(--red)';
+    setTimeout(() => { input.style.borderColor=''; }, 1500);
+    return;
+  }
+  try {
+    const emailKey = email.replace(/[.@]/g,'_');
+    await update(ref(db, 'customers/' + emailKey), {
+      email, source: 'footer_' + PAGE_NAME, deviceId,
+      country: (window._geoData && window._geoData.country_code) || '',
+      updatedAt: serverTimestamp()
+    });
+    await update(ref(db, 'analytics'), { totalEmailCaptures: increment(1) });
+    try {
+      await fetch('/api/send-email', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          to: email,
+          subject: 'Your 10% OFF Code - MINIMISTY.store',
+          html: '<div style="font-family:Arial;max-width:600px;padding:20px;background:#000;color:#fff"><h2 style="color:#4db8d4">Welcome to MINIMISTY!</h2><p>Use code <strong style="color:#a3ff12">CHILL10</strong> at checkout for 10% off your FrostBlade Pro.</p><hr style="border-color:#222"><p style="font-size:11px;color:#555">MINIMISTY.store</p></div>'
+        })
+      });
+    } catch(e) {}
+  } catch(e) {}
+  if (input) { input.value = ''; input.disabled = true; }
+  if (note)  { note.innerHTML = '<span style="color:var(--lime);font-weight:700">✓ 10% code sent to your inbox!</span>'; }
+};
+
+// ═══════════════════════════════
+// INIT — fire tracking on page load
+// ═══════════════════════════════
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => { initGeoIfNeeded(); });
+} else {
+  initGeoIfNeeded();
+}
+</script>
+<!-- ═══════════════════ AI CHAT — CHECKOUT ═══════════════════ -->
+<style>
+#ck-chat-btn{position:fixed;bottom:28px;right:20px;z-index:800;width:52px;height:52px;border-radius:50%;background:#3ddc5a;border:3px solid #1a7a2e;box-shadow:4px 4px 0px #1a7a2e;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform 0.15s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.15s;}
+#ck-chat-btn:hover{transform:scale(1.08) translateY(-2px);box-shadow:5px 6px 0px #1a7a2e;}
+#ck-chat-btn:active{transform:scale(0.93);box-shadow:2px 2px 0px #1a7a2e;}
+#ck-chat-dot{position:absolute;top:-3px;right:-3px;width:12px;height:12px;border-radius:50%;background:#ff3b30;border:2px solid #141414;display:none;animation:ckPulse 1.4s infinite;}
+@keyframes ckPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.3)}}
+#ck-overlay{position:fixed;inset:0;z-index:900;display:none;align-items:flex-end;justify-content:flex-end;padding:0 16px 88px;pointer-events:none;}
+#ck-overlay.open{display:flex;}
+#ck-panel{width:100%;max-width:380px;background:#141414;border:1.5px solid rgba(255,255,255,0.18);border-radius:22px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,0.7),4px 4px 0 rgba(0,0,0,.5);display:flex;flex-direction:column;height:480px;max-height:calc(100dvh - 120px);pointer-events:all;animation:ckSlide .32s cubic-bezier(0.16,1,0.3,1);}
+@keyframes ckSlide{from{transform:translateY(24px) scale(0.97);opacity:0}to{transform:none;opacity:1}}
+.ck-hdr{background:#1a1a1a;border-bottom:1.5px solid rgba(255,255,255,0.1);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.ck-av{width:34px;height:34px;border-radius:50%;background:rgba(0,240,255,0.1);border:1.5px solid rgba(0,240,255,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.ck-close{width:28px;height:28px;border-radius:50%;background:#252525;border:1px solid #333;color:#777;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-family:inherit;font-weight:700;transition:all .15s;}
+.ck-close:hover{background:#333;color:#fff;}
+.ck-msgs{flex:1;overflow-y:auto;padding:14px 14px 8px;display:flex;flex-direction:column;gap:10px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.08) transparent;}
+.ck-msgs::-webkit-scrollbar{width:3px;}
+.ck-msgs::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:2px;}
+.ck-msg{max-width:82%;display:flex;gap:8px;align-items:flex-end;}
+.ck-msg.bot{align-self:flex-start;}
+.ck-msg.user{align-self:flex-end;flex-direction:row-reverse;}
+.ck-bbl{padding:10px 13px;border-radius:16px;font-size:.82rem;font-weight:600;line-height:1.5;}
+.ck-msg.bot .ck-bbl{background:#1e1e1e;color:#e0e0f0;border:1px solid rgba(255,255,255,0.1);border-bottom-left-radius:5px;}
+.ck-msg.user .ck-bbl{background:#4db8d4;color:#000;border-bottom-right-radius:5px;}
+.ck-typ{display:flex;gap:4px;padding:4px 0;}
+.ck-typ span{width:6px;height:6px;border-radius:50%;background:#555;animation:ckBounce 1.2s infinite;}
+.ck-typ span:nth-child(2){animation-delay:.2s}
+.ck-typ span:nth-child(3){animation-delay:.4s}
+@keyframes ckBounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}
+.ck-chips{display:flex;gap:6px;padding:0 14px 10px;flex-wrap:wrap;flex-shrink:0;}
+.ck-chip{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:5px 11px;font-size:.7rem;font-weight:700;color:#a0a0c0;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.ck-chip:hover{background:rgba(77,184,212,0.1);border-color:rgba(77,184,212,0.3);color:#4db8d4;}
+.ck-irow{display:flex;gap:8px;padding:12px 14px;border-top:1px solid rgba(255,255,255,0.08);flex-shrink:0;background:#141414;}
+.ck-inp{flex:1;background:#1e1e1e;border:1.5px solid rgba(255,255,255,0.12);border-radius:12px;padding:10px 12px;color:#f0f0f8;font-family:var(--font,'Fredoka',sans-serif);font-size:.82rem;font-weight:600;resize:none;overflow:hidden;line-height:1.4;-webkit-user-select:auto;user-select:auto;}
+.ck-inp::placeholder{color:#555;}
+.ck-inp:focus{border-color:rgba(77,184,212,0.5);outline:none;}
+.ck-snd{width:40px;height:40px;border-radius:12px;background:#4db8d4;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;}
+.ck-snd:hover{background:#5cc8e4;transform:translateY(-1px);}
+.ck-snd:active{transform:scale(0.93);}
+[data-theme="light"] #ck-panel{background:#fff;}
+[data-theme="light"] .ck-hdr{background:#f5f5f5;}
+[data-theme="light"] .ck-msg.bot .ck-bbl{background:#f0f0f0;color:#1a1a1a;border-color:rgba(0,0,0,0.1);}
+[data-theme="light"] .ck-irow{background:#fff;border-top-color:rgba(0,0,0,0.08);}
+[data-theme="light"] .ck-inp{background:#f5f5f5;border-color:rgba(0,0,0,0.15);color:#111;}
+[data-theme="light"] #ck-chat-dot{border-color:#fef9f0;}
+</style>
+<div id="ck-chat-btn" onclick="ckToggle()">
+  <div id="ck-chat-dot"></div>
+  <svg width="24" height="22" viewBox="0 0 122.88 108.25" fill="#000"><path fill-rule="evenodd" d="M51.16,93.74c13,12.49,31.27,16.27,49.59,8.46l15.37,6L111,96.13c17.08-13.68,14-32.48,1.44-45.3a44.38,44.38,0,0,1-4.88,13.92A51.45,51.45,0,0,1,93.45,80.84a62.51,62.51,0,0,1-19.73,10,71.07,71.07,0,0,1-22.56,2.92ZM74.74,36.13a6.68,6.68,0,1,1-6.68,6.68,6.68,6.68,0,0,1,6.68-6.68Zm-44.15,0a6.68,6.68,0,1,1-6.68,6.68,6.68,6.68,0,0,1,6.68-6.68Zm22.08,0A6.68,6.68,0,1,1,46,42.81a6.68,6.68,0,0,1,6.68-6.68ZM54,0H54c14.42.44,27.35,5.56,36.6,13.49,9.41,8.07,15,19,14.7,31v0c-.36,12-6.66,22.61-16.55,30.11C79,82.05,65.8,86.4,51.38,86a64.68,64.68,0,0,1-11.67-1.4,61,61,0,0,1-10-3.07L7.15,90.37l7.54-17.92A43.85,43.85,0,0,1,4,59,36.2,36.2,0,0,1,0,41.46c.36-12,6.66-22.61,16.55-30.12C26.3,4,39.53-.4,54,0ZM53.86,5.2h0C40.59,4.82,28.52,8.77,19.69,15.46,11,22,5.5,31.28,5.19,41.6A31.2,31.2,0,0,0,8.61,56.67a39.31,39.31,0,0,0,10.81,13L21,70.87,16.68,81.05l13.08-5.14,1,.42a55.59,55.59,0,0,0,10.05,3.18A59,59,0,0,0,51.52,80.8c13.22.39,25.29-3.56,34.12-10.26C94.31,64,99.83,54.73,100.15,44.4v0c.3-10.32-4.65-19.85-12.9-26.92C78.85,10.26,67.06,5.6,53.87,5.2Z"/></svg>
+</div>
+<div id="ck-overlay">
+  <div id="ck-panel">
+    <div class="ck-hdr">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="ck-av"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00f0ff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg></div>
+        <div>
+          <div style="font-size:.88rem;font-weight:700;color:var(--text,#e8e8f0)">MINIMISTY Support</div>
+          <div style="font-size:.62rem;color:#00f0ff;font-weight:600">● Online — here to help</div>
+        </div>
+      </div>
+      <button class="ck-close" onclick="ckToggle()">&#x2715;</button>
+    </div>
+    <div class="ck-chips" id="ckChips">
+      <div class="ck-chip" onclick="ckChip(this)">Is my order secured?</div>
+      <div class="ck-chip" onclick="ckChip(this)">How long will delivery take?</div>
+      <div class="ck-chip" onclick="ckChip(this)">Can I change my order?</div>
+      <div class="ck-chip" onclick="ckChip(this)">Payment methods</div>
+    </div>
+    <div class="ck-msgs" id="ckMsgs">
+      <div class="ck-msg bot"><div class="ck-bbl">Hey! &#x1F44B; Need help with your checkout? I can answer questions about payment, shipping, or your order.</div></div>
+    </div>
+    <div class="ck-irow">
+      <textarea class="ck-inp" id="ckInput" rows="1" placeholder="Ask anything about your order&#x2026;" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();ckSend();}" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea>
+      <button class="ck-snd" onclick="ckSend()"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+const M="claude-sonnet-4-20250514",A="https://api.anthropic.com/v1/messages";
+const SYS="You are a friendly checkout support agent for MINIMISTY.store, selling the FrostBlade Pro portable fan. Help customers on the checkout page. Topics: payment (PayPal secure), shipping addresses, discount codes, order summary, delivery times (7-14 business days), free shipping on 2+ bundles, 30-day returns, 1-year warranty, contact support@minimisty.store. Be warm and concise — 2-3 sentences max. Never say you are an AI.";
+let open=false,hist=[],busy=false;
+window.ckToggle=function(){
+  open=!open;
+  document.getElementById('ck-overlay').classList.toggle('open',open);
+  const d=document.getElementById('ck-chat-dot');if(d)d.style.display='none';
+  if(open){const m=document.getElementById('ckMsgs');if(m)setTimeout(()=>{m.scrollTop=m.scrollHeight;},50);setTimeout(()=>{const i=document.getElementById('ckInput');if(i)i.focus();},300);}
+};
+window.ckChip=function(el){
+  const t=el.textContent;
+  const c=document.getElementById('ckChips');if(c)c.style.display='none';
+  ckSendText(t);
+};
+function ckAdd(role,text){
+  const box=document.getElementById('ckMsgs');if(!box)return;
+  const w=document.createElement('div');w.className='ck-msg '+role;
+  const b=document.createElement('div');b.className='ck-bbl';
+  b.innerHTML=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/
+/g,'<br>');
+  w.appendChild(b);box.appendChild(w);setTimeout(()=>{box.scrollTop=box.scrollHeight;},50);
+}
+function ckTypShow(){
+  const box=document.getElementById('ckMsgs');if(!box||document.getElementById('ck-typ'))return;
+  const w=document.createElement('div');w.className='ck-msg bot';w.id='ck-typ';
+  w.innerHTML='<div class="ck-bbl"><div class="ck-typ"><span></span><span></span><span></span></div></div>';
+  box.appendChild(w);setTimeout(()=>{box.scrollTop=box.scrollHeight;},50);
+}
+function ckTypHide(){const t=document.getElementById('ck-typ');if(t)t.remove();}
+async function ckSendText(text){
+  if(!text||busy)return;
+  ckAdd('user',text);hist.push({role:'user',content:text});
+  busy=true;ckTypShow();
+  try{
+    const res=await fetch(A,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:M,max_tokens:1000,system:SYS,messages:hist.slice(0,-1).concat([{role:'user',content:text}])})});
+    const data=await res.json();ckTypHide();
+    const reply=(data.content&&data.content[0]&&data.content[0].text)||"Sorry, can't connect right now. Email support@minimisty.store for help.";
+    ckAdd('bot',reply);hist.push({role:'assistant',content:reply});
+  }catch(e){ckTypHide();const r="Trouble connecting. Email support@minimisty.store for help.";ckAdd('bot',r);hist.push({role:'assistant',content:r});}
+  busy=false;
+}
+window.ckSend=function(){
+  const i=document.getElementById('ckInput');const t=(i&&i.value||'').trim();if(!t)return;
+  i.value='';i.style.height='auto';ckSendText(t);
+};
+setTimeout(()=>{if(!open){const d=document.getElementById('ck-chat-dot');if(d)d.style.display='block';}},4000);
+document.addEventListener('keydown',(e)=>{if(e.key==='Escape'&&open)window.ckToggle();});
+})();
 </script>
 </body>
 </html>
