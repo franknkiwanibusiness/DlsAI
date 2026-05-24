@@ -1715,23 +1715,81 @@
         <!-- Divider -->
         <div style="display:flex;align-items:center;gap:10px;margin:14px 0;">
           <div style="flex:1;height:1px;background:rgba(255,255,255,0.10)"></div>
-          <span style="font-size:0.62rem;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:1px">or pay by card</span>
+          <span style="font-size:0.62rem;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:1px">or</span>
           <div style="flex:1;height:1px;background:rgba(255,255,255,0.10)"></div>
         </div>
 
-        <!-- Card button -->
-        <button onclick="openCardModal()" style="
-          width:100%;background:transparent;
-          border:1.5px solid rgba(255,255,255,0.22);
-          border-radius:50px;padding:13px;
-          font-family:var(--font);font-size:0.88rem;font-weight:800;
-          color:var(--text);cursor:pointer;
-          display:flex;align-items:center;justify-content:center;gap:8px;
-          transition:border-color 0.2s,background 0.2s;
-        " onmouseover="this.style.borderColor='rgba(255,255,255,0.45)';this.style.background='rgba(255,255,255,0.04)'"
-           onmouseout="this.style.borderColor='rgba(255,255,255,0.22)';this.style.background='transparent'">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-          Credit / Debit Card
+        <!-- Pay Manually button -->
+        <style>
+          @keyframes shimmerPay {
+            0%   { background-position: -200% center; }
+            100% { background-position: 200% center; }
+          }
+          @keyframes handGive {
+            0%,100% { transform: translateX(0) rotate(0deg); }
+            25%     { transform: translateX(5px) rotate(-12deg); }
+            75%     { transform: translateX(3px) rotate(-8deg); }
+          }
+          @keyframes coinFloat {
+            0%,100% { transform: translateY(0) rotate(0deg); }
+            40%     { transform: translateY(-5px) rotate(15deg); }
+          }
+          #payManuallyBtn {
+            width:100%;
+            background: linear-gradient(135deg, rgba(109,189,58,0.10), rgba(77,184,212,0.08));
+            border: 2px solid rgba(109,189,58,0.45);
+            border-radius: 18px;
+            padding: 15px 20px;
+            font-family: var(--font);
+            font-size: 1rem;
+            font-weight: 800;
+            color: var(--text);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+            position: relative;
+            overflow: hidden;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 20px rgba(109,189,58,0.15), 3px 3px 0px rgba(0,0,0,0.5);
+          }
+          #payManuallyBtn::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: linear-gradient(90deg, transparent 0%, rgba(109,189,58,0.12) 50%, transparent 100%);
+            background-size: 200% 100%;
+            animation: shimmerPay 2.5s linear infinite;
+          }
+          #payManuallyBtn:hover {
+            border-color: rgba(109,189,58,0.8);
+            background: linear-gradient(135deg, rgba(109,189,58,0.18), rgba(77,184,212,0.12));
+            transform: translateY(-2px);
+            box-shadow: 0 8px 28px rgba(109,189,58,0.28), 4px 4px 0px rgba(0,0,0,0.5);
+          }
+          #payManuallyBtn:active { transform: scale(0.97) translateY(1px); }
+          .pm-icon-hand { display:inline-flex; animation: handGive 2.2s ease-in-out infinite; }
+          .pm-icon-coin { display:inline-flex; animation: coinFloat 1.8s ease-in-out infinite; animation-delay:0.4s; }
+          .pm-label { position:relative; z-index:1; }
+        </style>
+        <button id="payManuallyBtn" onclick="openManualModal()">
+          <span class="pm-icon-hand">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--lime)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
+              <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
+              <line x1="6" y1="1" x2="6" y2="4"/>
+              <line x1="10" y1="1" x2="10" y2="4"/>
+              <line x1="14" y1="1" x2="14" y2="4"/>
+            </svg>
+          </span>
+          <span class="pm-label">PAY MANUALLY</span>
+          <span class="pm-icon-coin">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 6v2m0 8v2M9.5 9.5c0-1 1.1-1.5 2.5-1.5s2.5.7 2.5 2c0 2-5 2-5 4s1.1 2 2.5 2 2.5-.5 2.5-1.5"/>
+            </svg>
+          </span>
         </button>
 
         <!-- Guarantee strip -->
@@ -3550,233 +3608,838 @@ Be concise, warm, and professional. Keep responses brief (2-4 sentences max unle
 })();
 </script>
 
+<!-- ═══════════════════════════════════════════════
+     MANUAL PAY MODAL
+═══════════════════════════════════════════════ -->
+<style>
+/* ── Modal overlay ── */
+#manualPayOverlay {
+  display:none;position:fixed;inset:0;z-index:10000;
+  background:rgba(0,0,0,0.78);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  align-items:center;justify-content:center;padding:16px;
+}
+#manualPayBox {
+  background:var(--bg2);
+  border:1.5px solid rgba(255,255,255,0.14);
+  border-top:1.5px solid rgba(255,255,255,0.28);
+  border-radius:24px;
+  max-width:460px;width:100%;
+  max-height:92vh;overflow-y:auto;
+  scrollbar-width:none;
+  box-shadow:0 32px 80px rgba(0,0,0,0.85),0 0 0 1px rgba(255,255,255,0.05);
+  animation:mpSlideIn 0.34s cubic-bezier(0.34,1.56,0.64,1);
+  position:relative;
+}
+#manualPayBox::-webkit-scrollbar { display:none; }
+@keyframes mpSlideIn { from{transform:translateY(36px) scale(0.95);opacity:0} to{transform:translateY(0) scale(1);opacity:1} }
+@keyframes mpSuccessPop { 0%{transform:scale(0.6);opacity:0} 60%{transform:scale(1.1)} 100%{transform:scale(1);opacity:1} }
 
-<!-- ═══ CARD PAYMENT MODAL ═══ -->
-<div id="cardPayModal" style="display:none;position:fixed;inset:0;z-index:99990;background:rgba(0,0,0,0.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:16px;">
-  <div style="
-    background:#1a1a1a;
-    border:1.5px solid rgba(255,255,255,0.18);
-    border-top-color:rgba(255,255,255,0.32);
-    border-radius:24px;
-    width:100%;max-width:440px;
-    padding:28px 24px 24px;
-    position:relative;
-    box-shadow:0 24px 64px rgba(0,0,0,0.7);
-    font-family:var(--font);
-  ">
-    <!-- Close top-left -->
-    <button onclick="closeCardModal()" style="
-      position:absolute;top:16px;left:16px;
-      width:34px;height:34px;border-radius:50%;
-      background:rgba(255,255,255,0.07);
-      border:1.5px solid rgba(255,255,255,0.14);
-      display:flex;align-items:center;justify-content:center;
-      cursor:pointer;color:var(--text-muted);
-      transition:background 0.15s,color 0.15s;
-    " onmouseover="this.style.background='rgba(255,255,255,0.13)';this.style.color='#fff'"
-       onmouseout="this.style.background='rgba(255,255,255,0.07)';this.style.color=''">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
+/* ── Close button ── */
+.mp-close-x {
+  position:absolute;top:14px;right:14px;
+  width:30px;height:30px;border-radius:50%;
+  background:rgba(255,255,255,0.07);
+  border:1.5px solid rgba(255,255,255,0.12);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;color:var(--text-muted);
+  transition:all 0.18s;z-index:2;
+}
+.mp-close-x:hover { background:rgba(255,255,255,0.14);color:var(--text); }
+
+/* ── Header ── */
+.mp-header {
+  padding:28px 24px 0;
+  display:flex;align-items:center;gap:14px;
+  border-bottom:1px solid rgba(255,255,255,0.07);
+  padding-bottom:20px;margin-bottom:20px;
+}
+.mp-header-icon {
+  width:44px;height:44px;border-radius:14px;flex-shrink:0;
+  background:linear-gradient(135deg,rgba(109,189,58,0.15),rgba(77,184,212,0.10));
+  border:1.5px solid rgba(109,189,58,0.3);
+  display:flex;align-items:center;justify-content:center;
+}
+.mp-header-title { font-size:1.05rem;font-weight:800;color:var(--text);letter-spacing:-0.2px; }
+.mp-header-sub { font-size:0.7rem;font-weight:600;color:var(--text-muted);margin-top:2px; }
+
+/* ── Padded body ── */
+#mpFormState { padding:0 24px 24px; }
+
+/* ── Section box ── */
+.mp-section-box {
+  background:rgba(255,255,255,0.03);
+  border:1.5px solid rgba(255,255,255,0.08);
+  border-radius:14px;padding:14px 16px;margin-bottom:12px;
+}
+.mp-section-label {
+  display:flex;align-items:center;gap:7px;
+  font-size:0.62rem;font-weight:800;
+  color:var(--text-muted);text-transform:uppercase;letter-spacing:1.4px;
+  margin-bottom:10px;
+}
+.mp-info-row {
+  display:flex;justify-content:space-between;align-items:flex-start;
+  gap:8px;padding:6px 0;
+  border-bottom:1px solid rgba(255,255,255,0.05);
+}
+.mp-info-row:last-child { border-bottom:none;padding-bottom:0; }
+.mp-info-key { font-size:0.72rem;font-weight:700;color:var(--text-muted);flex-shrink:0; }
+.mp-info-val { font-size:0.78rem;font-weight:800;color:var(--text);text-align:right;word-break:break-word;max-width:65%; }
+
+/* ── Validation warning ── */
+.mp-validation-banner {
+  display:none;
+  background:rgba(224,85,85,0.10);
+  border:1.5px solid rgba(224,85,85,0.35);
+  border-radius:12px;padding:12px 14px;
+  margin-bottom:14px;
+  font-size:0.75rem;font-weight:700;color:#e07070;
+  line-height:1.5;
+}
+.mp-validation-banner.show { display:block; }
+
+/* ── Custom dropdown ── */
+.mp-field-label {
+  font-size:0.62rem;font-weight:800;color:var(--text-muted);
+  text-transform:uppercase;letter-spacing:1.2px;
+  display:flex;align-items:center;gap:6px;margin-bottom:7px;
+}
+.mp-custom-select {
+  position:relative;width:100%;margin-bottom:12px;
+}
+.mp-custom-select-btn {
+  width:100%;
+  background:rgba(255,255,255,0.05);
+  border:1.5px solid rgba(255,255,255,0.12);
+  border-radius:13px;padding:13px 40px 13px 14px;
+  color:var(--text-faint);font-family:var(--font);
+  font-size:0.86rem;font-weight:700;
+  text-align:left;cursor:pointer;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:8px;
+  transition:border-color 0.18s,background 0.18s,transform 0.15s;
+  box-shadow:2px 2px 0 rgba(0,0,0,0.4);
+  position:relative;
+}
+.mp-custom-select-btn.has-value { color:var(--text); }
+.mp-custom-select-btn:hover { border-color:rgba(255,255,255,0.22);background:rgba(255,255,255,0.07); }
+.mp-custom-select-btn.open { border-color:var(--cyan);background:rgba(77,184,212,0.06);transform:translateY(-1px); }
+.mp-select-chevron {
+  position:absolute;right:13px;top:50%;transform:translateY(-50%);
+  pointer-events:none;transition:transform 0.22s;flex-shrink:0;
+}
+.mp-custom-select-btn.open .mp-select-chevron { transform:translateY(-50%) rotate(180deg); }
+
+.mp-dropdown-list {
+  display:none;position:absolute;top:calc(100% + 6px);left:0;right:0;
+  background:#1e1e1e;
+  border:1.5px solid rgba(255,255,255,0.13);
+  border-radius:14px;
+  overflow:hidden;z-index:200;
+  box-shadow:0 16px 48px rgba(0,0,0,0.7);
+  animation:mpDropIn 0.18s cubic-bezier(0.34,1.3,0.64,1);
+}
+.mp-dropdown-list.open { display:block; }
+@keyframes mpDropIn { from{opacity:0;transform:translateY(-8px) scale(0.97)} to{opacity:1;transform:translateY(0) scale(1)} }
+
+.mp-dropdown-item {
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 14px;cursor:pointer;
+  font-family:var(--font);font-size:0.84rem;font-weight:700;color:var(--text);
+  transition:background 0.12s;gap:8px;
+  border-bottom:1px solid rgba(255,255,255,0.05);
+}
+.mp-dropdown-item:last-child { border-bottom:none; }
+.mp-dropdown-item:hover { background:rgba(255,255,255,0.06); }
+.mp-dropdown-item.selected { background:rgba(77,184,212,0.08);color:var(--cyan); }
+.mp-dropdown-item-left { display:flex;align-items:center;gap:10px; }
+.mp-dropdown-item-icon {
+  width:30px;height:30px;border-radius:8px;flex-shrink:0;
+  background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);
+  display:flex;align-items:center;justify-content:center;
+}
+.mp-dropdown-item-name { font-size:0.84rem;font-weight:700; }
+.mp-dropdown-item-sub { font-size:0.64rem;font-weight:600;color:var(--text-muted);margin-top:1px; }
+.mp-dropdown-item-badge {
+  font-size:0.62rem;font-weight:800;padding:3px 8px;border-radius:20px;
+  background:rgba(212,168,67,0.15);border:1px solid rgba(212,168,67,0.35);color:#d4a843;
+  flex-shrink:0;white-space:nowrap;
+}
+.mp-item-check { flex-shrink:0;opacity:0; }
+.mp-dropdown-item.selected .mp-item-check { opacity:1; }
+
+/* ── Calculator box ── */
+.mp-calc-box {
+  background:linear-gradient(135deg,rgba(109,189,58,0.07),rgba(77,184,212,0.05));
+  border:1.5px solid rgba(109,189,58,0.22);
+  border-radius:14px;padding:16px;margin-bottom:12px;
+}
+.mp-calc-grid {
+  display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;
+}
+.mp-calc-cell-label { font-size:0.62rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px; }
+.mp-calc-cell-val { font-size:0.88rem;font-weight:800;color:var(--text); }
+.mp-total-big {
+  font-size:1.9rem;font-weight:800;line-height:1;
+  background:linear-gradient(135deg,var(--lime),var(--cyan));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.mp-due-label { font-size:0.68rem;font-weight:700;color:var(--text-muted);margin-top:4px; }
+.mp-fee-tag {
+  display:inline-flex;align-items:center;gap:5px;
+  background:rgba(212,168,67,0.12);border:1px solid rgba(212,168,67,0.3);
+  border-radius:20px;padding:4px 10px;
+  font-size:0.62rem;font-weight:800;color:#d4a843;
+}
+.mp-calc-divider { height:1px;background:rgba(255,255,255,0.07);margin:10px 0; }
+
+/* ── Submit button ── */
+.mp-submit-btn {
+  width:100%;
+  background:linear-gradient(135deg,#6dbd3a,#4db8d4);
+  border:none;border-radius:14px;padding:16px;
+  font-family:var(--font);font-size:0.98rem;font-weight:800;
+  color:#fff;cursor:pointer;letter-spacing:0.4px;
+  box-shadow:0 4px 20px rgba(109,189,58,0.32),3px 3px 0 rgba(0,0,0,0.4);
+  transition:all 0.2s cubic-bezier(0.34,1.56,0.64,1);
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  margin-top:4px;
+}
+.mp-submit-btn:hover { transform:translateY(-2px);box-shadow:0 8px 28px rgba(109,189,58,0.42),4px 4px 0 rgba(0,0,0,0.4); }
+.mp-submit-btn:active { transform:scale(0.97); }
+.mp-submit-btn:disabled { opacity:0.45;cursor:not-allowed;transform:none;box-shadow:none; }
+
+/* ── Success state ── */
+.mp-success-wrap {
+  display:none;flex-direction:column;align-items:center;text-align:center;padding:44px 28px;
+}
+.mp-success-wrap.show { display:flex; }
+.mp-success-icon {
+  width:64px;height:64px;border-radius:50%;
+  background:rgba(109,189,58,0.12);border:2px solid rgba(109,189,58,0.35);
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:18px;
+  animation:mpSuccessPop 0.5s cubic-bezier(0.34,1.56,0.64,1);
+}
+.mp-success-detail-box {
+  background:rgba(109,189,58,0.07);
+  border:1.5px solid rgba(109,189,58,0.25);
+  border-radius:14px;padding:16px;margin-top:18px;
+  width:100%;text-align:left;
+}
+
+[data-theme="light"] .mp-dropdown-list { background:#fff; }
+[data-theme="light"] .mp-dropdown-item:hover { background:rgba(0,0,0,0.04); }
+[data-theme="light"] .mp-dropdown-item.selected { background:rgba(77,184,212,0.08); }
+[data-theme="light"] #manualPayBox { background:#fff; }
+[data-theme="light"] .mp-custom-select-btn { color:#888; }
+[data-theme="light"] .mp-custom-select-btn.has-value { color:#1a0a3a; }
+</style>
+
+<div id="manualPayOverlay">
+  <div id="manualPayBox">
+
+    <!-- Close -->
+    <div class="mp-close-x" onclick="closeManualModal()">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+        <line x1="1" y1="1" x2="11" y2="11"/><line x1="11" y1="1" x2="1" y2="11"/>
+      </svg>
+    </div>
 
     <!-- Header -->
-    <div style="text-align:center;margin-bottom:24px;">
-      <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:6px;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--lime)" stroke-width="2" stroke-linecap="round"><rect x="2" y="11" width="20" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        <span style="font-size:0.62rem;font-weight:800;color:var(--lime);text-transform:uppercase;letter-spacing:1.5px">Secure Payment</span>
+    <div class="mp-header">
+      <div class="mp-header-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--lime)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+          <line x1="1" y1="10" x2="23" y2="10"/>
+        </svg>
       </div>
-      <div style="font-size:1.1rem;font-weight:800;color:var(--text);">Enter Card Details</div>
-      <div style="font-size:0.72rem;font-weight:600;color:var(--text-muted);margin-top:4px;">Your info is encrypted and never stored</div>
-    </div>
-
-    <!-- Card brand icons -->
-    <div style="display:flex;gap:8px;justify-content:center;margin-bottom:20px;">
-      <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:7px;padding:5px 11px;font-size:0.68rem;font-weight:900;color:#e8e8f0;letter-spacing:0.5px">VISA</div>
-      <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:7px;padding:5px 10px;">
-        <svg width="22" height="14" viewBox="0 0 38 24"><circle cx="13" cy="12" r="12" fill="#eb001b"/><circle cx="25" cy="12" r="12" fill="#f79e1b"/><path d="M19 4.8a12 12 0 0 1 0 14.4A12 12 0 0 1 19 4.8z" fill="#ff5f00"/></svg>
-      </div>
-      <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:7px;padding:5px 11px;font-size:0.68rem;font-weight:900;color:#e8e8f0;letter-spacing:0.5px">AMEX</div>
-    </div>
-
-    <!-- Card number -->
-    <div style="margin-bottom:14px;">
-      <label style="font-size:0.65rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:6px;">Card Number</label>
-      <div style="position:relative;">
-        <input id="modalCardNum" type="text" inputmode="numeric" placeholder="1234  5678  9012  3456"
-          maxlength="19"
-          oninput="fmtModalCard(this)"
-          style="width:100%;background:rgba(255,255,255,0.06);border:1.5px solid rgba(255,255,255,0.14);border-radius:12px;padding:14px 48px 14px 14px;color:#fff;font-family:var(--font);font-size:0.95rem;font-weight:700;letter-spacing:1px;box-sizing:border-box;"
-          onfocus="this.style.borderColor='rgba(255,255,255,0.45)'" onblur="this.style.borderColor='rgba(255,255,255,0.14)'">
-        <span id="modalCardBrand" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:0.68rem;font-weight:900;color:var(--text-muted);pointer-events:none;"></span>
-      </div>
-      <div id="modalCardNumErr" style="font-size:0.63rem;color:var(--red);font-weight:700;margin-top:4px;min-height:1em;"></div>
-    </div>
-
-    <!-- Cardholder name -->
-    <div style="margin-bottom:14px;">
-      <label style="font-size:0.65rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:6px;">Cardholder Name</label>
-      <input id="modalCardName" type="text" placeholder="Jane Smith" autocomplete="cc-name"
-        style="width:100%;background:rgba(255,255,255,0.06);border:1.5px solid rgba(255,255,255,0.14);border-radius:12px;padding:14px;color:#fff;font-family:var(--font);font-size:0.95rem;font-weight:700;box-sizing:border-box;"
-        onfocus="this.style.borderColor='rgba(255,255,255,0.45)'" onblur="this.style.borderColor='rgba(255,255,255,0.14)'">
-      <div id="modalCardNameErr" style="font-size:0.63rem;color:var(--red);font-weight:700;margin-top:4px;min-height:1em;"></div>
-    </div>
-
-    <!-- Expiry + CVV row -->
-    <div style="display:flex;gap:12px;margin-bottom:20px;">
-      <div style="flex:1;">
-        <label style="font-size:0.65rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:6px;">Expiry</label>
-        <input id="modalCardExp" type="text" inputmode="numeric" placeholder="MM / YY" maxlength="7"
-          oninput="fmtModalExp(this)"
-          style="width:100%;background:rgba(255,255,255,0.06);border:1.5px solid rgba(255,255,255,0.14);border-radius:12px;padding:14px;color:#fff;font-family:var(--font);font-size:0.95rem;font-weight:700;box-sizing:border-box;"
-          onfocus="this.style.borderColor='rgba(255,255,255,0.45)'" onblur="this.style.borderColor='rgba(255,255,255,0.14)'">
-        <div id="modalCardExpErr" style="font-size:0.63rem;color:var(--red);font-weight:700;margin-top:4px;min-height:1em;"></div>
-      </div>
-      <div style="flex:1;">
-        <label style="font-size:0.65rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:6px;">CVV</label>
-        <input id="modalCardCvv" type="text" inputmode="numeric" placeholder="123" maxlength="4"
-          oninput="this.value=this.value.replace(/\D/g,'')"
-          style="width:100%;background:rgba(255,255,255,0.06);border:1.5px solid rgba(255,255,255,0.14);border-radius:12px;padding:14px;color:#fff;font-family:var(--font);font-size:0.95rem;font-weight:700;box-sizing:border-box;"
-          onfocus="this.style.borderColor='rgba(255,255,255,0.45)'" onblur="this.style.borderColor='rgba(255,255,255,0.14)'">
-        <div id="modalCardCvvErr" style="font-size:0.63rem;color:var(--red);font-weight:700;margin-top:4px;min-height:1em;"></div>
+      <div>
+        <div class="mp-header-title">Manual Payment</div>
+        <div class="mp-header-sub">Select your timing — a fee applies based on when you pay</div>
       </div>
     </div>
 
-    <!-- Pay CTA -->
-    <button id="modalPayBtn" onclick="submitCardModal()" style="
-      width:100%;background:linear-gradient(135deg,#f5c800,#e6b800);
-      border:none;border-radius:50px;padding:16px;
-      font-family:var(--font);font-size:1rem;font-weight:800;
-      color:#111;cursor:pointer;letter-spacing:0.3px;
-      box-shadow:0 4px 16px rgba(245,200,0,0.25);
-      transition:transform 0.15s,box-shadow 0.15s;
-      display:flex;align-items:center;justify-content:center;gap:8px;
-    " onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px rgba(245,200,0,0.35)'"
-       onmouseout="this.style.transform='';this.style.boxShadow='0 4px 16px rgba(245,200,0,0.25)'">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="2" y="11" width="20" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-      Pay Now
-    </button>
+    <!-- FORM STATE -->
+    <div id="mpFormState">
 
-    <!-- Fine print -->
-    <p style="text-align:center;font-size:0.6rem;color:var(--text-faint);font-weight:600;margin-top:12px;line-height:1.5;">
-      Processed securely via PayPal &mdash; your card details are never stored on our servers.
-    </p>
+      <!-- Validation banner -->
+      <div class="mp-validation-banner" id="mpValidBanner"></div>
+
+      <!-- Customer Details -->
+      <div class="mp-section-box">
+        <div class="mp-section-label">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Your Details
+        </div>
+        <div id="mpCustomerDetails"></div>
+      </div>
+
+      <!-- Order Summary -->
+      <div class="mp-section-box">
+        <div class="mp-section-label">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+          Order Summary
+        </div>
+        <div id="mpOrderDetails"></div>
+      </div>
+
+      <!-- When to Pay — custom dropdown -->
+      <div>
+        <div class="mp-field-label">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          When would you like to pay?
+        </div>
+        <div class="mp-custom-select" id="mpWhenDropdown">
+          <button class="mp-custom-select-btn" id="mpWhenBtn" type="button" onclick="toggleMpDropdown('mpWhenDropdown')">
+            <span id="mpWhenBtnText">Select payment timing</span>
+            <svg class="mp-select-chevron" width="12" height="8" viewBox="0 0 12 8" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round"><path d="M1 1l5 5 5-5"/></svg>
+          </button>
+          <div class="mp-dropdown-list" id="mpWhenList">
+            <div class="mp-dropdown-item" onclick="selectMpWhen('today','Today','Charged immediately','+5% fee')" data-val="today">
+              <div class="mp-dropdown-item-left">
+                <div class="mp-dropdown-item-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <div>
+                  <div class="mp-dropdown-item-name">Today</div>
+                  <div class="mp-dropdown-item-sub">Charged immediately</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="mp-dropdown-item-badge">+5%</span>
+                <svg class="mp-item-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+            </div>
+            <div class="mp-dropdown-item" onclick="selectMpWhen('tomorrow','Tomorrow','1 day from now','+10% fee')" data-val="tomorrow">
+              <div class="mp-dropdown-item-left">
+                <div class="mp-dropdown-item-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                </div>
+                <div>
+                  <div class="mp-dropdown-item-name">Tomorrow</div>
+                  <div class="mp-dropdown-item-sub">1 day from now</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="mp-dropdown-item-badge">+10%</span>
+                <svg class="mp-item-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+            </div>
+            <div class="mp-dropdown-item" onclick="selectMpWhen('7days','In 7 Days','Within the week','+15% fee')" data-val="7days">
+              <div class="mp-dropdown-item-left">
+                <div class="mp-dropdown-item-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                </div>
+                <div>
+                  <div class="mp-dropdown-item-name">In 7 Days</div>
+                  <div class="mp-dropdown-item-sub">Within the week</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="mp-dropdown-item-badge" style="background:rgba(212,168,67,0.15);border-color:rgba(212,168,67,0.35);color:#d4a843">+15%</span>
+                <svg class="mp-item-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+            </div>
+            <div class="mp-dropdown-item" onclick="selectMpWhen('30days','In 30 Days','Within the month','+30% fee')" data-val="30days">
+              <div class="mp-dropdown-item-left">
+                <div class="mp-dropdown-item-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                </div>
+                <div>
+                  <div class="mp-dropdown-item-name">In 30 Days</div>
+                  <div class="mp-dropdown-item-sub">Within the month</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="mp-dropdown-item-badge" style="background:rgba(212,125,42,0.15);border-color:rgba(212,125,42,0.35);color:#d47d2a">+30%</span>
+                <svg class="mp-item-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+            </div>
+          </div>
+          <input type="hidden" id="mpWhenVal" value="">
+        </div>
+      </div>
+
+      <!-- Calculator -->
+      <div class="mp-calc-box" id="mpCalcBox" style="display:none">
+        <div class="mp-section-label" style="margin-bottom:12px">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg>
+          Payment Calculator
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;margin-bottom:10px;">
+          <div>
+            <div class="mp-calc-cell-label">Total Due</div>
+            <div class="mp-total-big" id="mpTotalDue">—</div>
+            <div class="mp-due-label" id="mpDueDate"></div>
+          </div>
+          <div style="text-align:right;">
+            <div class="mp-calc-cell-label">Breakdown</div>
+            <div id="mpBreakdown" style="font-size:0.74rem;font-weight:700;color:var(--text-dim);line-height:1.7;"></div>
+          </div>
+        </div>
+        <div class="mp-calc-divider"></div>
+        <div class="mp-fee-tag" id="mpFeeBadge">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Fee applied
+        </div>
+      </div>
+
+      <!-- Payment Method — custom dropdown -->
+      <div id="mpMethodWrap" style="display:none;margin-bottom:12px;">
+        <div class="mp-field-label">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          Preferred Payment Method
+        </div>
+        <div class="mp-custom-select" id="mpMethodDropdown">
+          <button class="mp-custom-select-btn" id="mpMethodBtn" type="button" onclick="toggleMpDropdown('mpMethodDropdown')">
+            <span id="mpMethodBtnText">Select how you will pay</span>
+            <svg class="mp-select-chevron" width="12" height="8" viewBox="0 0 12 8" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round"><path d="M1 1l5 5 5-5"/></svg>
+          </button>
+          <div class="mp-dropdown-list" id="mpMethodList">
+
+            <div class="mp-dropdown-item" onclick="selectMpMethod('Bank Transfer (EFT)','Direct from your bank account')" data-val="Bank Transfer (EFT)">
+              <div class="mp-dropdown-item-left">
+                <div class="mp-dropdown-item-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                </div>
+                <div>
+                  <div class="mp-dropdown-item-name">Bank Transfer (EFT)</div>
+                  <div class="mp-dropdown-item-sub">Direct from your bank account</div>
+                </div>
+              </div>
+              <svg class="mp-item-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+
+            <div class="mp-dropdown-item" onclick="selectMpMethod('Cash Deposit','In-person at a bank branch')" data-val="Cash Deposit">
+              <div class="mp-dropdown-item-left">
+                <div class="mp-dropdown-item-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--lime)" stroke-width="2" stroke-linecap="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M17 6V5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v1"/></svg>
+                </div>
+                <div>
+                  <div class="mp-dropdown-item-name">Cash Deposit</div>
+                  <div class="mp-dropdown-item-sub">In-person at a bank branch</div>
+                </div>
+              </div>
+              <svg class="mp-item-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+
+            <div class="mp-dropdown-item" onclick="selectMpMethod('PayPal','Send via PayPal balance or card')" data-val="PayPal">
+              <div class="mp-dropdown-item-left">
+                <div class="mp-dropdown-item-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#009cde" stroke-width="2" stroke-linecap="round"><path d="M7 11l1-7h5c3 0 5 1.5 4.5 5C17 13 15 14 12.5 14H10L9 19H6l1-8z"/></svg>
+                </div>
+                <div>
+                  <div class="mp-dropdown-item-name">PayPal</div>
+                  <div class="mp-dropdown-item-sub">Send via PayPal balance or card</div>
+                </div>
+              </div>
+              <svg class="mp-item-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+
+            <div class="mp-dropdown-item" onclick="selectMpMethod('Card Payment','Debit or credit card')" data-val="Card Payment">
+              <div class="mp-dropdown-item-left">
+                <div class="mp-dropdown-item-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                </div>
+                <div>
+                  <div class="mp-dropdown-item-name">Card Payment</div>
+                  <div class="mp-dropdown-item-sub">Debit or credit card</div>
+                </div>
+              </div>
+              <svg class="mp-item-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+
+            <div class="mp-dropdown-item" onclick="selectMpMethod('Cryptocurrency','Bitcoin, Ethereum, USDT, etc.')" data-val="Cryptocurrency">
+              <div class="mp-dropdown-item-left">
+                <div class="mp-dropdown-item-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)" stroke-width="2" stroke-linecap="round"><path d="M11.767 19.089c4.924.868 6.14-6.025 1.216-6.894m-1.216 6.894L5.86 18.047m5.908 1.042l-.347 1.97M17.22 4.967c4.924.868 3.708 7.76-1.216 6.894m1.216-6.894L10.48 3.9m6.741 1.067l.348-1.97M13 12.5l2.5-.5m-10 0L8 12m0 0v-2m0 2v2"/></svg>
+                </div>
+                <div>
+                  <div class="mp-dropdown-item-name">Cryptocurrency</div>
+                  <div class="mp-dropdown-item-sub">Bitcoin, Ethereum, USDT, etc.</div>
+                </div>
+              </div>
+              <svg class="mp-item-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+
+            <div class="mp-dropdown-item" onclick="selectMpMethod('Zelle / Venmo','Peer-to-peer transfer')" data-val="Zelle / Venmo">
+              <div class="mp-dropdown-item-left">
+                <div class="mp-dropdown-item-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--lime)" stroke-width="2" stroke-linecap="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
+                </div>
+                <div>
+                  <div class="mp-dropdown-item-name">Zelle / Venmo</div>
+                  <div class="mp-dropdown-item-sub">Peer-to-peer transfer</div>
+                </div>
+              </div>
+              <svg class="mp-item-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+
+            <div class="mp-dropdown-item" onclick="selectMpMethod('Other','Another method — we will confirm')" data-val="Other">
+              <div class="mp-dropdown-item-left">
+                <div class="mp-dropdown-item-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                </div>
+                <div>
+                  <div class="mp-dropdown-item-name">Other</div>
+                  <div class="mp-dropdown-item-sub">We will confirm the details</div>
+                </div>
+              </div>
+              <svg class="mp-item-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+
+          </div>
+          <input type="hidden" id="mpMethodVal" value="">
+        </div>
+      </div>
+
+      <!-- Submit -->
+      <button class="mp-submit-btn" id="mpSubmitBtn" onclick="submitManualPay()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        Confirm Manual Payment
+      </button>
+      <div id="mpSubmitErr" style="text-align:center;font-size:0.7rem;font-weight:700;color:var(--red);margin-top:8px;min-height:1em;"></div>
+    </div>
+
+    <!-- SUCCESS STATE -->
+    <div class="mp-success-wrap" id="mpSuccessState">
+      <div class="mp-success-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--lime)" stroke-width="2.2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <div style="font-size:1.15rem;font-weight:800;color:var(--text);margin-bottom:8px;">Payment Request Sent</div>
+      <div style="font-size:0.8rem;font-weight:600;color:var(--text-muted);line-height:1.7;max-width:300px;">
+        We have sent a confirmation email with your payment details and due date. Check your inbox to complete the payment.
+      </div>
+      <div class="mp-success-detail-box" id="mpSuccessDetails"></div>
+      <button onclick="closeManualModal()" style="margin-top:18px;background:rgba(255,255,255,0.06);border:1.5px solid rgba(255,255,255,0.14);border-radius:11px;padding:11px 28px;font-family:var(--font);font-weight:800;font-size:0.85rem;color:var(--text);cursor:pointer;transition:all 0.18s;" onmouseover="this.style.background='rgba(255,255,255,0.10)'" onmouseout="this.style.background='rgba(255,255,255,0.06)'">
+        Close
+      </button>
+    </div>
+
   </div>
 </div>
 
-
 <script>
-// ═══════════════════════════════
-//  CARD MODAL
-// ═══════════════════════════════
-window.openCardModal = function() {
-  if (!validate()) {
-    const firstErr = document.querySelector('.field-input.error');
-    if (firstErr) firstErr.scrollIntoView({ behavior:'smooth', block:'center' });
+// ════════════════════════════════════════════
+//  MANUAL PAY MODAL — Full Logic
+// ════════════════════════════════════════════
+
+const MP_FEES = {
+  today:   { pct:0.05, label:'5% same-day fee',  days:0  },
+  tomorrow:{ pct:0.10, label:'10% next-day fee', days:1  },
+  '7days': { pct:0.15, label:'15% 7-day fee',    days:7  },
+  '30days':{ pct:0.30, label:'30% 30-day fee',   days:30 },
+};
+
+function mpFmtDate(d) {
+  return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+}
+
+// ── Dropdown helpers ──
+function toggleMpDropdown(id) {
+  const wrap = document.getElementById(id);
+  const btn  = wrap.querySelector('.mp-custom-select-btn');
+  const list = wrap.querySelector('.mp-dropdown-list');
+  const isOpen = list.classList.contains('open');
+  // Close all open dropdowns first
+  document.querySelectorAll('.mp-dropdown-list.open').forEach(l => {
+    l.classList.remove('open');
+    l.closest('.mp-custom-select').querySelector('.mp-custom-select-btn').classList.remove('open');
+  });
+  if (!isOpen) {
+    list.classList.add('open');
+    btn.classList.add('open');
+  }
+}
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.mp-custom-select')) {
+    document.querySelectorAll('.mp-dropdown-list.open').forEach(l => {
+      l.classList.remove('open');
+      l.closest('.mp-custom-select').querySelector('.mp-custom-select-btn').classList.remove('open');
+    });
+  }
+});
+
+function selectMpWhen(val, name, sub, badge) {
+  document.getElementById('mpWhenVal').value = val;
+  const btn = document.getElementById('mpWhenBtn');
+  document.getElementById('mpWhenBtnText').textContent = name + ' — ' + badge;
+  btn.classList.add('has-value');
+  // Mark selected
+  document.querySelectorAll('#mpWhenList .mp-dropdown-item').forEach(el => {
+    el.classList.toggle('selected', el.dataset.val === val);
+  });
+  toggleMpDropdown('mpWhenDropdown');
+  updateMpCalc();
+}
+
+function selectMpMethod(val, sub) {
+  document.getElementById('mpMethodVal').value = val;
+  const btn = document.getElementById('mpMethodBtn');
+  document.getElementById('mpMethodBtnText').textContent = val;
+  btn.classList.add('has-value');
+  document.querySelectorAll('#mpMethodList .mp-dropdown-item').forEach(el => {
+    el.classList.toggle('selected', el.dataset.val === val);
+  });
+  toggleMpDropdown('mpMethodDropdown');
+}
+
+// ── Validation: check required fields before opening ──
+function mpCheckFields() {
+  const missing = [];
+  const fn = (document.getElementById('firstName') ||{}).value || '';
+  const ln = (document.getElementById('lastName')  ||{}).value || '';
+  const em = (document.getElementById('emailField')||{}).value || '';
+  if (!fn.trim()) missing.push('First Name');
+  if (!ln.trim()) missing.push('Last Name');
+  if (!em.trim() || !/\S+@\S+\.\S+/.test(em)) missing.push('Valid Email Address');
+  return missing;
+}
+
+function openManualModal() {
+  // Validate required checkout fields first
+  const missing = mpCheckFields();
+  if (missing.length) {
+    // Scroll to first error field and highlight
+    const fieldMap = {'First Name':'firstName','Last Name':'lastName','Valid Email Address':'emailField'};
+    missing.forEach(label => {
+      const key = Object.keys(fieldMap).find(k => label.startsWith(k.split(' ')[0]));
+      const el = document.getElementById(fieldMap[key]);
+      if (el) { el.classList.add('error'); el.focus(); }
+    });
+    // Show inline error near the button
+    const errEl = document.getElementById('mpSubmitErr');
+    // Use a temporary toast instead
+    showMpToast('Please fill in your ' + missing.join(', ') + ' before continuing.');
     return;
   }
-  const m = document.getElementById('cardPayModal');
-  m.style.display = 'flex';
+
+  // Gather customer info
+  const fn  = document.getElementById('firstName').value.trim();
+  const ln  = document.getElementById('lastName').value.trim();
+  const em  = document.getElementById('emailField').value.trim();
+  const ph  = (document.getElementById('phoneField')||{}).value || '';
+  const ad  = (document.getElementById('addr1')     ||{}).value || '';
+  const ci  = (document.getElementById('city')      ||{}).value || '';
+  const co  = (document.getElementById('country')   ||{}).value || '';
+  const fullName = [fn, ln].filter(Boolean).join(' ');
+
+  document.getElementById('mpCustomerDetails').innerHTML = [
+    ['Name',    fullName || '—'],
+    ['Email',   em       || '—'],
+    ['Phone',   ph       || '—'],
+    ['Address', [ad, ci, co].filter(Boolean).join(', ') || '—'],
+  ].map(([k,v]) => `
+    <div class="mp-info-row">
+      <span class="mp-info-key">${k}</span>
+      <span class="mp-info-val">${v}</span>
+    </div>`).join('');
+
+  // Gather order
+  let baseTotal = 0;
+  let itemLines = '';
+  if (window.order && window.order.items) {
+    window.order.items.forEach(item => {
+      const price = item.subtotal || (item.price * (item.qty||1));
+      baseTotal += price;
+      itemLines += `<div class="mp-info-row">
+        <span class="mp-info-key">${item.name||'Item'} ×${item.qty||1}</span>
+        <span class="mp-info-val">${fx(price)}</span>
+      </div>`;
+    });
+    if (window.order.shipping) {
+      baseTotal += window.order.shipping;
+      itemLines += `<div class="mp-info-row">
+        <span class="mp-info-key">Shipping</span>
+        <span class="mp-info-val">${fx(window.order.shipping)}</span>
+      </div>`;
+    }
+  } else {
+    const totalEl = document.getElementById('btnTotal') || document.getElementById('mobileTotalAmt');
+    itemLines = `<div class="mp-info-row"><span class="mp-info-key">Order Total</span><span class="mp-info-val">${totalEl ? totalEl.textContent : '—'}</span></div>`;
+  }
+  if (window.appliedCode && window.appliedCode.value) {
+    const disc = window.appliedCode.type === 'pct' ? baseTotal * (window.appliedCode.value/100) : window.appliedCode.value;
+    baseTotal -= disc;
+    itemLines += `<div class="mp-info-row">
+      <span class="mp-info-key" style="color:var(--lime)">Discount</span>
+      <span class="mp-info-val" style="color:var(--lime)">−${fx(disc)}</span>
+    </div>`;
+  }
+  window._mpBaseTotal = baseTotal;
+  document.getElementById('mpOrderDetails').innerHTML = itemLines;
+
+  // Reset state
+  document.getElementById('mpWhenVal').value   = '';
+  document.getElementById('mpMethodVal').value = '';
+  document.getElementById('mpWhenBtnText').textContent   = 'Select payment timing';
+  document.getElementById('mpMethodBtnText').textContent = 'Select how you will pay';
+  document.getElementById('mpWhenBtn').classList.remove('has-value');
+  document.getElementById('mpMethodBtn').classList.remove('has-value');
+  document.querySelectorAll('#mpWhenList .mp-dropdown-item, #mpMethodList .mp-dropdown-item').forEach(el => el.classList.remove('selected'));
+  document.getElementById('mpCalcBox').style.display    = 'none';
+  document.getElementById('mpMethodWrap').style.display = 'none';
+  document.getElementById('mpValidBanner').classList.remove('show');
+  document.getElementById('mpSubmitErr').textContent    = '';
+  document.getElementById('mpFormState').style.display  = 'block';
+  document.getElementById('mpSuccessState').classList.remove('show');
+
+  const overlay = document.getElementById('manualPayOverlay');
+  overlay.style.display = 'flex';
   document.body.style.overflow = 'hidden';
-  // Clear errors
-  ['modalCardNumErr','modalCardNameErr','modalCardExpErr','modalCardCvvErr'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.textContent = '';
-  });
-  // Reset fields
-  ['modalCardNum','modalCardName','modalCardExp','modalCardCvv'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) { el.value = ''; el.style.borderColor = 'rgba(255,255,255,0.14)'; }
-  });
-  const brand = document.getElementById('modalCardBrand');
-  if (brand) brand.textContent = '';
-};
+}
 
-window.closeCardModal = function() {
-  const m = document.getElementById('cardPayModal');
-  m.style.display = 'none';
+function closeManualModal() {
+  document.getElementById('manualPayOverlay').style.display = 'none';
   document.body.style.overflow = '';
-};
+}
 
-// Close on backdrop click
-document.getElementById('cardPayModal').addEventListener('click', function(e) {
-  if (e.target === this) window.closeCardModal();
+document.getElementById('manualPayOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeManualModal();
 });
 
-// Close on Escape
+function updateMpCalc() {
+  const when = document.getElementById('mpWhenVal').value;
+  if (!when) { document.getElementById('mpCalcBox').style.display='none'; document.getElementById('mpMethodWrap').style.display='none'; return; }
+
+  const fee   = MP_FEES[when];
+  const base  = window._mpBaseTotal || 0;
+  const added = base * fee.pct;
+  const total = base + added;
+  const dueDate = new Date();
+  dueDate.setDate(dueDate.getDate() + fee.days);
+
+  const sym  = (window.order && window.order.currencySymbol) || window._currencySymbol || '$';
+  const rate = (window.order && window.order.exchangeRate)   || window._exchangeRate   || 1;
+  const localAmt = v => sym + (v*rate).toFixed(2);
+
+  document.getElementById('mpTotalDue').textContent  = localAmt(total);
+  document.getElementById('mpDueDate').textContent   = 'Due by ' + mpFmtDate(dueDate);
+  document.getElementById('mpBreakdown').innerHTML   = `Base: ${localAmt(base)}<br>Fee (+${Math.round(fee.pct*100)}%): ${localAmt(added)}`;
+  document.getElementById('mpFeeBadge').innerHTML    = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> ${fee.label} applied — pay sooner to save`;
+
+  document.getElementById('mpCalcBox').style.display    = 'block';
+  document.getElementById('mpMethodWrap').style.display = 'block';
+}
+
+// ── Simple toast for pre-modal validation error ──
+function showMpToast(msg) {
+  let t = document.getElementById('mpToast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'mpToast';
+    t.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#1e1e1e;border:1.5px solid rgba(224,85,85,0.5);border-radius:12px;padding:12px 18px;font-family:var(--font);font-size:0.78rem;font-weight:700;color:#e07070;z-index:20000;max-width:320px;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,0.6);transition:opacity 0.3s';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(window._mpToastTimer);
+  window._mpToastTimer = setTimeout(() => { t.style.opacity = '0'; }, 3200);
+}
+
+async function submitManualPay() {
+  const errEl  = document.getElementById('mpSubmitErr');
+  const when   = document.getElementById('mpWhenVal').value;
+  const method = document.getElementById('mpMethodVal').value;
+  errEl.textContent = '';
+
+  if (!when)   { errEl.textContent = 'Please select when you want to pay.'; return; }
+  if (!method) { errEl.textContent = 'Please select your preferred payment method.'; return; }
+
+  const fn = document.getElementById('firstName').value.trim();
+  const ln = document.getElementById('lastName').value.trim();
+  const em = document.getElementById('emailField').value.trim();
+  const fullName = [fn, ln].filter(Boolean).join(' ') || 'Customer';
+
+  const fee     = MP_FEES[when];
+  const base    = window._mpBaseTotal || 0;
+  const added   = base * fee.pct;
+  const total   = base + added;
+  const dueDate = new Date();
+  dueDate.setDate(dueDate.getDate() + fee.days);
+
+  const sym  = (window.order && window.order.currencySymbol) || window._currencySymbol || '$';
+  const rate = (window.order && window.order.exchangeRate)   || window._exchangeRate   || 1;
+  const localAmt   = v => sym + (v*rate).toFixed(2);
+  const totalLocal = localAmt(total);
+  const baseLocal  = localAmt(base);
+  const feeLocal   = localAmt(added);
+  const dueDateStr = mpFmtDate(dueDate);
+  const orderId    = (window.order && window.order.orderId) || 'N/A';
+  const timingLabel = {'today':'Today','tomorrow':'Tomorrow','7days':'In 7 Days','30days':'In 30 Days'}[when];
+
+  const domain  = window.location.origin;
+  const ctaLink = domain + '/manualpayment';
+
+  const btn = document.getElementById('mpSubmitBtn');
+  btn.disabled = true;
+  btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="animation:spin 0.8s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Sending…`;
+
+  // Save to Firebase
+  try {
+    if (window._fbSet && window._fbRef && window._db) {
+      await window._fbSet(window._fbRef(window._db, 'manualPayRequests/' + orderId), {
+        orderId, name:fullName, email:em, when, method,
+        baseTotal:base, feeAmount:added, totalDue:total,
+        dueDateStr, ctaLink, timingLabel,
+        currency:(window.order && window.order.currency)||'USD',
+        currencySymbol:sym, exchangeRate:rate,
+        status:'pending', createdAt:Date.now()
+      });
+    }
+  } catch(e) { console.warn('Firebase manualPay save:', e); }
+
+  // Send email via Formspree
+  try {
+    await fetch('https://formspree.io/f/mpwzljvk', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body:JSON.stringify({
+        to:em, name:fullName,
+        subject:`MINIMISTY – Manual Payment Confirmation (Order #${orderId})`,
+        order_id:orderId, total_due:totalLocal, due_date:dueDateStr,
+        payment_method:method, payment_timing:timingLabel, cta_link:ctaLink,
+        _replyto:em,
+        message:`Manual payment from ${fullName} (${em}). Total: ${totalLocal} due ${dueDateStr} via ${method}.`
+      })
+    });
+  } catch(e) {}
+
+  btn.disabled = false;
+  btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Confirm Manual Payment`;
+
+  // Success details
+  document.getElementById('mpSuccessDetails').innerHTML = `
+    <div class="mp-info-row">
+      <span class="mp-info-key">Due Date</span>
+      <span class="mp-info-val">${dueDateStr}</span>
+    </div>
+    <div class="mp-info-row">
+      <span class="mp-info-key">Total Amount</span>
+      <span class="mp-info-val" style="color:var(--lime)">${totalLocal}</span>
+    </div>
+    <div class="mp-info-row">
+      <span class="mp-info-key">Pay Via</span>
+      <span class="mp-info-val">${method}</span>
+    </div>
+    <div class="mp-info-row">
+      <span class="mp-info-key">Confirmation Sent To</span>
+      <span class="mp-info-val">${em}</span>
+    </div>`;
+
+  document.getElementById('mpFormState').style.display = 'none';
+  document.getElementById('mpSuccessState').classList.add('show');
+}
+
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
-    const m = document.getElementById('cardPayModal');
-    if (m && m.style.display !== 'none') window.closeCardModal();
+    const o = document.getElementById('manualPayOverlay');
+    if (o && o.style.display !== 'none') closeManualModal();
   }
 });
-
-// Format card number
-window.fmtModalCard = function(input) {
-  let val = input.value.replace(/\D/g,'').substring(0,16);
-  input.value = val.replace(/(.{4})/g,'$1  ').trim();
-  const brand = document.getElementById('modalCardBrand');
-  if (!brand) return;
-  if (val.startsWith('4')) brand.textContent = 'VISA';
-  else if (/^5[1-5]/.test(val) || /^2[2-7]/.test(val)) brand.textContent = 'MC';
-  else if (val.startsWith('34') || val.startsWith('37')) brand.textContent = 'AMEX';
-  else brand.textContent = '';
-};
-
-// Format expiry
-window.fmtModalExp = function(input) {
-  let val = input.value.replace(/\D/g,'').substring(0,4);
-  if (val.length >= 3) val = val.substring(0,2) + ' / ' + val.substring(2);
-  input.value = val;
-};
-
-// Validate + submit
-window.submitCardModal = function() {
-  let ok = true;
-
-  const num  = document.getElementById('modalCardNum').value.replace(/\s/g,'');
-  const name = document.getElementById('modalCardName').value.trim();
-  const exp  = document.getElementById('modalCardExp').value.trim();
-  const cvv  = document.getElementById('modalCardCvv').value.trim();
-
-  const setMErr = (id, msg) => {
-    const el = document.getElementById(id); if (el) el.textContent = msg;
-    const inp = document.getElementById(id.replace('Err',''));
-    if (inp) { inp.style.borderColor = 'var(--red)'; setTimeout(() => { inp.style.borderColor = 'rgba(255,255,255,0.14)'; }, 2200); }
-    ok = false;
-  };
-
-  if (num.length < 13 || num.length > 16) setMErr('modalCardNumErr', 'Enter a valid card number');
-  if (!name) setMErr('modalCardNameErr', 'Cardholder name required');
-  if (!/^\d{2}\s*\/\s*\d{2}$/.test(exp)) setMErr('modalCardExpErr', 'Use MM / YY format');
-  if (cvv.length < 3) setMErr('modalCardCvvErr', 'Enter CVV');
-
-  if (!ok) return;
-
-  // Copy values to hidden fields for existing placeOrder logic
-  document.getElementById('cardNum').value  = num;
-  document.getElementById('cardName').value = name;
-  document.getElementById('cardExp').value  = exp;
-  document.getElementById('cardCvv').value  = cvv;
-
-  // Disable button, show loading state
-  const btn = document.getElementById('modalPayBtn');
-  btn.disabled = true;
-  btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="animation:procSpin 0.8s linear infinite"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg> Processing…';
-
-  // Route through PayPal button click (the PayPal SDK handles card via its popup)
-  // We close this modal and trigger the PayPal button
-  setTimeout(() => {
-    window.closeCardModal();
-    btn.disabled = false;
-    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="2" y="11" width="20" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Pay Now';
-    // Trigger the PayPal button
-    const ppBtn = document.querySelector('#paypal-button-container iframe');
-    if (ppBtn) ppBtn.click();
-    else {
-      // Fallback: click the first PayPal button element
-      const ppEl = document.querySelector('#paypal-button-container .paypal-button');
-      if (ppEl) ppEl.click();
-    }
-  }, 600);
-};
 </script>
-
 </body>
+</html>
