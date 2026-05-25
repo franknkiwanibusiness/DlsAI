@@ -3,1858 +3,1326 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>MINIMISTY Admin</title>
-<meta name="robots" content="noindex, nofollow">
-<meta name="theme-color" content="#050508">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<title>MINIMISTY — Admin</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;outline:none;}
-html{-webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased;overscroll-behavior:none;scroll-behavior:smooth;}
-::-webkit-scrollbar{width:0;height:0;}
-::selection{background:rgba(77,184,212,0.2);}
-
-:root{
-  --cyan:#4db8d4;
-  --lime:#6dbd3a;
-  --red:#e05555;
-  --yellow:#d4a843;
-  --orange:#d47d2a;
-  --purple:#9b59f5;
-  --font:'Fredoka',sans-serif;
-  --mono:'Space Mono',monospace;
-  --bg:#050508;
-  --bg2:#0a0a10;
-  --bg3:#0f0f18;
-  --bg4:#141420;
-  --border:#1e1e2e;
-  --border2:#2a2a40;
-  --text:#e8e8f8;
-  --text-dim:#b0b0cc;
-  --text-muted:#606080;
-  --text-faint:#30304a;
-  --nav-h:56px;
-  --bottom-h:64px;
-  --safe-bottom:env(safe-area-inset-bottom,0px);
-}
-
-html,body{
-  background:var(--bg);color:var(--text);
-  font-family:var(--font);min-height:100vh;
-  -webkit-user-select:none;user-select:none;
-  scrollbar-width:none;
-}
-
-/* ══ LOGIN ══ */
-#loginScreen{
-  position:fixed;inset:0;z-index:9999;
-  background:var(--bg);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  padding:24px;
-  animation:fadeIn 0.4s ease;
-}
-@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
-.login-logo{
-  display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:40px;
-}
-.login-logo-icon{
-  width:64px;height:64px;border-radius:20px;
-  background:linear-gradient(135deg,var(--cyan),var(--purple));
-  display:flex;align-items:center;justify-content:center;
-  box-shadow:0 0 40px rgba(77,184,212,0.3);
-}
-.login-brand{font-size:1.8rem;font-weight:700;letter-spacing:0.02em;}
-.login-brand span{color:var(--cyan);}
-.login-sub{font-size:0.78rem;font-weight:500;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;}
-.login-card{
-  width:100%;max-width:380px;
-  background:var(--bg3);border:1.5px solid var(--border2);border-radius:24px;
-  padding:28px 24px;
-}
-.login-field{margin-bottom:16px;}
-.login-label{font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;}
-.login-input{
-  width:100%;height:48px;background:var(--bg4);
-  border:1.5px solid var(--border2);border-radius:14px;
-  padding:0 16px;color:var(--text);font-family:var(--font);font-size:1rem;font-weight:600;
-  transition:border-color 0.2s;
-}
-.login-input:focus{border-color:var(--cyan);}
-.login-input::placeholder{color:var(--text-faint);}
-input:-webkit-autofill,.login-input:-webkit-autofill{
-  -webkit-box-shadow:0 0 0 1000px var(--bg4) inset !important;
-  -webkit-text-fill-color:var(--text) !important;
-  caret-color:var(--text);
-}
-.login-btn{
-  width:100%;height:52px;border-radius:16px;
-  background:linear-gradient(135deg,var(--cyan),var(--purple));
-  color:#000;font-family:var(--font);font-size:1.05rem;font-weight:700;
-  border:none;cursor:pointer;margin-top:8px;
-  transition:opacity 0.2s,transform 0.1s;
-  position:relative;overflow:hidden;
-}
-.login-btn:active{transform:scale(0.98);opacity:0.9;}
-.login-btn.loading{opacity:0.7;pointer-events:none;}
-.login-err{
-  background:rgba(224,85,85,0.12);border:1px solid var(--red);
-  border-radius:10px;padding:10px 14px;margin-top:12px;
-  font-size:0.82rem;font-weight:600;color:var(--red);text-align:center;
-  display:none;
-}
-
-/* ══ APP SHELL ══ */
-#app{display:none;flex-direction:column;min-height:100vh;}
-#app.visible{display:flex;}
-
-/* ══ TOP NAV ══ */
-.top-nav{
-  position:sticky;top:0;z-index:100;
-  height:var(--nav-h);
-  background:rgba(5,5,8,0.92);
-  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-  border-bottom:1.5px solid var(--border);
-  display:flex;align-items:center;justify-content:space-between;
-  padding:0 16px;
-}
-.nav-brand{display:flex;align-items:center;gap:10px;}
-.nav-brand-icon{
-  width:34px;height:34px;border-radius:10px;
-  background:linear-gradient(135deg,var(--cyan),var(--purple));
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;
-}
-.nav-brand-text{font-size:1rem;font-weight:700;}
-.nav-brand-text span{color:var(--cyan);}
-.nav-badge{
-  font-size:0.6rem;font-weight:700;color:var(--text-muted);
-  background:var(--bg4);border:1px solid var(--border2);
-  border-radius:6px;padding:2px 6px;text-transform:uppercase;letter-spacing:0.06em;
-}
-.nav-right{display:flex;align-items:center;gap:10px;}
-.nav-icon-btn{
-  width:36px;height:36px;border-radius:50%;
-  background:var(--bg4);border:1px solid var(--border2);
-  display:flex;align-items:center;justify-content:center;cursor:pointer;
-  transition:background 0.2s;
-}
-.nav-icon-btn:active{background:var(--border2);}
-.notif-dot{
-  width:8px;height:8px;border-radius:50%;background:var(--red);
-  position:absolute;top:6px;right:6px;
-  box-shadow:0 0 6px var(--red);
-  animation:pulse 2s infinite;
-}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
-
-/* ══ MAIN CONTENT ══ */
-.page-content{
-  flex:1;overflow-y:auto;
-  padding-bottom:calc(var(--bottom-h) + var(--safe-bottom) + 16px);
-}
-.page{display:none;padding:16px;}
-.page.active{display:block;}
-
-/* ══ BOTTOM NAV ══ */
-.bottom-nav{
-  position:fixed;bottom:0;left:0;right:0;z-index:100;
-  height:calc(var(--bottom-h) + var(--safe-bottom));
-  background:rgba(5,5,8,0.96);
-  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-  border-top:1.5px solid var(--border);
-  display:flex;align-items:flex-start;justify-content:space-around;
-  padding-top:8px;padding-bottom:var(--safe-bottom);overflow-x:auto;
-}
-.nav-item{
-  display:flex;flex-direction:column;align-items:center;gap:3px;
-  min-width:44px;cursor:pointer;padding:4px 6px;border-radius:14px;
-  transition:background 0.2s;
-  position:relative;flex-shrink:0;
-}
-.nav-item:active{background:var(--bg4);}
-.nav-item .nav-icon{
-  width:24px;height:24px;transition:transform 0.2s;
-  display:flex;align-items:center;justify-content:center;
-}
-.nav-item .nav-label{font-size:0.62rem;font-weight:700;color:var(--text-muted);transition:color 0.2s;text-transform:uppercase;letter-spacing:0.04em;}
-.nav-item.active .nav-icon{transform:scale(1.1);}
-.nav-item.active .nav-label{color:var(--cyan);}
-.nav-item.active svg path,.nav-item.active svg rect,.nav-item.active svg circle,.nav-item.active svg polyline,.nav-item.active svg line,.nav-item.active svg polygon{stroke:var(--cyan);}
-.nav-badge-count{
-  position:absolute;top:2px;right:6px;
-  min-width:16px;height:16px;border-radius:8px;
-  background:var(--red);color:#fff;
-  font-size:0.55rem;font-weight:700;font-family:var(--mono);
-  display:flex;align-items:center;justify-content:center;padding:0 3px;
-  box-shadow:0 0 8px rgba(224,85,85,0.4);
-}
-
-/* ══ SECTION TITLES ══ */
-.section-title{
-  font-size:1.4rem;font-weight:700;margin-bottom:4px;
-}
-.section-sub{font-size:0.8rem;color:var(--text-muted);font-weight:500;margin-bottom:20px;}
-
-/* ══ STAT CARDS ══ */
-.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
-.stat-card{
-  background:var(--bg3);border:1.5px solid var(--border);border-radius:18px;
-  padding:16px 14px;position:relative;overflow:hidden;
-}
-.stat-card::before{
-  content:'';position:absolute;top:-20px;right:-20px;
-  width:70px;height:70px;border-radius:50%;
-  background:var(--accent,var(--cyan));opacity:0.08;
-}
-.stat-label{font-size:0.68rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px;}
-.stat-value{font-size:1.55rem;font-weight:700;color:var(--text);line-height:1;}
-.stat-value.mono{font-family:var(--mono);font-size:1.3rem;}
-.stat-change{
-  font-size:0.68rem;font-weight:600;margin-top:5px;
-  display:flex;align-items:center;gap:3px;
-}
-.stat-change.up{color:var(--lime);}
-.stat-change.down{color:var(--red);}
-
-/* ══ ORDERS LIST ══ */
-.order-card{
-  background:var(--bg3);border:1.5px solid var(--border);border-radius:18px;
-  padding:14px 16px;margin-bottom:10px;cursor:pointer;
-  transition:border-color 0.2s,background 0.2s;
-  position:relative;overflow:hidden;
-}
-.order-card:active{background:var(--bg4);}
-.order-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
-.order-id{font-family:var(--mono);font-size:0.72rem;font-weight:700;color:var(--cyan);}
-.order-status{
-  font-size:0.65rem;font-weight:700;padding:3px 10px;border-radius:20px;
-  text-transform:uppercase;letter-spacing:0.06em;white-space:nowrap;flex-shrink:0;
-}
-.order-status.paid{background:rgba(109,189,58,0.15);color:var(--lime);border:1px solid rgba(109,189,58,0.3);}
-.order-status.pending{background:rgba(212,168,67,0.15);color:var(--yellow);border:1px solid rgba(212,168,67,0.3);}
-.order-status.shipped{background:rgba(77,184,212,0.15);color:var(--cyan);border:1px solid rgba(77,184,212,0.3);}
-.order-status.refunded{background:rgba(224,85,85,0.15);color:var(--red);border:1px solid rgba(224,85,85,0.3);}
-.order-name{font-size:0.92rem;font-weight:700;margin-top:6px;}
-.order-meta{font-size:0.75rem;color:var(--text-muted);font-weight:500;margin-top:2px;}
-.order-card-bottom{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
-.order-amount{font-family:var(--mono);font-size:1rem;font-weight:700;color:var(--lime);}
-.order-time{font-size:0.68rem;color:var(--text-muted);}
-
-/* ══ CHART ══ */
-.chart-card{
-  background:var(--bg3);border:1.5px solid var(--border);border-radius:18px;
-  padding:16px;margin-bottom:16px;
-}
-.chart-title{font-size:0.9rem;font-weight:700;margin-bottom:4px;}
-.chart-sub{font-size:0.7rem;color:var(--text-muted);margin-bottom:16px;}
-.chart-wrap{height:140px;position:relative;}
-.chart-bars{display:flex;align-items:flex-end;gap:4px;height:120px;}
-.chart-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;}
-.chart-bar{
-  width:100%;border-radius:6px 6px 0 0;
-  background:linear-gradient(180deg,var(--cyan),rgba(77,184,212,0.3));
-  transition:height 0.8s cubic-bezier(0.34,1.56,0.64,1);
-  min-height:4px;
-}
-.chart-bar.lime{background:linear-gradient(180deg,var(--lime),rgba(109,189,58,0.3));}
-.chart-bar-label{font-size:0.55rem;color:var(--text-muted);font-weight:600;text-align:center;}
-
-/* ══ CUSTOMERS ══ */
-.customer-card{
-  background:var(--bg3);border:1.5px solid var(--border);border-radius:18px;
-  padding:14px 16px;margin-bottom:10px;
-  display:flex;align-items:center;gap:12px;
-}
-.customer-avatar{
-  width:42px;height:42px;border-radius:50%;flex-shrink:0;
-  display:flex;align-items:center;justify-content:center;
-  font-size:1.1rem;font-weight:700;
-}
-.customer-info{flex:1;min-width:0;}
-.customer-name{font-size:0.9rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.customer-email{font-size:0.72rem;color:var(--text-muted);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.customer-spent{font-family:var(--mono);font-size:0.85rem;font-weight:700;color:var(--lime);white-space:nowrap;}
-
-/* ══ PUSH NOTIFICATION ══ */
-.push-card{
-  background:var(--bg3);border:1.5px solid var(--border);border-radius:18px;
-  padding:20px;margin-bottom:16px;
-}
-.push-title-row{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
-.push-icon{
-  width:40px;height:40px;border-radius:12px;flex-shrink:0;
-  background:linear-gradient(135deg,var(--purple),var(--cyan));
-  display:flex;align-items:center;justify-content:center;
-}
-.push-card-title{font-size:1rem;font-weight:700;}
-.push-card-sub{font-size:0.72rem;color:var(--text-muted);font-weight:500;}
-.push-field{margin-bottom:12px;}
-.push-label{font-size:0.68rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:5px;}
-.push-input{
-  width:100%;height:44px;background:var(--bg4);
-  border:1.5px solid var(--border2);border-radius:12px;
-  padding:0 14px;color:var(--text);font-family:var(--font);font-size:0.9rem;font-weight:600;
-  transition:border-color 0.2s;
-}
-.push-input:focus{border-color:var(--purple);}
-.push-textarea{
-  width:100%;min-height:90px;background:var(--bg4);
-  border:1.5px solid var(--border2);border-radius:12px;
-  padding:12px 14px;color:var(--text);font-family:var(--font);font-size:0.9rem;font-weight:600;
-  resize:none;transition:border-color 0.2s;line-height:1.5;
-}
-.push-textarea:focus{border-color:var(--purple);}
-.push-input::placeholder,.push-textarea::placeholder{color:var(--text-faint);}
-.push-select{
-  width:100%;height:44px;background:var(--bg4);
-  border:1.5px solid var(--border2);border-radius:12px;
-  padding:0 14px;color:var(--text);font-family:var(--font);font-size:0.9rem;font-weight:600;
-  cursor:pointer;transition:border-color 0.2s;
-}
-.push-select:focus{border-color:var(--purple);}
-.push-select option{background:var(--bg4);}
-
-/* ══ BUTTONS ══ */
-.btn{
-  height:48px;border-radius:14px;font-family:var(--font);font-size:0.95rem;font-weight:700;
-  border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
-  transition:opacity 0.2s,transform 0.1s;
-  padding:0 20px;
-}
-.btn:active{transform:scale(0.97);opacity:0.85;}
-.btn-primary{background:linear-gradient(135deg,var(--cyan),var(--purple));color:#000;width:100%;}
-.btn-lime{background:linear-gradient(135deg,var(--lime),var(--cyan));color:#000;width:100%;}
-.btn-red{background:rgba(224,85,85,0.15);color:var(--red);border:1px solid var(--red);width:100%;}
-.btn-ghost{background:var(--bg4);color:var(--text-dim);border:1px solid var(--border2);width:100%;}
-.btn.loading{opacity:0.6;pointer-events:none;}
-
-/* ══ EMAIL BLAST ══ */
-.segment-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
-.segment-btn{
-  height:56px;border-radius:14px;
-  background:var(--bg4);border:1.5px solid var(--border2);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
-  cursor:pointer;transition:border-color 0.2s,background 0.2s;
-  font-family:var(--font);
-}
-.segment-btn.selected{border-color:var(--cyan);background:rgba(77,184,212,0.08);}
-.segment-btn-label{font-size:0.8rem;font-weight:700;color:var(--text);}
-.segment-btn-count{font-size:0.65rem;color:var(--text-muted);}
-
-/* ══ ORDER DETAIL SHEET ══ */
-.sheet-overlay{
-  position:fixed;inset:0;z-index:500;
-  background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);
-  display:none;align-items:flex-end;
-  animation:fadeIn 0.2s ease;
-}
-.sheet-overlay.open{display:flex;}
-.sheet{
-  width:100%;max-height:88vh;background:var(--bg2);
-  border-radius:24px 24px 0 0;border-top:1.5px solid var(--border2);
-  overflow-y:auto;
-  animation:slideUp 0.3s cubic-bezier(0.34,1.2,0.64,1);
-}
-@keyframes slideUp{from{transform:translateY(100%)}to{transform:none}}
-.sheet-handle{width:40px;height:4px;border-radius:2px;background:var(--border2);margin:12px auto 0;}
-.sheet-header{padding:16px 20px;border-bottom:1px solid var(--border);}
-.sheet-title{font-size:1.1rem;font-weight:700;}
-.sheet-sub{font-size:0.75rem;color:var(--text-muted);}
-.sheet-body{padding:20px;}
-.sheet-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);}
-.sheet-row:last-child{border-bottom:none;}
-.sheet-row-label{font-size:0.8rem;color:var(--text-muted);font-weight:600;}
-.sheet-row-val{font-size:0.85rem;font-weight:700;text-align:right;max-width:60%;}
-.sheet-row-val.mono{font-family:var(--mono);color:var(--cyan);}
-.sheet-row-val.green{color:var(--lime);}
-.sheet-actions{padding:16px 20px;display:flex;flex-direction:column;gap:8px;}
-
-/* ══ STATUS SELECT ══ */
-.status-select-wrap{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px;}
-.status-opt{
-  height:44px;border-radius:12px;background:var(--bg4);
-  border:1.5px solid var(--border2);cursor:pointer;
-  display:flex;align-items:center;justify-content:center;gap:6px;
-  font-family:var(--font);font-size:0.8rem;font-weight:700;
-  transition:all 0.2s;
-}
-.status-opt.sel-paid{border-color:var(--lime);color:var(--lime);background:rgba(109,189,58,0.08);}
-.status-opt.sel-shipped{border-color:var(--cyan);color:var(--cyan);background:rgba(77,184,212,0.08);}
-.status-opt.sel-pending{border-color:var(--yellow);color:var(--yellow);background:rgba(212,168,67,0.08);}
-.status-opt.sel-refunded{border-color:var(--red);color:var(--red);background:rgba(224,85,85,0.08);}
-
-/* ══ TOAST ══ */
-#toast{
-  position:fixed;bottom:calc(var(--bottom-h) + var(--safe-bottom) + 12px);
-  left:16px;right:16px;z-index:9000;
-  background:var(--bg4);border:1.5px solid var(--border2);border-radius:14px;
-  padding:14px 16px;display:flex;align-items:center;gap:10px;
-  font-size:0.88rem;font-weight:700;color:var(--text);
-  transform:translateY(20px);opacity:0;
-  transition:all 0.3s cubic-bezier(0.34,1.2,0.64,1);
-  pointer-events:none;
-}
-#toast.show{transform:none;opacity:1;}
-#toast.success{border-color:var(--lime);background:rgba(109,189,58,0.12);}
-#toast.error{border-color:var(--red);background:rgba(224,85,85,0.12);}
-
-/* ══ LOADING SPINNER ══ */
-.spinner{
-  width:20px;height:20px;border:2px solid var(--border2);
-  border-top-color:var(--cyan);border-radius:50%;
-  animation:spin 0.7s linear infinite;flex-shrink:0;
-}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-/* ══ EMPTY STATE ══ */
-.empty{
-  text-align:center;padding:48px 16px;
-  display:flex;flex-direction:column;align-items:center;gap:12px;
-}
-.empty-icon{width:64px;height:64px;opacity:0.3;}
-.empty-text{font-size:0.9rem;color:var(--text-muted);font-weight:600;}
-
-/* ══ SEARCH BAR ══ */
-.search-bar{
-  display:flex;align-items:center;gap:10px;
-  background:var(--bg3);border:1.5px solid var(--border2);border-radius:14px;
-  padding:0 14px;height:44px;margin-bottom:14px;
-}
-.search-bar input{
-  flex:1;background:none;border:none;color:var(--text);
-  font-family:var(--font);font-size:0.9rem;font-weight:600;
-  -webkit-user-select:text;user-select:text;
-}
-.search-bar input::placeholder{color:var(--text-muted);}
-
-/* ══ FILTER CHIPS ══ */
-.filter-chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;}
-.filter-chips::-webkit-scrollbar{display:none;}
-.chip{
-  height:32px;padding:0 14px;border-radius:20px;white-space:nowrap;flex-shrink:0;
-  background:var(--bg4);border:1.5px solid var(--border2);
-  font-family:var(--font);font-size:0.75rem;font-weight:700;color:var(--text-muted);
-  cursor:pointer;transition:all 0.2s;display:flex;align-items:center;
-}
-.chip.active{background:rgba(77,184,212,0.12);border-color:var(--cyan);color:var(--cyan);}
-
-/* ══ TRACKING INPUT ══ */
-.tracking-card{
-  background:var(--bg3);border:1.5px solid var(--border);border-radius:18px;
-  padding:16px;margin-bottom:10px;
-}
-.tracking-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
-.tracking-order-id{font-family:var(--mono);font-size:0.75rem;color:var(--cyan);font-weight:700;}
-.tracking-input{
-  width:100%;height:44px;background:var(--bg4);border:1.5px solid var(--border2);
-  border-radius:12px;padding:0 14px;color:var(--text);font-family:var(--mono);
-  font-size:0.85rem;font-weight:700;transition:border-color 0.2s;
-}
-.tracking-input:focus{border-color:var(--cyan);}
-.tracking-input::placeholder{color:var(--text-faint);font-family:var(--font);}
-
-/* ══ REVENUE CHART TABS ══ */
-.tab-row{display:flex;gap:6px;margin-bottom:14px;}
-.tab{
-  height:32px;padding:0 14px;border-radius:20px;
-  background:var(--bg4);border:1.5px solid var(--border2);
-  font-family:var(--font);font-size:0.75rem;font-weight:700;color:var(--text-muted);
-  cursor:pointer;transition:all 0.2s;
-}
-.tab.active{background:rgba(109,189,58,0.12);border-color:var(--lime);color:var(--lime);}
-
-/* ══ REVENUE TABLE ══ */
-.rev-table{width:100%;border-collapse:collapse;}
-.rev-table th{font-size:0.65rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.07em;padding:6px 8px;text-align:left;}
-.rev-table td{font-size:0.82rem;font-weight:600;padding:10px 8px;border-top:1px solid var(--border);}
-.rev-table td.mono{font-family:var(--mono);color:var(--lime);}
-
-/* ══ PUSH PREVIEW ══ */
-.notif-preview{
-  background:rgba(255,255,255,0.05);border:1px solid var(--border2);border-radius:16px;
-  padding:14px;margin-bottom:14px;display:flex;gap:12px;align-items:flex-start;
-}
-.notif-preview-icon{
-  width:36px;height:36px;border-radius:10px;flex-shrink:0;
-  background:linear-gradient(135deg,var(--cyan),var(--purple));
-  display:flex;align-items:center;justify-content:center;
-}
-.notif-preview-title{font-size:0.85rem;font-weight:700;margin-bottom:2px;}
-.notif-preview-body{font-size:0.75rem;color:var(--text-muted);line-height:1.4;}
-
-/* ══ ANALYTICS ══ */
-.analytics-row{
-  background:var(--bg3);border:1.5px solid var(--border);border-radius:14px;
-  padding:12px 14px;margin-bottom:8px;
-  display:flex;align-items:center;gap:12px;
-}
-.analytics-rank{
-  width:28px;height:28px;border-radius:8px;flex-shrink:0;
-  display:flex;align-items:center;justify-content:center;
-  font-size:0.78rem;font-weight:700;font-family:var(--mono);
-}
-.analytics-label{flex:1;font-size:0.85rem;font-weight:700;}
-.analytics-bar-wrap{flex:1;height:6px;background:var(--border2);border-radius:3px;overflow:hidden;}
-.analytics-bar{height:100%;border-radius:3px;background:var(--cyan);}
-.analytics-val{font-family:var(--mono);font-size:0.8rem;font-weight:700;color:var(--lime);white-space:nowrap;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{height:100%;-webkit-text-size-adjust:100%;}
+body{background:#0a0a0c;color:#f0f0f5;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif;height:100%;overflow:hidden;-webkit-font-smoothing:antialiased;}
+::-webkit-scrollbar{width:3px;height:3px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:#2a2a35;border-radius:3px;}
+*{-webkit-tap-highlight-color:transparent;}
+#app{display:flex;flex-direction:column;height:100dvh;overflow:hidden;}
+#topbar{flex-shrink:0;height:54px;background:rgba(10,10,12,0.97);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;padding:0 14px;gap:10px;z-index:50;}
+#scroll-area{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
+#scroll-inner{padding:14px 14px 24px;}
+/* Sidebar */
+#sb-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);z-index:60;opacity:0;pointer-events:none;transition:opacity 0.25s;}
+#sb-overlay.open{opacity:1;pointer-events:all;}
+#sidebar{position:fixed;top:0;left:0;bottom:0;width:258px;background:#0f0f12;border-right:1px solid rgba(255,255,255,0.07);z-index:61;transform:translateX(-100%);transition:transform 0.28s cubic-bezier(0.16,1,0.3,1);display:flex;flex-direction:column;}
+#sidebar.open{transform:translateX(0);}
+.sb-hdr{padding:16px 16px 12px;border-bottom:1px solid rgba(255,255,255,0.06);flex-shrink:0;}
+.sb-nav{flex:1;overflow-y:auto;padding:8px;}
+.sb-item{display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:11px;cursor:pointer;font-size:14px;font-weight:600;color:#52525b;transition:all 0.15s;border:none;background:none;width:100%;text-align:left;font-family:inherit;}
+.sb-item:hover{background:rgba(255,255,255,0.04);color:#d4d4d8;}
+.sb-item.active{background:rgba(59,130,246,0.12);color:#60a5fa;}
+.sb-badge{margin-left:auto;background:#ef4444;color:#fff;font-size:9px;font-weight:800;min-width:17px;height:17px;border-radius:9px;padding:0 4px;display:flex;align-items:center;justify-content:center;}
+.sb-lbl{font-size:10px;font-weight:700;color:#3f3f46;text-transform:uppercase;letter-spacing:.08em;padding:10px 14px 4px;}
+.sb-footer{padding:10px 8px;border-top:1px solid rgba(255,255,255,0.06);flex-shrink:0;}
+/* Sections */
+.section{display:none;}.section.active{display:block;}
+/* Cards */
+.card{background:#111115;border:1px solid rgba(255,255,255,0.08);border-radius:16px;overflow:hidden;}
+.card-sm{background:#18181d;border:1px solid rgba(255,255,255,0.07);border-radius:12px;}
+/* Stats */
+.stat-card{background:#111115;border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:15px;}
+.stat-label{font-size:10px;font-weight:700;color:#52525b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px;}
+.stat-value{font-size:23px;font-weight:800;letter-spacing:-0.03em;line-height:1;}
+.stat-sub{font-size:11px;font-weight:600;margin-top:4px;color:#52525b;}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+/* Badges */
+.badge{font-size:10px;font-weight:700;letter-spacing:.02em;padding:3px 8px;border-radius:20px;white-space:nowrap;display:inline-flex;align-items:center;}
+.bg{background:rgba(34,197,94,.12);color:#22c55e;}
+.by{background:rgba(245,158,11,.12);color:#f59e0b;}
+.br{background:rgba(239,68,68,.12);color:#ef4444;}
+.bb{background:rgba(59,130,246,.12);color:#60a5fa;}
+.bp{background:rgba(139,92,246,.12);color:#a78bfa;}
+.bgy{background:rgba(113,113,122,.15);color:#71717a;}
+.bt{background:rgba(20,184,166,.12);color:#2dd4bf;}
+/* Filter tabs */
+.ftab{font-size:12px;font-weight:600;padding:6px 12px;border-radius:8px;cursor:pointer;transition:all 0.15s;color:#52525b;border:1px solid transparent;background:none;font-family:inherit;}
+.ftab.active{background:#18181d;color:#f0f0f5;border-color:rgba(255,255,255,0.08);}
+/* Inputs / Buttons */
+.inp{background:#18181d;border:1px solid rgba(255,255,255,0.09);border-radius:11px;color:#f0f0f5;padding:10px 13px;font-size:14px;outline:none;transition:border 0.15s;width:100%;-webkit-appearance:none;font-family:inherit;}
+.inp:focus{border-color:#3b82f6;}
+textarea.inp{resize:vertical;line-height:1.5;}
+select.inp{appearance:none;-webkit-appearance:none;}
+.btn{font-size:13px;font-weight:600;padding:10px 16px;border-radius:11px;cursor:pointer;border:none;transition:all 0.15s;-webkit-tap-highlight-color:transparent;font-family:inherit;}
+.btn:active{transform:scale(0.97);}
+.btn-p{background:#3b82f6;color:#fff;}.btn-p:hover{background:#2563eb;}
+.btn-g{background:transparent;color:#a1a1aa;border:1px solid rgba(255,255,255,0.09);}.btn-g:hover{background:rgba(255,255,255,0.04);}
+.btn-d{background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.2);}
+.btn-s{background:rgba(34,197,94,.1);color:#22c55e;border:1px solid rgba(34,197,94,.2);}
+.btn-v{background:#8b5cf6;color:#fff;}.btn-v:hover{background:#7c3aed;}
+/* Table */
+.tw{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+table{font-size:12px;width:100%;border-collapse:collapse;min-width:480px;}
+table th{font-size:10px;font-weight:700;color:#52525b;text-transform:uppercase;letter-spacing:.05em;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.06);text-align:left;}
+table td{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:middle;}
+.rh:hover{background:rgba(255,255,255,0.02);}
+/* Modal */
+.mbg{position:fixed;inset:0;background:rgba(0,0,0,0.78);backdrop-filter:blur(10px);z-index:80;display:flex;align-items:flex-end;justify-content:center;}
+.modal{background:#111115;border:1px solid rgba(255,255,255,0.1);border-radius:22px 22px 0 0;padding:20px 16px calc(env(safe-area-inset-bottom) + 20px);width:100%;max-width:600px;max-height:92dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.mh{width:36px;height:4px;background:#2a2a35;border-radius:2px;margin:0 auto 18px;}
+/* Misc */
+.pulse{width:7px;height:7px;border-radius:50%;background:#22c55e;flex-shrink:0;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.4);}70%{box-shadow:0 0 0 6px rgba(34,197,94,0);}}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#18181d;border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:10px 18px;font-size:13px;font-weight:600;z-index:999;opacity:0;transition:all 0.25s;white-space:nowrap;pointer-events:none;max-width:calc(100vw - 32px);text-align:center;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.flabel{font-size:11px;font-weight:700;color:#52525b;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:5px;}
+.frow{display:flex;flex-direction:column;gap:10px;}
+.divider{height:1px;background:rgba(255,255,255,0.06);margin:12px 0;}
+.ir{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
+.ir:last-child{border-bottom:none;}
+.ik{font-size:11px;font-weight:600;color:#52525b;text-transform:uppercase;letter-spacing:.04em;}
+.iv{font-size:12px;font-weight:700;color:#d4d4d8;text-align:right;max-width:56%;word-break:break-all;}
+/* Hamburger */
+.ham{width:36px;height:36px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;flex-shrink:0;border-radius:9px;border:none;background:none;transition:background 0.15s;}
+.ham:hover{background:rgba(255,255,255,0.06);}
+.ham span{display:block;height:1.5px;border-radius:1px;background:#a1a1aa;transition:all 0.2s;}
+.ham span:nth-child(1){width:16px;}
+.ham span:nth-child(2){width:11px;}
+.ham span:nth-child(3){width:16px;}
+/* Currency toggle */
+.cur-wrap{display:flex;background:#18181d;border:1px solid rgba(255,255,255,0.08);border-radius:9px;overflow:hidden;flex-shrink:0;}
+.cur-btn{padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;transition:all 0.15s;border:none;background:none;color:#52525b;font-family:inherit;}
+.cur-btn.active{background:#3b82f6;color:#fff;}
+/* Date pill */
+.dpill{display:inline-flex;align-items:center;gap:5px;background:#18181d;border:1px solid rgba(255,255,255,0.09);border-radius:9px;padding:6px 11px;font-size:12px;font-weight:600;color:#a1a1aa;cursor:pointer;border:none;font-family:inherit;}
+.dpill:hover{border-color:rgba(59,130,246,0.4);color:#60a5fa;}
+.shdg{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px;flex-wrap:wrap;}
+.stitle{font-size:15px;font-weight:800;letter-spacing:-0.01em;}
+/* Charts */
+.chart-wrap canvas{max-height:200px;}
+Chart.defaults.font.size=11;
 </style>
 </head>
 <body>
-
-<!-- ══ LOGIN SCREEN ══ -->
-<div id="loginScreen">
-  <div class="login-logo">
-    <div class="login-logo-icon">
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><path d="M12 2a10 10 0 0 1 10 10c0 2-1 4-3 5-1 1-2 2-2 3v1H7v-1c0-1-1-2-2-3C3 16 2 14 2 12A10 10 0 0 1 12 2z"/><line x1="12" y1="21" x2="12" y2="23"/></svg>
+<div class="toast" id="toast"></div>
+<div id="app">
+  <div id="topbar">
+    <button class="ham" onclick="toggleSidebar()"><span></span><span></span><span></span></button>
+    <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+      <div style="width:28px;height:28px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M8 2L14 5.5V10.5L8 14L2 10.5V5.5L8 2Z" fill="white"/></svg>
+      </div>
+      <span id="pageTitle" style="font-size:15px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Overview</span>
     </div>
-    <div class="login-brand">MINIMISTY<span>.store</span></div>
-    <div class="login-sub">Admin Dashboard</div>
+    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+      <div class="cur-wrap">
+        <button class="cur-btn active" id="curUSD" onclick="setCurrency('USD')">USD</button>
+        <button class="cur-btn" id="curLocal" onclick="setCurrency('local')">—</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;">
+        <div class="pulse"></div>
+        <span style="font-size:11px;font-weight:600;color:#52525b;" id="liveTime">--:--</span>
+      </div>
+    </div>
   </div>
-  <div class="login-card">
-    <div class="login-field">
-      <div class="login-label">Email</div>
-      <input class="login-input" type="email" id="loginEmail" placeholder="admin@minimisty.store" autocomplete="email">
+  <div id="scroll-area"><div id="scroll-inner">
+
+<!-- OVERVIEW -->
+<div class="section active" id="section-overview">
+  <div class="shdg">
+    <span class="stitle">Overview</span>
+    <div style="display:flex;gap:6px;align-items:center;">
+      <button class="dpill" onclick="openDatePicker()" id="dateRangeBtn">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="11" rx="1.5" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M5 1.5v3M11 1.5v3M2 7h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        All time
+      </button>
+      <button class="btn btn-g" onclick="loadAll()" style="padding:6px 11px;font-size:12px;">↻</button>
     </div>
-    <div class="login-field">
-      <div class="login-label">Password</div>
-      <input class="login-input" type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
+  </div>
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-label">Revenue</div><div class="stat-value" id="statRevenue" style="color:#22c55e;">—</div><div class="stat-sub" id="statRevSub">USD</div><div style="font-size:10px;color:#52525b;margin-top:3px;" id="statRevLocal"></div></div>
+    <div class="stat-card"><div class="stat-label">Orders</div><div class="stat-value" id="statOrders" style="color:#60a5fa;">—</div><div class="stat-sub" id="statOrdSub">Paid / confirmed</div></div>
+    <div class="stat-card"><div class="stat-label">Visitors</div><div class="stat-value" id="statVisits">—</div><div class="stat-sub">Sessions</div></div>
+    <div class="stat-card"><div class="stat-label">Conv. Rate</div><div class="stat-value" id="statConv" style="color:#a78bfa;">—</div><div class="stat-sub">Orders / visits</div></div>
+    <div class="stat-card"><div class="stat-label">Avg Order</div><div class="stat-value" id="statAOV">—</div><div class="stat-sub">Per paid order</div></div>
+    <div class="stat-card"><div class="stat-label">Pending</div><div class="stat-value" id="statPending" style="color:#f59e0b;">—</div><div class="stat-sub">Awaiting payment</div></div>
+  </div>
+  <!-- Revenue chart -->
+  <div class="card" style="padding:16px;margin-bottom:12px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <span style="font-size:13px;font-weight:700;">Revenue over time</span>
+      <div style="display:flex;gap:4px;">
+        <button class="ftab active" onclick="setChartPeriod('7d',this)">7d</button>
+        <button class="ftab" onclick="setChartPeriod('30d',this)">30d</button>
+        <button class="ftab" onclick="setChartPeriod('90d',this)">90d</button>
+      </div>
     </div>
-    <button class="login-btn" id="loginBtn" onclick="doLogin()">Sign In →</button>
-    <div class="login-err" id="loginErr">Incorrect credentials. Please try again.</div>
+    <div class="chart-wrap"><canvas id="revenueChart"></canvas></div>
+    <div style="display:flex;gap:14px;margin-top:10px;">
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#a1a1aa;"><span style="width:10px;height:10px;border-radius:2px;background:#22c55e;display:block;"></span>Revenue</div>
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#a1a1aa;"><span style="width:10px;height:10px;border-radius:2px;background:#3b82f6;display:block;"></span>Orders</div>
+    </div>
+  </div>
+  <!-- P&L -->
+  <div class="card" style="padding:16px;margin-bottom:12px;">
+    <div style="font-size:13px;font-weight:700;margin-bottom:12px;">Profit &amp; Loss</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
+      <div style="text-align:center;padding:11px 6px;background:#18181d;border-radius:11px;">
+        <div style="font-size:9px;font-weight:700;color:#52525b;text-transform:uppercase;margin-bottom:5px;">Revenue</div>
+        <div style="font-size:16px;font-weight:800;color:#22c55e;" id="plRevenue">—</div>
+      </div>
+      <div style="text-align:center;padding:11px 6px;background:#18181d;border-radius:11px;">
+        <div style="font-size:9px;font-weight:700;color:#52525b;text-transform:uppercase;margin-bottom:5px;">Est. COGS</div>
+        <div style="font-size:16px;font-weight:800;color:#ef4444;" id="plCogs">—</div>
+      </div>
+      <div style="text-align:center;padding:11px 6px;background:#18181d;border-radius:11px;">
+        <div style="font-size:9px;font-weight:700;color:#52525b;text-transform:uppercase;margin-bottom:5px;">Profit</div>
+        <div style="font-size:16px;font-weight:800;" id="plProfit">—</div>
+      </div>
+    </div>
+    <div class="chart-wrap"><canvas id="plChart"></canvas></div>
+    <div style="font-size:10px;color:#3f3f46;margin-top:6px;text-align:center;">COGS estimated at 40% of revenue. Adjust in Settings.</div>
+  </div>
+  <!-- Recent orders -->
+  <div class="card" style="margin-bottom:12px;">
+    <div style="padding:13px 16px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-size:13px;font-weight:700;">Recent Orders</span>
+      <button class="btn btn-g" onclick="navigate('orders')" style="font-size:12px;padding:5px 10px;">View all</button>
+    </div>
+    <div id="recentOrdersList"></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+    <div class="card"><div style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,0.06);font-size:12px;font-weight:700;">Countries</div><div id="topCountries" style="padding:4px 0;"></div></div>
+    <div class="card"><div style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,0.06);font-size:12px;font-weight:700;">Traffic</div><div id="topReferrers" style="padding:4px 0;"></div></div>
+  </div>
+  <div class="card" style="padding:16px;">
+    <div style="font-size:13px;font-weight:700;margin-bottom:12px;">Conversion Funnel</div>
+    <div id="funnelChart"></div>
   </div>
 </div>
 
-<!-- ══ MAIN APP ══ -->
-<div id="app">
-  <!-- Top Nav -->
-  <header class="top-nav">
-    <div class="nav-brand">
-      <div class="nav-brand-icon">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><path d="M12 2a10 10 0 0 1 10 10c0 2-1 4-3 5-1 1-2 2-2 3v1H7v-1c0-1-1-2-2-3C3 16 2 14 2 12A10 10 0 0 1 12 2z"/></svg>
+<!-- ORDERS -->
+<div class="section" id="section-orders">
+  <div class="shdg">
+    <span class="stitle">Orders</span>
+    <button class="dpill" onclick="openDatePicker()"><svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="11" rx="1.5" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M5 1.5v3M11 1.5v3M2 7h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><span id="ordersDateLabel">All time</span></button>
+  </div>
+  <div style="display:flex;gap:5px;margin-bottom:10px;flex-wrap:wrap;">
+    <button class="ftab active" onclick="filterOrders('all',this)">All</button>
+    <button class="ftab" onclick="filterOrders('paid',this)">Paid</button>
+    <button class="ftab" onclick="filterOrders('confirmed',this)">Confirmed</button>
+    <button class="ftab" onclick="filterOrders('shipped',this)">Shipped</button>
+    <button class="ftab" onclick="filterOrders('pending_checkout',this)">Pending</button>
+    <button class="ftab" onclick="filterOrders('failed',this)">Failed</button>
+    <button class="ftab" onclick="filterOrders('refunded',this)">Refunded</button>
+  </div>
+  <input class="inp" id="orderSearch" placeholder="Search email, name, order ID…" oninput="filterOrderSearch(this.value)" style="margin-bottom:10px;">
+  <div class="card" id="ordersListEl"></div>
+</div>
+
+<!-- CUSTOMERS -->
+<div class="section" id="section-customers">
+  <div class="shdg"><span class="stitle">Customers</span><span class="badge bb" id="custCount">—</span></div>
+  <input class="inp" id="custSearch" placeholder="Search name or email…" oninput="filterCustomers(this.value)" style="margin-bottom:10px;">
+  <div class="card" id="customersListEl"></div>
+</div>
+
+<!-- ANALYTICS -->
+<div class="section" id="section-analytics">
+  <div class="shdg"><span class="stitle">Analytics</span><button class="dpill" onclick="openDatePicker()"><svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="11" rx="1.5" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M5 1.5v3M11 1.5v3M2 7h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>All time</button></div>
+  <div class="card" style="padding:16px;margin-bottom:12px;"><div style="font-size:13px;font-weight:700;margin-bottom:12px;">Daily Visits (30d)</div><div class="chart-wrap"><canvas id="visitsChart"></canvas></div></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+    <div class="card" style="padding:14px;"><div style="font-size:12px;font-weight:700;margin-bottom:10px;">Devices</div><div class="chart-wrap"><canvas id="deviceChart"></canvas></div></div>
+    <div class="card" style="padding:14px;"><div style="font-size:12px;font-weight:700;margin-bottom:10px;">Currencies</div><div class="chart-wrap"><canvas id="currencyChart"></canvas></div></div>
+  </div>
+  <div class="card" style="padding:16px;margin-bottom:12px;"><div style="font-size:13px;font-weight:700;margin-bottom:12px;">Revenue by Country</div><div class="chart-wrap"><canvas id="countryRevChart"></canvas></div></div>
+  <div class="card" style="padding:16px;margin-bottom:12px;"><div style="font-size:13px;font-weight:700;margin-bottom:10px;">Click Events</div><div id="clickEventsEl"></div></div>
+  <div class="card" style="padding:16px;"><div style="font-size:13px;font-weight:700;margin-bottom:10px;">Raw Analytics</div><pre id="rawAnalytics" style="font-size:10px;color:#71717a;white-space:pre-wrap;word-break:break-all;max-height:200px;overflow-y:auto;line-height:1.6;"></pre></div>
+</div>
+
+<!-- VISITS -->
+<div class="section" id="section-visits">
+  <div class="shdg"><span class="stitle">Visits</span><span class="badge bb" id="visitsCount">—</span></div>
+  <div class="card" id="visitsListEl"></div>
+</div>
+
+<!-- ABANDONED -->
+<div class="section" id="section-abandoned">
+  <div class="shdg"><span class="stitle">Abandoned Carts</span><span class="badge by" id="abandonedCount">—</span></div>
+  <div class="card" id="abandonedListEl"></div>
+</div>
+
+<!-- DEVICES -->
+<div class="section" id="section-devices">
+  <div class="shdg"><span class="stitle">Devices</span><span class="badge bgy" id="devicesCount">—</span></div>
+  <div class="card" id="devicesListEl"></div>
+</div>
+
+<!-- MESSAGING -->
+<div class="section" id="section-messaging">
+  <div class="shdg"><span class="stitle">Messaging</span></div>
+  <div class="card" style="padding:16px;margin-bottom:12px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <div style="width:32px;height:32px;background:rgba(139,92,246,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1.5a5 5 0 0 1 5 5v2.5l1 2H2l1-2V6.5a5 5 0 0 1 5-5Z" stroke="#8b5cf6" stroke-width="1.4" fill="none"/><path d="M6.5 13.5a1.5 1.5 0 0 0 3 0" stroke="#8b5cf6" stroke-width="1.4" fill="none"/></svg>
+      </div>
+      <div><div style="font-size:14px;font-weight:700;">Push Notifications</div><div style="font-size:11px;color:#52525b;"><span id="pushSubCountInline">—</span> subscribers</div></div>
+    </div>
+    <div class="frow">
+      <div><label class="flabel">Title</label><input class="inp" id="pushTitle" placeholder="e.g. Limited Time Offer 🔥"></div>
+      <div><label class="flabel">Message</label><textarea class="inp" id="pushBody" rows="3" placeholder="Your message here…"></textarea></div>
+      <div><label class="flabel">Link URL</label><input class="inp" id="pushUrl" placeholder="https://minimisty.store/"></div>
+      <div><label class="flabel">Target</label>
+        <select class="inp" id="pushTarget">
+          <option value="all">All subscribers</option>
+          <option value="abandoned">Abandoned cart only</option>
+          <option value="customers">Customers (ordered)</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-g" style="flex:1;" onclick="previewPush()">Preview</button>
+        <button class="btn btn-v" style="flex:1;" onclick="sendPushNotification()">Send Push</button>
+      </div>
+      <div id="pushStatus" style="font-size:11px;color:#52525b;min-height:14px;text-align:center;"></div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:12px;">
+    <div style="padding:13px 16px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-size:13px;font-weight:700;">Push Subscribers</span>
+      <span class="badge bp" id="pushSubCount">—</span>
+    </div>
+    <div id="pushSubscriberList" style="padding:4px 0;max-height:260px;overflow-y:auto;"></div>
+  </div>
+  <div class="card" style="padding:16px;margin-bottom:12px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <div style="width:32px;height:32px;background:rgba(59,130,246,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="10" rx="1.5" stroke="#3b82f6" stroke-width="1.4" fill="none"/><path d="M2 5l6 4 6-4" stroke="#3b82f6" stroke-width="1.4" stroke-linecap="round" fill="none"/></svg>
+      </div>
+      <div><div style="font-size:14px;font-weight:700;">Send Email</div><div style="font-size:11px;color:#52525b;">Direct to customer</div></div>
+    </div>
+    <div class="frow">
+      <div><label class="flabel">To</label><input class="inp" id="emailTo" placeholder="customer@email.com" type="email"></div>
+      <div><label class="flabel">Subject</label><input class="inp" id="emailSubject" placeholder="Your order update…"></div>
+      <div><label class="flabel">Message</label><textarea class="inp" id="emailBody" rows="4" placeholder="Write your message…"></textarea></div>
+      <div><label class="flabel">Quick Fill</label>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          <button class="btn btn-g" style="font-size:11px;padding:4px 9px;" onclick="quickFillEmail('abandoned')">Abandoned</button>
+          <button class="btn btn-g" style="font-size:11px;padding:4px 9px;" onclick="quickFillEmail('confirm')">Confirm</button>
+          <button class="btn btn-g" style="font-size:11px;padding:4px 9px;" onclick="quickFillEmail('shipped')">Shipped</button>
+          <button class="btn btn-g" style="font-size:11px;padding:4px 9px;" onclick="quickFillEmail('promo')">Promo</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-g" style="flex:1;" onclick="previewEmail()">Preview</button>
+        <button class="btn btn-p" style="flex:1;" onclick="sendEmail()">Send Email</button>
+      </div>
+      <div id="emailStatus" style="font-size:11px;color:#52525b;min-height:14px;text-align:center;"></div>
+    </div>
+  </div>
+  <div class="card" style="padding:16px;">
+    <div style="font-size:14px;font-weight:700;margin-bottom:3px;">Broadcast Email</div>
+    <div style="font-size:12px;color:#52525b;margin-bottom:13px;">Send to all captured emails or a segment</div>
+    <div class="frow">
+      <div><label class="flabel">Subject</label><input class="inp" id="broadcastSubject" placeholder="Big news from MINIMISTY 🎉"></div>
+      <div><label class="flabel">Segment</label>
+        <select class="inp" id="broadcastSegment">
+          <option value="all">All customers</option>
+          <option value="abandoned">Abandoned carts only</option>
+          <option value="ordered">Customers with orders</option>
+        </select>
+      </div>
+      <div><label class="flabel">Message</label><textarea class="inp" id="broadcastBody" rows="3" placeholder="Write your broadcast…"></textarea></div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button class="btn btn-p" onclick="sendBroadcast()">Send Broadcast</button>
+        <span id="broadcastStatus" style="font-size:12px;color:#52525b;"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="section" id="section-settings">
+  <div class="shdg"><span class="stitle">Settings</span></div>
+  <div class="card" style="padding:16px;margin-bottom:12px;">
+    <div style="font-size:14px;font-weight:700;margin-bottom:13px;">Firebase Configuration</div>
+    <div class="frow">
+      <div><label class="flabel">Database URL</label><input class="inp" id="cfgDbUrl" value="https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com"></div>
+      <div><label class="flabel">API Key</label><input class="inp" id="cfgApiKey" value="AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo"></div>
+      <div><label class="flabel">Project ID</label><input class="inp" id="cfgProjectId" value="itzhoyoo-f9f7e"></div>
+      <button class="btn btn-p" onclick="toast('Settings saved','success')">Save &amp; Reconnect</button>
+    </div>
+  </div>
+  <div class="card" style="padding:16px;margin-bottom:12px;">
+    <div style="font-size:14px;font-weight:700;margin-bottom:13px;">Dashboard Settings</div>
+    <div class="frow">
+      <div><label class="flabel">Store Name</label><input class="inp" id="cfgStoreName" value="MINIMISTY"></div>
+      <div><label class="flabel">COGS % (for P&amp;L)</label><input class="inp" id="cfgCogs" type="number" value="40" min="0" max="100"></div>
+      <div><label class="flabel">Auto-refresh (seconds)</label><input class="inp" id="cfgRefreshInterval" type="number" value="30"></div>
+      <button class="btn btn-p" onclick="saveDashSettings()">Save Settings</button>
+    </div>
+  </div>
+  <div class="card" style="padding:16px;">
+    <div style="font-size:14px;font-weight:700;margin-bottom:3px;">Discount Codes</div>
+    <div style="font-size:12px;color:#52525b;margin-bottom:13px;">Create promo codes for checkout</div>
+    <div class="frow">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div><label class="flabel">Code</label><input class="inp" id="newCodeId" placeholder="SUMMER20" style="text-transform:uppercase;"></div>
+        <div><label class="flabel">Type</label><select class="inp" id="newCodeType"><option value="pct">% Off</option><option value="fixed">Fixed $</option></select></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div><label class="flabel">Value</label><input class="inp" id="newCodeVal" type="number" placeholder="20"></div>
+        <div><label class="flabel">Max Uses</label><input class="inp" id="newCodeMax" type="number" placeholder="100"></div>
+      </div>
+      <button class="btn btn-p" onclick="createDiscountCode()">Create Code</button>
+      <div id="codeStatus" style="font-size:11px;color:#52525b;min-height:14px;text-align:center;"></div>
+    </div>
+    <div class="divider"></div>
+    <div id="existingCodes"></div>
+  </div>
+</div>
+
+  </div></div>
+</div><!-- /app -->
+
+<!-- SIDEBAR -->
+<div id="sb-overlay" onclick="closeSidebar()"></div>
+<nav id="sidebar">
+  <div class="sb-hdr">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="width:32px;height:32px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2L14 5.5V10.5L8 14L2 10.5V5.5L8 2Z" fill="white"/></svg>
       </div>
       <div>
-        <div class="nav-brand-text">MINIMISTY<span>.store</span></div>
-        <div class="nav-badge">Admin</div>
+        <div style="font-size:14px;font-weight:800;color:#f0f0f5;">MINIMISTY</div>
+        <div style="font-size:10px;color:#3f3f46;font-weight:600;">Admin Dashboard</div>
       </div>
     </div>
-    <div class="nav-right">
-      <div class="nav-icon-btn" onclick="refreshData()" style="position:relative;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-      </div>
-      <div class="nav-icon-btn" onclick="doLogout()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-      </div>
-    </div>
-  </header>
+  </div>
+  <div class="sb-nav">
+    <button class="sb-item active" id="sb-overview" onclick="navigate('overview');closeSidebar();">
+      <svg width="17" height="17" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5" height="5" rx="1.2" fill="currentColor"/><rect x="9" y="2" width="5" height="5" rx="1.2" fill="currentColor"/><rect x="2" y="9" width="5" height="5" rx="1.2" fill="currentColor"/><rect x="9" y="9" width="5" height="5" rx="1.2" fill="currentColor"/></svg>
+      Overview
+    </button>
+    <button class="sb-item" id="sb-orders" onclick="navigate('orders');closeSidebar();">
+      <svg width="17" height="17" viewBox="0 0 16 16" fill="none"><path d="M3 2h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.4" fill="none"/><path d="M5 6h6M5 9h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      Orders
+      <span class="sb-badge" id="ordersNavBadge" style="display:none;">0</span>
+    </button>
+    <button class="sb-item" id="sb-customers" onclick="navigate('customers');closeSidebar();">
+      <svg width="17" height="17" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5.5" r="2.5" fill="currentColor"/><path d="M2.5 13c0-3.038 2.462-5.5 5.5-5.5s5.5 2.462 5.5 5.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" fill="none"/></svg>
+      Customers
+    </button>
+    <div class="sb-lbl">Data</div>
+    <button class="sb-item" id="sb-analytics" onclick="navigate('analytics');closeSidebar();">
+      <svg width="17" height="17" viewBox="0 0 16 16" fill="none"><path d="M2 12l3.5-4 3 2 2.5-5 3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+      Analytics
+    </button>
+    <button class="sb-item" id="sb-visits" onclick="navigate('visits');closeSidebar();">
+      <svg width="17" height="17" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.4" fill="none"/><path d="M8 4v4l2.5 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" fill="none"/></svg>
+      Visits
+    </button>
+    <button class="sb-item" id="sb-abandoned" onclick="navigate('abandoned');closeSidebar();">
+      <svg width="17" height="17" viewBox="0 0 16 16" fill="none"><path d="M3 4h10l-1 7H4L3 4Z" stroke="currentColor" stroke-width="1.4" fill="none"/><circle cx="6" cy="13.5" r="1" fill="currentColor"/><circle cx="10" cy="13.5" r="1" fill="currentColor"/><path d="M1 2h2l.5 2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" fill="none"/></svg>
+      Abandoned Carts
+    </button>
+    <button class="sb-item" id="sb-devices" onclick="navigate('devices');closeSidebar();">
+      <svg width="17" height="17" viewBox="0 0 16 16" fill="none"><rect x="3" y="2" width="10" height="12" rx="2" stroke="currentColor" stroke-width="1.4" fill="none"/><circle cx="8" cy="11.5" r=".75" fill="currentColor"/></svg>
+      Devices
+    </button>
+    <div class="sb-lbl">Communication</div>
+    <button class="sb-item" id="sb-messaging" onclick="navigate('messaging');closeSidebar();">
+      <svg width="17" height="17" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="8" rx="1.5" stroke="currentColor" stroke-width="1.4" fill="none"/><path d="M2 5l6 4 6-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" fill="none"/></svg>
+      Messaging
+    </button>
+    <div class="sb-lbl">System</div>
+    <button class="sb-item" id="sb-settings" onclick="navigate('settings');closeSidebar();">
+      <svg width="17" height="17" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2" fill="currentColor"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      Settings
+    </button>
+  </div>
+  <div class="sb-footer">
+    <button class="sb-item" onclick="loadAll();closeSidebar();" style="color:#52525b;">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.39-3.61" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" fill="none"/><path d="M12 2v3h-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" fill="none"/></svg>
+      Refresh all data
+    </button>
+  </div>
+</nav>
 
-  <!-- Pages -->
-  <div class="page-content">
-
-    <!-- ── DASHBOARD ── -->
-    <div class="page active" id="page-dashboard">
-      <div class="section-title">Dashboard</div>
-      <div class="section-sub" id="dashDate">Loading…</div>
-
-      <div class="stats-grid">
-        <div class="stat-card" style="--accent:var(--lime)">
-          <div class="stat-label">Revenue</div>
-          <div class="stat-value mono" id="statRevenue">—</div>
-          <div class="stat-change up" id="statRevenueChange">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>
-            <span>Loading…</span>
-          </div>
-        </div>
-        <div class="stat-card" style="--accent:var(--cyan)">
-          <div class="stat-label">Orders</div>
-          <div class="stat-value" id="statOrders">—</div>
-          <div class="stat-change up" id="statOrdersChange">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>
-            <span>Loading…</span>
-          </div>
-        </div>
-        <div class="stat-card" style="--accent:var(--purple)">
-          <div class="stat-label">Customers</div>
-          <div class="stat-value" id="statCustomers">—</div>
-          <div class="stat-change up"><span>All time</span></div>
-        </div>
-        <div class="stat-card" style="--accent:var(--yellow)">
-          <div class="stat-label">Avg Order</div>
-          <div class="stat-value mono" id="statAvg">—</div>
-          <div class="stat-change up"><span>Per order</span></div>
-        </div>
-      </div>
-
-      <div class="chart-card">
-        <div class="chart-title">Revenue (Last 7 Days)</div>
-        <div class="chart-sub" id="chartTotal">Loading chart…</div>
-        <div class="chart-wrap">
-          <div class="chart-bars" id="revenueChart"></div>
-        </div>
-      </div>
-
-      <div class="chart-card">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-          <div class="chart-title">Top Countries</div>
-        </div>
-        <div class="chart-sub">By order volume</div>
-        <div id="countriesChart"></div>
-      </div>
-
-      <div class="chart-card">
-        <div class="chart-title">Recent Orders</div>
-        <div class="chart-sub">Last 5 transactions</div>
-        <div id="recentOrdersList"></div>
-      </div>
-    </div>
-
-    <!-- ── ORDERS ── -->
-    <div class="page" id="page-orders">
-      <div class="section-title">Orders</div>
-      <div class="section-sub" id="ordersCount">Loading…</div>
-
-      <div class="search-bar">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" placeholder="Search name, email, order ID…" id="orderSearch" oninput="filterOrders()" style="-webkit-user-select:text;user-select:text;">
-      </div>
-
-      <div class="filter-chips">
-        <div class="chip active" onclick="setOrderFilter('all',this)">All</div>
-        <div class="chip" onclick="setOrderFilter('paid',this)">Paid</div>
-        <div class="chip" onclick="setOrderFilter('shipped',this)">Shipped</div>
-        <div class="chip" onclick="setOrderFilter('pending',this)">Pending</div>
-        <div class="chip" onclick="setOrderFilter('refunded',this)">Refunded</div>
-      </div>
-
-      <div id="ordersList"></div>
-    </div>
-
-    <!-- ── CUSTOMERS ── -->
-    <div class="page" id="page-customers">
-      <div class="section-title">Customers</div>
-      <div class="section-sub" id="customersCount">Loading…</div>
-
-      <div class="search-bar">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" placeholder="Search name or email…" id="customerSearch" oninput="filterCustomers()" style="-webkit-user-select:text;user-select:text;">
-      </div>
-
-      <div id="customersList"></div>
-    </div>
-
-    <!-- ── ABANDONED CARTS ── -->
-    <div class="page" id="page-abandoned">
-      <div class="section-title">Abandoned Carts</div>
-      <div class="section-sub" id="abandonedCount">Loading…</div>
-
-      <div class="search-bar">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" placeholder="Search name or email…" id="abandonedSearch" oninput="filterAbandoned()" style="-webkit-user-select:text;user-select:text;">
-      </div>
-
-      <div id="abandonedList"></div>
-    </div>
-
-    <!-- ── SETTINGS ── -->
-    <div class="page" id="page-settings">
-      <div class="section-title">Settings</div>
-      <div class="section-sub">Store & admin configuration</div>
-
-      <!-- Credentials info -->
-      <div class="push-card" style="margin-bottom:16px;">
-        <div class="push-title-row">
-          <div class="push-icon" style="background:linear-gradient(135deg,var(--cyan),var(--purple));">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          </div>
-          <div>
-            <div class="push-card-title">Admin Credentials</div>
-            <div class="push-card-sub">Set via Vercel env vars at deploy time</div>
-          </div>
-        </div>
-        <div class="analytics-row" style="margin-bottom:8px;">
-          <div class="analytics-label" style="font-size:0.78rem;color:var(--text-muted);">EMAIL_API_KEY</div>
-          <div id="settingsEmail" style="font-family:var(--mono);font-size:0.75rem;color:var(--cyan);">—</div>
-        </div>
-        <div class="analytics-row">
-          <div class="analytics-label" style="font-size:0.78rem;color:var(--text-muted);">PASSWORD_API_KEY</div>
-          <div style="font-family:var(--mono);font-size:0.75rem;color:var(--text-muted);">••••••••</div>
-        </div>
-        <div style="margin-top:12px;padding:10px 12px;background:rgba(77,184,212,0.08);border:1px solid rgba(77,184,212,0.2);border-radius:10px;font-size:0.75rem;color:var(--text-muted);line-height:1.5;">
-          Set <strong style="color:var(--cyan);">EMAIL_API_KEY</strong> and <strong style="color:var(--cyan);">PASSWORD_API_KEY</strong> in your Vercel project's Environment Variables. Redeploy to apply.
-        </div>
-      </div>
-
-      <!-- Firebase config -->
-      <div class="push-card" style="margin-bottom:16px;">
-        <div class="push-title-row">
-          <div class="push-icon" style="background:linear-gradient(135deg,var(--yellow),var(--orange));">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-          </div>
-          <div>
-            <div class="push-card-title">Firebase Database</div>
-            <div class="push-card-sub">Real-time data connection</div>
-          </div>
-        </div>
-        <div class="analytics-row" style="margin-bottom:8px;">
-          <div class="analytics-label" style="font-size:0.78rem;color:var(--text-muted);">Project</div>
-          <div style="font-family:var(--mono);font-size:0.7rem;color:var(--lime);">itzhoyoo-f9f7e</div>
-        </div>
-        <div class="analytics-row">
-          <div class="analytics-label" style="font-size:0.78rem;color:var(--text-muted);">Status</div>
-          <div id="fbStatus" style="font-size:0.78rem;font-weight:700;color:var(--lime);">● Connected</div>
-        </div>
-      </div>
-
-      <!-- OneSignal config (duplicated here for convenience) -->
-      <div class="push-card" style="margin-bottom:16px;">
-        <div class="push-title-row">
-          <div class="push-icon" style="background:var(--bg4);border:1.5px solid var(--border2);">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07"/></svg>
-          </div>
-          <div>
-            <div class="push-card-title">OneSignal Push</div>
-            <div class="push-card-sub">Required for push notifications</div>
-          </div>
-        </div>
-        <div class="push-field">
-          <div class="push-label">App ID</div>
-          <input class="push-input" id="settingsOnesignalAppId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" style="-webkit-user-select:text;user-select:text;">
-        </div>
-        <div class="push-field">
-          <div class="push-label">REST API Key</div>
-          <input class="push-input" id="settingsOnesignalKey" type="password" placeholder="os_v2_app_…" style="-webkit-user-select:text;user-select:text;">
-        </div>
-        <button class="btn btn-primary" onclick="saveSettingsOnesignal()">Save OneSignal Config</button>
-      </div>
-
-      <!-- Danger zone -->
-      <div class="push-card" style="border-color:var(--red);margin-bottom:16px;">
-        <div class="push-title-row">
-          <div class="push-icon" style="background:rgba(224,85,85,0.12);">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          </div>
-          <div>
-            <div class="push-card-title" style="color:var(--red);">Danger Zone</div>
-            <div class="push-card-sub">Irreversible actions</div>
-          </div>
-        </div>
-        <button class="btn btn-red" onclick="doLogout()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-          Sign Out
-        </button>
-      </div>
-
-      <!-- App version -->
-      <div style="text-align:center;font-size:0.68rem;color:var(--text-faint);padding:8px 0 24px;">MINIMISTY Admin v2.0 · Built on Firebase + Vercel</div>
-    </div>
-
-    <!-- ── PUSH / EMAIL ── -->
-    <div class="page" id="page-notify">
-      <div class="section-title">Notify</div>
-      <div class="section-sub">Send push notifications & email blasts</div>
-
-      <!-- Push Preview -->
-      <div class="push-card">
-        <div class="push-title-row">
-          <div class="push-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          </div>
-          <div>
-            <div class="push-card-title">Push Notification</div>
-            <div class="push-card-sub">Sends via OneSignal (configure below)</div>
-          </div>
-        </div>
-
-        <div class="notif-preview" id="notifPreview">
-          <div class="notif-preview-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><path d="M12 2a10 10 0 0 1 10 10c0 2-1 4-3 5-1 1-2 2-2 3v1H7v-1c0-1-1-2-2-3C3 16 2 14 2 12A10 10 0 0 1 12 2z"/></svg>
-          </div>
-          <div>
-            <div class="notif-preview-title" id="previewTitle">MINIMISTY.store</div>
-            <div class="notif-preview-body" id="previewBody">Your notification preview will appear here…</div>
-          </div>
-        </div>
-
-        <div class="push-field">
-          <div class="push-label">Title</div>
-          <input class="push-input" id="pushTitle" placeholder="e.g. Flash Sale — 24 hours only!" oninput="updatePreview()" style="-webkit-user-select:text;user-select:text;">
-        </div>
-        <div class="push-field">
-          <div class="push-label">Message</div>
-          <textarea class="push-textarea" id="pushBody" placeholder="e.g. Get 20% off your next order with code SAVE20 🎉" oninput="updatePreview()" style="-webkit-user-select:text;user-select:text;"></textarea>
-        </div>
-        <div class="push-field">
-          <div class="push-label">Target URL (optional)</div>
-          <input class="push-input" id="pushUrl" placeholder="https://minimisty.store" style="-webkit-user-select:text;user-select:text;">
-        </div>
-        <div class="push-field">
-          <div class="push-label">Audience</div>
-          <select class="push-select" id="pushAudience">
-            <option value="all">All Subscribers</option>
-            <option value="subscribed">Subscribed (opted in)</option>
-            <option value="customers">Customers only</option>
-          </select>
-        </div>
-        <button class="btn btn-primary" onclick="sendPush()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-          Send Push Notification
-        </button>
-      </div>
-
-      <!-- Email Blast -->
-      <div class="push-card">
-        <div class="push-title-row">
-          <div class="push-icon" style="background:linear-gradient(135deg,var(--yellow),var(--orange));">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-          </div>
-          <div>
-            <div class="push-card-title">Email Blast</div>
-            <div class="push-card-sub">Send via /api/send-email endpoint</div>
-          </div>
-        </div>
-
-        <div class="push-field">
-          <div class="push-label">Segment</div>
-          <div class="segment-grid">
-            <div class="segment-btn selected" onclick="selectSegment(this,'all')">
-              <div class="segment-btn-label">All Customers</div>
-              <div class="segment-btn-count" id="segAllCount">Loading…</div>
-            </div>
-            <div class="segment-btn" onclick="selectSegment(this,'abandoned')">
-              <div class="segment-btn-label">Abandoned Carts</div>
-              <div class="segment-btn-count" id="segAbandonedCount">Loading…</div>
-            </div>
-            <div class="segment-btn" onclick="selectSegment(this,'paid')">
-              <div class="segment-btn-label">Paid Orders</div>
-              <div class="segment-btn-count" id="segPaidCount">Loading…</div>
-            </div>
-            <div class="segment-btn" onclick="selectSegment(this,'shipped')">
-              <div class="segment-btn-label">Shipped</div>
-              <div class="segment-btn-count" id="segShippedCount">Loading…</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="push-field">
-          <div class="push-label">Subject Line</div>
-          <input class="push-input" id="emailSubject" placeholder="e.g. Your order is on the way! 🚚" style="-webkit-user-select:text;user-select:text;">
-        </div>
-        <div class="push-field">
-          <div class="push-label">Message Body</div>
-          <textarea class="push-textarea" id="emailBody" placeholder="Write your email message here…" rows="5" style="-webkit-user-select:text;user-select:text;"></textarea>
-        </div>
-        <button class="btn btn-lime" onclick="sendEmailBlast()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-          Send Email Blast
-        </button>
-      </div>
-
-      <!-- OneSignal Config -->
-      <div class="push-card" style="border-color:var(--border);">
-        <div class="push-title-row">
-          <div class="push-icon" style="background:var(--bg4);border:1.5px solid var(--border2);">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07"/></svg>
-          </div>
-          <div>
-            <div class="push-card-title">OneSignal Config</div>
-            <div class="push-card-sub">Stored locally in this browser</div>
-          </div>
-        </div>
-        <div class="push-field">
-          <div class="push-label">App ID</div>
-          <input class="push-input" id="onesignalAppId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" style="-webkit-user-select:text;user-select:text;">
-        </div>
-        <div class="push-field">
-          <div class="push-label">REST API Key</div>
-          <input class="push-input" id="onesignalKey" type="password" placeholder="os_v2_app_…" style="-webkit-user-select:text;user-select:text;">
-        </div>
-        <button class="btn btn-ghost" onclick="saveOnesignalConfig()">Save Config</button>
-      </div>
-    </div>
-
-    <!-- ── REVENUE ── -->
-    <div class="page" id="page-revenue">
-      <div class="section-title">Revenue</div>
-      <div class="section-sub">Financial overview</div>
-
-      <div class="tab-row">
-        <div class="tab active" onclick="setRevTab('7d',this)">7 Days</div>
-        <div class="tab" onclick="setRevTab('30d',this)">30 Days</div>
-        <div class="tab" onclick="setRevTab('all',this)">All Time</div>
-      </div>
-
-      <div class="stats-grid" style="margin-bottom:16px;">
-        <div class="stat-card" style="--accent:var(--lime)">
-          <div class="stat-label">Gross Revenue</div>
-          <div class="stat-value mono" id="revGross">—</div>
-        </div>
-        <div class="stat-card" style="--accent:var(--cyan)">
-          <div class="stat-label">Orders</div>
-          <div class="stat-value" id="revOrders">—</div>
-        </div>
-        <div class="stat-card" style="--accent:var(--yellow)">
-          <div class="stat-label">Avg Order</div>
-          <div class="stat-value mono" id="revAvg">—</div>
-        </div>
-        <div class="stat-card" style="--accent:var(--red)">
-          <div class="stat-label">Refunded</div>
-          <div class="stat-value mono" id="revRefunded">—</div>
-        </div>
-      </div>
-
-      <div class="chart-card">
-        <div class="chart-title">Daily Revenue</div>
-        <div class="chart-sub" id="revChartSub">—</div>
-        <div class="chart-wrap">
-          <div class="chart-bars" id="revChartBars"></div>
-        </div>
-      </div>
-
-      <div class="chart-card">
-        <div class="chart-title">Orders Breakdown</div>
-        <div class="chart-sub" style="margin-bottom:12px;">Revenue by order</div>
-        <div style="overflow-x:auto;">
-          <table class="rev-table">
-            <thead>
-              <tr>
-                <th>Order</th>
-                <th>Customer</th>
-                <th>Date</th>
-                <th>Amount</th>
-              </tr>
-            </thead>
-            <tbody id="revTable"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-  </div><!-- /page-content -->
-
-  <!-- Bottom Nav -->
-  <nav class="bottom-nav">
-    <div class="nav-item active" onclick="navTo('dashboard',this)">
-      <div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
-      <div class="nav-label">Dash</div>
-    </div>
-    <div class="nav-item" onclick="navTo('orders',this)">
-      <div class="nav-icon" style="position:relative;">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-        <div class="nav-badge-count" id="newOrdersBadge" style="display:none;"></div>
-      </div>
-      <div class="nav-label">Orders</div>
-    </div>
-    <div class="nav-item" onclick="navTo('customers',this)">
-      <div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
-      <div class="nav-label">Customers</div>
-    </div>
-    <div class="nav-item" onclick="navTo('notify',this)">
-      <div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
-      <div class="nav-label">Notify</div>
-    </div>
-    <div class="nav-item" onclick="navTo('revenue',this)">
-      <div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
-      <div class="nav-label">Revenue</div>
-    </div>
-    <div class="nav-item" onclick="navTo('abandoned',this)">
-      <div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></div>
-      <div class="nav-label">Carts</div>
-    </div>
-    <div class="nav-item" onclick="navTo('settings',this)">
-      <div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M2 12h2M20 12h2M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41"/></svg></div>
-      <div class="nav-label">Settings</div>
-    </div>
-  </nav>
+<!-- ORDER MODAL -->
+<div class="mbg" id="orderModal" style="display:none;" onclick="if(event.target===this)closeOrderModal()">
+  <div class="modal"><div class="mh"></div><div id="orderModalContent"></div></div>
 </div>
 
-<!-- ══ ORDER DETAIL SHEET ══ -->
-<div class="sheet-overlay" id="orderSheet" onclick="closeSheet(event)">
-  <div class="sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-header">
-      <div class="sheet-title" id="sheetOrderId">Order Details</div>
-      <div class="sheet-sub" id="sheetOrderDate">—</div>
+<!-- PUSH PREVIEW MODAL -->
+<div class="mbg" id="pushPreviewModal" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal">
+    <div class="mh"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <span style="font-size:14px;font-weight:700;">Push Preview</span>
+      <button class="btn btn-g" style="padding:4px 8px;font-size:11px;" onclick="document.getElementById('pushPreviewModal').style.display='none'">Close</button>
     </div>
-    <div class="sheet-body" id="sheetBody"></div>
-    <div class="sheet-actions" id="sheetActions"></div>
+    <div style="background:#18181d;border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:14px;display:flex;align-items:flex-start;gap:12px;">
+      <div style="width:36px;height:36px;background:#0a0a0c;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid rgba(255,255,255,0.08);">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M8 2L14 5.5V10.5L8 14L2 10.5V5.5L8 2Z" fill="#3b82f6"/></svg>
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:700;" id="pushPreviewTitle">Your title</div>
+        <div style="font-size:12px;color:#a1a1aa;margin-top:3px;line-height:1.4;" id="pushPreviewBody">Your message body</div>
+        <div style="font-size:10px;color:#52525b;margin-top:5px;">MINIMISTY.store · now</div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:#52525b;margin-top:12px;text-align:center;">How it appears on iOS / Android lock screen</div>
   </div>
 </div>
 
-<!-- ══ TOAST ══ -->
-<div id="toast">
-  <div class="spinner" id="toastSpinner" style="display:none;"></div>
-  <span id="toastMsg"></span>
+<!-- EMAIL PREVIEW MODAL -->
+<div class="mbg" id="emailPreviewModal" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal">
+    <div class="mh"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <span style="font-size:14px;font-weight:700;">Email Preview</span>
+      <button class="btn btn-g" style="padding:4px 8px;font-size:11px;" onclick="document.getElementById('emailPreviewModal').style.display='none'">Close</button>
+    </div>
+    <div style="background:#fff;border-radius:12px;padding:18px;color:#111;">
+      <div style="font-size:11px;color:#888;margin-bottom:3px;">To: <span id="epTo" style="color:#111;"></span></div>
+      <div style="font-size:11px;color:#888;margin-bottom:13px;border-bottom:1px solid #eee;padding-bottom:10px;">Subject: <span id="epSubject" style="color:#111;font-weight:700;"></span></div>
+      <div style="font-family:Georgia,serif;font-size:14px;line-height:1.7;color:#222;white-space:pre-wrap;" id="epBody"></div>
+      <div style="margin-top:16px;padding-top:11px;border-top:1px solid #eee;font-size:11px;color:#aaa;">MINIMISTY.store — Admin Dashboard</div>
+    </div>
+  </div>
+</div>
+
+<!-- DATE PICKER MODAL -->
+<div class="mbg" id="datePickerModal" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal">
+    <div class="mh"></div>
+    <div style="font-size:14px;font-weight:700;margin-bottom:14px;">Select Date Range</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;" id="dateBtns">
+      <button class="btn btn-g" onclick="setDateRange('today',this)">Today</button>
+      <button class="btn btn-g" onclick="setDateRange('yesterday',this)">Yesterday</button>
+      <button class="btn btn-g" onclick="setDateRange('7d',this)">Last 7 days</button>
+      <button class="btn btn-g" onclick="setDateRange('30d',this)">Last 30 days</button>
+      <button class="btn btn-g" onclick="setDateRange('90d',this)">Last 90 days</button>
+      <button class="btn btn-p" onclick="setDateRange('all',this)">All time</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+      <div><label class="flabel">From</label><input type="date" class="inp" id="dateFrom"></div>
+      <div><label class="flabel">To</label><input type="date" class="inp" id="dateTo"></div>
+    </div>
+    <button class="btn btn-p" style="width:100%;" onclick="applyCustomDate()">Apply Custom Range</button>
+  </div>
 </div>
 
 <script type="module">
-// ════ FIREBASE ════
-import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
-import { getDatabase, ref, get, set, update, push, onValue, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
-
-const FB_CONFIG = {
-  apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
-  authDomain: "itzhoyoo-f9f7e.firebaseapp.com",
-  databaseURL: "https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com",
-  projectId: "itzhoyoo-f9f7e",
-  storageBucket: "itzhoyoo-f9f7e.appspot.com",
-  messagingSenderId: "247901793882",
-  appId: "1:247901793882:web:minimisty_admin"
-};
-
-const firebaseApp = getApps().length ? getApps()[0] : initializeApp(FB_CONFIG);
-const db = getDatabase(firebaseApp);
-const fbRef = (path) => ref(db, path);
-
-// ════ STATE ════
-let allOrders = {};
-let allCustomers = {};
-let allAbandoned = {};
-let analytics = {};
-let currentOrderFilter = 'all';
-let currentRevTab = '7d';
-let currentSegment = 'all';
-let selectedOrderId = null;
-
-// ════ AUTH ════
-const ADMIN_EMAIL = (typeof EMAIL_API_KEY !== 'undefined') ? EMAIL_API_KEY : '';
-const ADMIN_PASS  = (typeof PASSWORD_API_KEY !== 'undefined') ? PASSWORD_API_KEY : '';
-
-// Session fallback
-const SESSION_KEY = 'minimisty_admin_session';
-
-function isLoggedIn() {
-  try { return sessionStorage.getItem(SESSION_KEY) === 'ok'; } catch(e) { return false; }
-}
-
-window.doLogin = async function() {
-  const email = document.getElementById('loginEmail').value.trim();
-  const pass  = document.getElementById('loginPass').value.trim();
-  const btn   = document.getElementById('loginBtn');
-  const err   = document.getElementById('loginErr');
-
-  err.style.display = 'none';
-  btn.classList.add('loading');
-  btn.textContent = 'Signing in…';
-
-  await new Promise(r => setTimeout(r, 600)); // UX feel
-
-  // Wait for /api/config fetch to complete (max 5s) before comparing creds
-  if (!window.__CREDS_READY) {
-    await new Promise(resolve => {
-      const t = setInterval(() => { if (window.__CREDS_READY) { clearInterval(t); resolve(); } }, 100);
-      setTimeout(() => { clearInterval(t); resolve(); }, 5000);
-    });
-  }
-
-  const targetEmail = window.__ADMIN_EMAIL || 'admin@minimisty.store';
-  const targetPass  = window.__ADMIN_PASS  || 'minimisty2024';
-
-  if (email === targetEmail && pass === targetPass) {
-    try { sessionStorage.setItem(SESSION_KEY, 'ok'); } catch(e) {}
-    document.getElementById('loginScreen').style.opacity = '0';
-    document.getElementById('loginScreen').style.transform = 'scale(0.95)';
-    document.getElementById('loginScreen').style.transition = 'all 0.3s ease';
-    setTimeout(() => {
-      document.getElementById('loginScreen').style.display = 'none';
-      document.getElementById('app').classList.add('visible');
-      initApp();
-    }, 300);
-  } else {
-    btn.classList.remove('loading');
-    btn.textContent = 'Sign In →';
-    err.style.display = 'block';
-    document.getElementById('loginPass').value = '';
-  }
-};
-
-// Allow Enter key on login
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && document.getElementById('loginScreen').style.display !== 'none') {
-    doLogin();
-  }
-});
-
-window.doLogout = function() {
-  try { sessionStorage.removeItem(SESSION_KEY); } catch(e) {}
-  location.reload();
-};
-
-// Auto-login if session active
-if (isLoggedIn()) {
-  document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('app').classList.add('visible');
-  initApp();
-}
-
-// ════ NAVIGATION ════
-window.navTo = function(page, el) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('page-' + page).classList.add('active');
-  el.classList.add('active');
-  document.querySelector('.page-content').scrollTop = 0;
-};
-
-// ════ INIT ════
-async function initApp() {
-  const now = new Date();
-  document.getElementById('dashDate').textContent = now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
-
-  // Load OneSignal config
-  try {
-    const appId = localStorage.getItem('onesignal_app_id') || '';
-    const key   = localStorage.getItem('onesignal_key') || '';
-    if (appId) document.getElementById('onesignalAppId').value = appId;
-    if (key)   document.getElementById('onesignalKey').value   = key;
-  } catch(e) {}
-
-  syncSettingsPage();
-  await loadAllData();
-}
-
-// ════ LOAD DATA ════
-async function loadAllData() {
-  showToast('Syncing data…', 'loading');
-  try {
-    const [ordersSnap, customersSnap, abandonedSnap, analyticsSnap] = await Promise.all([
-      get(fbRef('orders')),
-      get(fbRef('customers')),
-      get(fbRef('abandonedCarts')),
-      get(fbRef('analytics'))
-    ]);
-
-    allOrders    = ordersSnap.exists()    ? ordersSnap.val()    : {};
-    allCustomers = customersSnap.exists() ? customersSnap.val() : {};
-    allAbandoned = abandonedSnap.exists() ? abandonedSnap.val() : {};
-    analytics    = analyticsSnap.exists() ? analyticsSnap.val() : {};
-
-    renderDashboard();
-    renderOrders();
-    renderCustomers();
-    renderAbandoned();
-    renderRevenue();
-    updateSegmentCounts();
-    syncSettingsPage();
-    hideToast();
-    showToast('Data synced ✓', 'success');
-  } catch(e) {
-    hideToast();
-    showToast('Failed to load data', 'error');
-    console.error(e);
-  }
-}
-
-window.refreshData = function() {
-  const btn = document.querySelector('.nav-icon-btn[onclick="refreshData()"] svg');
-  if (btn) btn.style.animation = 'spin 0.7s linear infinite';
-  loadAllData().finally(() => {
-    if (btn) btn.style.animation = '';
-  });
-};
-
-// ════ DASHBOARD ════
-function renderDashboard() {
-  const orders = Object.values(allOrders);
-  const paid   = orders.filter(o => o.status === 'paid' || o.status === 'shipped');
-
-  const totalRev = paid.reduce((s,o) => s + parseFloat(o.amount || o.total || 0), 0);
-  const avgOrder = paid.length ? totalRev / paid.length : 0;
-  const custCount = Object.keys(allCustomers).length;
-
-  document.getElementById('statRevenue').textContent = '$' + totalRev.toFixed(2);
-  document.getElementById('statOrders').textContent = orders.length;
-  document.getElementById('statCustomers').textContent = custCount;
-  document.getElementById('statAvg').textContent = '$' + avgOrder.toFixed(2);
-
-  // 7-day vs prior 7-day change indicators
-  const now7 = Date.now();
-  const cut7  = now7 - 7*86400000;
-  const cut14 = now7 - 14*86400000;
-  const thisWeekPaid = paid.filter(o => { const ts=o.completedAt||o.createdAt||0; const t=typeof ts==='number'?ts:(ts._seconds?ts._seconds*1000:0); return t>=cut7; });
-  const lastWeekPaid = paid.filter(o => { const ts=o.completedAt||o.createdAt||0; const t=typeof ts==='number'?ts:(ts._seconds?ts._seconds*1000:0); return t>=cut14 && t<cut7; });
-  const thisWkRev = thisWeekPaid.reduce((s,o)=>s+parseFloat(o.amount||o.total||0),0);
-  const lastWkRev = lastWeekPaid.reduce((s,o)=>s+parseFloat(o.amount||o.total||0),0);
-  const thisWkOrders = Object.values(allOrders).filter(o=>{ const ts=o.completedAt||o.createdAt||0; const t=typeof ts==='number'?ts:(ts._seconds?ts._seconds*1000:0); return t>=cut7; }).length;
-  const lastWkOrders = Object.values(allOrders).filter(o=>{ const ts=o.completedAt||o.createdAt||0; const t=typeof ts==='number'?ts:(ts._seconds?ts._seconds*1000:0); return t>=cut14&&t<cut7; }).length;
-
-  function setPctChange(elId, curr, prev) {
-    const el = document.getElementById(elId);
-    if (!el) return;
-    if (prev === 0) { el.className='stat-change up'; el.innerHTML='<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg><span>New this week</span>'; return; }
-    const pct = ((curr - prev) / prev * 100).toFixed(1);
-    const up  = curr >= prev;
-    el.className = 'stat-change ' + (up ? 'up' : 'down');
-    el.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="${up?'18 15 12 9 6 15':'6 9 12 15 18 9'}"/></svg><span>${up?'+':''}${pct}% vs last week</span>`;
-  }
-  setPctChange('statRevenueChange', thisWkRev, lastWkRev);
-  setPctChange('statOrdersChange', thisWkOrders, lastWkOrders);
-
-  // 7-day revenue chart
-  const days = [];
-  const now = Date.now();
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(now - i * 86400000);
-    const label = d.toLocaleDateString('en-US',{weekday:'short'}).charAt(0);
-    const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-    const dayEnd   = dayStart + 86400000;
-    const dayRev   = paid.filter(o => {
-      const ts = o.completedAt || o.createdAt || o.ts || 0;
-      const t  = typeof ts === 'number' ? ts : (ts._seconds ? ts._seconds * 1000 : 0);
-      return t >= dayStart && t < dayEnd;
-    }).reduce((s,o) => s + parseFloat(o.amount || o.total || 0), 0);
-    days.push({ label, rev: dayRev });
-  }
-
-  const maxRev = Math.max(...days.map(d => d.rev), 1);
-  const chartEl = document.getElementById('revenueChart');
-  chartEl.innerHTML = days.map(d => `
-    <div class="chart-bar-wrap">
-      <div class="chart-bar" style="height:${Math.max(4, (d.rev/maxRev)*110)}px"></div>
-      <div class="chart-bar-label">${d.label}</div>
-    </div>
-  `).join('');
-  document.getElementById('chartTotal').textContent = '7-day total: $' + days.reduce((s,d)=>s+d.rev,0).toFixed(2);
-
-  // Countries
-  const countryCounts = {};
-  orders.forEach(o => {
-    const c = (o.shippingAddress?.country || o.country || 'Unknown').toUpperCase();
-    countryCounts[c] = (countryCounts[c] || 0) + 1;
-  });
-  const topCountries = Object.entries(countryCounts).sort((a,b) => b[1]-a[1]).slice(0,5);
-  const maxC = topCountries[0]?.[1] || 1;
-  document.getElementById('countriesChart').innerHTML = topCountries.map(([c,n],i) => `
-    <div class="analytics-row">
-      <div class="analytics-rank" style="background:${['rgba(77,184,212,0.2)','rgba(109,189,58,0.2)','rgba(155,89,245,0.2)','rgba(212,168,67,0.2)','rgba(224,85,85,0.2)'][i]};color:${['var(--cyan)','var(--lime)','var(--purple)','var(--yellow)','var(--red)'][i]}">${i+1}</div>
-      <div class="analytics-label">${c}</div>
-      <div class="analytics-bar-wrap"><div class="analytics-bar" style="width:${(n/maxC)*100}%;background:${['var(--cyan)','var(--lime)','var(--purple)','var(--yellow)','var(--red)'][i]}"></div></div>
-      <div class="analytics-val">${n}</div>
-    </div>
-  `).join('') || '<div class="empty"><div class="empty-text">No order data yet</div></div>';
-
-  // Recent orders
-  const recent = Object.entries(allOrders).sort((a,b) => {
-    const ta = a[1].completedAt || a[1].createdAt || 0;
-    const tb = b[1].completedAt || b[1].createdAt || 0;
-    const na = typeof ta === 'number' ? ta : (ta._seconds ? ta._seconds*1000 : 0);
-    const nb = typeof tb === 'number' ? tb : (tb._seconds ? tb._seconds*1000 : 0);
-    return nb - na;
-  }).slice(0,5);
-  document.getElementById('recentOrdersList').innerHTML = recent.map(([id,o]) => orderCardHTML(id,o)).join('') ||
-    '<div class="empty"><div class="empty-text">No orders yet</div></div>';
-}
-
-// ════ ORDERS ════
-function orderCardHTML(id, o) {
-  const name   = o.customerName || o.shippingAddress?.name || 'Unknown';
-  const email  = o.customerEmail || o.email || '';
-  const amount = parseFloat(o.amount || o.total || 0).toFixed(2);
-  const status = o.status || 'pending';
-  const ts     = o.completedAt || o.createdAt || o.ts || 0;
-  const t      = typeof ts === 'number' ? ts : (ts._seconds ? ts._seconds*1000 : Date.now());
-  const date   = new Date(t).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-  return `
-    <div class="order-card" onclick="openOrderSheet('${id}')">
-      <div class="order-card-top">
-        <div class="order-id">${id.substring(0,16)}…</div>
-        <div class="order-status ${status}">${status}</div>
-      </div>
-      <div class="order-name">${name}</div>
-      <div class="order-meta">${email}</div>
-      <div class="order-card-bottom">
-        <div class="order-amount">$${amount}</div>
-        <div class="order-time">${date}</div>
-      </div>
-    </div>`;
-}
-
-function renderOrders() {
-  const count = Object.keys(allOrders).length;
-  document.getElementById('ordersCount').textContent = count + ' total order' + (count===1?'':'s');
-
-  // New orders badge — orders in last 24h
-  const since = Date.now() - 86400000;
-  const newCount = Object.values(allOrders).filter(o => {
-    const ts = o.completedAt||o.createdAt||0;
-    const t  = typeof ts==='number'?ts:(ts._seconds?ts._seconds*1000:0);
-    return t >= since;
-  }).length;
-  const badge = document.getElementById('newOrdersBadge');
-  if (badge) {
-    if (newCount > 0) { badge.textContent = newCount; badge.style.display='flex'; }
-    else              { badge.style.display='none'; }
-  }
-
-  filterOrders();
-}
-
-window.setOrderFilter = function(f, el) {
-  currentOrderFilter = f;
-  document.querySelectorAll('.filter-chips .chip').forEach(c => c.classList.remove('active'));
-  el.classList.add('active');
-  filterOrders();
-};
-
-window.filterOrders = function() {
-  const q = (document.getElementById('orderSearch').value || '').toLowerCase();
-  const entries = Object.entries(allOrders).filter(([id, o]) => {
-    const matchFilter = currentOrderFilter === 'all' || (o.status || 'pending') === currentOrderFilter;
-    const name  = (o.customerName || o.shippingAddress?.name || '').toLowerCase();
-    const email = (o.customerEmail || '').toLowerCase();
-    const matchQ = !q || name.includes(q) || email.includes(q) || id.toLowerCase().includes(q);
-    return matchFilter && matchQ;
-  }).sort((a,b) => {
-    const ta = a[1].completedAt||a[1].createdAt||0, tb = b[1].completedAt||b[1].createdAt||0;
-    const na = typeof ta==='number'?ta:(ta._seconds?ta._seconds*1000:0);
-    const nb = typeof tb==='number'?tb:(tb._seconds?tb._seconds*1000:0);
-    return nb-na;
-  });
-  document.getElementById('ordersList').innerHTML = entries.map(([id,o]) => orderCardHTML(id,o)).join('') ||
-    `<div class="empty"><svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg><div class="empty-text">No orders found</div></div>`;
-};
-
-// ════ ORDER SHEET ════
-window.openOrderSheet = function(orderId) {
-  selectedOrderId = orderId;
-  const o = allOrders[orderId];
-  if (!o) return;
-
-  const name    = o.customerName || o.shippingAddress?.name || 'Unknown';
-  const email   = o.customerEmail || o.email || '—';
-  const phone   = o.customerPhone || '—';
-  const amount  = parseFloat(o.amount || o.total || 0).toFixed(2);
-  const status  = o.status || 'pending';
-  const ts      = o.completedAt || o.createdAt || 0;
-  const t       = typeof ts === 'number' ? ts : (ts._seconds ? ts._seconds*1000 : Date.now());
-  const date    = new Date(t).toLocaleString();
-  const addr    = o.shippingAddress;
-  const addrStr = addr ? [addr.line1, addr.line2, addr.city, addr.postal, addr.country].filter(Boolean).join(', ') : '—';
-  const shipping = o.shippingMethod || '—';
-  const tracking = o.trackingNumber || '';
-  const country  = addr?.country || '—';
-
-  document.getElementById('sheetOrderId').textContent = orderId;
-  document.getElementById('sheetOrderDate').textContent = date;
-
-  document.getElementById('sheetBody').innerHTML = `
-    <div class="sheet-row"><div class="sheet-row-label">Customer</div><div class="sheet-row-val">${name}</div></div>
-    <div class="sheet-row"><div class="sheet-row-label">Email</div><div class="sheet-row-val" style="font-size:0.78rem;">${email}</div></div>
-    <div class="sheet-row"><div class="sheet-row-label">Phone</div><div class="sheet-row-val">${phone}</div></div>
-    <div class="sheet-row"><div class="sheet-row-label">Country</div><div class="sheet-row-val">${country}</div></div>
-    <div class="sheet-row"><div class="sheet-row-label">Address</div><div class="sheet-row-val" style="font-size:0.76rem;">${addrStr}</div></div>
-    <div class="sheet-row"><div class="sheet-row-label">Shipping</div><div class="sheet-row-val">${shipping}</div></div>
-    <div class="sheet-row"><div class="sheet-row-label">Amount</div><div class="sheet-row-val green">$${amount}</div></div>
-    <div class="sheet-row"><div class="sheet-row-label">Status</div><div class="sheet-row-val"><span class="order-status ${status}">${status}</span></div></div>
-    <div class="sheet-row"><div class="sheet-row-label">PayPal ID</div><div class="sheet-row-val mono" style="font-size:0.7rem;">${o.paypalOrderId || '—'}</div></div>
-    <div style="margin-top:16px;">
-      <div class="push-label">Update Status</div>
-      <div class="status-select-wrap" style="margin-top:8px;">
-        <div class="status-opt ${status==='paid'?'sel-paid':''}" onclick="setStatus('${orderId}','paid',this)">✓ Paid</div>
-        <div class="status-opt ${status==='shipped'?'sel-shipped':''}" onclick="setStatus('${orderId}','shipped',this)">🚚 Shipped</div>
-        <div class="status-opt ${status==='pending'?'sel-pending':''}" onclick="setStatus('${orderId}','pending',this)">⏳ Pending</div>
-        <div class="status-opt ${status==='refunded'?'sel-refunded':''}" onclick="setStatus('${orderId}','refunded',this)">↩ Refunded</div>
-      </div>
-    </div>
-    <div style="margin-top:16px;">
-      <div class="push-label">Tracking Number</div>
-      <div style="display:flex;gap:8px;margin-top:6px;">
-        <input class="tracking-input" id="sheetTracking" value="${tracking}" placeholder="Enter tracking #" style="-webkit-user-select:text;user-select:text;flex:1;">
-        <button class="btn btn-primary" style="width:auto;padding:0 16px;font-size:0.82rem;" onclick="saveTracking('${orderId}')">Save</button>
-      </div>
-    </div>
-  `;
-
-  document.getElementById('sheetActions').innerHTML = `
-    <button class="btn btn-primary" onclick="emailCustomer('${orderId}')">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-      Email Customer
-    </button>
-    <button class="btn btn-ghost" onclick="closeSheet()">Close</button>
-  `;
-
-  document.getElementById('orderSheet').classList.add('open');
-  document.body.style.overflow = 'hidden';
-};
-
-window.closeSheet = function(e) {
-  if (e && e.target !== document.getElementById('orderSheet')) return;
-  document.getElementById('orderSheet').classList.remove('open');
-  document.body.style.overflow = '';
-};
-
-window.setStatus = async function(orderId, status, el) {
-  try {
-    await update(fbRef('orders/' + orderId), { status });
-    allOrders[orderId].status = status;
-    document.querySelectorAll('.status-opt').forEach(b => {
-      b.className = 'status-opt';
-      if (b === el) b.classList.add('sel-' + status);
-    });
-    renderOrders();
-    renderDashboard();
-    showToast('Status updated to ' + status, 'success');
-  } catch(e) { showToast('Failed to update status', 'error'); }
-};
-
-window.saveTracking = async function(orderId) {
-  const num = document.getElementById('sheetTracking').value.trim();
-  try {
-    await update(fbRef('orders/' + orderId), { trackingNumber: num, status: num ? 'shipped' : (allOrders[orderId].status || 'paid') });
-    allOrders[orderId].trackingNumber = num;
-    if (num) allOrders[orderId].status = 'shipped';
-    renderOrders();
-    showToast('Tracking saved ✓', 'success');
-  } catch(e) { showToast('Failed to save tracking', 'error'); }
-};
-
-window.emailCustomer = async function(orderId) {
-  const o = allOrders[orderId];
-  if (!o) return;
-  const email = o.customerEmail || o.email;
-  if (!email) { showToast('No email address on file', 'error'); return; }
-
-  showToast('Sending email…', 'loading');
-  try {
-    const res = await fetch('/api/send-email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        to: email,
-        subject: `Update on your MINIMISTY order ${orderId}`,
-        type: 'admin_note',
-        orderId,
-        customerName: o.customerName || o.shippingAddress?.name,
-        status: o.status,
-        trackingNumber: o.trackingNumber
-      })
-    });
-    hideToast();
-    if (res.ok) showToast('Email sent ✓', 'success');
-    else showToast('Email API responded with error', 'error');
-  } catch(e) { hideToast(); showToast('Email sent (simulated)', 'success'); }
-};
-
-// ════ CUSTOMERS ════
-function renderCustomers() {
-  const list = Object.values(allCustomers);
-  document.getElementById('customersCount').textContent = list.length + ' customer' + (list.length===1?'':'s');
-  filterCustomers();
-}
-
-window.filterCustomers = function() {
-  const q = (document.getElementById('customerSearch').value || '').toLowerCase();
-  const list = Object.values(allCustomers).filter(c => {
-    if (!q) return true;
-    return (c.name||'').toLowerCase().includes(q) || (c.email||'').toLowerCase().includes(q);
-  });
-
-  // Deduplicate by email & sum revenue
-  const byEmail = {};
-  list.forEach(c => {
-    const key = c.email || c.name || 'unknown';
-    if (!byEmail[key]) byEmail[key] = { ...c, orders: 0, spent: 0 };
-    byEmail[key].orders++;
-  });
-
-  // Attach revenue from orders
-  Object.values(allOrders).forEach(o => {
-    const email = o.customerEmail || o.email;
-    if (email && byEmail[email]) {
-      byEmail[email].spent += parseFloat(o.amount || o.total || 0);
-    }
-  });
-
-  const colors = ['#4db8d4','#6dbd3a','#9b59f5','#d4a843','#e05555'];
-  const sorted = Object.values(byEmail).sort((a,b) => b.spent - a.spent);
-
-  document.getElementById('customersList').innerHTML = sorted.map((c,i) => {
-    const initials = (c.name||'?').split(' ').map(w=>w[0]||'').join('').substring(0,2).toUpperCase();
-    const color    = colors[i % colors.length];
-    return `<div class="customer-card">
-      <div class="customer-avatar" style="background:${color}22;color:${color};">${initials}</div>
-      <div class="customer-info">
-        <div class="customer-name">${c.name || '—'}</div>
-        <div class="customer-email">${c.email || '—'}</div>
-      </div>
-      <div class="customer-spent">$${c.spent.toFixed(2)}</div>
-    </div>`;
-  }).join('') || `<div class="empty"><div class="empty-text">No customers yet</div></div>`;
-};
-
-// ════ REVENUE ════
-function renderRevenue() {
-  const tab = currentRevTab;
-  const now = Date.now();
-  const cutoff = tab === '7d' ? now - 7*86400000 : tab === '30d' ? now - 30*86400000 : 0;
-
-  const orders = Object.entries(allOrders).filter(([id,o]) => {
-    const ts = o.completedAt || o.createdAt || 0;
-    const t  = typeof ts === 'number' ? ts : (ts._seconds ? ts._seconds*1000 : 0);
-    return cutoff === 0 || t >= cutoff;
-  });
-
-  const paid     = orders.filter(([,o]) => o.status === 'paid' || o.status === 'shipped');
-  const refunded = orders.filter(([,o]) => o.status === 'refunded');
-  const gross    = paid.reduce((s,[,o]) => s + parseFloat(o.amount||o.total||0), 0);
-  const refAmt   = refunded.reduce((s,[,o]) => s + parseFloat(o.amount||o.total||0), 0);
-  const avg      = paid.length ? gross/paid.length : 0;
-
-  document.getElementById('revGross').textContent    = '$' + gross.toFixed(2);
-  document.getElementById('revOrders').textContent   = orders.length;
-  document.getElementById('revAvg').textContent      = '$' + avg.toFixed(2);
-  document.getElementById('revRefunded').textContent = '$' + refAmt.toFixed(2);
-
-  // Daily bars
-  const days = tab === 'all' ? 14 : (tab === '30d' ? 14 : 7);
-  const buckets = [];
-  for (let i = days-1; i >= 0; i--) {
-    const d      = new Date(now - i*86400000);
-    const label  = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-    const dayStart = new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime();
-    const dayEnd   = dayStart + 86400000;
-    const dayRev   = paid.filter(([,o]) => {
-      const ts = o.completedAt||o.createdAt||0;
-      const t  = typeof ts==='number'?ts:(ts._seconds?ts._seconds*1000:0);
-      return t >= dayStart && t < dayEnd;
-    }).reduce((s,[,o]) => s+parseFloat(o.amount||o.total||0), 0);
-    buckets.push({ label, rev: dayRev });
-  }
-  const maxB = Math.max(...buckets.map(b=>b.rev), 1);
-  document.getElementById('revChartBars').innerHTML = buckets.map(b => `
-    <div class="chart-bar-wrap">
-      <div class="chart-bar lime" style="height:${Math.max(4,(b.rev/maxB)*110)}px"></div>
-      <div class="chart-bar-label" style="font-size:0.5rem;">${b.label.split(' ')[1]||b.label}</div>
-    </div>
-  `).join('');
-  document.getElementById('revChartSub').textContent = `Total: $${gross.toFixed(2)} across ${paid.length} paid orders`;
-
-  // Table
-  const tableRows = orders.sort((a,b) => {
-    const ta=a[1].completedAt||a[1].createdAt||0, tb=b[1].completedAt||b[1].createdAt||0;
-    const na=typeof ta==='number'?ta:(ta._seconds?ta._seconds*1000:0);
-    const nb=typeof tb==='number'?tb:(tb._seconds?tb._seconds*1000:0);
-    return nb-na;
-  }).slice(0,20);
-
-  document.getElementById('revTable').innerHTML = tableRows.map(([id,o]) => {
-    const ts = o.completedAt||o.createdAt||0;
-    const t  = typeof ts==='number'?ts:(ts._seconds?ts._seconds*1000:0);
-    const date = new Date(t).toLocaleDateString('en-US',{month:'short',day:'numeric'});
-    const name = (o.customerName||o.shippingAddress?.name||'—').split(' ')[0];
-    return `<tr>
-      <td style="font-family:var(--mono);font-size:0.68rem;color:var(--cyan);">${id.substring(0,8)}…</td>
-      <td>${name}</td>
-      <td style="color:var(--text-muted);">${date}</td>
-      <td class="mono">$${parseFloat(o.amount||o.total||0).toFixed(2)}</td>
-    </tr>`;
-  }).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:20px;">No orders in this period</td></tr>';
-}
-
-window.setRevTab = function(tab, el) {
-  currentRevTab = tab;
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
-  renderRevenue();
-};
-
-// ════ SEGMENT COUNTS ════
-function updateSegmentCounts() {
-  const allC  = Object.keys(allCustomers).length;
-  const aband = Object.keys(allAbandoned).length;
-  const paid  = Object.values(allOrders).filter(o => o.status==='paid').length;
-  const shipped = Object.values(allOrders).filter(o => o.status==='shipped').length;
-
-  document.getElementById('segAllCount').textContent      = allC + ' contacts';
-  document.getElementById('segAbandonedCount').textContent = aband + ' carts';
-  document.getElementById('segPaidCount').textContent     = paid + ' orders';
-  document.getElementById('segShippedCount').textContent  = shipped + ' orders';
-}
-
-window.selectSegment = function(el, seg) {
-  currentSegment = seg;
-  document.querySelectorAll('.segment-btn').forEach(b => b.classList.remove('selected'));
-  el.classList.add('selected');
-};
-
-// ════ PUSH NOTIFICATIONS ════
-window.updatePreview = function() {
-  const title = document.getElementById('pushTitle').value || 'MINIMISTY.store';
-  const body  = document.getElementById('pushBody').value  || 'Your notification preview will appear here…';
-  document.getElementById('previewTitle').textContent = title;
-  document.getElementById('previewBody').textContent  = body;
-};
-
-window.sendPush = async function() {
-  const title    = document.getElementById('pushTitle').value.trim();
-  const body     = document.getElementById('pushBody').value.trim();
-  const url      = document.getElementById('pushUrl').value.trim() || 'https://minimisty.store';
-  const appId    = (document.getElementById('onesignalAppId').value || localStorage.getItem('onesignal_app_id') || '').trim();
-  const apiKey   = (document.getElementById('onesignalKey').value   || localStorage.getItem('onesignal_key')    || '').trim();
-  const audience = document.getElementById('pushAudience').value;
-
-  if (!title || !body) { showToast('Title and message are required', 'error'); return; }
-  if (!appId || !apiKey) { showToast('Configure OneSignal App ID + Key first', 'error'); return; }
-
-  showToast('Sending push…', 'loading');
-  try {
-    const payload = {
-      app_id: appId,
-      headings: { en: title },
-      contents: { en: body },
-      url,
-      include_subscriptions_by_target_channel: ['push']
-    };
-    if (audience === 'all' || audience === 'subscribed') {
-      payload.included_segments = ['All'];
-    }
-
-    const res = await fetch('https://onesignal.com/api/v1/notifications', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Basic ' + apiKey
-      },
-      body: JSON.stringify(payload)
-    });
-    const data = await res.json();
-    hideToast();
-    if (data.id) showToast(`Push sent to ${data.recipients||0} subscribers ✓`, 'success');
-    else showToast('Push error: ' + (data.errors?.[0] || 'Unknown'), 'error');
-  } catch(e) {
-    hideToast();
-    showToast('Push failed — check OneSignal config', 'error');
-  }
-};
-
-window.saveOnesignalConfig = function() {
-  const appId = document.getElementById('onesignalAppId').value.trim();
-  const key   = document.getElementById('onesignalKey').value.trim();
-  try {
-    localStorage.setItem('onesignal_app_id', appId);
-    localStorage.setItem('onesignal_key',    key);
-  } catch(e) {}
-  showToast('OneSignal config saved ✓', 'success');
-};
-
-window.saveSettingsOnesignal = function() {
-  const appId = document.getElementById('settingsOnesignalAppId').value.trim();
-  const key   = document.getElementById('settingsOnesignalKey').value.trim();
-  try {
-    localStorage.setItem('onesignal_app_id', appId);
-    localStorage.setItem('onesignal_key',    key);
-    // Also sync to notify page inputs
-    const notifyAppId = document.getElementById('onesignalAppId');
-    const notifyKey   = document.getElementById('onesignalKey');
-    if (notifyAppId) notifyAppId.value = appId;
-    if (notifyKey)   notifyKey.value   = key;
-  } catch(e) {}
-  showToast('OneSignal config saved ✓', 'success');
-};
-
-// ════ ABANDONED CARTS ════
-function renderAbandoned() {
-  const count = Object.keys(allAbandoned).length;
-  document.getElementById('abandonedCount').textContent = count + ' abandoned cart' + (count===1?'':'s');
-  filterAbandoned();
-}
-
-window.filterAbandoned = function() {
-  const q = (document.getElementById('abandonedSearch').value || '').toLowerCase();
-  const entries = Object.entries(allAbandoned).filter(([id, c]) => {
-    if (!q) return true;
-    return (c.name||c.customerName||'').toLowerCase().includes(q) ||
-           (c.email||c.customerEmail||'').toLowerCase().includes(q);
-  }).sort((a,b) => {
-    const ta = a[1].abandonedAt||a[1].createdAt||a[1].ts||0;
-    const tb = b[1].abandonedAt||b[1].createdAt||b[1].ts||0;
-    const na = typeof ta==='number'?ta:(ta._seconds?ta._seconds*1000:0);
-    const nb = typeof tb==='number'?tb:(tb._seconds?tb._seconds*1000:0);
-    return nb - na;
-  });
-
-  const colors = ['#4db8d4','#6dbd3a','#9b59f5','#d4a843','#e05555'];
-  document.getElementById('abandonedList').innerHTML = entries.map(([id, c], i) => {
-    const name  = c.name || c.customerName || 'Unknown';
-    const email = c.email || c.customerEmail || '—';
-    const ts    = c.abandonedAt || c.createdAt || c.ts || 0;
-    const t     = typeof ts==='number'?ts:(ts._seconds?ts._seconds*1000:0);
-    const date  = t ? new Date(t).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
-    const items = c.items || c.cart || [];
-    const itemCount = Array.isArray(items) ? items.length : Object.keys(items).length;
-    const total = c.total || c.cartTotal || c.amount ||
-      (Array.isArray(items) ? items.reduce((s,i)=>s+parseFloat((i.price||0)*(i.qty||i.quantity||1)),0) : 0);
-    const initials = name.split(' ').map(w=>w[0]||'').join('').substring(0,2).toUpperCase();
-    const color = colors[i % colors.length];
-
-    // Items preview
-    const itemsPreview = Array.isArray(items) && items.length
-      ? items.slice(0,3).map(item=>`
-          <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);">
-            <div style="flex:1;font-size:0.8rem;font-weight:700;">${item.name||item.title||'Item'}</div>
-            <div style="font-size:0.75rem;color:var(--text-muted);">x${item.qty||item.quantity||1}</div>
-            <div style="font-family:var(--mono);font-size:0.8rem;color:var(--lime);">$${parseFloat((item.price||0)*(item.qty||item.quantity||1)).toFixed(2)}</div>
-          </div>`).join('')
-      : '';
-
-    return `<div class="order-card" style="cursor:default;">
-      <div class="order-card-top">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div class="customer-avatar" style="width:36px;height:36px;border-radius:50%;background:${color}22;color:${color};display:flex;align-items:center;justify-content:center;font-size:0.9rem;font-weight:700;flex-shrink:0;">${initials}</div>
-          <div>
-            <div class="order-name" style="margin-top:0;">${name}</div>
-            <div class="order-meta">${email}</div>
-          </div>
-        </div>
-        <div class="order-status pending" style="flex-shrink:0;">abandoned</div>
-      </div>
-      ${itemsPreview ? `<div style="margin-top:10px;">${itemsPreview}</div>` : ''}
-      <div class="order-card-bottom">
-        <div class="order-amount">$${parseFloat(total).toFixed(2)}</div>
-        <div class="order-time">${date} · ${itemCount} item${itemCount===1?'':'s'}</div>
-      </div>
-      <div style="display:flex;gap:8px;margin-top:10px;">
-        <button class="btn btn-primary" style="height:38px;font-size:0.8rem;flex:1;" onclick="recoverCart('${id}','${email}','${name.replace(/'/g,"\\'")}')">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-          Recovery Email
-        </button>
-        <button class="btn btn-ghost" style="height:38px;font-size:0.8rem;width:auto;padding:0 14px;" onclick="deleteAbandoned('${id}')">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-        </button>
-      </div>
-    </div>`;
-  }).join('') || `<div class="empty"><svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg><div class="empty-text">No abandoned carts</div></div>`;
-};
-
-window.recoverCart = async function(cartId, email, name) {
-  if (!email || email === '—') { showToast('No email address on file', 'error'); return; }
-  showToast('Sending recovery email…', 'loading');
-  try {
-    const res = await fetch('/api/send-email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        to: email,
-        subject: `${name}, you left something behind 🛒`,
-        type: 'cart_recovery',
-        cartId,
-        customerName: name,
-      })
-    });
-    hideToast();
-    showToast('Recovery email sent ✓', 'success');
-  } catch(e) {
-    hideToast();
-    showToast('Recovery email sent ✓', 'success'); // optimistic — /api may vary
-  }
-};
-
-window.deleteAbandoned = async function(cartId) {
-  if (!confirm('Remove this abandoned cart record?')) return;
-  try {
-    const { remove } = await import("https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js");
-    await remove(fbRef('abandonedCarts/' + cartId));
-    delete allAbandoned[cartId];
-    renderAbandoned();
-    updateSegmentCounts();
-    showToast('Cart removed', 'success');
-  } catch(e) { showToast('Failed to remove cart', 'error'); }
-};
-
-// ════ SETTINGS PAGE SYNC ════
-function syncSettingsPage() {
-  // Show admin email (masked)
-  const email = window.__ADMIN_EMAIL || '';
-  const settEl = document.getElementById('settingsEmail');
-  if (settEl && email) {
-    const parts = email.split('@');
-    const masked = parts[0].length > 3
-      ? parts[0].substring(0,2) + '***' + (parts[1] ? '@' + parts[1] : '')
-      : '***';
-    settEl.textContent = masked;
-  }
-
-  // Sync OneSignal fields
-  try {
-    const appId = localStorage.getItem('onesignal_app_id') || '';
-    const key   = localStorage.getItem('onesignal_key') || '';
-    const sAppId = document.getElementById('settingsOnesignalAppId');
-    const sKey   = document.getElementById('settingsOnesignalKey');
-    if (sAppId && appId) sAppId.value = appId;
-    if (sKey && key)     sKey.value   = key;
-  } catch(e) {}
-}
-
-// ════ EMAIL BLAST ════
-window.sendEmailBlast = async function() {
-  const subject = document.getElementById('emailSubject').value.trim();
-  const body    = document.getElementById('emailBody').value.trim();
-  if (!subject || !body) { showToast('Subject and message are required', 'error'); return; }
-
-  // Collect emails by segment
-  let emails = [];
-  if (currentSegment === 'all') {
-    emails = Object.values(allCustomers).map(c => c.email).filter(Boolean);
-  } else if (currentSegment === 'abandoned') {
-    emails = Object.values(allAbandoned).map(c => c.email).filter(Boolean);
-  } else if (currentSegment === 'paid') {
-    emails = Object.values(allOrders).filter(o => o.status==='paid').map(o => o.customerEmail||o.email).filter(Boolean);
-  } else if (currentSegment === 'shipped') {
-    emails = Object.values(allOrders).filter(o => o.status==='shipped').map(o => o.customerEmail||o.email).filter(Boolean);
-  }
-
-  emails = [...new Set(emails)]; // deduplicate
-  if (!emails.length) { showToast('No emails in this segment', 'error'); return; }
-
-  showToast(`Sending to ${emails.length} recipients…`, 'loading');
-  let sent = 0;
-  for (const email of emails) {
-    try {
-      await fetch('/api/send-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: email, subject, body, type: 'blast' })
-      });
-      sent++;
-    } catch(e) {}
-  }
-  hideToast();
-  showToast(`Sent to ${sent}/${emails.length} emails ✓`, 'success');
-};
-
-// ════ TOAST ════
-let toastTimer;
-window.showToast = function(msg, type='') {
-  const t = document.getElementById('toast');
-  const s = document.getElementById('toastSpinner');
-  document.getElementById('toastMsg').textContent = msg;
-  t.className = 'show' + (type ? ' ' + type : '');
-  s.style.display = type === 'loading' ? 'block' : 'none';
-  clearTimeout(toastTimer);
-  if (type !== 'loading') toastTimer = setTimeout(hideToast, 2800);
-};
-window.hideToast = function() {
-  document.getElementById('toast').classList.remove('show','success','error');
-};
-
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js';
+import { getDatabase, ref, get, update, remove, push, set, increment, serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js';
+const cfg={apiKey:'AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo',authDomain:'itzhoyoo-f9f7e.firebaseapp.com',databaseURL:'https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com',projectId:'itzhoyoo-f9f7e',storageBucket:'itzhoyoo-f9f7e.filestorage.app',messagingSenderId:'1094792075584',appId:'1:1094792075584:web:d49e9c3f899d3cd31082a5'};
+const app=initializeApp(cfg);const db=getDatabase(app);
+window._db=db;window._ref=ref;window._get=get;window._update=update;
+window._remove=remove;window._push=push;window._set=set;
+window._inc=increment;window._ts=serverTimestamp;window._fbReady=true;
+window.dispatchEvent(new Event('fbReady'));
 </script>
 
-<!-- Vercel env vars: fetched server-side via /api/config -->
 <script>
-window.__ADMIN_EMAIL = null;
-window.__ADMIN_PASS  = null;
-window.__CREDS_READY = false;
+// ═══ STATE ═══
+let allOrders=[],allVisits=[],allCustomers=[],allAbandoned=[],allDevices=[],analyticsData={},allPushSubs=[],allCodes=[];
+let currentOrderFilter='all',currentOrderSearch='',currentCustSearch='';
+let refreshTimer=null,chartPeriod='7d';
+let dateFilter={type:'all',from:null,to:null};
+let displayCurrency='USD',localCurrency='',localSymbol='',exchangeRate=1;
+let rChart=null,plChart=null,vChart=null,devChart=null,curChart=null,crvChart=null;
 
-fetch('/api/config')
-  .then(r => r.json())
-  .then(d => {
-    window.__ADMIN_EMAIL = d.email || 'admin@minimisty.store';
-    window.__ADMIN_PASS  = d.pass  || 'minimisty2024';
-    window.__CREDS_READY = true;
-  })
-  .catch(() => {
-    // fallback if /api/config unreachable
-    window.__ADMIN_EMAIL = 'admin@minimisty.store';
-    window.__ADMIN_PASS  = 'minimisty2024';
-    window.__CREDS_READY = true;
+// ═══ UTILS ═══
+function fmtDate(ts){
+  if(!ts)return'—';
+  const d=ts>1e12?new Date(ts):new Date(ts*1000);
+  return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+}
+function fmtShort(ts){
+  if(!ts)return'—';
+  const d=ts>1e12?new Date(ts):new Date(ts*1000);
+  return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
+}
+function fmt$(usd){
+  if(usd===undefined||usd===null)return'—';
+  if(displayCurrency==='local'&&exchangeRate!==1&&localCurrency){
+    return localSymbol+(usd*exchangeRate).toFixed(2)+' '+localCurrency;
+  }
+  return'$'+Number(usd).toFixed(2);
+}
+function fmtUSD(usd){return usd!=null?'$'+Number(usd).toFixed(2):'—';}
+function flag(c){if(!c||c.length!==2)return'';return String.fromCodePoint(...[...c.toUpperCase()].map(x=>0x1F1E6+x.charCodeAt(0)-65));}
+function sid(id){if(!id)return'—';return id.length>15?id.slice(0,15)+'…':id;}
+function inRange(ts){
+  if(dateFilter.type==='all')return true;
+  if(!ts)return false;
+  const t=ts>1e12?ts:ts*1000;
+  if(dateFilter.from&&t<dateFilter.from)return false;
+  if(dateFilter.to&&t>dateFilter.to)return false;
+  return true;
+}
+function sbadge(s){
+  const m={paid:'bg',confirmed:'bb',shipped:'bt',pending_checkout:'by',pending:'by',failed:'br',refunded:'bp'};
+  return`<span class="badge ${m[s]||'bgy'}">${(s||'—').replace(/_/g,' ')}</span>`;
+}
+function getTotal(o){return o.pricing?.finalTotalUSD||o.pricing?.totalUSD||o.totalUSD||0;}
+
+// ═══ TOAST ═══
+function toast(msg,type='default'){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.style.borderColor=type==='error'?'rgba(239,68,68,.4)':type==='success'?'rgba(34,197,94,.4)':'rgba(255,255,255,.1)';
+  el.style.color=type==='error'?'#ef4444':type==='success'?'#22c55e':'#f0f0f5';
+  el.classList.add('show');
+  clearTimeout(window._tt);window._tt=setTimeout(()=>el.classList.remove('show'),2800);
+}
+window.toast=toast;
+
+// ═══ CLOCK ═══
+function tick(){document.getElementById('liveTime').textContent=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}
+setInterval(tick,1000);tick();
+
+// ═══ SIDEBAR ═══
+window.toggleSidebar=function(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sb-overlay').classList.toggle('open');
+};
+window.closeSidebar=function(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sb-overlay').classList.remove('open');
+};
+
+// ═══ NAV ═══
+window.navigate=function(section){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  const sec=document.getElementById('section-'+section);
+  if(sec)sec.classList.add('active');
+  document.getElementById('scroll-area').scrollTop=0;
+  const titles={overview:'Overview',orders:'Orders',customers:'Customers',visits:'Visits',abandoned:'Abandoned Carts',devices:'Devices',analytics:'Analytics',messaging:'Messaging',settings:'Settings'};
+  document.getElementById('pageTitle').textContent=titles[section]||section;
+  document.querySelectorAll('.sb-item').forEach(b=>b.classList.remove('active'));
+  const btn=document.getElementById('sb-'+section);if(btn)btn.classList.add('active');
+  if(section==='messaging')loadPushSubscribers();
+  if(section==='settings')loadDiscountCodes();
+};
+
+// ═══ CURRENCY ═══
+async function detectLocalCurrency(){
+  try{
+    const r=await fetch('https://ipapi.co/json/',{signal:AbortSignal.timeout(5000)});
+    const d=await r.json();
+    localCurrency=d.currency||'';
+    const syms={EUR:'€',GBP:'£',JPY:'¥',KRW:'₩',INR:'₹',AUD:'A$',CAD:'C$',ZAR:'R',BRL:'R$',MXN:'$',AED:'د.إ',SAR:'﷼',SGD:'S$',HKD:'HK$',NGN:'₦',KES:'KSh',GHS:'₵',EGP:'£',TRY:'₺',PLN:'zł',THB:'฿',PHP:'₱',NOK:'kr',SEK:'kr',NZD:'NZ$'};
+    localSymbol=syms[localCurrency]||(localCurrency+' ');
+    if(localCurrency&&localCurrency!=='USD'){
+      try{
+        const er=await fetch('https://open.er-api.com/v6/latest/USD',{signal:AbortSignal.timeout(5000)});
+        const erd=await er.json();
+        if(erd.result==='success'&&erd.rates[localCurrency])exchangeRate=erd.rates[localCurrency];
+      }catch(e2){}
+      const lb=document.getElementById('curLocal');
+      if(lb)lb.textContent=localCurrency;
+    } else {
+      const lb=document.getElementById('curLocal');
+      if(lb)lb.style.display='none';
+    }
+  }catch(e){}
+}
+window.setCurrency=function(cur){
+  displayCurrency=cur;
+  document.getElementById('curUSD').classList.toggle('active',cur==='USD');
+  document.getElementById('curLocal').classList.toggle('active',cur==='local');
+  renderAll();
+};
+
+// ═══ DATE FILTER ═══
+window.openDatePicker=function(){document.getElementById('datePickerModal').style.display='flex';};
+window.setDateRange=function(type,btn){
+  dateFilter.type=type;
+  const now=Date.now(),day=86400000;
+  if(type==='today'){dateFilter.from=new Date().setHours(0,0,0,0);dateFilter.to=now;}
+  else if(type==='yesterday'){const y=new Date(new Date().setHours(0,0,0,0)).getTime()-day;dateFilter.from=y;dateFilter.to=y+day-1;}
+  else if(type==='7d'){dateFilter.from=now-7*day;dateFilter.to=now;}
+  else if(type==='30d'){dateFilter.from=now-30*day;dateFilter.to=now;}
+  else if(type==='90d'){dateFilter.from=now-90*day;dateFilter.to=now;}
+  else{dateFilter.from=null;dateFilter.to=null;}
+  document.querySelectorAll('#dateBtns .btn').forEach(b=>b.className='btn btn-g');
+  if(btn){btn.className='btn btn-p';}
+  const lbl=({today:'Today',yesterday:'Yesterday','7d':'7 days','30d':'30 days','90d':'90 days',all:'All time'})[type]||type;
+  ['dateRangeBtn','ordersDateLabel'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=lbl;});
+  document.getElementById('datePickerModal').style.display='none';
+  renderAll();
+};
+window.applyCustomDate=function(){
+  const from=document.getElementById('dateFrom').value,to=document.getElementById('dateTo').value;
+  if(!from||!to)return toast('Select both dates','error');
+  dateFilter={type:'custom',from:new Date(from).getTime(),to:new Date(to).getTime()+86399999};
+  document.getElementById('datePickerModal').style.display='none';
+  const lbl=from.slice(5)+' → '+to.slice(5);
+  document.getElementById('dateRangeBtn').textContent=lbl;
+  renderAll();
+};
+
+// ═══ LOAD DATA ═══
+async function loadAll(){
+  if(!window._fbReady){toast('Waiting for Firebase…');return;}
+  const db=window._db,r=window._ref,g=window._get;
+  try{
+    const [oS,vS,cS,aS,dS,anS,psS]=await Promise.all([
+      g(r(db,'orders')),g(r(db,'visits')),g(r(db,'customers')),
+      g(r(db,'abandonedCarts')),g(r(db,'devices')),
+      g(r(db,'analytics')),g(r(db,'pushSubscriptions'))
+    ]);
+    allOrders=oS.exists()?Object.entries(oS.val()).map(([k,v])=>({_key:k,...v})):[];
+    // Flatten visits from all pages
+    let vFlat=[];
+    if(vS.exists()){
+      const vv=vS.val();
+      Object.entries(vv).forEach(([k,v])=>{
+        if(v&&typeof v==='object'){
+          // check if nested by page or flat visit
+          const firstVal=Object.values(v)[0];
+          if(firstVal&&typeof firstVal==='object'&&(firstVal.page||firstVal.country||firstVal.deviceId)){
+            Object.entries(v).forEach(([sk,sv])=>vFlat.push({_key:sk,...sv}));
+          } else {
+            vFlat.push({_key:k,...v});
+          }
+        }
+      });
+    }
+    allVisits=vFlat;
+    allCustomers=cS.exists()?Object.entries(cS.val()).map(([k,v])=>({_key:k,...v})):[];
+    allAbandoned=aS.exists()?Object.entries(aS.val()).map(([k,v])=>({_key:k,...v})):[];
+    allDevices=dS.exists()?Object.entries(dS.val()).map(([k,v])=>({deviceId:k,...v})):[];
+    analyticsData=anS.exists()?anS.val():{};
+    allPushSubs=psS.exists()?Object.entries(psS.val()).map(([k,v])=>({_key:k,...v})):[];
+
+    allOrders.sort((a,b)=>(b.savedAt||b.completedAt||b.createdAt||0)-(a.savedAt||a.completedAt||a.createdAt||0));
+    allVisits.sort((a,b)=>(b.ts||0)-(a.ts||0));
+    allCustomers.sort((a,b)=>(b.updatedAt||b.ts||0)-(a.updatedAt||a.ts||0));
+    allAbandoned.sort((a,b)=>(b.savedAt||b.ts||0)-(a.savedAt||a.ts||0));
+
+    renderAll();updateBadges();
+    toast('Refreshed','success');
+  }catch(e){console.error(e);toast('Error: '+e.message,'error');}
+}
+
+function renderAll(){
+  renderOverview();renderOrders();renderCustomers();
+  renderAnalytics();renderVisits();renderAbandoned();renderDevices();
+}
+
+// ═══ CHART DEFAULTS ═══
+Chart.defaults.color='#52525b';
+Chart.defaults.borderColor='rgba(255,255,255,0.05)';
+Chart.defaults.font.family="-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif";
+Chart.defaults.font.size=10;
+
+function dayBuckets(n){
+  const b=[];const now=new Date();
+  for(let i=n-1;i>=0;i--){
+    const d=new Date(now);d.setDate(d.getDate()-i);d.setHours(0,0,0,0);
+    b.push({ts:d.getTime(),label:d.toLocaleDateString('en-GB',{month:'short',day:'numeric'}),rev:0,orders:0,visits:0});
+  }
+  return b;
+}
+
+// ═══ OVERVIEW ═══
+function renderOverview(){
+  const fOrders=allOrders.filter(o=>inRange(o.savedAt||o.completedAt||o.createdAt||o.ts));
+  const paid=fOrders.filter(o=>['paid','confirmed','shipped'].includes(o.status));
+  const pending=fOrders.filter(o=>['pending','pending_checkout'].includes(o.status));
+  const rev=paid.reduce((s,o)=>s+getTotal(o),0);
+  const aov=paid.length?rev/paid.length:0;
+  const fVisits=allVisits.filter(v=>inRange(v.ts));
+  const conv=fVisits.length?(paid.length/fVisits.length*100).toFixed(1)+'%':'0%';
+
+  document.getElementById('statRevenue').textContent=fmt$(rev);
+  document.getElementById('statRevSub').textContent=paid.length+' orders';
+  document.getElementById('statRevLocal').textContent=(displayCurrency==='USD'&&localCurrency&&localCurrency!=='USD')?localSymbol+(rev*exchangeRate).toFixed(2)+' '+localCurrency:'';
+  document.getElementById('statOrders').textContent=paid.length;
+  document.getElementById('statOrdSub').textContent='+ '+pending.length+' pending';
+  document.getElementById('statVisits').textContent=fVisits.length;
+  document.getElementById('statConv').textContent=conv;
+  document.getElementById('statAOV').textContent=fmt$(aov);
+  document.getElementById('statPending').textContent=pending.length;
+
+  const cogs=parseFloat(document.getElementById('cfgCogs')?.value||40)/100;
+  const cogsAmt=rev*cogs;const profit=rev-cogsAmt;
+  document.getElementById('plRevenue').textContent=fmt$(rev);
+  document.getElementById('plCogs').textContent=fmt$(cogsAmt);
+  const pe=document.getElementById('plProfit');
+  pe.textContent=fmt$(Math.abs(profit));pe.style.color=profit>=0?'#22c55e':'#ef4444';
+
+  buildRevenueChart(paid);buildPLChart(paid,cogs);
+
+  // Recent orders
+  const recent=allOrders.slice(0,10);
+  document.getElementById('recentOrdersList').innerHTML=recent.length?recent.map(o=>`
+    <div class="rh" onclick="openOrder('${o._key}')" style="display:flex;align-items:center;padding:11px 16px;gap:12px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.04);">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:700;color:#60a5fa;font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${sid(o.orderId||o._key)}</div>
+        <div style="font-size:11px;color:#71717a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${o.customerEmail||o.email||'—'}</div>
+      </div>
+      <div style="font-size:11px;color:#52525b;white-space:nowrap;">${flag(o.geoCountry||o.country)} ${fmtShort(o.savedAt||o.completedAt||o.createdAt)}</div>
+      <div style="font-size:13px;font-weight:800;white-space:nowrap;">${fmt$(getTotal(o))}</div>
+      ${sbadge(o.status)}
+    </div>`).join(''):'<div style="padding:24px;text-align:center;color:#52525b;font-size:13px;">No orders yet</div>';
+
+  // Countries
+  const cc={};fVisits.forEach(v=>{const c=v.country||'unknown';cc[c]=(cc[c]||0)+1;});
+  const sc=Object.entries(cc).sort((a,b)=>b[1]-a[1]).slice(0,6);const mc=sc[0]?.[1]||1;
+  document.getElementById('topCountries').innerHTML=sc.map(([c,n])=>`
+    <div style="padding:7px 14px;display:flex;align-items:center;gap:8px;">
+      <span style="font-size:14px;width:20px;flex-shrink:0;">${flag(c)}</span>
+      <span style="font-size:11px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c}</span>
+      <div style="width:50px;height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;flex-shrink:0;"><div style="width:${(n/mc*100).toFixed(0)}%;height:100%;background:#3b82f6;border-radius:2px;"></div></div>
+      <span style="font-size:11px;font-weight:700;color:#71717a;width:20px;text-align:right;flex-shrink:0;">${n}</span>
+    </div>`).join('')||'<div style="padding:12px 14px;color:#52525b;font-size:12px;">No data</div>';
+
+  // Referrers
+  const rc={};fVisits.forEach(v=>{const r=v.referrer||'direct';rc[r]=(rc[r]||0)+1;});
+  const sr=Object.entries(rc).sort((a,b)=>b[1]-a[1]).slice(0,6);const mr=sr[0]?.[1]||1;
+  document.getElementById('topReferrers').innerHTML=sr.map(([r,n])=>`
+    <div style="padding:7px 14px;display:flex;align-items:center;gap:8px;">
+      <span style="font-size:11px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r||'Direct'}</span>
+      <div style="width:50px;height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;flex-shrink:0;"><div style="width:${(n/mr*100).toFixed(0)}%;height:100%;background:#8b5cf6;border-radius:2px;"></div></div>
+      <span style="font-size:11px;font-weight:700;color:#71717a;width:20px;text-align:right;flex-shrink:0;">${n}</span>
+    </div>`).join('')||'<div style="padding:12px 14px;color:#52525b;font-size:12px;">No data</div>';
+
+  // Funnel
+  const paidAll=allOrders.filter(o=>['paid','confirmed','shipped'].includes(o.status));
+  const fd=[
+    {label:'Visits',value:allVisits.length,color:'#8b5cf6'},
+    {label:'Cart Adds',value:analyticsData.totalCartAdds||0,color:'#3b82f6'},
+    {label:'Checkouts',value:allOrders.length,color:'#f59e0b'},
+    {label:'Paid',value:paidAll.length,color:'#22c55e'},
+  ];
+  const mf=Math.max(...fd.map(f=>f.value),1);
+  document.getElementById('funnelChart').innerHTML=fd.map(f=>`
+    <div style="margin-bottom:11px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+        <span style="font-size:12px;font-weight:600;color:#a1a1aa;">${f.label}</span>
+        <span style="font-size:12px;font-weight:700;">${f.value}</span>
+      </div>
+      <div style="height:8px;background:rgba(255,255,255,0.05);border-radius:4px;overflow:hidden;">
+        <div style="width:${(f.value/mf*100).toFixed(1)}%;height:100%;background:${f.color};border-radius:4px;transition:width 0.7s;"></div>
+      </div>
+    </div>`).join('');
+}
+
+// ═══ CHARTS ═══
+window.setChartPeriod=function(p,btn){
+  chartPeriod=p;
+  document.querySelectorAll('#section-overview .ftab').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  const paid=allOrders.filter(o=>['paid','confirmed','shipped'].includes(o.status));
+  buildRevenueChart(paid);
+};
+
+function buildRevenueChart(paid){
+  const n=chartPeriod==='7d'?7:chartPeriod==='30d'?30:90;
+  const b=dayBuckets(n);
+  paid.forEach(o=>{
+    const ts=o.savedAt||o.completedAt||o.createdAt||0;if(!ts)return;
+    const t=ts>1e12?ts:ts*1000;
+    const bk=b.find(x=>t>=x.ts&&t<x.ts+86400000);
+    if(bk){bk.rev+=getTotal(o);bk.orders++;}
   });
+  allVisits.forEach(v=>{
+    const t=v.ts>1e12?v.ts:v.ts*1000;
+    const bk=b.find(x=>t>=x.ts&&t<x.ts+86400000);if(bk)bk.visits++;
+  });
+  const revData=b.map(x=>displayCurrency==='local'?+(x.rev*exchangeRate).toFixed(2):+x.rev.toFixed(2));
+  const ordData=b.map(x=>x.orders);
+  const ctx=document.getElementById('revenueChart').getContext('2d');
+  if(rChart)rChart.destroy();
+  rChart=new Chart(ctx,{type:'bar',data:{labels:b.map(x=>x.label),datasets:[
+    {label:'Revenue',data:revData,backgroundColor:'rgba(34,197,94,0.25)',borderColor:'#22c55e',borderWidth:1.5,borderRadius:4,yAxisID:'y'},
+    {label:'Orders',data:ordData,type:'line',borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,0.08)',borderWidth:2,pointRadius:2,pointBackgroundColor:'#3b82f6',fill:true,tension:0.35,yAxisID:'y1'},
+  ]},options:{responsive:true,maintainAspectRatio:true,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{backgroundColor:'#18181d',titleColor:'#f0f0f5',bodyColor:'#a1a1aa',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,padding:10}},scales:{y:{position:'left',grid:{color:'rgba(255,255,255,0.04)'}},y1:{position:'right',grid:{drawOnChartArea:false}},x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{maxRotation:0,maxTicksLimit:7}}}}});
+}
+
+function buildPLChart(paid,cogs){
+  const months=[];const now=new Date();
+  for(let i=5;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push({label:d.toLocaleDateString('en-GB',{month:'short'}),yr:d.getFullYear(),mo:d.getMonth(),rev:0});}
+  paid.forEach(o=>{
+    const ts=o.savedAt||o.completedAt||o.createdAt||0;if(!ts)return;
+    const d=new Date(ts>1e12?ts:ts*1000);
+    const m=months.find(x=>x.yr===d.getFullYear()&&x.mo===d.getMonth());
+    if(m)m.rev+=getTotal(o);
+  });
+  const mul=displayCurrency==='local'?exchangeRate:1;
+  const revD=months.map(m=>+(m.rev*mul).toFixed(2));
+  const cogsD=months.map(m=>+(m.rev*cogs*mul).toFixed(2));
+  const profD=months.map((m,i)=>+(revD[i]-cogsD[i]).toFixed(2));
+  const ctx=document.getElementById('plChart').getContext('2d');
+  if(plChart)plChart.destroy();
+  plChart=new Chart(ctx,{type:'bar',data:{labels:months.map(m=>m.label),datasets:[
+    {label:'Revenue',data:revD,backgroundColor:'rgba(34,197,94,0.2)',borderColor:'#22c55e',borderWidth:1.5,borderRadius:4},
+    {label:'COGS',data:cogsD,backgroundColor:'rgba(239,68,68,0.18)',borderColor:'#ef4444',borderWidth:1.5,borderRadius:4},
+    {label:'Profit',data:profD,type:'line',borderColor:'#f59e0b',backgroundColor:'rgba(245,158,11,0.06)',borderWidth:2,pointRadius:3,fill:true,tension:0.3},
+  ]},options:{responsive:true,maintainAspectRatio:true,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{backgroundColor:'#18181d',titleColor:'#f0f0f5',bodyColor:'#a1a1aa',borderColor:'rgba(255,255,255,0.1)',borderWidth:1}},scales:{y:{grid:{color:'rgba(255,255,255,0.04)'}},x:{grid:{color:'rgba(255,255,255,0.04)'}}}}});
+}
+
+// ═══ ORDERS ═══
+function renderOrders(){
+  let f=allOrders.filter(o=>inRange(o.savedAt||o.completedAt||o.createdAt||o.ts));
+  if(currentOrderFilter!=='all')f=f.filter(o=>{
+    if(currentOrderFilter==='pending')return['pending','pending_checkout'].includes(o.status);
+    return o.status===currentOrderFilter;
+  });
+  if(currentOrderSearch){
+    const q=currentOrderSearch.toLowerCase();
+    f=f.filter(o=>(o.customerEmail||o.email||'').toLowerCase().includes(q)||(o.orderId||'').toLowerCase().includes(q)||(o.customerName||'').toLowerCase().includes(q)||(o._key||'').toLowerCase().includes(q));
+  }
+  document.getElementById('ordersListEl').innerHTML=f.length?f.map(o=>`
+    <div class="rh" onclick="openOrder('${o._key}')" style="display:flex;align-items:center;padding:13px 16px;gap:12px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.04);">
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;flex-wrap:wrap;">
+          <span style="font-size:11px;font-weight:700;color:#60a5fa;font-family:monospace;">${sid(o.orderId||o._key)}</span>
+          ${sbadge(o.status)}
+        </div>
+        <div style="font-size:12px;font-weight:700;color:#e4e4e7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${o.customerName||''} <span style="color:#52525b;font-weight:400;">${o.customerEmail||o.email||''}</span></div>
+        <div style="font-size:11px;color:#52525b;margin-top:2px;">${flag(o.geoCountry||o.country)} ${o.geoCountry||o.country||'—'} · ${o.currency||'USD'} · ${fmtShort(o.savedAt||o.completedAt||o.createdAt)}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div style="font-size:14px;font-weight:800;">${fmt$(getTotal(o))}</div>
+      </div>
+    </div>`).join(''):'<div style="padding:32px;text-align:center;color:#52525b;">No orders found</div>';
+}
+window.filterOrders=function(f,btn){
+  currentOrderFilter=f;
+  document.querySelectorAll('#section-orders .ftab').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  renderOrders();
+};
+window.filterOrderSearch=function(q){currentOrderSearch=q;renderOrders();};
+
+// ═══ ORDER MODAL ═══
+window.openOrder=function(key){
+  const o=allOrders.find(x=>x._key===key);if(!o)return;
+  const addr=o.shippingAddress||o.address||{};
+  const total=getTotal(o);
+  document.getElementById('orderModalContent').innerHTML=`
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;gap:10px;">
+      <div>
+        <div style="font-size:16px;font-weight:800;">Order Details</div>
+        <div style="font-size:10px;color:#52525b;font-family:monospace;margin-top:2px;word-break:break-all;">${o.orderId||o._key}</div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+        ${sbadge(o.status)}
+        <button class="btn btn-g" onclick="closeOrderModal()" style="padding:5px 7px;"><svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+      </div>
+    </div>
+
+    <div class="card-sm" style="padding:13px;margin-bottom:11px;">
+      <div style="font-size:10px;font-weight:700;color:#52525b;text-transform:uppercase;margin-bottom:9px;">Update Status</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+        <button class="btn ${o.status==='paid'?'btn-s':'btn-g'}" style="font-size:11px;padding:6px 10px;" onclick="updateStatus('${o._key}','paid')">✓ Paid</button>
+        <button class="btn ${o.status==='confirmed'?'btn-p':'btn-g'}" style="font-size:11px;padding:6px 10px;" onclick="updateStatus('${o._key}','confirmed')">Confirmed</button>
+        <button class="btn btn-g" style="font-size:11px;padding:6px 10px;${o.status==='shipped'?'color:#2dd4bf;border-color:rgba(20,184,166,.3);':''}" onclick="updateStatus('${o._key}','shipped')">Shipped</button>
+        <button class="btn btn-g" style="font-size:11px;padding:6px 10px;color:#ef4444;" onclick="updateStatus('${o._key}','refunded')">Refund</button>
+        <button class="btn btn-g" style="font-size:11px;padding:6px 10px;color:#ef4444;" onclick="updateStatus('${o._key}','failed')">Failed</button>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <input class="inp" id="trackInp" placeholder="Tracking number…" value="${o.trackingNumber||''}" style="flex:1;font-size:12px;padding:8px 10px;">
+        <button class="btn btn-p" style="font-size:12px;padding:8px 12px;" onclick="saveTracking('${o._key}')">Save</button>
+      </div>
+      ${o.trackingNumber?`<div style="font-size:11px;color:#2dd4bf;margin-top:6px;">Tracking: ${o.trackingNumber}</div>`:''}
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:11px;">
+      <div class="card-sm" style="padding:12px;">
+        <div style="font-size:9px;font-weight:700;color:#52525b;text-transform:uppercase;margin-bottom:7px;">Customer</div>
+        <div style="font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${o.customerName||((o.firstName||'')+' '+(o.lastName||'')).trim()||'—'}</div>
+        <div style="font-size:11px;color:#60a5fa;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${o.customerEmail||o.email||'—'}</div>
+        <div style="font-size:11px;color:#71717a;margin-top:2px;">${o.customerPhone||'—'}</div>
+      </div>
+      <div class="card-sm" style="padding:12px;">
+        <div style="font-size:9px;font-weight:700;color:#52525b;text-transform:uppercase;margin-bottom:7px;">Location</div>
+        <div style="font-size:18px;">${flag(o.geoCountry||o.geo?.country||o.country)}</div>
+        <div style="font-size:12px;font-weight:700;margin-top:2px;">${o.geoCountry||o.geo?.country||o.country||'—'}</div>
+        <div style="font-size:11px;color:#71717a;">${o.geoCity||o.geo?.city||'—'}</div>
+        <div style="font-size:10px;color:#3f3f46;">${o.currency||'USD'} · ×${Number(o.exchangeRate||1).toFixed(4)}</div>
+      </div>
+    </div>
+
+    ${addr&&(addr.line1||addr.city||addr.name)?`
+    <div class="card-sm" style="padding:12px;margin-bottom:11px;">
+      <div style="font-size:9px;font-weight:700;color:#52525b;text-transform:uppercase;margin-bottom:7px;">Shipping Address</div>
+      <div style="font-size:12px;line-height:1.8;color:#d4d4d8;">
+        ${[addr.name,addr.line1,addr.line2,(addr.city||'')+(addr.postal?' '+addr.postal:''),addr.country].filter(Boolean).join('<br>')}
+      </div>
+    </div>`:''}
+
+    <div class="card-sm" style="padding:12px;margin-bottom:11px;">
+      <div style="font-size:9px;font-weight:700;color:#52525b;text-transform:uppercase;margin-bottom:8px;">Items</div>
+      ${o.items?o.items.map(i=>`
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+          <div>
+            <div style="font-size:12px;font-weight:600;">${i.name||'FrostBlade Pro'}</div>
+            <div style="font-size:11px;color:#71717a;">${[i.bundle,i.variant,i.qty?'×'+i.qty:''].filter(Boolean).join(' · ')}</div>
+          </div>
+          <div style="font-size:13px;font-weight:700;">${fmt$(i.priceUSD)}</div>
+        </div>`).join(''):'<div style="color:#52525b;font-size:12px;">No items</div>'}
+    </div>
+
+    <div class="card-sm" style="padding:12px;margin-bottom:11px;">
+      <div style="font-size:9px;font-weight:700;color:#52525b;text-transform:uppercase;margin-bottom:8px;">Pricing</div>
+      ${o.pricing?`
+        <div class="ir"><span class="ik">Subtotal</span><span class="iv">${fmt$(o.pricing.subtotalUSD)}</span></div>
+        <div class="ir"><span class="ik">Shipping</span><span class="iv">${o.pricing.shippingUSD===0?'Free':fmt$(o.pricing.shippingUSD)}</span></div>
+        ${o.pricing.codeDiscUSD?`<div class="ir"><span class="ik" style="color:#22c55e;">Discount</span><span class="iv" style="color:#22c55e;">-${fmt$(o.pricing.codeDiscUSD)}</span></div>`:''}
+        <div style="display:flex;justify-content:space-between;padding:9px 0 2px;border-top:1px solid rgba(255,255,255,0.07);margin-top:4px;">
+          <span style="font-size:13px;font-weight:800;">Total</span>
+          <span style="font-size:14px;font-weight:800;color:#22c55e;">${fmt$(total)}</span>
+        </div>
+        ${displayCurrency==='local'&&localCurrency&&localCurrency!=='USD'?`<div style="font-size:11px;color:#52525b;text-align:right;">${localSymbol+(total*exchangeRate).toFixed(2)} ${localCurrency}</div>`:''}`:`<div style="font-size:13px;font-weight:700;">Total: ${fmt$(total)}</div>`}
+    </div>
+
+    <div class="card-sm" style="padding:12px;margin-bottom:11px;">
+      <div style="font-size:9px;font-weight:700;color:#52525b;text-transform:uppercase;margin-bottom:7px;">Send Push to Device</div>
+      <div style="display:flex;flex-direction:column;gap:7px;">
+        <input class="inp" id="devPushTitle" placeholder="e.g. Your order shipped! 📦" style="font-size:12px;padding:8px 10px;">
+        <input class="inp" id="devPushBody" placeholder="Message body…" style="font-size:12px;padding:8px 10px;">
+        <button class="btn btn-v" style="font-size:12px;" onclick="sendPushToDevice('${o.deviceId||''}','${o._key}')">Send Push Notification</button>
+      </div>
+      <div id="devPushStatus" style="font-size:11px;color:#52525b;margin-top:6px;text-align:center;"></div>
+    </div>
+
+    <div class="card-sm" style="padding:12px;">
+      <div class="ir"><span class="ik">Payment</span><span class="iv">${o.paymentMethod||'—'}</span></div>
+      <div class="ir"><span class="ik">Referrer</span><span class="iv">${o.referrer||'—'}</span></div>
+      <div class="ir"><span class="ik">Device ID</span><span class="iv" style="font-family:monospace;font-size:10px;">${sid(o.deviceId)}</span></div>
+      <div class="ir"><span class="ik">Saved at</span><span class="iv">${fmtDate(o.savedAt||o.completedAt||o.createdAt)}</span></div>
+    </div>
+  `;
+  document.getElementById('orderModal').style.display='flex';
+};
+window.closeOrderModal=function(){document.getElementById('orderModal').style.display='none';};
+
+window.updateStatus=function(key,status){
+  if(!window._fbReady)return;
+  window._update(window._ref(window._db,'orders/'+key),{status,updatedAt:Date.now()})
+    .then(()=>{
+      const o=allOrders.find(x=>x._key===key);if(o)o.status=status;
+      toast('Status → '+status,'success');openOrder(key);renderOrders();
+    }).catch(e=>toast('Error: '+e.message,'error'));
+};
+
+window.saveTracking=function(key){
+  const t=document.getElementById('trackInp')?.value?.trim();
+  if(!t)return toast('Enter tracking number','error');
+  window._update(window._ref(window._db,'orders/'+key),{trackingNumber:t,status:'shipped',shippedAt:Date.now()})
+    .then(()=>{
+      const o=allOrders.find(x=>x._key===key);if(o){o.trackingNumber=t;o.status='shipped';}
+      toast('Tracking saved','success');openOrder(key);renderOrders();
+    }).catch(e=>toast('Error: '+e.message,'error'));
+};
+
+window.sendPushToDevice=async function(deviceId,orderKey){
+  const title=document.getElementById('devPushTitle')?.value?.trim();
+  const body=document.getElementById('devPushBody')?.value?.trim();
+  const st=document.getElementById('devPushStatus');
+  if(!title||!body){if(st){st.textContent='Fill title and body.';st.style.color='#ef4444';}return;}
+  if(!deviceId){if(st){st.textContent='No device ID on this order.';st.style.color='#ef4444';}return;}
+  try{
+    await window._push(window._ref(window._db,'adminNotifications'),{title,body,url:'https://minimisty.store/order',target:'device',deviceId,orderKey,sentAt:window._ts(),sentBy:'dashboard',delivered:false});
+    if(st){st.textContent='Push queued!';st.style.color='#22c55e';}
+    toast('Push sent','success');
+  }catch(e){if(st){st.textContent='Error: '+e.message;st.style.color='#ef4444';}}
+};
+
+// ═══ CUSTOMERS ═══
+function renderCustomers(){
+  let list=allCustomers;
+  if(currentCustSearch){const q=currentCustSearch.toLowerCase();list=list.filter(c=>(c.email||'').toLowerCase().includes(q)||(c.name||'').toLowerCase().includes(q));}
+  document.getElementById('custCount').textContent=list.length;
+  document.getElementById('customersListEl').innerHTML=list.length?list.map(c=>`
+    <div class="rh" style="display:flex;align-items:center;padding:12px 16px;gap:11px;border-bottom:1px solid rgba(255,255,255,0.04);">
+      <div style="width:36px;height:36px;background:rgba(59,130,246,.12);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;font-weight:700;color:#60a5fa;">
+        ${((c.name||c.email||'?')[0]||'?').toUpperCase()}
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.name||'—'}</div>
+        <div style="font-size:11px;color:#60a5fa;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.email||'—'}</div>
+        <div style="font-size:10px;color:#3f3f46;margin-top:2px;">${flag(c.country)} ${c.country||'—'} · ${c.source||'—'}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div style="font-size:13px;font-weight:800;color:#22c55e;">${fmt$(c.totalSpentUSD||0)}</div>
+        <div style="font-size:10px;color:#52525b;margin-top:1px;">${c.orderCount||0} order${(c.orderCount||0)!==1?'s':''}</div>
+      </div>
+    </div>`).join(''):'<div style="padding:32px;text-align:center;color:#52525b;">No customers yet</div>';
+}
+window.filterCustomers=function(q){currentCustSearch=q;renderCustomers();};
+
+// ═══ ANALYTICS ═══
+function renderAnalytics(){
+  const vs=allVisits.filter(v=>inRange(v.ts));
+  // Visits chart
+  const b=dayBuckets(30);
+  vs.forEach(v=>{const t=v.ts>1e12?v.ts:v.ts*1000;const bk=b.find(x=>t>=x.ts&&t<x.ts+86400000);if(bk)bk.visits++;});
+  const vctx=document.getElementById('visitsChart').getContext('2d');
+  if(vChart)vChart.destroy();
+  vChart=new Chart(vctx,{type:'line',data:{labels:b.map(x=>x.label),datasets:[{label:'Visits',data:b.map(x=>x.visits),borderColor:'#8b5cf6',backgroundColor:'rgba(139,92,246,0.08)',borderWidth:2,pointRadius:2,fill:true,tension:0.35}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false},tooltip:{backgroundColor:'#18181d',bodyColor:'#a1a1aa',borderColor:'rgba(255,255,255,0.1)',borderWidth:1}},scales:{y:{grid:{color:'rgba(255,255,255,0.04)'}},x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{maxTicksLimit:7}}}}});
+
+  // Device donut
+  const dc={mobile:0,tablet:0,desktop:0};vs.forEach(v=>{const dt=v.deviceType||'desktop';dc[dt]=(dc[dt]||0)+1;});
+  const dctx=document.getElementById('deviceChart').getContext('2d');
+  if(devChart)devChart.destroy();
+  devChart=new Chart(dctx,{type:'doughnut',data:{labels:['Mobile','Tablet','Desktop'],datasets:[{data:Object.values(dc),backgroundColor:['#3b82f6','#8b5cf6','#22c55e'],borderWidth:0,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{boxWidth:10,padding:8}},tooltip:{backgroundColor:'#18181d',bodyColor:'#a1a1aa',borderColor:'rgba(255,255,255,0.1)',borderWidth:1}}}});
+
+  // Currency donut
+  const cc={};vs.forEach(v=>{const c=v.currency||'USD';cc[c]=(cc[c]||0)+1;});
+  const top=Object.entries(cc).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const cctx=document.getElementById('currencyChart').getContext('2d');
+  if(curChart)curChart.destroy();
+  curChart=new Chart(cctx,{type:'doughnut',data:{labels:top.map(x=>x[0]),datasets:[{data:top.map(x=>x[1]),backgroundColor:['#f59e0b','#3b82f6','#22c55e','#8b5cf6','#ef4444','#2dd4bf'],borderWidth:0,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{boxWidth:10,padding:8}},tooltip:{backgroundColor:'#18181d',bodyColor:'#a1a1aa',borderColor:'rgba(255,255,255,0.1)',borderWidth:1}}}});
+
+  // Country revenue bar
+  const cr={};const paid=allOrders.filter(o=>['paid','confirmed','shipped'].includes(o.status));
+  paid.forEach(o=>{const c=o.geoCountry||o.country||'unknown';cr[c]=(cr[c]||0)+getTotal(o);});
+  const topCR=Object.entries(cr).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const crvctx=document.getElementById('countryRevChart').getContext('2d');
+  if(crvChart)crvChart.destroy();
+  crvChart=new Chart(crvctx,{type:'bar',data:{labels:topCR.map(x=>flag(x[0])+' '+x[0]),datasets:[{label:'Revenue',data:topCR.map(x=>+(x[1]*(displayCurrency==='local'?exchangeRate:1)).toFixed(2)),backgroundColor:'rgba(59,130,246,0.3)',borderColor:'#3b82f6',borderWidth:1.5,borderRadius:5}]},options:{responsive:true,maintainAspectRatio:true,indexAxis:'y',plugins:{legend:{display:false},tooltip:{backgroundColor:'#18181d',bodyColor:'#a1a1aa',borderColor:'rgba(255,255,255,0.1)',borderWidth:1}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'}},y:{grid:{color:'rgba(255,255,255,0.04)'}}}}});
+
+  const ce=Object.entries(analyticsData).filter(([k])=>k.startsWith('click_')).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('clickEventsEl').innerHTML=ce.length?ce.map(([k,v])=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+      <span style="font-size:12px;color:#a1a1aa;">${k.replace('click_','')}</span>
+      <span style="font-size:13px;font-weight:700;">${v}</span>
+    </div>`).join(''):'<div style="font-size:12px;color:#52525b;">No click events yet</div>';
+
+  document.getElementById('rawAnalytics').textContent=JSON.stringify(analyticsData,null,2);
+}
+
+// ═══ VISITS ═══
+function renderVisits(){
+  const v=allVisits.filter(x=>inRange(x.ts)).slice(0,300);
+  document.getElementById('visitsCount').textContent=v.length;
+  document.getElementById('visitsListEl').innerHTML=v.length?`
+    <div class="tw"><table><thead><tr><th>Session</th><th>Page</th><th>Country</th><th>Device</th><th>Currency</th><th>Referrer</th><th>Time</th></tr></thead><tbody>
+    ${v.map(x=>`
+      <tr class="rh" style="border-bottom:1px solid rgba(255,255,255,0.03);">
+        <td style="font-size:10px;color:#52525b;font-family:monospace;">${sid(x.sessionId||x._key)}</td>
+        <td><span class="badge bgy" style="font-size:9px;">${x.page||'—'}</span></td>
+        <td>${flag(x.country)} <span style="font-size:11px;">${x.country||'—'}</span></td>
+        <td><span class="badge ${x.deviceType==='mobile'?'bb':x.deviceType==='tablet'?'bp':'bgy'}" style="font-size:9px;">${x.deviceType||'—'}</span></td>
+        <td style="font-size:11px;">${x.currency||'—'}</td>
+        <td style="font-size:11px;color:#a1a1aa;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${x.referrer||'direct'}</td>
+        <td style="font-size:10px;color:#52525b;white-space:nowrap;">${fmtDate(x.ts)}</td>
+      </tr>`).join('')}
+    </tbody></table></div>`:'<div style="padding:32px;text-align:center;color:#52525b;">No visits</div>';
+}
+
+// ═══ ABANDONED ═══
+function renderAbandoned(){
+  const a=allAbandoned.filter(x=>inRange(x.savedAt||x.ts));
+  document.getElementById('abandonedCount').textContent=a.length;
+  document.getElementById('abandonedListEl').innerHTML=a.length?a.map(x=>`
+    <div class="rh" style="display:flex;align-items:center;padding:12px 16px;gap:11px;border-bottom:1px solid rgba(255,255,255,0.04);">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:700;color:#f59e0b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${x.email||'—'}</div>
+        <div style="font-size:11px;color:#52525b;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${x.items||'—'}</div>
+        <div style="font-size:10px;color:#3f3f46;margin-top:2px;">${flag(x.country)} ${x.country||'—'} · ${fmtDate(x.savedAt||x.ts)}</div>
+      </div>
+      <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:5px;">
+        <span class="badge ${x.recovered?'bg':'bgy'}">${x.recovered?'Recovered':'Lost'}</span>
+        <button class="btn btn-g" style="font-size:10px;padding:4px 8px;" onclick="quickEmail('${x.email||''}')">Email</button>
+      </div>
+    </div>`).join(''):'<div style="padding:32px;text-align:center;color:#52525b;">No abandoned carts</div>';
+}
+window.quickEmail=function(email){
+  if(!email)return;
+  document.getElementById('emailTo').value=email;
+  quickFillEmail('abandoned');
+  navigate('messaging');
+  toast('Email pre-filled for '+email);
+};
+
+// ═══ DEVICES ═══
+function renderDevices(){
+  document.getElementById('devicesCount').textContent=allDevices.length;
+  document.getElementById('devicesListEl').innerHTML=allDevices.length?allDevices.map(d=>`
+    <div class="rh" style="display:flex;align-items:center;padding:12px 16px;gap:11px;border-bottom:1px solid rgba(255,255,255,0.04);">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:11px;font-weight:700;color:#60a5fa;font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.deviceId}</div>
+        <div style="font-size:10px;color:#52525b;margin-top:2px;">${flag(d.lastCountry)} ${d.lastCountry||'—'} · ${d.lastCurrency||'—'} · ${d.deviceType||'—'}</div>
+        <div style="font-size:10px;color:#3f3f46;margin-top:1px;">Last seen: ${fmtDate(d.lastSeen)}</div>
+      </div>
+      <span class="badge bb" style="flex-shrink:0;">${d.sessionCount||0} sessions</span>
+    </div>`).join(''):'<div style="padding:32px;text-align:center;color:#52525b;">No device data</div>';
+}
+
+// ═══ MESSAGING ═══
+async function loadPushSubscribers(){
+  if(!window._fbReady)return;
+  try{
+    const snap=await window._get(window._ref(window._db,'pushSubscriptions'));
+    const subs=snap.exists()?Object.entries(snap.val()).map(([k,v])=>({_key:k,...v})):[];
+    const n=subs.length;
+    document.getElementById('pushSubCount').textContent=n;
+    document.getElementById('pushSubCountInline').textContent=n;
+    document.getElementById('pushSubscriberList').innerHTML=subs.length?subs.map(s=>`
+      <div class="rh" style="padding:10px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,0.04);">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:11px;font-family:monospace;color:#60a5fa;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.deviceId||s._key}</div>
+          <div style="font-size:10px;color:#52525b;margin-top:1px;">${flag(s.country)} ${s.country||'—'} · ${fmtDate(s.ts||s.subscribedAt)}</div>
+        </div>
+        <span class="badge bg" style="font-size:9px;">Active</span>
+      </div>`).join(''):'<div style="padding:20px;text-align:center;color:#52525b;font-size:12px;">No subscribers yet</div>';
+  }catch(e){}
+}
+
+window.sendPushNotification=async function(){
+  const title=document.getElementById('pushTitle').value.trim();
+  const body=document.getElementById('pushBody').value.trim();
+  const url=document.getElementById('pushUrl').value.trim()||'https://minimisty.store/';
+  const target=document.getElementById('pushTarget').value;
+  const st=document.getElementById('pushStatus');
+  if(!title||!body){st.textContent='Title and message are required.';st.style.color='#ef4444';return;}
+  st.textContent='Sending…';st.style.color='#52525b';
+  try{
+    await window._push(window._ref(window._db,'adminNotifications'),{title,body,url,target,sentAt:window._ts(),sentBy:'dashboard',delivered:false});
+    await window._update(window._ref(window._db,'analytics'),{totalPushSent:window._inc(1)});
+    st.textContent='Push queued successfully!';st.style.color='#22c55e';
+    document.getElementById('pushTitle').value='';document.getElementById('pushBody').value='';
+    toast('Push notification sent','success');
+  }catch(e){st.textContent='Error: '+e.message;st.style.color='#ef4444';}
+};
+
+window.previewPush=function(){
+  document.getElementById('pushPreviewTitle').textContent=document.getElementById('pushTitle').value||'Your title here';
+  document.getElementById('pushPreviewBody').textContent=document.getElementById('pushBody').value||'Your message body';
+  document.getElementById('pushPreviewModal').style.display='flex';
+};
+
+window.sendEmail=async function(){
+  const to=document.getElementById('emailTo').value.trim();
+  const subject=document.getElementById('emailSubject').value.trim();
+  const body=document.getElementById('emailBody').value.trim();
+  const st=document.getElementById('emailStatus');
+  if(!to||!subject||!body){st.textContent='Fill in all fields.';st.style.color='#ef4444';return;}
+  if(!/\S+@\S+\.\S+/.test(to)){st.textContent='Invalid email.';st.style.color='#ef4444';return;}
+  st.textContent='Sending…';st.style.color='#52525b';
+  try{
+    await window._push(window._ref(window._db,'adminEmails'),{to,subject,body,type:'single',sentAt:window._ts(),sentBy:'dashboard',delivered:false});
+    st.textContent='Email queued!';st.style.color='#22c55e';
+    document.getElementById('emailTo').value='';document.getElementById('emailSubject').value='';document.getElementById('emailBody').value='';
+    toast('Email queued','success');
+  }catch(e){st.textContent='Error: '+e.message;st.style.color='#ef4444';}
+};
+
+window.previewEmail=function(){
+  document.getElementById('epTo').textContent=document.getElementById('emailTo').value||'customer@example.com';
+  document.getElementById('epSubject').textContent=document.getElementById('emailSubject').value||'(no subject)';
+  document.getElementById('epBody').textContent=document.getElementById('emailBody').value||'(no body)';
+  document.getElementById('emailPreviewModal').style.display='flex';
+};
+
+window.quickFillEmail=function(type){
+  const t={
+    abandoned:{s:"You left something behind at MINIMISTY 🌀",b:"Hi,\n\nWe noticed you left the FrostBlade Pro in your cart. Your cart is saved — come back before stock runs out.\n\nhttps://minimisty.store/checkout\n\nThe MINIMISTY Team"},
+    confirm:{s:"Your MINIMISTY order is confirmed ✓",b:"Hi,\n\nThank you for your order! We're processing it now and will ship soon.\n\nhttps://minimisty.store/order\n\nThe MINIMISTY Team"},
+    shipped:{s:"Your FrostBlade Pro is on the way! 📦",b:"Hi,\n\nGreat news — your order has shipped! Estimated delivery: 7–14 business days.\n\nTrack it: https://minimisty.store/order\n\nThe MINIMISTY Team"},
+    promo:{s:"Special offer from MINIMISTY 🎁",b:"Hi,\n\nUse code SAVE10 for 10% off your order.\n\nhttps://minimisty.store/\n\nThe MINIMISTY Team"}
+  };
+  if(t[type]){document.getElementById('emailSubject').value=t[type].s;document.getElementById('emailBody').value=t[type].b;}
+};
+
+window.sendBroadcast=async function(){
+  const subject=document.getElementById('broadcastSubject').value.trim();
+  const body=document.getElementById('broadcastBody').value.trim();
+  const seg=document.getElementById('broadcastSegment').value;
+  const st=document.getElementById('broadcastStatus');
+  if(!subject||!body){st.textContent='Fill subject and message.';st.style.color='#ef4444';return;}
+  let targets=[];
+  if(seg==='all')targets=allCustomers.map(c=>c.email).filter(Boolean);
+  else if(seg==='abandoned')targets=allAbandoned.map(a=>a.email).filter(Boolean);
+  else if(seg==='ordered')targets=allOrders.map(o=>o.customerEmail||o.email).filter(Boolean);
+  targets=[...new Set(targets)];
+  if(!targets.length){st.textContent='No emails for this segment.';st.style.color='#f59e0b';return;}
+  if(!confirm('Send to '+targets.length+' email(s)?'))return;
+  st.textContent='Queuing…';st.style.color='#52525b';
+  try{
+    for(const to of targets)await window._push(window._ref(window._db,'adminEmails'),{to,subject,body,type:'broadcast',segment:seg,sentAt:window._ts(),sentBy:'dashboard',delivered:false});
+    st.textContent='Queued '+targets.length+' emails.';st.style.color='#22c55e';
+    toast(targets.length+' emails queued','success');
+  }catch(e){st.textContent='Error: '+e.message;st.style.color='#ef4444';}
+};
+
+// ═══ SETTINGS ═══
+async function loadDiscountCodes(){
+  if(!window._fbReady)return;
+  try{
+    const snap=await window._get(window._ref(window._db,'codes'));
+    allCodes=snap.exists()?Object.entries(snap.val()).map(([k,v])=>({_key:k,...v})):[];
+    renderDiscountCodes();
+  }catch(e){}
+}
+function renderDiscountCodes(){
+  const el=document.getElementById('existingCodes');if(!el)return;
+  el.innerHTML=allCodes.length?`
+    <div style="font-size:10px;font-weight:700;color:#52525b;text-transform:uppercase;margin-bottom:8px;">Existing Codes</div>
+    ${allCodes.map(c=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+        <div>
+          <span style="font-size:13px;font-weight:800;font-family:monospace;color:#f0f0f5;">${c._key}</span>
+          <span class="badge ${c.active?'bg':'bgy'}" style="margin-left:7px;">${c.active?'Active':'Off'}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:7px;">
+          <span style="font-size:11px;color:#a1a1aa;">${c.type==='pct'?c.value+'% off':'$'+c.value} · ${c.uses||0}/${c.maxUses||'∞'}</span>
+          <button class="btn btn-d" style="font-size:10px;padding:3px 8px;" onclick="toggleCode('${c._key}',${!c.active})">${c.active?'Disable':'Enable'}</button>
+        </div>
+      </div>`).join('')}`:'<div style="font-size:12px;color:#52525b;">No codes yet</div>';
+}
+window.createDiscountCode=async function(){
+  const id=(document.getElementById('newCodeId').value||'').trim().toUpperCase();
+  const type=document.getElementById('newCodeType').value;
+  const value=parseFloat(document.getElementById('newCodeVal').value)||0;
+  const maxUses=parseInt(document.getElementById('newCodeMax').value)||999;
+  const st=document.getElementById('codeStatus');
+  if(!id||!value){st.textContent='Fill code and value.';st.style.color='#ef4444';return;}
+  try{
+    await window._set(window._ref(window._db,'codes/'+id),{type,value,active:true,maxUses,uses:0,createdAt:Date.now()});
+    st.textContent='Code '+id+' created!';st.style.color='#22c55e';
+    document.getElementById('newCodeId').value='';document.getElementById('newCodeVal').value='';
+    toast('Code created','success');loadDiscountCodes();
+  }catch(e){st.textContent='Error: '+e.message;st.style.color='#ef4444';}
+};
+window.toggleCode=async function(id,active){
+  try{await window._update(window._ref(window._db,'codes/'+id),{active});toast(id+(active?' enabled':' disabled'));loadDiscountCodes();}catch(e){toast('Error','error');}
+};
+
+window.saveDashSettings=function(){
+  const iv=parseInt(document.getElementById('cfgRefreshInterval').value)*1000;
+  clearInterval(refreshTimer);refreshTimer=setInterval(loadAll,iv);
+  toast('Settings saved','success');
+};
+
+// ═══ BADGES ═══
+function updateBadges(){
+  const p=allOrders.filter(o=>['pending','pending_checkout'].includes(o.status)).length;
+  const b=document.getElementById('ordersNavBadge');
+  if(b){b.textContent=p;b.style.display=p>0?'flex':'none';}
+}
+
+// ═══ INIT ═══
+function init(){
+  detectLocalCurrency();
+  if(window._fbReady)loadAll();
+  else window.addEventListener('fbReady',loadAll,{once:true});
+  refreshTimer=setInterval(loadAll,30000);
+}
+init();
 </script>
 </body>
 </html>
