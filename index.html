@@ -6664,178 +6664,381 @@
 </section>
 
 <!-- STAT CARDS -->
-<section style="background:var(--bg)" class="stat-grid-wrap">
+<section style="background:var(--bg);padding-bottom:8px" class="stat-grid-wrap">
   <style>
-    /* LED stat card overrides */
+    /* ── PREMIUM INSTRUMENT PANEL — LED stat cards ── */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 20px 20px 8px;
+    }
+
     .led-card {
-      background: #020204 !important;
-      border: 2px solid rgba(255,255,255,0.2) !important;
-      border-radius: 18px !important;
-      padding: 18px !important;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: linear-gradient(160deg, #0a0a12 0%, #060608 100%) !important;
+      border: 1px solid rgba(255,255,255,0.07) !important;
+      border-radius: 16px !important;
+      padding: 20px 18px 18px !important;
+      display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between;
       aspect-ratio: 1/1;
       position: relative; overflow: hidden;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 32px rgba(0,0,0,0.5);
+      transition: border-color 0.3s, box-shadow 0.3s;
     }
-    .led-card::before {
-      content: ''; position: absolute; inset: 0; pointer-events: none;
-      background: radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.025) 0%, transparent 60%);
+    .led-card:hover {
+      border-color: rgba(255,255,255,0.13) !important;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 12px 40px rgba(0,0,0,0.6);
     }
+
+    /* Subtle corner accent line */
+    .led-card::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+      pointer-events: none;
+    }
+
+    /* Card header: label row */
     .led-label {
-      font-size: 0.52rem; font-weight: 800; letter-spacing: 0.16em;
-      text-transform: uppercase; margin-bottom: 10px;
+      font-family: var(--font-body, 'Nunito', sans-serif);
+      font-size: 0.5rem;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      opacity: 0.55;
+    }
+
+    /* Large metric display */
+    .led-metric-row {
+      display: flex; align-items: baseline; gap: 3px;
+      margin: 0;
+      line-height: 1;
     }
     .led-number {
-      font-size: 2.8rem; font-weight: 900; line-height: 1;
+      font-size: 3rem;
+      font-weight: 900;
+      line-height: 1;
       font-variant-numeric: tabular-nums;
-      letter-spacing: -0.03em;
+      letter-spacing: -0.04em;
     }
-    .led-unit { font-size: 1.1rem; font-weight: 700; }
-    .led-sub  { font-size: 0.54rem; font-weight: 800; letter-spacing: 0.12em; margin-top: 8px; text-transform: uppercase; }
+    .led-unit {
+      font-size: 1rem;
+      font-weight: 700;
+      opacity: 0.7;
+      letter-spacing: 0.02em;
+    }
 
-    /* LED segmented battery */
+    /* Bottom section */
+    .led-card-bottom {
+      width: 100%;
+      display: flex; flex-direction: column; gap: 7px;
+    }
+
+    /* Segmented battery bar */
     .led-battery-wrap {
-      display: flex; align-items: center; gap: 3px; margin-top: 10px;
+      display: flex; align-items: center; gap: 2px; margin-top: 2px;
     }
     .led-seg {
-      width: 9px; height: 18px; border-radius: 2px;
-      background: #080810;
-      border: 2px solid rgba(255,255,255,0.25);
-      transition: background 0.25s;
+      width: 8px; height: 14px; border-radius: 2px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      transition: background 0.25s, border-color 0.25s, box-shadow 0.25s;
     }
-    .led-seg.on-green  { background: #39ff14; border-color: #39ff14; box-shadow: 0 0 3px rgba(57,255,20,0.4); }
-    .led-seg.on-yellow { background: #ffcc00; border-color: #ffcc00; box-shadow: 0 0 3px rgba(255,204,0,0.4); }
-    .led-seg.on-red    { background: #ff3b30; border-color: #ff3b30; box-shadow: 0 0 3px rgba(255,59,48,0.4); }
+    .led-seg.on-green  { background: #4ade80; border-color: #4ade80; box-shadow: 0 0 4px rgba(74,222,128,0.35); }
+    .led-seg.on-yellow { background: #facc15; border-color: #facc15; box-shadow: 0 0 4px rgba(250,204,21,0.35); }
+    .led-seg.on-red    { background: #f87171; border-color: #f87171; box-shadow: 0 0 4px rgba(248,113,113,0.35); }
     .led-battery-tip {
-      width: 3px; height: 9px; border-radius: 0 2px 2px 0;
-      background: #141420; margin-left: 1px;
+      width: 3px; height: 7px; border-radius: 0 1px 1px 0;
+      background: rgba(255,255,255,0.08); margin-left: 1px;
     }
 
-    /* LED speed ring */
-    .led-speed-ring { position: relative; width: 68px; height: 68px; margin-bottom: 8px; }
+    .led-sub {
+      font-family: var(--font-body, 'Nunito', sans-serif);
+      font-size: 0.48rem;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      opacity: 0.45;
+    }
+
+    /* ── WIDE CARD: Adaptive Modes ── */
+    .led-card-wide {
+      background: linear-gradient(160deg, #0a0a12 0%, #060608 100%) !important;
+      border: 1px solid rgba(255,255,255,0.07) !important;
+      border-radius: 16px !important;
+      padding: 18px !important;
+      grid-column: span 1;
+      aspect-ratio: unset;
+      position: relative; overflow: hidden;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 32px rgba(0,0,0,0.5);
+      transition: border-color 0.3s;
+    }
+    .led-card-wide:hover { border-color: rgba(255,255,255,0.13) !important; }
+    .led-card-wide::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+      pointer-events: none;
+    }
+
+    .led-mode-label {
+      font-family: var(--font-body, 'Nunito', sans-serif);
+      font-size: 0.48rem;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      color: rgba(255,255,255,0.25);
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    .led-mode-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 9px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      gap: 10px;
+    }
+    .led-mode-row:last-child { border-bottom: none; padding-bottom: 0; }
+
+    .led-mode-left { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+
+    /* Thin color indicator line replacing dots */
+    .led-mode-indicator {
+      width: 2px;
+      height: 22px;
+      border-radius: 99px;
+      background: rgba(255,255,255,0.08);
+      flex-shrink: 0;
+      transition: background 0.35s, box-shadow 0.35s;
+    }
+    .led-mode-indicator.active {
+      background: var(--mc, #fff);
+      box-shadow: 0 0 8px var(--mc, #fff);
+    }
+
+    .led-mode-name {
+      font-family: var(--font-body, 'Nunito', sans-serif);
+      font-size: 0.72rem;
+      font-weight: 700;
+      transition: color 0.35s;
+      color: rgba(255,255,255,0.2);
+      letter-spacing: 0.01em;
+    }
+    .led-mode-name.active { color: rgba(255,255,255,0.9); }
+
+    .led-mode-sub {
+      font-family: var(--font-body, 'Nunito', sans-serif);
+      font-size: 0.48rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: rgba(255,255,255,0.18);
+      transition: color 0.35s;
+    }
+    .led-mode-sub.active { color: rgba(255,255,255,0.4); }
+
+    .led-mode-time {
+      font-family: var(--font-body, 'Nunito', sans-serif);
+      font-size: 0.7rem;
+      font-weight: 800;
+      transition: color 0.35s;
+      color: rgba(255,255,255,0.2);
+      letter-spacing: 0.02em;
+      flex-shrink: 0;
+    }
+    .led-mode-time.active { color: rgba(255,255,255,0.7); }
+
+    /* ── SPEED RING CARD ── */
+    .led-speed-ring {
+      position: relative;
+      width: 72px; height: 72px;
+      margin: 0;
+      flex-shrink: 0;
+    }
     .led-speed-svg { width: 100%; height: 100%; }
     .led-speed-text {
       position: absolute; inset: 0;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      font-size: 0.95rem; font-weight: 900; color: #fff;
-      line-height: 1;
+      font-size: 0.88rem; font-weight: 900; color: #fff;
+      line-height: 1.05;
+      letter-spacing: -0.02em;
     }
-    .led-speed-text span { font-size: 0.4rem; color: #ff3b30; font-weight: 900; letter-spacing: 0.1em; margin-top: 3px; }
+    .led-speed-text span {
+      font-family: var(--font-body, 'Nunito', sans-serif);
+      font-size: 0.38rem;
+      color: rgba(255,255,255,0.35);
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
 
-    /* LED mode row card */
-    .led-card-wide {
-      background: #020204 !important;
-      border: 2px solid rgba(255,255,255,0.2) !important;
-      border-radius: 18px !important;
-      padding: 14px 16px !important;
-      grid-column: span 1;
-      aspect-ratio: unset;
-      position: relative; overflow: hidden;
+    /* Light mode adjustments */
+    [data-theme="light"] .led-card,
+    [data-theme="light"] .led-card-wide {
+      background: linear-gradient(160deg, #f7f7fb 0%, #efeff5 100%) !important;
+      border-color: rgba(0,0,0,0.07) !important;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.8) inset, 0 4px 16px rgba(0,0,0,0.08);
     }
-    .led-card-wide::before {
-      content: ''; position: absolute; inset: 0; pointer-events: none;
-      background: radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.02) 0%, transparent 60%);
-    }
-    .led-mode-label { font-size: 0.52rem; font-weight: 800; letter-spacing: 0.16em; color: #555570; text-transform: uppercase; margin-bottom: 12px; }
-    .led-mode-row {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 8px 0;
-      border-bottom: 1px solid #0d0d1a;
-    }
-    .led-mode-row:last-child { border-bottom: none; }
-    .led-mode-name { font-size: 0.72rem; font-weight: 700; transition: color 0.3s; color: #3a3a5c; }
-    .led-mode-dots { display: flex; gap: 3px; align-items: center; }
-    .led-mode-dot {
-      width: 6px; height: 6px; border-radius: 50%;
-      background: #0c0c18;
-      border: 1px solid #1a1a28;
-      transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
-    }
-    .led-mode-dot.on { background: var(--c, #fff); border-color: var(--c, #fff); box-shadow: 0 0 2px rgba(255,255,255,0.3); }
-    .led-mode-time { font-size: 0.62rem; font-weight: 800; transition: color 0.3s; color: #3a3a5c; }
+    [data-theme="light"] .led-seg { background: rgba(0,0,0,0.06); border-color: rgba(0,0,0,0.1); }
+    [data-theme="light"] .led-mode-row { border-bottom-color: rgba(0,0,0,0.05); }
   </style>
 
   <div class="stat-grid">
-    <!-- Card 1: Charge % with LED segments -->
-    <div class="stat-card led-card">
-      <div class="led-label" style="color:var(--cyan)">USB-C CHARGE</div>
-      <div style="display:flex;align-items:baseline;gap:1px">
+
+    <!-- Card 1: USB-C Charge -->
+    <div class="stat-card led-card" id="ledCardCharge">
+      <div class="led-label" style="color:var(--cyan)">USB-C Charge</div>
+      <div class="led-metric-row">
         <span id="chargeCount" class="led-number" style="color:#fff">0</span>
         <span class="led-unit" style="color:var(--cyan)">%</span>
       </div>
-      <div class="led-battery-wrap" id="ledBatterySegs">
-        <!-- 10 segments built by JS -->
+      <div class="led-card-bottom">
+        <div class="led-battery-wrap" id="ledBatterySegs">
+          <!-- segments built by JS -->
+        </div>
+        <div class="led-sub" style="color:var(--cyan)">Fast Charge</div>
       </div>
-      <div class="led-sub" style="color:var(--cyan)">FAST CHARGE</div>
     </div>
 
-    <!-- Card 2: Battery life countdown -->
-    <div class="stat-card led-card">
-      <div class="led-label" style="color:var(--lime)">BATTERY LIFE</div>
-      <div style="display:flex;align-items:baseline;gap:1px">
+    <!-- Card 2: Battery Life -->
+    <div class="stat-card led-card" id="ledCardBattery">
+      <div class="led-label" style="color:#4ade80">Battery Life</div>
+      <div class="led-metric-row">
         <span id="drainCount" class="led-number" style="color:#fff">16</span>
-        <span class="led-unit" style="color:var(--lime)">h</span>
+        <span class="led-unit" style="color:#4ade80">h</span>
       </div>
-      <div id="ledBatteryBar" class="led-battery-wrap">
-        <!-- segments -->
+      <div class="led-card-bottom">
+        <div class="led-battery-wrap" id="ledBatteryBar">
+          <!-- segments built by JS -->
+        </div>
+        <div class="led-sub" style="color:#4ade80" id="ledBatteryMode">Eco Mode</div>
       </div>
-      <div class="led-sub" style="color:var(--lime)" id="ledBatteryMode">ECO MODE</div>
     </div>
 
-    <!-- Card 3: Mode LED panel -->
+    <!-- Card 3: Adaptive Modes -->
     <div class="stat-card led-card-wide">
-      <div class="led-mode-label">ADAPTIVE MODES</div>
+      <div class="led-mode-label">Adaptive Modes</div>
+
       <div class="led-mode-row" id="ledModeRowEco">
-        <span class="led-mode-name" id="ledModeNameEco" style="color:#3a3a5a">Eco</span>
-        <div class="led-mode-dots" id="ledDotsEco"></div>
-        <span class="led-mode-time" id="ledTimeEco" style="color:#1e1e2e">16h+</span>
+        <div class="led-mode-left">
+          <div class="led-mode-indicator active" id="ledIndEco" style="--mc:#4ade80"></div>
+          <div>
+            <div class="led-mode-name active" id="ledModeNameEco">Eco</div>
+            <div class="led-mode-sub active" id="ledModeSubEco">~5,000 RPM</div>
+          </div>
+        </div>
+        <span class="led-mode-time active" id="ledTimeEco">16h+</span>
       </div>
+
       <div class="led-mode-row" id="ledModeRowNorm">
-        <span class="led-mode-name" id="ledModeNameNorm" style="color:#3a3a5a">Normal</span>
-        <div class="led-mode-dots" id="ledDotsNorm"></div>
-        <span class="led-mode-time" id="ledTimeNorm" style="color:#1e1e2e">8h</span>
+        <div class="led-mode-left">
+          <div class="led-mode-indicator" id="ledIndNorm" style="--mc:#facc15"></div>
+          <div>
+            <div class="led-mode-name" id="ledModeNameNorm">Normal</div>
+            <div class="led-mode-sub" id="ledModeSubNorm">~12,000 RPM</div>
+          </div>
+        </div>
+        <span class="led-mode-time" id="ledTimeNorm">8h</span>
       </div>
+
       <div class="led-mode-row" id="ledModeRowTurbo">
-        <span class="led-mode-name" id="ledModeNameTurbo" style="color:#3a3a5a">Turbo</span>
-        <div class="led-mode-dots" id="ledDotsTurbo"></div>
-        <span class="led-mode-time" id="ledTimeTurbo" style="color:#1e1e2e">3h</span>
+        <div class="led-mode-left">
+          <div class="led-mode-indicator" id="ledIndTurbo" style="--mc:#f87171"></div>
+          <div>
+            <div class="led-mode-name" id="ledModeNameTurbo">Turbo</div>
+            <div class="led-mode-sub" id="ledModeSubTurbo">20,000 RPM</div>
+          </div>
+        </div>
+        <span class="led-mode-time" id="ledTimeTurbo">3h</span>
       </div>
     </div>
 
-    <!-- Card 4: RPM speed ring -->
-    <div class="stat-card led-card">
-      <div class="led-label" style="color:var(--red)">MOTOR SPEED</div>
+    <!-- Card 4: Motor Speed -->
+    <div class="stat-card led-card" id="ledCardRpm">
+      <div class="led-label" style="color:#f87171">Motor Speed</div>
       <div class="led-speed-ring">
         <svg class="led-speed-svg" viewBox="0 0 64 64" fill="none">
-          <!-- Track -->
-          <circle cx="32" cy="32" r="26" stroke="#0d0d0d" stroke-width="6"/>
-          <!-- Arc filled by JS -->
+          <circle cx="32" cy="32" r="26" stroke="rgba(255,255,255,0.05)" stroke-width="5"/>
           <circle cx="32" cy="32" r="26" id="ledSpeedArc"
-            stroke="#ff3b30" stroke-width="6"
+            stroke="#f87171" stroke-width="5"
             stroke-linecap="round"
             stroke-dasharray="163.36"
             stroke-dashoffset="163.36"
             transform="rotate(-90 32 32)"
-            style="transition:stroke-dashoffset 0.12s linear,stroke 0.3s"/>
+            style="transition:stroke-dashoffset 0.12s linear,stroke 0.4s"/>
         </svg>
         <div class="led-speed-text">
           <span id="ledRpm">0</span>
           <span>RPM ×100</span>
         </div>
       </div>
-      <div class="led-sub" style="color:var(--red)" id="ledRpmLabel">IDLE</div>
+      <div class="led-sub" style="color:#f87171" id="ledRpmLabel">Idle</div>
     </div>
+
   </div>
 </section>
 
 <script>
 (function(){
   // ─────────────────────────────────────────────────────────────────────
-  //  LED STAT CARDS — clean independent timers, no shared tick loop
+  //  LED STAT CARDS — premium instrument panel animations
   // ─────────────────────────────────────────────────────────────────────
 
-  const NUM_SEGS = 10;
+  // ── MODES ─────────────────────────────────────────────────────────────
+  var MODES = [
+    { label: 'Eco Mode',    maxRpm: 60,  barColor: '#4ade80', arcColor: '#4ade80', indId: 'ledIndEco',   nameKey: 'Eco'   },
+    { label: 'Normal Mode', maxRpm: 120, barColor: '#facc15', arcColor: '#facc15', indId: 'ledIndNorm',  nameKey: 'Norm'  },
+    { label: 'Turbo Mode',  maxRpm: 200, barColor: '#f87171', arcColor: '#f87171', indId: 'ledIndTurbo', nameKey: 'Turbo' },
+  ];
+  var modeIdx = 0;
 
-  // Build segmented battery bar
+  function applyMode(idx) {
+    var m = MODES[idx];
+    var keys = ['Eco', 'Norm', 'Turbo'];
+
+    keys.forEach(function(k, i) {
+      var isActive = i === idx;
+      var nameEl = document.getElementById('ledModeName' + k);
+      var subEl  = document.getElementById('ledModeSub'  + k);
+      var timeEl = document.getElementById('ledTime'     + k);
+      var indEl  = document.getElementById('ledInd'      + k);
+      if (nameEl) nameEl.classList.toggle('active', isActive);
+      if (subEl)  subEl.classList.toggle('active',  isActive);
+      if (timeEl) timeEl.classList.toggle('active',  isActive);
+      if (indEl)  indEl.classList.toggle('active',   isActive);
+    });
+
+    // Battery life label
+    var ml = document.getElementById('ledBatteryMode');
+    if (ml) { ml.textContent = m.label; ml.style.color = m.barColor; }
+    // RPM arc color
+    var arc = document.getElementById('ledSpeedArc');
+    if (arc) arc.style.stroke = m.arcColor;
+    // RPM label + target
+    rpmTarget = m.maxRpm;
+    var rl = document.getElementById('ledRpmLabel');
+    if (rl) rl.textContent = m.label;
+    // RPM label color
+    if (rl) rl.style.color = m.arcColor;
+    // Charge bar stays cyan always
+  }
+
+  // Cycle modes every 5 seconds
+  setInterval(function() {
+    modeIdx = (modeIdx + 1) % MODES.length;
+    applyMode(modeIdx);
+  }, 5000);
+  applyMode(0); // init
+
+  // ── SEGMENTED BATTERY BUILDER ─────────────────────────────────────────
+  var NUM_SEGS = 10;
+
   function buildSegs(id) {
     var el = document.getElementById(id);
     if (!el) return;
@@ -6861,76 +7064,13 @@
     }
   }
 
-  // Build mode dots
-  function buildDots(id, color) {
-    var el = document.getElementById(id);
-    if (!el) return;
-    el.innerHTML = '';
-    for (var i = 0; i < 5; i++) {
-      var d = document.createElement('div');
-      d.className = 'led-mode-dot';
-      d.style.setProperty('--c', color);
-      d.id = id + '_d' + i;
-      el.appendChild(d);
-    }
-  }
-  buildDots('ledDotsEco',   '#39ff14');
-  buildDots('ledDotsNorm',  '#ffcc00');
-  buildDots('ledDotsTurbo', '#ff3b30');
-
-  function setDots(id, lit) {
-    for (var i = 0; i < 5; i++) {
-      var d = document.getElementById(id + '_d' + i);
-      if (d) d.classList.toggle('on', i < lit);
-    }
-  }
-
-  // ── MODES ─────────────────────────────────────────────────────────────
-  var MODES = [
-    { name: 'ECO MODE',    maxRpm: 60,  color: '#39ff14', dotId: 'ledDotsEco',   nameKey: 'Eco'  },
-    { name: 'NORMAL MODE', maxRpm: 120, color: '#ffcc00', dotId: 'ledDotsNorm',  nameKey: 'Norm' },
-    { name: 'TURBO MODE',  maxRpm: 200, color: '#ff3b30', dotId: 'ledDotsTurbo', nameKey: 'Turbo'},
-  ];
-  var modeIdx = 0;
-
-  function applyMode(idx) {
-    var m = MODES[idx];
-    // Dots — only active mode's dots lit
-    setDots('ledDotsEco',   idx === 0 ? 5 : 0);
-    setDots('ledDotsNorm',  idx === 1 ? 5 : 0);
-    setDots('ledDotsTurbo', idx === 2 ? 5 : 0);
-    // Row colours
-    ['Eco','Norm','Turbo'].forEach(function(k, i) {
-      var nameEl = document.getElementById('ledModeName' + k);
-      var timeEl = document.getElementById('ledTime' + k);
-      var c = i === idx ? MODES[i].color : '#444460';
-      if (nameEl) nameEl.style.color = c;
-      if (timeEl) timeEl.style.color = c;
-    });
-    // Battery mode label
-    var ml = document.getElementById('ledBatteryMode');
-    if (ml) ml.textContent = m.name;
-    // RPM arc target (smooth lerp handled separately)
-    rpmTarget = m.maxRpm;
-    // Label
-    var rl = document.getElementById('ledRpmLabel');
-    if (rl) rl.textContent = m.name;
-  }
-
-  // Cycle modes every 5 seconds
-  setInterval(function() {
-    modeIdx = (modeIdx + 1) % MODES.length;
-    applyMode(modeIdx);
-  }, 5000);
-  applyMode(0); // init
-
-  // ── CHARGE CARD — 0 → 100 in exactly 10 000ms, then restart ──────────
+  // ── CHARGE CARD — 0 → 100 in 10s, then restart ───────────────────────
   var chargeStart = performance.now();
-  var CHARGE_DURATION = 10000; // 10s
+  var CHARGE_DURATION = 10000;
 
   function tickCharge(now) {
     var elapsed = (now - chargeStart) % CHARGE_DURATION;
-    var pct = Math.floor((elapsed / CHARGE_DURATION) * 100); // 0–99
+    var pct = Math.floor((elapsed / CHARGE_DURATION) * 100);
     var chargeEl = document.getElementById('chargeCount');
     if (chargeEl) chargeEl.textContent = pct;
     var cls = pct < 20 ? 'on-red' : pct < 60 ? 'on-yellow' : 'on-green';
@@ -6939,15 +7079,15 @@
   }
   requestAnimationFrame(tickCharge);
 
-  // ── DRAIN CARD — 16 → 0 in exactly 16 000ms (1h per second), restart ─
+  // ── DRAIN CARD — 16 → 0 in 16s, then restart ─────────────────────────
   var drainStart = performance.now();
-  var DRAIN_DURATION = 16000; // 16s
+  var DRAIN_DURATION = 16000;
 
   function tickDrain(now) {
     var elapsed = (now - drainStart) % DRAIN_DURATION;
-    var progress = elapsed / DRAIN_DURATION;        // 0 → 1
-    var hours = Math.round(16 - progress * 16);     // 16 → 0, integer steps
-    var pct   = 100 - (progress * 100);             // 100 → 0% for segments
+    var progress = elapsed / DRAIN_DURATION;
+    var hours = Math.round(16 - progress * 16);
+    var pct   = 100 - (progress * 100);
     var drainEl = document.getElementById('drainCount');
     if (drainEl) drainEl.textContent = hours;
     var cls = pct < 20 ? 'on-red' : pct < 50 ? 'on-yellow' : 'on-green';
@@ -6969,7 +7109,7 @@
     if (arc) {
       var pct = rpmCurrent / 200;
       arc.style.strokeDashoffset = (163.36 * (1 - pct)).toFixed(3);
-      arc.style.stroke = pct < 0.4 ? '#39ff14' : pct < 0.7 ? '#ffcc00' : '#ff3b30';
+      // Color is set by applyMode — don't override it here
     }
     requestAnimationFrame(tickRpm);
   }
@@ -6979,64 +7119,72 @@
 </script>
 
 <!-- FAN MODES -->
-<section style="background:var(--bg)" class="mode-list-wrap">
+<section style="background:var(--bg);border-top:1px solid rgba(255,255,255,0.04)" class="mode-list-wrap">
   <style>
     .mode-list-led {
-      display: flex; flex-direction: column; gap: 10px;
-      max-width: 500px; margin: 0 auto; padding: 20px;
+      display: flex; flex-direction: column; gap: 8px;
+      max-width: 500px; margin: 0 auto; padding: 20px 20px 24px;
     }
     .mode-card-led {
-      background: #020204;
-      border: 2px solid rgba(255,255,255,0.25);
-      border-radius: 16px;
+      background: linear-gradient(160deg, #0a0a12 0%, #060608 100%);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 14px;
       padding: 14px 16px;
       display: flex; align-items: center; justify-content: space-between;
       position: relative; overflow: hidden;
-      transition: border-color 0.3s, box-shadow 0.3s;
+      transition: border-color 0.28s, box-shadow 0.28s;
     }
     .mode-card-led::before {
-      content: ''; position: absolute; inset: 0; pointer-events: none;
-      background: radial-gradient(ellipse at 20% 50%, rgba(255,255,255,0.02) 0%, transparent 60%);
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+      pointer-events: none;
     }
-    .mode-card-led.eco-card   { border-color: rgba(57,255,20,0.4); }
-    .mode-card-led.norm-card  { border-color: rgba(255,204,0,0.4); }
-    .mode-card-led.turbo-card { border-color: rgba(255,59,48,0.4); }
-    .mode-card-led.eco-card:hover   { border-color: rgba(57,255,20,0.7); box-shadow: 0 0 20px rgba(57,255,20,0.15); }
-    .mode-card-led.norm-card:hover  { border-color: rgba(255,204,0,0.7); box-shadow: 0 0 20px rgba(255,204,0,0.15); }
-    .mode-card-led.turbo-card:hover { border-color: rgba(255,59,48,0.7); box-shadow: 0 0 20px rgba(255,59,48,0.15); }
-    .mode-led-left { display: flex; align-items: center; gap: 14px; }
+    .mode-card-led.eco-card   { border-left: 2px solid rgba(74,222,128,0.45); }
+    .mode-card-led.norm-card  { border-left: 2px solid rgba(250,204,21,0.45); }
+    .mode-card-led.turbo-card { border-left: 2px solid rgba(248,113,113,0.45); }
+    .mode-card-led:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.4); border-color: rgba(255,255,255,0.13); }
+
+    .mode-led-left { display: flex; align-items: center; gap: 12px; }
     .mode-led-icon-wrap {
-      width: 42px; height: 42px;
-      border-radius: 12px;
+      width: 38px; height: 38px;
+      border-radius: 10px;
       display: flex; align-items: center; justify-content: center;
       flex-shrink: 0;
     }
-    .mode-led-icon-wrap.eco-ico   { background: rgba(57,255,20,0.08);  border: 1px solid rgba(57,255,20,0.2); }
-    .mode-led-icon-wrap.norm-ico  { background: rgba(255,204,0,0.08);  border: 1px solid rgba(255,204,0,0.2); }
-    .mode-led-icon-wrap.turbo-ico { background: rgba(255,59,48,0.08);  border: 1px solid rgba(255,59,48,0.2); }
+    .mode-led-icon-wrap.eco-ico   { background: rgba(74,222,128,0.07);  border: 1px solid rgba(74,222,128,0.15); }
+    .mode-led-icon-wrap.norm-ico  { background: rgba(250,204,21,0.07);  border: 1px solid rgba(250,204,21,0.15); }
+    .mode-led-icon-wrap.turbo-ico { background: rgba(248,113,113,0.07); border: 1px solid rgba(248,113,113,0.15); }
+
     .mode-led-name {
-      font-size: 0.95rem; font-weight: 800;
-      line-height: 1.1; letter-spacing: 0.01em;
+      font-family: var(--font-body, 'Nunito', sans-serif);
+      font-size: 0.82rem; font-weight: 800;
+      line-height: 1.2; letter-spacing: 0.01em;
     }
     .mode-led-sub {
-      font-size: 0.62rem; font-weight: 700;
+      font-family: var(--font-body, 'Nunito', sans-serif);
+      font-size: 0.56rem; font-weight: 700;
       text-transform: uppercase; letter-spacing: 0.1em;
-      color: #444460; margin-top: 3px;
+      color: rgba(255,255,255,0.28); margin-top: 2px;
     }
     .mode-led-right { text-align: right; flex-shrink: 0; }
     .mode-led-time {
-      font-size: 1.1rem; font-weight: 900; line-height: 1;
+      font-family: var(--font-body, 'Nunito', sans-serif);
+      font-size: 1rem; font-weight: 900; line-height: 1; letter-spacing: -0.02em;
     }
     .mode-led-time-label {
-      font-size: 0.52rem; font-weight: 800; letter-spacing: 0.1em;
-      text-transform: uppercase; color: #444460; margin-top: 3px;
+      font-family: var(--font-body, 'Nunito', sans-serif);
+      font-size: 0.44rem; font-weight: 800; letter-spacing: 0.14em;
+      text-transform: uppercase; color: rgba(255,255,255,0.25); margin-top: 3px;
     }
-    .mode-led-dots { display: flex; gap: 3px; justify-content: flex-end; margin-top: 5px; }
-    .mode-led-dot {
-      width: 5px; height: 5px; border-radius: 50%;
-      background: #111120; border: 1px solid #1a1a2a;
+
+    [data-theme="light"] .mode-card-led {
+      background: linear-gradient(160deg, #f7f7fb 0%, #efeff5 100%);
+      border-color: rgba(0,0,0,0.07);
+      box-shadow: none;
     }
-    .mode-led-dot.lit { box-shadow: 0 0 4px var(--dc); background: var(--dc); border-color: var(--dc); }
+    [data-theme="light"] .mode-led-sub { color: rgba(0,0,0,0.3); }
+    [data-theme="light"] .mode-led-time-label { color: rgba(0,0,0,0.28); }
   </style>
 
   <div class="mode-list-led">
@@ -7044,30 +7192,23 @@
     <div class="mode-card-led eco-card">
       <div class="mode-led-left">
         <div class="mode-led-icon-wrap eco-ico">
-          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" width="26" height="26" style="animation:spinFan 4s linear infinite;display:block">
-            <circle cx="50" cy="50" r="16" fill="#39ff14"/>
-            <path d="M50 34 C30 30 30 4 50 4 C70 4 70 30 50 34 Z" fill="#39ff14"/>
-            <path d="M66 50 C70 30 96 30 96 50 C96 70 70 70 66 50 Z" fill="#39ff14"/>
-            <path d="M50 66 C70 70 70 96 50 96 C30 96 30 70 50 66 Z" fill="#39ff14"/>
-            <path d="M34 50 C30 70 4 70 4 50 C4 30 30 30 34 50 Z" fill="#39ff14"/>
-            <circle cx="50" cy="50" r="7" fill="#020204"/>
+          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" width="22" height="22" style="animation:spinFan 4s linear infinite;display:block">
+            <circle cx="50" cy="50" r="16" fill="#4ade80"/>
+            <path d="M50 34 C30 30 30 4 50 4 C70 4 70 30 50 34 Z" fill="#4ade80"/>
+            <path d="M66 50 C70 30 96 30 96 50 C96 70 70 70 66 50 Z" fill="#4ade80"/>
+            <path d="M50 66 C70 70 70 96 50 96 C30 96 30 70 50 66 Z" fill="#4ade80"/>
+            <path d="M34 50 C30 70 4 70 4 50 C4 30 30 30 34 50 Z" fill="#4ade80"/>
+            <circle cx="50" cy="50" r="7" fill="#060608"/>
           </svg>
         </div>
         <div>
-          <div class="mode-led-name" style="color:#39ff14">Eco Mode</div>
+          <div class="mode-led-name" style="color:#4ade80">Eco Mode</div>
           <div class="mode-led-sub">Gentle Breeze · ~5,000 RPM</div>
         </div>
       </div>
       <div class="mode-led-right">
-        <div class="mode-led-time" style="color:#39ff14">16h+</div>
+        <div class="mode-led-time" style="color:#4ade80">16h+</div>
         <div class="mode-led-time-label">Battery</div>
-        <div class="mode-led-dots">
-          <div class="mode-led-dot lit" style="--dc:#39ff14"></div>
-          <div class="mode-led-dot lit" style="--dc:#39ff14"></div>
-          <div class="mode-led-dot lit" style="--dc:#39ff14"></div>
-          <div class="mode-led-dot lit" style="--dc:#39ff14"></div>
-          <div class="mode-led-dot lit" style="--dc:#39ff14"></div>
-        </div>
       </div>
     </div>
 
@@ -7075,30 +7216,23 @@
     <div class="mode-card-led norm-card">
       <div class="mode-led-left">
         <div class="mode-led-icon-wrap norm-ico">
-          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" width="26" height="26" style="animation:spinFan 1.2s linear infinite;display:block">
-            <circle cx="50" cy="50" r="16" fill="#ffcc00"/>
-            <path d="M50 34 C30 30 30 4 50 4 C70 4 70 30 50 34 Z" fill="#ffcc00"/>
-            <path d="M66 50 C70 30 96 30 96 50 C96 70 70 70 66 50 Z" fill="#ffcc00"/>
-            <path d="M50 66 C70 70 70 96 50 96 C30 96 30 70 50 66 Z" fill="#ffcc00"/>
-            <path d="M34 50 C30 70 4 70 4 50 C4 30 30 30 34 50 Z" fill="#ffcc00"/>
-            <circle cx="50" cy="50" r="7" fill="#020204"/>
+          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" width="22" height="22" style="animation:spinFan 1.2s linear infinite;display:block">
+            <circle cx="50" cy="50" r="16" fill="#facc15"/>
+            <path d="M50 34 C30 30 30 4 50 4 C70 4 70 30 50 34 Z" fill="#facc15"/>
+            <path d="M66 50 C70 30 96 30 96 50 C96 70 70 70 66 50 Z" fill="#facc15"/>
+            <path d="M50 66 C70 70 70 96 50 96 C30 96 30 70 50 66 Z" fill="#facc15"/>
+            <path d="M34 50 C30 70 4 70 4 50 C4 30 30 30 34 50 Z" fill="#facc15"/>
+            <circle cx="50" cy="50" r="7" fill="#060608"/>
           </svg>
         </div>
         <div>
-          <div class="mode-led-name" style="color:#ffcc00">Normal Mode</div>
+          <div class="mode-led-name" style="color:#facc15">Normal Mode</div>
           <div class="mode-led-sub">Active Cooling · ~12,000 RPM</div>
         </div>
       </div>
       <div class="mode-led-right">
-        <div class="mode-led-time" style="color:#ffcc00">8h</div>
+        <div class="mode-led-time" style="color:#facc15">8h</div>
         <div class="mode-led-time-label">Battery</div>
-        <div class="mode-led-dots">
-          <div class="mode-led-dot lit" style="--dc:#ffcc00"></div>
-          <div class="mode-led-dot lit" style="--dc:#ffcc00"></div>
-          <div class="mode-led-dot lit" style="--dc:#ffcc00"></div>
-          <div class="mode-led-dot" style="--dc:#ffcc00"></div>
-          <div class="mode-led-dot" style="--dc:#ffcc00"></div>
-        </div>
       </div>
     </div>
 
@@ -7106,37 +7240,30 @@
     <div class="mode-card-led turbo-card">
       <div class="mode-led-left">
         <div class="mode-led-icon-wrap turbo-ico">
-          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" width="26" height="26" style="animation:spinFan 0.28s linear infinite;display:block">
-            <circle cx="50" cy="50" r="16" fill="#ff3b30"/>
-            <path d="M50 34 C30 30 30 4 50 4 C70 4 70 30 50 34 Z" fill="#ff3b30"/>
-            <path d="M66 50 C70 30 96 30 96 50 C96 70 70 70 66 50 Z" fill="#ff3b30"/>
-            <path d="M50 66 C70 70 70 96 50 96 C30 96 30 70 50 66 Z" fill="#ff3b30"/>
-            <path d="M34 50 C30 70 4 70 4 50 C4 30 30 30 34 50 Z" fill="#ff3b30"/>
-            <circle cx="50" cy="50" r="7" fill="#020204"/>
+          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" width="22" height="22" style="animation:spinFan 0.28s linear infinite;display:block">
+            <circle cx="50" cy="50" r="16" fill="#f87171"/>
+            <path d="M50 34 C30 30 30 4 50 4 C70 4 70 30 50 34 Z" fill="#f87171"/>
+            <path d="M66 50 C70 30 96 30 96 50 C96 70 70 70 66 50 Z" fill="#f87171"/>
+            <path d="M50 66 C70 70 70 96 50 96 C30 96 30 70 50 66 Z" fill="#f87171"/>
+            <path d="M34 50 C30 70 4 70 4 50 C4 30 30 30 34 50 Z" fill="#f87171"/>
+            <circle cx="50" cy="50" r="7" fill="#060608"/>
           </svg>
         </div>
         <div>
-          <div class="mode-led-name" style="color:#ff3b30">Turbo Mode</div>
+          <div class="mode-led-name" style="color:#f87171">Turbo Mode</div>
           <div class="mode-led-sub">Max Jetstream · 20,000 RPM</div>
         </div>
       </div>
       <div class="mode-led-right">
-        <div class="mode-led-time" style="color:#ff3b30">3h</div>
+        <div class="mode-led-time" style="color:#f87171">3h</div>
         <div class="mode-led-time-label">Battery</div>
-        <div class="mode-led-dots">
-          <div class="mode-led-dot lit" style="--dc:#ff3b30"></div>
-          <div class="mode-led-dot" style="--dc:#ff3b30"></div>
-          <div class="mode-led-dot" style="--dc:#ff3b30"></div>
-          <div class="mode-led-dot" style="--dc:#ff3b30"></div>
-          <div class="mode-led-dot" style="--dc:#ff3b30"></div>
-        </div>
       </div>
     </div>
   </div>
 </section>
 
 <!-- COMPARE TABLE -->
-<section class="compare-wrap">
+<section class="compare-wrap" style="padding-top:28px;border-top:1px solid rgba(255,255,255,0.04)">
   <style>
     .compare-wrap { padding: 0 16px 0; }
     .compare-table-inner {
@@ -10395,7 +10522,7 @@ async function submitFooterEmail() {
       input.classList.add('input-error');
       setTimeout(() => input.classList.remove('input-error'), 700);
       const note = document.getElementById('spinEmailNote');
-      if (note) { note.style.color = 'var(--red)'; note.textContent = 'Please enter a valid email to spin.'; setTimeout(() => { note.style.color = ''; note.textContent = 'Your code will be sent here. No spam — ever. <svg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round' style='display:inline-block;vertical-align:middle'><rect x='3' y='11' width='18' height='11' rx='2'/><path d='M7 11V7a5 5 0 0 1 10 0v4'/></svg>'; }, 2500); }
+      if (note) { note.style.color = 'var(--red)'; note.textContent = 'Please enter a valid email to spin.'; setTimeout(() => { note.style.color = ''; note.innerHTML = `Your code will be sent here. No spam \u2014 ever. <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`; }, 2500); }
       return;
     }
     try { localStorage.setItem('minimisty_spin_email', email); } catch(e) {}
