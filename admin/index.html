@@ -518,6 +518,17 @@ Chart.defaults.font.size=11;
   </div>
 </div>
 
+<!-- 
+  API ENDPOINTS (same as index.html / sw.js):
+  POST /api/send-email        { to, subject, html }  → Resend
+  POST /api/push-subscribe    { subscription, deviceId, metadata }  → saves VAPID sub
+  POST /api/push-send         { subscription, title, body, url, icon, tag, deviceId }  → fires Web Push
+  POST /api/push-abandoned-cart  { subscription, cartItems, cartValue, symbol }
+  VAPID public: BMTBoZaETNkmPu3gl42TbHyU9CH6tRTS9_TBGB2-oor3nSvt5WhJyk1PcmOiOLIt5z5xRterBfR2xlY2Ubyq1Do
+  Firebase: pushSubscriptions/{deviceId} = { subscription:{endpoint,keys}, deviceId, metadata }
+  Firebase: adminNotifications/{pushId}  = { title, body, url, target, sentAt, delivered }
+  Firebase: adminEmails/{emailId}        = { to, subject, html, type, sentAt, delivered }
+-->
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js';
 import { getDatabase, ref, get, update, remove, push, set, increment, serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js';
@@ -1030,14 +1041,47 @@ window.saveTracking=function(key){
 window.sendPushToDevice=async function(deviceId,orderKey){
   const title=document.getElementById('devPushTitle')?.value?.trim();
   const body=document.getElementById('devPushBody')?.value?.trim();
+  const url='https://minimisty.store/order';
   const st=document.getElementById('devPushStatus');
   if(!title||!body){if(st){st.textContent='Fill title and body.';st.style.color='#ef4444';}return;}
   if(!deviceId){if(st){st.textContent='No device ID on this order.';st.style.color='#ef4444';}return;}
+  if(st){st.textContent='Sending…';st.style.color='#52525b';}
+  
+  // Look up the real subscription for this device
+  let sent=false;
   try{
-    await window._push(window._ref(window._db,'adminNotifications'),{title,body,url:'https://minimisty.store/order',target:'device',deviceId,orderKey,sentAt:window._ts(),sentBy:'dashboard',delivered:false});
-    if(st){st.textContent='Push queued!';st.style.color='#22c55e';}
-    toast('Push sent','success');
-  }catch(e){if(st){st.textContent='Error: '+e.message;st.style.color='#ef4444';}}
+    const snap=await window._get(window._ref(window._db,'pushSubscriptions'));
+    if(snap.exists()){
+      const all=Object.values(snap.val());
+      const sub=all.find(s=>s.deviceId===deviceId);
+      if(sub&&sub.subscription){
+        const res=await fetch('/api/push-send',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({
+            subscription:sub.subscription,
+            title,body,url,
+            icon:'/icon-192.png',
+            tag:'order-update-'+orderKey,
+            deviceId,orderKey,sentBy:'dashboard'
+          })
+        });
+        sent=res.ok||res.status===201;
+      }
+    }
+  }catch(e){console.warn('dev push err',e);}
+  
+  // Always queue in Firebase as fallback
+  try{
+    await window._push(window._ref(window._db,'adminNotifications'),{
+      title,body,url,target:'device',deviceId,orderKey,
+      sentAt:window._ts(),sentBy:'dashboard',
+      webPushSent:sent,delivered:false
+    });
+  }catch(e){}
+  
+  if(st){st.textContent=sent?'✓ Push sent!':'Push queued (will deliver when device is online).';st.style.color=sent?'#22c55e':'#f59e0b';}
+  toast(sent?'Push delivered':'Push queued','success');
 };
 
 // ═══ CUSTOMERS ═══
@@ -1189,14 +1233,71 @@ window.sendPushNotification=async function(){
   const target=document.getElementById('pushTarget').value;
   const st=document.getElementById('pushStatus');
   if(!title||!body){st.textContent='Title and message are required.';st.style.color='#ef4444';return;}
-  st.textContent='Sending…';st.style.color='#52525b';
+  st.textContent='Sending to subscribers…';st.style.color='#52525b';
+  
+  // 1. Load subscriptions from Firebase
+  let subs=[];
   try{
-    await window._push(window._ref(window._db,'adminNotifications'),{title,body,url,target,sentAt:window._ts(),sentBy:'dashboard',delivered:false});
-    await window._update(window._ref(window._db,'analytics'),{totalPushSent:window._inc(1)});
-    st.textContent='Push queued successfully!';st.style.color='#22c55e';
-    document.getElementById('pushTitle').value='';document.getElementById('pushBody').value='';
-    toast('Push notification sent','success');
-  }catch(e){st.textContent='Error: '+e.message;st.style.color='#ef4444';}
+    const snap=await window._get(window._ref(window._db,'pushSubscriptions'));
+    if(snap.exists()){
+      const all=Object.entries(snap.val()).map(([k,v])=>({_key:k,...v}));
+      // Filter by target audience
+      if(target==='abandoned'){
+        const devIds=allAbandoned.map(a=>a.deviceId).filter(Boolean);
+        subs=all.filter(s=>devIds.includes(s.deviceId));
+      } else if(target==='customers'){
+        const devIds=allOrders.filter(o=>['paid','confirmed','shipped'].includes(o.status)).map(o=>o.deviceId).filter(Boolean);
+        subs=all.filter(s=>devIds.includes(s.deviceId));
+      } else {
+        subs=all;
+      }
+    }
+  }catch(e){console.warn('load subs err',e);}
+  
+  if(!subs.length){
+    st.textContent='No subscribers found for this target.';st.style.color='#f59e0b';
+    toast('No subscribers found','error');return;
+  }
+  
+  st.textContent='Sending to '+subs.length+' subscriber(s)…';
+  let sent=0,failed=0;
+  
+  // 2. Send real Web Push to each subscriber via /api/push-send
+  for(const sub of subs){
+    if(!sub.subscription)continue;
+    try{
+      const res=await fetch('/api/push-send',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          subscription: sub.subscription,
+          title, body, url,
+          icon:'/icon-192.png',
+          badge:'/badge-72.png',
+          tag:'admin-broadcast',
+          deviceId: sub.deviceId||'',
+          sentBy:'dashboard'
+        })
+      });
+      if(res.ok||res.status===201)sent++;
+      else failed++;
+    }catch(e){failed++;}
+  }
+  
+  // 3. Also queue in Firebase for SW background sync fallback
+  try{
+    await window._push(window._ref(window._db,'adminNotifications'),{
+      title,body,url,target,
+      sentAt:window._ts(),sentBy:'dashboard',
+      totalSubs:subs.length,sent,failed,delivered:false
+    });
+    await window._update(window._ref(window._db,'analytics'),{totalPushSent:window._inc(sent)});
+  }catch(e){}
+  
+  const msg=sent+' sent'+(failed?' · '+failed+' failed':'');
+  st.textContent='✓ Push delivered — '+msg;st.style.color='#22c55e';
+  document.getElementById('pushTitle').value='';document.getElementById('pushBody').value='';
+  toast('Push sent to '+sent+' device'+(sent!==1?'s':''),'success');
 };
 
 window.previewPush=function(){
@@ -1204,6 +1305,35 @@ window.previewPush=function(){
   document.getElementById('pushPreviewBody').textContent=document.getElementById('pushBody').value||'Your message body';
   document.getElementById('pushPreviewModal').style.display='flex';
 };
+
+
+// ═══ EMAIL HTML BUILDER (matches index.html Resend template) ═══
+function buildEmailHtml(subject,body,toEmail){
+  const bodyHtml=body.replace(/\n/g,'<br>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#050508;font-family:Arial,Helvetica,sans-serif;">
+<div style="max-width:600px;margin:0 auto;padding:32px 20px;">
+  <div style="margin-bottom:24px;">
+    <span style="font-size:22px;font-weight:900;color:#f0f0ff;letter-spacing:0.3px;">MINIMISTY</span>
+    <span style="font-size:12px;font-weight:600;color:#7070a0;margin-left:4px;">.store</span>
+  </div>
+  <div style="background:#080810;border:1px solid #1a1a30;border-radius:16px;padding:28px 24px;margin-bottom:20px;">
+    <h2 style="color:#f0f0ff;font-size:20px;font-weight:800;margin:0 0 16px;letter-spacing:-0.02em;">${subject}</h2>
+    <div style="color:#b0b0d0;font-size:14px;line-height:1.7;">${bodyHtml}</div>
+  </div>
+  <div style="text-align:center;padding:16px 0;">
+    <a href="https://minimisty.store/" style="display:inline-block;background:linear-gradient(135deg,#00d4ff,#7fff00);color:#000;font-weight:900;font-size:14px;padding:13px 28px;border-radius:12px;text-decoration:none;letter-spacing:0.02em;">SHOP NOW</a>
+  </div>
+  <div style="border-top:1px solid #1a1a30;margin-top:24px;padding-top:16px;text-align:center;">
+    <p style="color:#404068;font-size:11px;line-height:1.6;margin:0;">
+      MINIMISTY.store · Stay cool anywhere<br>
+      <a href="https://minimisty.store/" style="color:#3a3a5a;text-decoration:none;">minimisty.store</a>
+      ${toEmail?'<br><span style="font-size:10px;">Sent to: '+toEmail+'</span>':''}
+    </p>
+  </div>
+</div>
+</body></html>`;
+}
 
 window.sendEmail=async function(){
   const to=document.getElementById('emailTo').value.trim();
@@ -1213,12 +1343,41 @@ window.sendEmail=async function(){
   if(!to||!subject||!body){st.textContent='Fill in all fields.';st.style.color='#ef4444';return;}
   if(!/\S+@\S+\.\S+/.test(to)){st.textContent='Invalid email.';st.style.color='#ef4444';return;}
   st.textContent='Sending…';st.style.color='#52525b';
+  
+  // Build HTML email (same template as index.html)
+  const html=buildEmailHtml(subject,body);
+  
+  let sent=false;
+  // 1. Try real /api/send-email (same endpoint as index.html)
   try{
-    await window._push(window._ref(window._db,'adminEmails'),{to,subject,body,type:'single',sentAt:window._ts(),sentBy:'dashboard',delivered:false});
-    st.textContent='Email queued!';st.style.color='#22c55e';
-    document.getElementById('emailTo').value='';document.getElementById('emailSubject').value='';document.getElementById('emailBody').value='';
-    toast('Email queued','success');
-  }catch(e){st.textContent='Error: '+e.message;st.style.color='#ef4444';}
+    const res=await fetch('/api/send-email',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({to,subject,html})
+    });
+    const data=await res.json().catch(()=>({}));
+    sent=res.ok&&!data.error;
+    if(sent){
+      st.textContent='✓ Email sent!';st.style.color='#22c55e';
+      document.getElementById('emailTo').value='';
+      document.getElementById('emailSubject').value='';
+      document.getElementById('emailBody').value='';
+      toast('Email sent to '+to,'success');
+    } else {
+      throw new Error(data.error||'API returned '+res.status);
+    }
+  }catch(e){
+    // 2. Fallback — queue in Firebase adminEmails node
+    try{
+      await window._push(window._ref(window._db,'adminEmails'),{
+        to,subject,body,html,type:'single',
+        sentAt:window._ts(),sentBy:'dashboard',
+        apiError:e.message,delivered:false
+      });
+      st.textContent='Queued (will retry send automatically).';st.style.color='#f59e0b';
+      toast('Email queued','success');
+    }catch(e2){st.textContent='Error: '+e.message;st.style.color='#ef4444';}
+  }
 };
 
 window.previewEmail=function(){
@@ -1252,11 +1411,29 @@ window.sendBroadcast=async function(){
   if(!targets.length){st.textContent='No emails for this segment.';st.style.color='#f59e0b';return;}
   if(!confirm('Send to '+targets.length+' email(s)?'))return;
   st.textContent='Queuing…';st.style.color='#52525b';
-  try{
-    for(const to of targets)await window._push(window._ref(window._db,'adminEmails'),{to,subject,body,type:'broadcast',segment:seg,sentAt:window._ts(),sentBy:'dashboard',delivered:false});
-    st.textContent='Queued '+targets.length+' emails.';st.style.color='#22c55e';
-    toast(targets.length+' emails queued','success');
-  }catch(e){st.textContent='Error: '+e.message;st.style.color='#ef4444';}
+  let sent=0,failed=0;
+  for(const to of targets){
+    const html=buildEmailHtml(subject,body,to);
+    try{
+      const res=await fetch('/api/send-email',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({to,subject,html})
+      });
+      const data=await res.json().catch(()=>({}));
+      if(res.ok&&!data.error)sent++;
+      else throw new Error(data.error||res.status);
+    }catch(e){
+      // Fallback to Firebase queue
+      try{await window._push(window._ref(window._db,'adminEmails'),{to,subject,body,html:buildEmailHtml(subject,body,to),type:'broadcast',segment:seg,sentAt:window._ts(),sentBy:'dashboard',apiQueued:true,delivered:false});}catch(_){}
+      failed++;
+    }
+    st.textContent='Sending… '+( sent+failed)+'/'+targets.length;
+    await new Promise(r=>setTimeout(r,120)); // rate limit
+  }
+  const msg=sent+' sent'+(failed?' · '+failed+' queued':'');
+  st.textContent='✓ Broadcast done — '+msg;st.style.color='#22c55e';
+  toast('Broadcast: '+msg,'success');
 };
 
 // ═══ SETTINGS ═══
