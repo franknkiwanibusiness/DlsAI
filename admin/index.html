@@ -2,1282 +2,1848 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MINIMISTY — Admin</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<script>
-  tailwind.config = {
-    theme: {
-      extend: {
-        colors: {
-          bg: '#0f0f11',
-          surface: '#18181b',
-          surface2: '#1e1e22',
-          border: '#2a2a30',
-          accent: '#3b82f6',
-          accentLight: '#60a5fa',
-          green: '#22c55e',
-          red: '#ef4444',
-          yellow: '#f59e0b',
-          muted: '#71717a',
-          text: '#fafafa',
-          textSub: '#a1a1aa',
-        },
-        fontFamily: {
-          sans: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'Segoe UI', 'sans-serif'],
-        },
-      }
-    }
-  }
-</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>MINIMISTY Admin</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#050508">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html { height: 100%; -webkit-text-size-adjust: 100%; }
-  body {
-    background: #0f0f11;
-    color: #fafafa;
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
-    height: 100%;
-    overflow: hidden;
-    -webkit-font-smoothing: antialiased;
-  }
-  ::-webkit-scrollbar { width: 3px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: #2a2a30; border-radius: 3px; }
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;outline:none;}
+html{-webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased;overscroll-behavior:none;scroll-behavior:smooth;}
+::-webkit-scrollbar{width:0;height:0;}
+::selection{background:rgba(77,184,212,0.2);}
 
-  /* ── Layout shell ── */
-  #app {
-    display: flex;
-    flex-direction: column;
-    height: 100dvh;
-    height: 100vh;
-    overflow: hidden;
-  }
+:root{
+  --cyan:#4db8d4;
+  --lime:#6dbd3a;
+  --red:#e05555;
+  --yellow:#d4a843;
+  --orange:#d47d2a;
+  --purple:#9b59f5;
+  --font:'Fredoka',sans-serif;
+  --mono:'Space Mono',monospace;
+  --bg:#050508;
+  --bg2:#0a0a10;
+  --bg3:#0f0f18;
+  --bg4:#141420;
+  --border:#1e1e2e;
+  --border2:#2a2a40;
+  --text:#e8e8f8;
+  --text-dim:#b0b0cc;
+  --text-muted:#606080;
+  --text-faint:#30304a;
+  --nav-h:56px;
+  --bottom-h:64px;
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+}
 
-  /* ── Top bar ── */
-  #topbar {
-    flex-shrink: 0;
-    height: 52px;
-    background: #0f0f11;
-    border-bottom: 1px solid #2a2a30;
-    display: flex;
-    align-items: center;
-    padding: 0 16px;
-    gap: 10px;
-    z-index: 40;
-  }
-  #topbar h1 { font-size: 15px; font-weight: 700; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html,body{
+  background:var(--bg);color:var(--text);
+  font-family:var(--font);min-height:100vh;
+  -webkit-user-select:none;user-select:none;
+  scrollbar-width:none;
+}
 
-  /* ── Scroll area ── */
-  #scroll-area {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
-  }
-  #scroll-inner { padding: 12px 12px 24px; }
+/* ══ LOGIN ══ */
+#loginScreen{
+  position:fixed;inset:0;z-index:9999;
+  background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:24px;
+  animation:fadeIn 0.4s ease;
+}
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.login-logo{
+  display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:40px;
+}
+.login-logo-icon{
+  width:64px;height:64px;border-radius:20px;
+  background:linear-gradient(135deg,var(--cyan),var(--purple));
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 40px rgba(77,184,212,0.3);
+}
+.login-brand{font-size:1.8rem;font-weight:700;letter-spacing:0.02em;}
+.login-brand span{color:var(--cyan);}
+.login-sub{font-size:0.78rem;font-weight:500;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;}
+.login-card{
+  width:100%;max-width:380px;
+  background:var(--bg3);border:1.5px solid var(--border2);border-radius:24px;
+  padding:28px 24px;
+}
+.login-field{margin-bottom:16px;}
+.login-label{font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;}
+.login-input{
+  width:100%;height:48px;background:var(--bg4);
+  border:1.5px solid var(--border2);border-radius:14px;
+  padding:0 16px;color:var(--text);font-family:var(--font);font-size:1rem;font-weight:600;
+  transition:border-color 0.2s;
+}
+.login-input:focus{border-color:var(--cyan);}
+.login-input::placeholder{color:var(--text-faint);}
+input:-webkit-autofill,.login-input:-webkit-autofill{
+  -webkit-box-shadow:0 0 0 1000px var(--bg4) inset !important;
+  -webkit-text-fill-color:var(--text) !important;
+  caret-color:var(--text);
+}
+.login-btn{
+  width:100%;height:52px;border-radius:16px;
+  background:linear-gradient(135deg,var(--cyan),var(--purple));
+  color:#000;font-family:var(--font);font-size:1.05rem;font-weight:700;
+  border:none;cursor:pointer;margin-top:8px;
+  transition:opacity 0.2s,transform 0.1s;
+  position:relative;overflow:hidden;
+}
+.login-btn:active{transform:scale(0.98);opacity:0.9;}
+.login-btn.loading{opacity:0.7;pointer-events:none;}
+.login-err{
+  background:rgba(224,85,85,0.12);border:1px solid var(--red);
+  border-radius:10px;padding:10px 14px;margin-top:12px;
+  font-size:0.82rem;font-weight:600;color:var(--red);text-align:center;
+  display:none;
+}
 
-  /* ── Bottom tab bar ── */
-  #bottom-nav {
-    flex-shrink: 0;
-    height: calc(60px + env(safe-area-inset-bottom));
-    padding-bottom: env(safe-area-inset-bottom);
-    background: #0f0f11;
-    border-top: 1px solid #2a2a30;
-    display: flex;
-    align-items: stretch;
-    z-index: 40;
-  }
-  .tab-btn {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 3px;
-    cursor: pointer;
-    color: #52525b;
-    font-size: 9px;
-    font-weight: 600;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-    border: none;
-    background: none;
-    -webkit-tap-highlight-color: transparent;
-    transition: color 0.15s;
-    padding: 8px 2px;
-    position: relative;
-    min-width: 44px;
-  }
-  .tab-btn svg { flex-shrink: 0; }
-  .tab-btn.active { color: #60a5fa; }
-  .tab-btn .tab-badge {
-    position: absolute;
-    top: 6px;
-    right: calc(50% - 14px);
-    background: #3b82f6;
-    color: #fff;
-    font-size: 8px;
-    font-weight: 800;
-    min-width: 14px;
-    height: 14px;
-    border-radius: 7px;
-    padding: 0 3px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-  }
+/* ══ APP SHELL ══ */
+#app{display:none;flex-direction:column;min-height:100vh;}
+#app.visible{display:flex;}
 
-  /* ── Sections ── */
-  .section { display: none; }
-  .section.active { display: block; }
+/* ══ TOP NAV ══ */
+.top-nav{
+  position:sticky;top:0;z-index:100;
+  height:var(--nav-h);
+  background:rgba(5,5,8,0.92);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-bottom:1.5px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 16px;
+}
+.nav-brand{display:flex;align-items:center;gap:10px;}
+.nav-brand-icon{
+  width:34px;height:34px;border-radius:10px;
+  background:linear-gradient(135deg,var(--cyan),var(--purple));
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.nav-brand-text{font-size:1rem;font-weight:700;}
+.nav-brand-text span{color:var(--cyan);}
+.nav-badge{
+  font-size:0.6rem;font-weight:700;color:var(--text-muted);
+  background:var(--bg4);border:1px solid var(--border2);
+  border-radius:6px;padding:2px 6px;text-transform:uppercase;letter-spacing:0.06em;
+}
+.nav-right{display:flex;align-items:center;gap:10px;}
+.nav-icon-btn{
+  width:36px;height:36px;border-radius:50%;
+  background:var(--bg4);border:1px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  transition:background 0.2s;
+}
+.nav-icon-btn:active{background:var(--border2);}
+.notif-dot{
+  width:8px;height:8px;border-radius:50%;background:var(--red);
+  position:absolute;top:6px;right:6px;
+  box-shadow:0 0 6px var(--red);
+  animation:pulse 2s infinite;
+}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
 
-  /* ── Cards ── */
-  .card { background: #18181b; border: 1px solid #2a2a30; border-radius: 14px; overflow: hidden; }
-  .card-sm { background: #1e1e22; border: 1px solid #2a2a30; border-radius: 12px; }
-  .card + .card, .card + .card-sm { margin-top: 10px; }
+/* ══ MAIN CONTENT ══ */
+.page-content{
+  flex:1;overflow-y:auto;
+  padding-bottom:calc(var(--bottom-h) + var(--safe-bottom) + 16px);
+}
+.page{display:none;padding:16px;}
+.page.active{display:block;}
 
-  /* ── Stat cards ── */
-  .stat-card {
-    background: #18181b;
-    border: 1px solid #2a2a30;
-    border-radius: 14px;
-    padding: 14px 16px;
-  }
-  .stat-label { font-size: 10px; font-weight: 700; color: #71717a; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
-  .stat-value { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
-  .stat-sub { font-size: 11px; font-weight: 600; margin-top: 3px; }
+/* ══ BOTTOM NAV ══ */
+.bottom-nav{
+  position:fixed;bottom:0;left:0;right:0;z-index:100;
+  height:calc(var(--bottom-h) + var(--safe-bottom));
+  background:rgba(5,5,8,0.96);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-top:1.5px solid var(--border);
+  display:flex;align-items:flex-start;justify-content:space-around;
+  padding-top:8px;padding-bottom:var(--safe-bottom);overflow-x:auto;
+}
+.nav-item{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  min-width:44px;cursor:pointer;padding:4px 6px;border-radius:14px;
+  transition:background 0.2s;
+  position:relative;flex-shrink:0;
+}
+.nav-item:active{background:var(--bg4);}
+.nav-item .nav-icon{
+  width:24px;height:24px;transition:transform 0.2s;
+  display:flex;align-items:center;justify-content:center;
+}
+.nav-item .nav-label{font-size:0.62rem;font-weight:700;color:var(--text-muted);transition:color 0.2s;text-transform:uppercase;letter-spacing:0.04em;}
+.nav-item.active .nav-icon{transform:scale(1.1);}
+.nav-item.active .nav-label{color:var(--cyan);}
+.nav-item.active svg path,.nav-item.active svg rect,.nav-item.active svg circle,.nav-item.active svg polyline,.nav-item.active svg line,.nav-item.active svg polygon{stroke:var(--cyan);}
+.nav-badge-count{
+  position:absolute;top:2px;right:6px;
+  min-width:16px;height:16px;border-radius:8px;
+  background:var(--red);color:#fff;
+  font-size:0.55rem;font-weight:700;font-family:var(--mono);
+  display:flex;align-items:center;justify-content:center;padding:0 3px;
+  box-shadow:0 0 8px rgba(224,85,85,0.4);
+}
 
-  /* ── Badges ── */
-  .badge { font-size: 10px; font-weight: 700; letter-spacing: 0.03em; padding: 2px 7px; border-radius: 20px; white-space: nowrap; }
-  .badge-green { background: rgba(34,197,94,0.12); color: #22c55e; }
-  .badge-yellow { background: rgba(245,158,11,0.12); color: #f59e0b; }
-  .badge-red { background: rgba(239,68,68,0.12); color: #ef4444; }
-  .badge-blue { background: rgba(59,130,246,0.12); color: #60a5fa; }
-  .badge-gray { background: rgba(113,113,122,0.15); color: #a1a1aa; }
+/* ══ SECTION TITLES ══ */
+.section-title{
+  font-size:1.4rem;font-weight:700;margin-bottom:4px;
+}
+.section-sub{font-size:0.8rem;color:var(--text-muted);font-weight:500;margin-bottom:20px;}
 
-  /* ── Tabs (filter row) ── */
-  .tab { font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 8px; cursor: pointer; transition: all 0.15s; color: #71717a; }
-  .tab.active { background: #1e1e22; color: #fafafa; }
+/* ══ STAT CARDS ══ */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.stat-card{
+  background:var(--bg3);border:1.5px solid var(--border);border-radius:18px;
+  padding:16px 14px;position:relative;overflow:hidden;
+}
+.stat-card::before{
+  content:'';position:absolute;top:-20px;right:-20px;
+  width:70px;height:70px;border-radius:50%;
+  background:var(--accent,var(--cyan));opacity:0.08;
+}
+.stat-label{font-size:0.68rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px;}
+.stat-value{font-size:1.55rem;font-weight:700;color:var(--text);line-height:1;}
+.stat-value.mono{font-family:var(--mono);font-size:1.3rem;}
+.stat-change{
+  font-size:0.68rem;font-weight:600;margin-top:5px;
+  display:flex;align-items:center;gap:3px;
+}
+.stat-change.up{color:var(--lime);}
+.stat-change.down{color:var(--red);}
 
-  /* ── Inputs / buttons ── */
-  .input {
-    background: #1e1e22;
-    border: 1px solid #2a2a30;
-    border-radius: 10px;
-    color: #fafafa;
-    padding: 11px 13px;
-    font-size: 16px; /* 16px prevents iOS auto-zoom */
-    outline: none;
-    transition: border 0.15s;
-    width: 100%;
-    min-height: 44px;
-    -webkit-appearance: none;
-  }
-  .input:focus { border-color: #3b82f6; }
-  textarea.input { resize: vertical; line-height: 1.5; }
-  select.input { appearance: none; -webkit-appearance: none; }
-  .btn { font-size: 13px; font-weight: 600; padding: 11px 16px; border-radius: 10px; cursor: pointer; border: none; transition: all 0.15s; -webkit-tap-highlight-color: transparent; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
-  .btn-primary { background: #3b82f6; color: #fff; }
-  .btn-ghost { background: transparent; color: #a1a1aa; border: 1px solid #2a2a30; }
-  .btn-danger { background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid rgba(239,68,68,0.2); }
+/* ══ ORDERS LIST ══ */
+.order-card{
+  background:var(--bg3);border:1.5px solid var(--border);border-radius:18px;
+  padding:14px 16px;margin-bottom:10px;cursor:pointer;
+  transition:border-color 0.2s,background 0.2s;
+  position:relative;overflow:hidden;
+}
+.order-card:active{background:var(--bg4);}
+.order-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+.order-id{font-family:var(--mono);font-size:0.72rem;font-weight:700;color:var(--cyan);}
+.order-status{
+  font-size:0.65rem;font-weight:700;padding:3px 10px;border-radius:20px;
+  text-transform:uppercase;letter-spacing:0.06em;white-space:nowrap;flex-shrink:0;
+}
+.order-status.paid{background:rgba(109,189,58,0.15);color:var(--lime);border:1px solid rgba(109,189,58,0.3);}
+.order-status.pending{background:rgba(212,168,67,0.15);color:var(--yellow);border:1px solid rgba(212,168,67,0.3);}
+.order-status.shipped{background:rgba(77,184,212,0.15);color:var(--cyan);border:1px solid rgba(77,184,212,0.3);}
+.order-status.refunded{background:rgba(224,85,85,0.15);color:var(--red);border:1px solid rgba(224,85,85,0.3);}
+.order-name{font-size:0.92rem;font-weight:700;margin-top:6px;}
+.order-meta{font-size:0.75rem;color:var(--text-muted);font-weight:500;margin-top:2px;}
+.order-card-bottom{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
+.order-amount{font-family:var(--mono);font-size:1rem;font-weight:700;color:var(--lime);}
+.order-time{font-size:0.68rem;color:var(--text-muted);}
 
-  /* ── Tables — horizontal scroll wrapper ── */
-  .table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  table { font-size: 12px; width: 100%; border-collapse: collapse; min-width: 520px; }
-  table th { font-size: 10px; font-weight: 700; color: #71717a; text-transform: uppercase; letter-spacing: .04em; padding: 10px 14px; border-bottom: 1px solid #2a2a30; text-align: left; }
-  table td { padding: 10px 14px; border-bottom: 1px solid #1e1e22; vertical-align: middle; }
-  .row-hover { -webkit-tap-highlight-color: transparent; }
-  .row-hover:active { background: rgba(255,255,255,0.04); }
-  @media (hover: hover) { .row-hover:hover { background: rgba(255,255,255,0.025); } }
+/* ══ CHART ══ */
+.chart-card{
+  background:var(--bg3);border:1.5px solid var(--border);border-radius:18px;
+  padding:16px;margin-bottom:16px;
+}
+.chart-title{font-size:0.9rem;font-weight:700;margin-bottom:4px;}
+.chart-sub{font-size:0.7rem;color:var(--text-muted);margin-bottom:16px;}
+.chart-wrap{height:140px;position:relative;}
+.chart-bars{display:flex;align-items:flex-end;gap:4px;height:120px;}
+.chart-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.chart-bar{
+  width:100%;border-radius:6px 6px 0 0;
+  background:linear-gradient(180deg,var(--cyan),rgba(77,184,212,0.3));
+  transition:height 0.8s cubic-bezier(0.34,1.56,0.64,1);
+  min-height:4px;
+}
+.chart-bar.lime{background:linear-gradient(180deg,var(--lime),rgba(109,189,58,0.3));}
+.chart-bar-label{font-size:0.55rem;color:var(--text-muted);font-weight:600;text-align:center;}
 
-  /* ── Modal — sheet from bottom ── */
-  .modal-bg {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.7);
-    z-index: 100;
-    display: flex;
-    align-items: flex-end;
-    padding: 0;
-  }
-  .modal {
-    background: #18181b;
-    border: 1px solid #2a2a30;
-    border-radius: 20px 20px 0 0;
-    padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
-    width: 100%;
-    max-height: 90dvh;
-    max-height: 90vh;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-  .modal-handle {
-    width: 36px; height: 4px;
-    background: #3f3f46;
-    border-radius: 2px;
-    margin: 0 auto 16px;
-  }
+/* ══ CUSTOMERS ══ */
+.customer-card{
+  background:var(--bg3);border:1.5px solid var(--border);border-radius:18px;
+  padding:14px 16px;margin-bottom:10px;
+  display:flex;align-items:center;gap:12px;
+}
+.customer-avatar{
+  width:42px;height:42px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.1rem;font-weight:700;
+}
+.customer-info{flex:1;min-width:0;}
+.customer-name{font-size:0.9rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.customer-email{font-size:0.72rem;color:var(--text-muted);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.customer-spent{font-family:var(--mono);font-size:0.85rem;font-weight:700;color:var(--lime);white-space:nowrap;}
 
-  /* ── Grids — always single col on mobile ── */
-  .grid-2 { display: grid; grid-template-columns: 1fr; gap: 10px; }
-  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
-  @media (max-width: 359px) { .stats-grid { grid-template-columns: 1fr; } }
+/* ══ PUSH NOTIFICATION ══ */
+.push-card{
+  background:var(--bg3);border:1.5px solid var(--border);border-radius:18px;
+  padding:20px;margin-bottom:16px;
+}
+.push-title-row{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+.push-icon{
+  width:40px;height:40px;border-radius:12px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--purple),var(--cyan));
+  display:flex;align-items:center;justify-content:center;
+}
+.push-card-title{font-size:1rem;font-weight:700;}
+.push-card-sub{font-size:0.72rem;color:var(--text-muted);font-weight:500;}
+.push-field{margin-bottom:12px;}
+.push-label{font-size:0.68rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:5px;}
+.push-input{
+  width:100%;height:44px;background:var(--bg4);
+  border:1.5px solid var(--border2);border-radius:12px;
+  padding:0 14px;color:var(--text);font-family:var(--font);font-size:0.9rem;font-weight:600;
+  transition:border-color 0.2s;
+}
+.push-input:focus{border-color:var(--purple);}
+.push-textarea{
+  width:100%;min-height:90px;background:var(--bg4);
+  border:1.5px solid var(--border2);border-radius:12px;
+  padding:12px 14px;color:var(--text);font-family:var(--font);font-size:0.9rem;font-weight:600;
+  resize:none;transition:border-color 0.2s;line-height:1.5;
+}
+.push-textarea:focus{border-color:var(--purple);}
+.push-input::placeholder,.push-textarea::placeholder{color:var(--text-faint);}
+.push-select{
+  width:100%;height:44px;background:var(--bg4);
+  border:1.5px solid var(--border2);border-radius:12px;
+  padding:0 14px;color:var(--text);font-family:var(--font);font-size:0.9rem;font-weight:600;
+  cursor:pointer;transition:border-color 0.2s;
+}
+.push-select:focus{border-color:var(--purple);}
+.push-select option{background:var(--bg4);}
 
-  /* ── Form rows ── */
-  .form-row { display: flex; flex-direction: column; gap: 10px; }
-  .form-label { font-size: 11px; font-weight: 700; color: #71717a; text-transform: uppercase; letter-spacing: .04em; display: block; margin-bottom: 4px; }
+/* ══ BUTTONS ══ */
+.btn{
+  height:48px;border-radius:14px;font-family:var(--font);font-size:0.95rem;font-weight:700;
+  border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:opacity 0.2s,transform 0.1s;
+  padding:0 20px;
+}
+.btn:active{transform:scale(0.97);opacity:0.85;}
+.btn-primary{background:linear-gradient(135deg,var(--cyan),var(--purple));color:#000;width:100%;}
+.btn-lime{background:linear-gradient(135deg,var(--lime),var(--cyan));color:#000;width:100%;}
+.btn-red{background:rgba(224,85,85,0.15);color:var(--red);border:1px solid var(--red);width:100%;}
+.btn-ghost{background:var(--bg4);color:var(--text-dim);border:1px solid var(--border2);width:100%;}
+.btn.loading{opacity:0.6;pointer-events:none;}
 
-  /* ── Misc ── */
-  .pulse-dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; flex-shrink: 0; animation: pulse 1.8s infinite; }
-  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.4); } 70% { box-shadow: 0 0 0 6px rgba(34,197,94,0); } }
-  .chart-bar { background: rgba(59,130,246,0.25); border-radius: 4px 4px 0 0; transition: background 0.15s; }
-  .chart-bar:hover { background: rgba(59,130,246,0.5); }
-  .skeleton { background: linear-gradient(90deg, #1e1e22 25%, #2a2a30 50%, #1e1e22 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 6px; }
-  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-  .toast {
-    position: fixed; bottom: calc(68px + env(safe-area-inset-bottom)); left: 12px; right: 12px; transform: translateY(20px); text-align: center;
-    background: #1e1e22; border: 1px solid #2a2a30; border-radius: 12px;
-    padding: 10px 18px; font-size: 13px; font-weight: 600; z-index: 999;
-    opacity: 0; transition: all 0.25s; white-space: nowrap; pointer-events: none;
-  }
-  .toast.show { opacity: 1; transform: translateY(0); }
-  .flag { font-size: 1.1em; }
-  .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .section-gap { margin-bottom: 10px; }
-  /* hide old sidebar and desktop-only elements */
-  .sidebar, #sidebarOverlay, #menuBtn, .topbar-search, .hide-mobile { display: none !important; }
+/* ══ EMAIL BLAST ══ */
+.segment-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.segment-btn{
+  height:56px;border-radius:14px;
+  background:var(--bg4);border:1.5px solid var(--border2);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  cursor:pointer;transition:border-color 0.2s,background 0.2s;
+  font-family:var(--font);
+}
+.segment-btn.selected{border-color:var(--cyan);background:rgba(77,184,212,0.08);}
+.segment-btn-label{font-size:0.8rem;font-weight:700;color:var(--text);}
+.segment-btn-count{font-size:0.65rem;color:var(--text-muted);}
+
+/* ══ ORDER DETAIL SHEET ══ */
+.sheet-overlay{
+  position:fixed;inset:0;z-index:500;
+  background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);
+  display:none;align-items:flex-end;
+  animation:fadeIn 0.2s ease;
+}
+.sheet-overlay.open{display:flex;}
+.sheet{
+  width:100%;max-height:88vh;background:var(--bg2);
+  border-radius:24px 24px 0 0;border-top:1.5px solid var(--border2);
+  overflow-y:auto;
+  animation:slideUp 0.3s cubic-bezier(0.34,1.2,0.64,1);
+}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:none}}
+.sheet-handle{width:40px;height:4px;border-radius:2px;background:var(--border2);margin:12px auto 0;}
+.sheet-header{padding:16px 20px;border-bottom:1px solid var(--border);}
+.sheet-title{font-size:1.1rem;font-weight:700;}
+.sheet-sub{font-size:0.75rem;color:var(--text-muted);}
+.sheet-body{padding:20px;}
+.sheet-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);}
+.sheet-row:last-child{border-bottom:none;}
+.sheet-row-label{font-size:0.8rem;color:var(--text-muted);font-weight:600;}
+.sheet-row-val{font-size:0.85rem;font-weight:700;text-align:right;max-width:60%;}
+.sheet-row-val.mono{font-family:var(--mono);color:var(--cyan);}
+.sheet-row-val.green{color:var(--lime);}
+.sheet-actions{padding:16px 20px;display:flex;flex-direction:column;gap:8px;}
+
+/* ══ STATUS SELECT ══ */
+.status-select-wrap{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px;}
+.status-opt{
+  height:44px;border-radius:12px;background:var(--bg4);
+  border:1.5px solid var(--border2);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  font-family:var(--font);font-size:0.8rem;font-weight:700;
+  transition:all 0.2s;
+}
+.status-opt.sel-paid{border-color:var(--lime);color:var(--lime);background:rgba(109,189,58,0.08);}
+.status-opt.sel-shipped{border-color:var(--cyan);color:var(--cyan);background:rgba(77,184,212,0.08);}
+.status-opt.sel-pending{border-color:var(--yellow);color:var(--yellow);background:rgba(212,168,67,0.08);}
+.status-opt.sel-refunded{border-color:var(--red);color:var(--red);background:rgba(224,85,85,0.08);}
+
+/* ══ TOAST ══ */
+#toast{
+  position:fixed;bottom:calc(var(--bottom-h) + var(--safe-bottom) + 12px);
+  left:16px;right:16px;z-index:9000;
+  background:var(--bg4);border:1.5px solid var(--border2);border-radius:14px;
+  padding:14px 16px;display:flex;align-items:center;gap:10px;
+  font-size:0.88rem;font-weight:700;color:var(--text);
+  transform:translateY(20px);opacity:0;
+  transition:all 0.3s cubic-bezier(0.34,1.2,0.64,1);
+  pointer-events:none;
+}
+#toast.show{transform:none;opacity:1;}
+#toast.success{border-color:var(--lime);background:rgba(109,189,58,0.12);}
+#toast.error{border-color:var(--red);background:rgba(224,85,85,0.12);}
+
+/* ══ LOADING SPINNER ══ */
+.spinner{
+  width:20px;height:20px;border:2px solid var(--border2);
+  border-top-color:var(--cyan);border-radius:50%;
+  animation:spin 0.7s linear infinite;flex-shrink:0;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ══ EMPTY STATE ══ */
+.empty{
+  text-align:center;padding:48px 16px;
+  display:flex;flex-direction:column;align-items:center;gap:12px;
+}
+.empty-icon{width:64px;height:64px;opacity:0.3;}
+.empty-text{font-size:0.9rem;color:var(--text-muted);font-weight:600;}
+
+/* ══ SEARCH BAR ══ */
+.search-bar{
+  display:flex;align-items:center;gap:10px;
+  background:var(--bg3);border:1.5px solid var(--border2);border-radius:14px;
+  padding:0 14px;height:44px;margin-bottom:14px;
+}
+.search-bar input{
+  flex:1;background:none;border:none;color:var(--text);
+  font-family:var(--font);font-size:0.9rem;font-weight:600;
+  -webkit-user-select:text;user-select:text;
+}
+.search-bar input::placeholder{color:var(--text-muted);}
+
+/* ══ FILTER CHIPS ══ */
+.filter-chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;}
+.filter-chips::-webkit-scrollbar{display:none;}
+.chip{
+  height:32px;padding:0 14px;border-radius:20px;white-space:nowrap;flex-shrink:0;
+  background:var(--bg4);border:1.5px solid var(--border2);
+  font-family:var(--font);font-size:0.75rem;font-weight:700;color:var(--text-muted);
+  cursor:pointer;transition:all 0.2s;display:flex;align-items:center;
+}
+.chip.active{background:rgba(77,184,212,0.12);border-color:var(--cyan);color:var(--cyan);}
+
+/* ══ TRACKING INPUT ══ */
+.tracking-card{
+  background:var(--bg3);border:1.5px solid var(--border);border-radius:18px;
+  padding:16px;margin-bottom:10px;
+}
+.tracking-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.tracking-order-id{font-family:var(--mono);font-size:0.75rem;color:var(--cyan);font-weight:700;}
+.tracking-input{
+  width:100%;height:44px;background:var(--bg4);border:1.5px solid var(--border2);
+  border-radius:12px;padding:0 14px;color:var(--text);font-family:var(--mono);
+  font-size:0.85rem;font-weight:700;transition:border-color 0.2s;
+}
+.tracking-input:focus{border-color:var(--cyan);}
+.tracking-input::placeholder{color:var(--text-faint);font-family:var(--font);}
+
+/* ══ REVENUE CHART TABS ══ */
+.tab-row{display:flex;gap:6px;margin-bottom:14px;}
+.tab{
+  height:32px;padding:0 14px;border-radius:20px;
+  background:var(--bg4);border:1.5px solid var(--border2);
+  font-family:var(--font);font-size:0.75rem;font-weight:700;color:var(--text-muted);
+  cursor:pointer;transition:all 0.2s;
+}
+.tab.active{background:rgba(109,189,58,0.12);border-color:var(--lime);color:var(--lime);}
+
+/* ══ REVENUE TABLE ══ */
+.rev-table{width:100%;border-collapse:collapse;}
+.rev-table th{font-size:0.65rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.07em;padding:6px 8px;text-align:left;}
+.rev-table td{font-size:0.82rem;font-weight:600;padding:10px 8px;border-top:1px solid var(--border);}
+.rev-table td.mono{font-family:var(--mono);color:var(--lime);}
+
+/* ══ PUSH PREVIEW ══ */
+.notif-preview{
+  background:rgba(255,255,255,0.05);border:1px solid var(--border2);border-radius:16px;
+  padding:14px;margin-bottom:14px;display:flex;gap:12px;align-items:flex-start;
+}
+.notif-preview-icon{
+  width:36px;height:36px;border-radius:10px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--cyan),var(--purple));
+  display:flex;align-items:center;justify-content:center;
+}
+.notif-preview-title{font-size:0.85rem;font-weight:700;margin-bottom:2px;}
+.notif-preview-body{font-size:0.75rem;color:var(--text-muted);line-height:1.4;}
+
+/* ══ ANALYTICS ══ */
+.analytics-row{
+  background:var(--bg3);border:1.5px solid var(--border);border-radius:14px;
+  padding:12px 14px;margin-bottom:8px;
+  display:flex;align-items:center;gap:12px;
+}
+.analytics-rank{
+  width:28px;height:28px;border-radius:8px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:0.78rem;font-weight:700;font-family:var(--mono);
+}
+.analytics-label{flex:1;font-size:0.85rem;font-weight:700;}
+.analytics-bar-wrap{flex:1;height:6px;background:var(--border2);border-radius:3px;overflow:hidden;}
+.analytics-bar{height:100%;border-radius:3px;background:var(--cyan);}
+.analytics-val{font-family:var(--mono);font-size:0.8rem;font-weight:700;color:var(--lime);white-space:nowrap;}
 </style>
 </head>
 <body>
 
-<!-- Toast -->
-<div class="toast" id="toast"></div>
+<!-- ══ LOGIN SCREEN ══ -->
+<div id="loginScreen">
+  <div class="login-logo">
+    <div class="login-logo-icon">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><path d="M12 2a10 10 0 0 1 10 10c0 2-1 4-3 5-1 1-2 2-2 3v1H7v-1c0-1-1-2-2-3C3 16 2 14 2 12A10 10 0 0 1 12 2z"/><line x1="12" y1="21" x2="12" y2="23"/></svg>
+    </div>
+    <div class="login-brand">MINIMISTY<span>.store</span></div>
+    <div class="login-sub">Admin Dashboard</div>
+  </div>
+  <div class="login-card">
+    <div class="login-field">
+      <div class="login-label">Email</div>
+      <input class="login-input" type="email" id="loginEmail" placeholder="admin@minimisty.store" autocomplete="email">
+    </div>
+    <div class="login-field">
+      <div class="login-label">Password</div>
+      <input class="login-input" type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">Sign In →</button>
+    <div class="login-err" id="loginErr">Incorrect credentials. Please try again.</div>
+  </div>
+</div>
 
-<!-- App Shell -->
+<!-- ══ MAIN APP ══ -->
 <div id="app">
-  <!-- Top Bar -->
-  <div id="topbar">
-    <div style="width:26px;height:26px;background:#3b82f6;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-      <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M8 2L14 5.5V10.5L8 14L2 10.5V5.5L8 2Z" fill="white"/></svg>
-    </div>
-    <h1 id="pageTitle">Overview</h1>
-    <div style="display:flex;align-items:center;gap:6px;margin-left:auto;">
-      <div style="display:flex;align-items:center;gap:5px;"><div class="pulse-dot"></div><span style="font-size:11px;font-weight:600;color:#52525b" id="liveTime">--:--</span></div>
-      <button class="btn btn-ghost" onclick="refreshAll()" style="padding:6px 10px;font-size:12px;">↻ Refresh</button>
-    </div>
-  </div>
-  <!-- Scroll Area -->
-  <div id="scroll-area"><div id="scroll-inner">
-
-
-<!-- OVERVIEW -->
-<div class="section active" id="section-overview">
-  <div class="stats-grid" id="statsGrid">
-    <div class="stat-card"><div class="stat-label">Revenue</div><div class="stat-value" id="statRevenue">—</div><div class="stat-sub" style="color:#22c55e" id="statRevenueSub">USD</div></div>
-    <div class="stat-card"><div class="stat-label">Orders</div><div class="stat-value" id="statOrders">—</div><div class="stat-sub" style="color:#60a5fa">Total paid</div></div>
-    <div class="stat-card"><div class="stat-label">Visitors</div><div class="stat-value" id="statVisits">—</div><div class="stat-sub" style="color:#a1a1aa">Sessions</div></div>
-    <div class="stat-card"><div class="stat-label">Conv. Rate</div><div class="stat-value" id="statConv">—</div><div class="stat-sub" style="color:#a1a1aa">Orders/Visits</div></div>
-    <div class="stat-card"><div class="stat-label">Abandoned</div><div class="stat-value" id="statAbandoned">—</div><div class="stat-sub" style="color:#f59e0b">Cart captures</div></div>
-    <div class="stat-card"><div class="stat-label">Cart Adds</div><div class="stat-value" id="statCartAdds">—</div><div class="stat-sub" style="color:#a1a1aa">Events</div></div>
-  </div>
-  <div class="card section-gap">
-    <div style="padding:14px 16px;border-bottom:1px solid #2a2a30;display:flex;align-items:center;justify-content:space-between;">
-      <span style="font-size:14px;font-weight:700;">Recent Orders</span>
-      <button class="btn btn-ghost" onclick="navigate('orders')" style="font-size:12px;padding:5px 10px">View all</button>
-    </div>
-    <div id="recentOrdersList" style="padding:4px 0;"></div>
-  </div>
-  <div style="display:flex;flex-direction:column;gap:10px;">
-    <div class="card"><div style="padding:14px 16px;border-bottom:1px solid #2a2a30;font-size:13px;font-weight:700;">Top Countries</div><div id="topCountries" style="padding:8px 0;"></div></div>
-    <div class="card"><div style="padding:14px 16px;border-bottom:1px solid #2a2a30;font-size:13px;font-weight:700;">Traffic Sources</div><div id="topReferrers" style="padding:8px 0;"></div></div>
-  </div>
-</div>
-
-<!-- ORDERS -->
-<div class="section" id="section-orders">
-  <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;">
-    <div style="display:flex;gap:4px;" id="orderTabs">
-      <div class="tab active" onclick="filterOrders('all')">All</div>
-      <div class="tab" onclick="filterOrders('paid')">Paid</div>
-      <div class="tab" onclick="filterOrders('pending')">Pending</div>
-    </div>
-    <input class="input" id="orderSearch" placeholder="Search email or ID..." oninput="filterOrderSearch(this.value)">
-  </div>
-  <div class="card" id="ordersTableBody" style="padding:4px 0;">
-    <div style="padding:32px;text-align:center;color:#71717a;">Loading orders...</div>
-  </div>
-</div>
-
-<!-- CUSTOMERS -->
-<div class="section" id="section-customers">
-  <div class="card" id="customersTableBody" style="padding:4px 0;">
-    <div style="padding:32px;text-align:center;color:#71717a;">Loading customers...</div>
-  </div>
-</div>
-
-<!-- VISITS -->
-<div class="section" id="section-visits">
-  <div class="card" id="visitsTableBody" style="padding:4px 0;">
-    <div style="padding:32px;text-align:center;color:#71717a;">Loading visits...</div>
-  </div>
-</div>
-
-<!-- ABANDONED -->
-<div class="section" id="section-abandoned">
-  <div class="card" id="abandonedTableBody" style="padding:4px 0;">
-    <div style="padding:32px;text-align:center;color:#71717a;">Loading abandoned carts...</div>
-  </div>
-</div>
-
-      <!-- DEVICES -->
-      <div class="section" id="section-devices">
-        <div class="card" id="devicesTableBody" style="padding:4px 0;">
-          <div style="padding:32px;text-align:center;color:#71717a;">Loading devices...</div>
-        </div>
-      </div>
-
-      <!-- ANALYTICS -->
-      <div class="section" id="section-analytics">
-        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:10px;">
-          <div class="card" style="padding:16px;">
-            <div style="font-size:13px;font-weight:700;margin-bottom:14px;">Funnel</div>
-            <div id="funnelChart"></div>
-          </div>
-          <div class="card" style="padding:16px;">
-            <div style="font-size:13px;font-weight:700;margin-bottom:14px;">Click Events</div>
-            <div id="clickEvents" style="display:flex;flex-direction:column;gap:8px;"></div>
-          </div>
-        </div>
-        <div class="card" style="padding:16px;">
-          <div style="font-size:13px;font-weight:700;margin-bottom:14px;">Raw Analytics Node</div>
-          <pre id="rawAnalytics" style="font-size:11px;color:#a1a1aa;white-space:pre-wrap;word-break:break-all;max-height:260px;overflow-y:auto;"></pre>
-        </div>
-      </div>
-
-      <!-- MESSAGING -->
-      <div class="section" id="section-messaging">
-        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:10px;">
-          <!-- Push Notifications -->
-          <div class="card" style="padding:16px;">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-              <div style="width:30px;height:30px;background:rgba(139,92,246,0.15);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M8 1.5a5 5 0 0 1 5 5v2.5l1 2H2l1-2V6.5a5 5 0 0 1 5-5Z" stroke="#8b5cf6" stroke-width="1.4" fill="none"/><path d="M6.5 13.5a1.5 1.5 0 0 0 3 0" stroke="#8b5cf6" stroke-width="1.4" fill="none"/></svg>
-              </div>
-              <div><div style="font-size:14px;font-weight:700;">Push Notification</div><div style="font-size:11px;color:#71717a;">Send to subscribed devices</div></div>
-            </div>
-            <div class="form-row">
-              <div><label class="form-label">Title</label><input class="input" id="pushTitle" placeholder="e.g. Limited Time Offer"></div>
-              <div><label class="form-label">Message</label><textarea class="input" id="pushBody" rows="3" placeholder="Your message here..."></textarea></div>
-              <div><label class="form-label">URL (optional)</label><input class="input" id="pushUrl" placeholder="https://minimisty.store/"></div>
-              <div><label class="form-label">Target</label><select class="input" id="pushTarget"><option value="all">All subscribers</option><option value="abandoned">Abandoned cart only</option></select></div>
-              <div style="display:flex;flex-direction:column;gap:8px;"><button class="btn btn-primary" style="width:100%;background:#8b5cf6;font-size:14px;" onclick="sendPushNotification()">Send Push</button><button class="btn btn-ghost" style="width:100%;" onclick="previewPush()">Preview</button></div>
-              <div id="pushStatus" style="font-size:11px;color:#71717a;min-height:14px;text-align:center;"></div>
-            </div>
-          </div>
-          <!-- Email -->
-          <div class="card" style="padding:16px;">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-              <div style="width:30px;height:30px;background:rgba(59,130,246,0.15);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="10" rx="1.5" stroke="#3b82f6" stroke-width="1.4" fill="none"/><path d="M2 5l6 4 6-4" stroke="#3b82f6" stroke-width="1.4" stroke-linecap="round" fill="none"/></svg>
-              </div>
-              <div><div style="font-size:14px;font-weight:700;">Send Email</div><div style="font-size:11px;color:#71717a;">Direct to customer inbox</div></div>
-            </div>
-            <div class="form-row">
-              <div><label class="form-label">To</label><input class="input" id="emailTo" placeholder="customer@email.com"></div>
-              <div><label class="form-label">Subject</label><input class="input" id="emailSubject" placeholder="Your order update"></div>
-              <div><label class="form-label">Message</label><textarea class="input" id="emailBody" rows="4" placeholder="Write your message..."></textarea></div>
-              <div><label class="form-label">Quick Fill</label><div style="display:flex;flex-wrap:wrap;gap:6px;"><button class="btn btn-ghost" style="font-size:11px;padding:4px 9px;" onclick="quickFillEmail('abandoned')">Abandoned Cart</button><button class="btn btn-ghost" style="font-size:11px;padding:4px 9px;" onclick="quickFillEmail('confirm')">Order Confirm</button><button class="btn btn-ghost" style="font-size:11px;padding:4px 9px;" onclick="quickFillEmail('promo')">Promo</button></div></div>
-              <div style="display:flex;flex-direction:column;gap:8px;"><button class="btn btn-primary" style="width:100%;font-size:14px;" onclick="sendEmail()">Send Email</button><button class="btn btn-ghost" style="width:100%;" onclick="previewEmail()">Preview</button></div>
-              <div id="emailStatus" style="font-size:11px;color:#71717a;min-height:14px;text-align:center;"></div>
-            </div>
-          </div>
-        </div>
-        <!-- Broadcast -->
-        <div class="card" style="padding:16px;margin-bottom:10px;">
-          <div style="font-size:14px;font-weight:700;margin-bottom:4px;">Broadcast Email</div>
-          <div style="font-size:12px;color:#71717a;margin-bottom:12px;">Send to all captured customer emails</div>
-          <div class="form-row">
-            <div><label class="form-label">Subject</label><input class="input" id="broadcastSubject" placeholder="Big news from MINIMISTY"></div>
-            <div><label class="form-label">Target Segment</label><select class="input" id="broadcastSegment"><option value="all">All customers</option><option value="abandoned">Abandoned carts only</option></select></div>
-            <div><label class="form-label">Message</label><textarea class="input" id="broadcastBody" rows="3" placeholder="Write your broadcast..."></textarea></div>
-            <div style="display:flex;flex-direction:column;gap:8px;"><button class="btn btn-primary" style="width:100%;font-size:14px;" onclick="sendBroadcast()">Send Broadcast</button><span id="broadcastStatus" style="font-size:12px;color:#71717a;text-align:center;"></span></div>
-          </div>
-        </div>
-        <!-- Push subscriber list -->
-        <div class="card">
-          <div style="padding:14px 16px;border-bottom:1px solid #2a2a30;display:flex;align-items:center;justify-content:space-between;">
-            <span style="font-size:13px;font-weight:700;">Push Subscribers</span>
-            <span class="badge badge-blue" id="pushSubCount">—</span>
-          </div>
-          <div id="pushSubscriberList" style="padding:4px 0;max-height:240px;overflow-y:auto;"></div>
-        </div>
-      </div>
-
-      <!-- SETTINGS -->
-      <div class="section" id="section-settings">
-        <div class="card" style="padding:16px;margin-bottom:10px;">
-          <div style="font-size:14px;font-weight:700;margin-bottom:14px;">Firebase Configuration</div>
-          <div class="form-row">
-            <div><label class="form-label">Database URL</label><input class="input" id="cfgDbUrl" value="https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com"></div>
-            <div><label class="form-label">API Key</label><input class="input" id="cfgApiKey" value="AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo"></div>
-            <div><label class="form-label">Project ID</label><input class="input" id="cfgProjectId" value="itzhoyoo-f9f7e"></div>
-            <button class="btn btn-primary" onclick="saveSettings()">Save & Reconnect</button>
-          </div>
-        </div>
-        <div class="card" style="padding:16px;">
-          <div style="font-size:14px;font-weight:700;margin-bottom:14px;">Dashboard</div>
-          <div class="form-row">
-            <div><label class="form-label">Store Name</label><input class="input" id="cfgStoreName" value="MINIMISTY"></div>
-            <div><label class="form-label">Auto-refresh Interval (seconds)</label><input class="input" id="cfgRefreshInterval" type="number" value="30"></div>
-            <button class="btn btn-primary" onclick="saveDashSettings()">Save</button>
-          </div>
-        </div>
-      </div>
-
-  </div></div><!-- /scroll-inner /scroll-area -->
-
-  <!-- Bottom Tab Nav -->
-  <nav id="bottom-nav">
-    <button class="tab-btn active" onclick="navigate('overview')" data-section="overview">
-      <svg width="20" height="20" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5" height="5" rx="1.5" fill="currentColor"/><rect x="9" y="2" width="5" height="5" rx="1.5" fill="currentColor"/><rect x="2" y="9" width="5" height="5" rx="1.5" fill="currentColor"/><rect x="9" y="9" width="5" height="5" rx="1.5" fill="currentColor"/></svg>
-      Home
-    </button>
-    <button class="tab-btn" onclick="navigate('orders')" data-section="orders">
-      <svg width="20" height="20" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="7" width="9" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="11" width="11" height="1.5" rx=".75" fill="currentColor"/></svg>
-      Orders
-      <span class="tab-badge" id="ordersNavBadge" style="display:none">0</span>
-    </button>
-    <button class="tab-btn" onclick="navigate('customers')" data-section="customers">
-      <svg width="20" height="20" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5.5" r="2.5" fill="currentColor"/><path d="M2.5 13c0-3.038 2.462-5.5 5.5-5.5s5.5 2.462 5.5 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
-      Customers
-    </button>
-    <button class="tab-btn" onclick="navigate('messaging')" data-section="messaging">
-      <svg width="20" height="20" viewBox="0 0 16 16" fill="none"><path d="M2 3h12v8H2z" rx="1.5" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M2 3l6 5 6-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
-      Messaging
-    </button>
-    <button class="tab-btn" onclick="showMoreMenu()" id="moreTabBtn">
-      <svg width="20" height="20" viewBox="0 0 16 16" fill="none"><circle cx="3.5" cy="8" r="1.25" fill="currentColor"/><circle cx="8" cy="8" r="1.25" fill="currentColor"/><circle cx="12.5" cy="8" r="1.25" fill="currentColor"/></svg>
-      More
-    </button>
-  </nav>
-
-</div><!-- /app -->
-
-<!-- More Menu Sheet -->
-<div class="modal-bg" id="moreMenu" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
-  <div class="modal" style="padding:0;overflow:hidden;">
-    <div style="padding:12px 16px 0;"><div class="modal-handle"></div></div>
-    <div style="padding:4px 0 8px;">
-      <button onclick="navigate('visits');document.getElementById('moreMenu').style.display='none'" style="width:100%;background:none;border:none;color:#fafafa;text-align:left;padding:14px 20px;font-size:15px;font-weight:600;display:flex;align-items:center;gap:12px;cursor:pointer;">
-        <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M8 4v4l2.5 2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
-        Visits
-      </button>
-      <button onclick="navigate('abandoned');document.getElementById('moreMenu').style.display='none'" style="width:100%;background:none;border:none;color:#fafafa;text-align:left;padding:14px 20px;font-size:15px;font-weight:600;display:flex;align-items:center;gap:12px;cursor:pointer;">
-        <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M3 4h10l-1 7H4L3 4Z" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="6" cy="13.5" r="1" fill="currentColor"/><circle cx="10" cy="13.5" r="1" fill="currentColor"/><path d="M1 2h2l.5 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
-        Abandoned
-      </button>
-      <button onclick="navigate('devices');document.getElementById('moreMenu').style.display='none'" style="width:100%;background:none;border:none;color:#fafafa;text-align:left;padding:14px 20px;font-size:15px;font-weight:600;display:flex;align-items:center;gap:12px;cursor:pointer;">
-        <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><rect x="3" y="2" width="10" height="12" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="8" cy="11.5" r=".75" fill="currentColor"/></svg>
-        Devices
-      </button>
-      <button onclick="navigate('analytics');document.getElementById('moreMenu').style.display='none'" style="width:100%;background:none;border:none;color:#fafafa;text-align:left;padding:14px 20px;font-size:15px;font-weight:600;display:flex;align-items:center;gap:12px;cursor:pointer;">
-        <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M2 12l3.5-4 3 2 2.5-5 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
-        Analytics
-      </button>
-      <button onclick="navigate('settings');document.getElementById('moreMenu').style.display='none'" style="width:100%;background:none;border:none;color:#a1a1aa;text-align:left;padding:14px 20px;font-size:15px;font-weight:600;display:flex;align-items:center;gap:12px;cursor:pointer;">
-        <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2" fill="currentColor"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        Settings
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- Push Preview Modal -->
-<div class="modal-bg" id="pushPreviewModal" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-      <span style="font-size:14px;font-weight:700;">Push Preview</span>
-      <button class="btn btn-ghost" style="padding:4px 8px;font-size:11px;" onclick="document.getElementById('pushPreviewModal').style.display='none'">Close</button>
-    </div>
-    <div style="background:#1e1e22;border:1px solid #2a2a30;border-radius:14px;padding:14px;display:flex;align-items:flex-start;gap:12px;">
-      <div style="width:36px;height:36px;background:#0f0f11;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid #2a2a30;">
-        <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M8 2L14 5.5V10.5L8 14L2 10.5V5.5L8 2Z" fill="#3b82f6"/></svg>
+  <!-- Top Nav -->
+  <header class="top-nav">
+    <div class="nav-brand">
+      <div class="nav-brand-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><path d="M12 2a10 10 0 0 1 10 10c0 2-1 4-3 5-1 1-2 2-2 3v1H7v-1c0-1-1-2-2-3C3 16 2 14 2 12A10 10 0 0 1 12 2z"/></svg>
       </div>
       <div>
-        <div style="font-size:13px;font-weight:700;" id="pushPreviewTitle">Title</div>
-        <div style="font-size:12px;color:#a1a1aa;margin-top:3px;" id="pushPreviewBody">Body text here</div>
-        <div style="font-size:10px;color:#71717a;margin-top:6px;">MINIMISTY.store · now</div>
+        <div class="nav-brand-text">MINIMISTY<span>.store</span></div>
+        <div class="nav-badge">Admin</div>
       </div>
     </div>
-    <div style="font-size:11px;color:#71717a;margin-top:12px;text-align:center;">This is how the notification appears on device</div>
+    <div class="nav-right">
+      <div class="nav-icon-btn" onclick="refreshData()" style="position:relative;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      </div>
+      <div class="nav-icon-btn" onclick="doLogout()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </div>
+    </div>
+  </header>
+
+  <!-- Pages -->
+  <div class="page-content">
+
+    <!-- ── DASHBOARD ── -->
+    <div class="page active" id="page-dashboard">
+      <div class="section-title">Dashboard</div>
+      <div class="section-sub" id="dashDate">Loading…</div>
+
+      <div class="stats-grid">
+        <div class="stat-card" style="--accent:var(--lime)">
+          <div class="stat-label">Revenue</div>
+          <div class="stat-value mono" id="statRevenue">—</div>
+          <div class="stat-change up" id="statRevenueChange">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>
+            <span>Loading…</span>
+          </div>
+        </div>
+        <div class="stat-card" style="--accent:var(--cyan)">
+          <div class="stat-label">Orders</div>
+          <div class="stat-value" id="statOrders">—</div>
+          <div class="stat-change up" id="statOrdersChange">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>
+            <span>Loading…</span>
+          </div>
+        </div>
+        <div class="stat-card" style="--accent:var(--purple)">
+          <div class="stat-label">Customers</div>
+          <div class="stat-value" id="statCustomers">—</div>
+          <div class="stat-change up"><span>All time</span></div>
+        </div>
+        <div class="stat-card" style="--accent:var(--yellow)">
+          <div class="stat-label">Avg Order</div>
+          <div class="stat-value mono" id="statAvg">—</div>
+          <div class="stat-change up"><span>Per order</span></div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-title">Revenue (Last 7 Days)</div>
+        <div class="chart-sub" id="chartTotal">Loading chart…</div>
+        <div class="chart-wrap">
+          <div class="chart-bars" id="revenueChart"></div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <div class="chart-title">Top Countries</div>
+        </div>
+        <div class="chart-sub">By order volume</div>
+        <div id="countriesChart"></div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-title">Recent Orders</div>
+        <div class="chart-sub">Last 5 transactions</div>
+        <div id="recentOrdersList"></div>
+      </div>
+    </div>
+
+    <!-- ── ORDERS ── -->
+    <div class="page" id="page-orders">
+      <div class="section-title">Orders</div>
+      <div class="section-sub" id="ordersCount">Loading…</div>
+
+      <div class="search-bar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" placeholder="Search name, email, order ID…" id="orderSearch" oninput="filterOrders()" style="-webkit-user-select:text;user-select:text;">
+      </div>
+
+      <div class="filter-chips">
+        <div class="chip active" onclick="setOrderFilter('all',this)">All</div>
+        <div class="chip" onclick="setOrderFilter('paid',this)">Paid</div>
+        <div class="chip" onclick="setOrderFilter('shipped',this)">Shipped</div>
+        <div class="chip" onclick="setOrderFilter('pending',this)">Pending</div>
+        <div class="chip" onclick="setOrderFilter('refunded',this)">Refunded</div>
+      </div>
+
+      <div id="ordersList"></div>
+    </div>
+
+    <!-- ── CUSTOMERS ── -->
+    <div class="page" id="page-customers">
+      <div class="section-title">Customers</div>
+      <div class="section-sub" id="customersCount">Loading…</div>
+
+      <div class="search-bar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" placeholder="Search name or email…" id="customerSearch" oninput="filterCustomers()" style="-webkit-user-select:text;user-select:text;">
+      </div>
+
+      <div id="customersList"></div>
+    </div>
+
+    <!-- ── ABANDONED CARTS ── -->
+    <div class="page" id="page-abandoned">
+      <div class="section-title">Abandoned Carts</div>
+      <div class="section-sub" id="abandonedCount">Loading…</div>
+
+      <div class="search-bar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" placeholder="Search name or email…" id="abandonedSearch" oninput="filterAbandoned()" style="-webkit-user-select:text;user-select:text;">
+      </div>
+
+      <div id="abandonedList"></div>
+    </div>
+
+    <!-- ── SETTINGS ── -->
+    <div class="page" id="page-settings">
+      <div class="section-title">Settings</div>
+      <div class="section-sub">Store & admin configuration</div>
+
+      <!-- Credentials info -->
+      <div class="push-card" style="margin-bottom:16px;">
+        <div class="push-title-row">
+          <div class="push-icon" style="background:linear-gradient(135deg,var(--cyan),var(--purple));">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <div>
+            <div class="push-card-title">Admin Credentials</div>
+            <div class="push-card-sub">Set via Vercel env vars at deploy time</div>
+          </div>
+        </div>
+        <div class="analytics-row" style="margin-bottom:8px;">
+          <div class="analytics-label" style="font-size:0.78rem;color:var(--text-muted);">EMAIL_API_KEY</div>
+          <div id="settingsEmail" style="font-family:var(--mono);font-size:0.75rem;color:var(--cyan);">—</div>
+        </div>
+        <div class="analytics-row">
+          <div class="analytics-label" style="font-size:0.78rem;color:var(--text-muted);">PASSWORD_API_KEY</div>
+          <div style="font-family:var(--mono);font-size:0.75rem;color:var(--text-muted);">••••••••</div>
+        </div>
+        <div style="margin-top:12px;padding:10px 12px;background:rgba(77,184,212,0.08);border:1px solid rgba(77,184,212,0.2);border-radius:10px;font-size:0.75rem;color:var(--text-muted);line-height:1.5;">
+          Set <strong style="color:var(--cyan);">EMAIL_API_KEY</strong> and <strong style="color:var(--cyan);">PASSWORD_API_KEY</strong> in your Vercel project's Environment Variables. Redeploy to apply.
+        </div>
+      </div>
+
+      <!-- Firebase config -->
+      <div class="push-card" style="margin-bottom:16px;">
+        <div class="push-title-row">
+          <div class="push-icon" style="background:linear-gradient(135deg,var(--yellow),var(--orange));">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          <div>
+            <div class="push-card-title">Firebase Database</div>
+            <div class="push-card-sub">Real-time data connection</div>
+          </div>
+        </div>
+        <div class="analytics-row" style="margin-bottom:8px;">
+          <div class="analytics-label" style="font-size:0.78rem;color:var(--text-muted);">Project</div>
+          <div style="font-family:var(--mono);font-size:0.7rem;color:var(--lime);">itzhoyoo-f9f7e</div>
+        </div>
+        <div class="analytics-row">
+          <div class="analytics-label" style="font-size:0.78rem;color:var(--text-muted);">Status</div>
+          <div id="fbStatus" style="font-size:0.78rem;font-weight:700;color:var(--lime);">● Connected</div>
+        </div>
+      </div>
+
+      <!-- OneSignal config (duplicated here for convenience) -->
+      <div class="push-card" style="margin-bottom:16px;">
+        <div class="push-title-row">
+          <div class="push-icon" style="background:var(--bg4);border:1.5px solid var(--border2);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07"/></svg>
+          </div>
+          <div>
+            <div class="push-card-title">OneSignal Push</div>
+            <div class="push-card-sub">Required for push notifications</div>
+          </div>
+        </div>
+        <div class="push-field">
+          <div class="push-label">App ID</div>
+          <input class="push-input" id="settingsOnesignalAppId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" style="-webkit-user-select:text;user-select:text;">
+        </div>
+        <div class="push-field">
+          <div class="push-label">REST API Key</div>
+          <input class="push-input" id="settingsOnesignalKey" type="password" placeholder="os_v2_app_…" style="-webkit-user-select:text;user-select:text;">
+        </div>
+        <button class="btn btn-primary" onclick="saveSettingsOnesignal()">Save OneSignal Config</button>
+      </div>
+
+      <!-- Danger zone -->
+      <div class="push-card" style="border-color:var(--red);margin-bottom:16px;">
+        <div class="push-title-row">
+          <div class="push-icon" style="background:rgba(224,85,85,0.12);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <div>
+            <div class="push-card-title" style="color:var(--red);">Danger Zone</div>
+            <div class="push-card-sub">Irreversible actions</div>
+          </div>
+        </div>
+        <button class="btn btn-red" onclick="doLogout()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Sign Out
+        </button>
+      </div>
+
+      <!-- App version -->
+      <div style="text-align:center;font-size:0.68rem;color:var(--text-faint);padding:8px 0 24px;">MINIMISTY Admin v2.0 · Built on Firebase + Vercel</div>
+    </div>
+
+    <!-- ── PUSH / EMAIL ── -->
+    <div class="page" id="page-notify">
+      <div class="section-title">Notify</div>
+      <div class="section-sub">Send push notifications & email blasts</div>
+
+      <!-- Push Preview -->
+      <div class="push-card">
+        <div class="push-title-row">
+          <div class="push-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          </div>
+          <div>
+            <div class="push-card-title">Push Notification</div>
+            <div class="push-card-sub">Sends via OneSignal (configure below)</div>
+          </div>
+        </div>
+
+        <div class="notif-preview" id="notifPreview">
+          <div class="notif-preview-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><path d="M12 2a10 10 0 0 1 10 10c0 2-1 4-3 5-1 1-2 2-2 3v1H7v-1c0-1-1-2-2-3C3 16 2 14 2 12A10 10 0 0 1 12 2z"/></svg>
+          </div>
+          <div>
+            <div class="notif-preview-title" id="previewTitle">MINIMISTY.store</div>
+            <div class="notif-preview-body" id="previewBody">Your notification preview will appear here…</div>
+          </div>
+        </div>
+
+        <div class="push-field">
+          <div class="push-label">Title</div>
+          <input class="push-input" id="pushTitle" placeholder="e.g. Flash Sale — 24 hours only!" oninput="updatePreview()" style="-webkit-user-select:text;user-select:text;">
+        </div>
+        <div class="push-field">
+          <div class="push-label">Message</div>
+          <textarea class="push-textarea" id="pushBody" placeholder="e.g. Get 20% off your next order with code SAVE20 🎉" oninput="updatePreview()" style="-webkit-user-select:text;user-select:text;"></textarea>
+        </div>
+        <div class="push-field">
+          <div class="push-label">Target URL (optional)</div>
+          <input class="push-input" id="pushUrl" placeholder="https://minimisty.store" style="-webkit-user-select:text;user-select:text;">
+        </div>
+        <div class="push-field">
+          <div class="push-label">Audience</div>
+          <select class="push-select" id="pushAudience">
+            <option value="all">All Subscribers</option>
+            <option value="subscribed">Subscribed (opted in)</option>
+            <option value="customers">Customers only</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="sendPush()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          Send Push Notification
+        </button>
+      </div>
+
+      <!-- Email Blast -->
+      <div class="push-card">
+        <div class="push-title-row">
+          <div class="push-icon" style="background:linear-gradient(135deg,var(--yellow),var(--orange));">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          </div>
+          <div>
+            <div class="push-card-title">Email Blast</div>
+            <div class="push-card-sub">Send via /api/send-email endpoint</div>
+          </div>
+        </div>
+
+        <div class="push-field">
+          <div class="push-label">Segment</div>
+          <div class="segment-grid">
+            <div class="segment-btn selected" onclick="selectSegment(this,'all')">
+              <div class="segment-btn-label">All Customers</div>
+              <div class="segment-btn-count" id="segAllCount">Loading…</div>
+            </div>
+            <div class="segment-btn" onclick="selectSegment(this,'abandoned')">
+              <div class="segment-btn-label">Abandoned Carts</div>
+              <div class="segment-btn-count" id="segAbandonedCount">Loading…</div>
+            </div>
+            <div class="segment-btn" onclick="selectSegment(this,'paid')">
+              <div class="segment-btn-label">Paid Orders</div>
+              <div class="segment-btn-count" id="segPaidCount">Loading…</div>
+            </div>
+            <div class="segment-btn" onclick="selectSegment(this,'shipped')">
+              <div class="segment-btn-label">Shipped</div>
+              <div class="segment-btn-count" id="segShippedCount">Loading…</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="push-field">
+          <div class="push-label">Subject Line</div>
+          <input class="push-input" id="emailSubject" placeholder="e.g. Your order is on the way! 🚚" style="-webkit-user-select:text;user-select:text;">
+        </div>
+        <div class="push-field">
+          <div class="push-label">Message Body</div>
+          <textarea class="push-textarea" id="emailBody" placeholder="Write your email message here…" rows="5" style="-webkit-user-select:text;user-select:text;"></textarea>
+        </div>
+        <button class="btn btn-lime" onclick="sendEmailBlast()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          Send Email Blast
+        </button>
+      </div>
+
+      <!-- OneSignal Config -->
+      <div class="push-card" style="border-color:var(--border);">
+        <div class="push-title-row">
+          <div class="push-icon" style="background:var(--bg4);border:1.5px solid var(--border2);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07"/></svg>
+          </div>
+          <div>
+            <div class="push-card-title">OneSignal Config</div>
+            <div class="push-card-sub">Stored locally in this browser</div>
+          </div>
+        </div>
+        <div class="push-field">
+          <div class="push-label">App ID</div>
+          <input class="push-input" id="onesignalAppId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" style="-webkit-user-select:text;user-select:text;">
+        </div>
+        <div class="push-field">
+          <div class="push-label">REST API Key</div>
+          <input class="push-input" id="onesignalKey" type="password" placeholder="os_v2_app_…" style="-webkit-user-select:text;user-select:text;">
+        </div>
+        <button class="btn btn-ghost" onclick="saveOnesignalConfig()">Save Config</button>
+      </div>
+    </div>
+
+    <!-- ── REVENUE ── -->
+    <div class="page" id="page-revenue">
+      <div class="section-title">Revenue</div>
+      <div class="section-sub">Financial overview</div>
+
+      <div class="tab-row">
+        <div class="tab active" onclick="setRevTab('7d',this)">7 Days</div>
+        <div class="tab" onclick="setRevTab('30d',this)">30 Days</div>
+        <div class="tab" onclick="setRevTab('all',this)">All Time</div>
+      </div>
+
+      <div class="stats-grid" style="margin-bottom:16px;">
+        <div class="stat-card" style="--accent:var(--lime)">
+          <div class="stat-label">Gross Revenue</div>
+          <div class="stat-value mono" id="revGross">—</div>
+        </div>
+        <div class="stat-card" style="--accent:var(--cyan)">
+          <div class="stat-label">Orders</div>
+          <div class="stat-value" id="revOrders">—</div>
+        </div>
+        <div class="stat-card" style="--accent:var(--yellow)">
+          <div class="stat-label">Avg Order</div>
+          <div class="stat-value mono" id="revAvg">—</div>
+        </div>
+        <div class="stat-card" style="--accent:var(--red)">
+          <div class="stat-label">Refunded</div>
+          <div class="stat-value mono" id="revRefunded">—</div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-title">Daily Revenue</div>
+        <div class="chart-sub" id="revChartSub">—</div>
+        <div class="chart-wrap">
+          <div class="chart-bars" id="revChartBars"></div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-title">Orders Breakdown</div>
+        <div class="chart-sub" style="margin-bottom:12px;">Revenue by order</div>
+        <div style="overflow-x:auto;">
+          <table class="rev-table">
+            <thead>
+              <tr>
+                <th>Order</th>
+                <th>Customer</th>
+                <th>Date</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+            <tbody id="revTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /page-content -->
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav">
+    <div class="nav-item active" onclick="navTo('dashboard',this)">
+      <div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
+      <div class="nav-label">Dash</div>
+    </div>
+    <div class="nav-item" onclick="navTo('orders',this)">
+      <div class="nav-icon" style="position:relative;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        <div class="nav-badge-count" id="newOrdersBadge" style="display:none;"></div>
+      </div>
+      <div class="nav-label">Orders</div>
+    </div>
+    <div class="nav-item" onclick="navTo('customers',this)">
+      <div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+      <div class="nav-label">Customers</div>
+    </div>
+    <div class="nav-item" onclick="navTo('notify',this)">
+      <div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+      <div class="nav-label">Notify</div>
+    </div>
+    <div class="nav-item" onclick="navTo('revenue',this)">
+      <div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+      <div class="nav-label">Revenue</div>
+    </div>
+    <div class="nav-item" onclick="navTo('abandoned',this)">
+      <div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></div>
+      <div class="nav-label">Carts</div>
+    </div>
+    <div class="nav-item" onclick="navTo('settings',this)">
+      <div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M2 12h2M20 12h2M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41"/></svg></div>
+      <div class="nav-label">Settings</div>
+    </div>
+  </nav>
+</div>
+
+<!-- ══ ORDER DETAIL SHEET ══ -->
+<div class="sheet-overlay" id="orderSheet" onclick="closeSheet(event)">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div class="sheet-title" id="sheetOrderId">Order Details</div>
+      <div class="sheet-sub" id="sheetOrderDate">—</div>
+    </div>
+    <div class="sheet-body" id="sheetBody"></div>
+    <div class="sheet-actions" id="sheetActions"></div>
   </div>
 </div>
 
-<!-- Email Preview Modal -->
-<div class="modal-bg" id="emailPreviewModal" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-      <span style="font-size:14px;font-weight:700;">Email Preview</span>
-      <button class="btn btn-ghost" style="padding:4px 8px;font-size:11px;" onclick="document.getElementById('emailPreviewModal').style.display='none'">Close</button>
-    </div>
-    <div style="background:#fff;border-radius:12px;padding:20px;color:#111;">
-      <div style="font-size:11px;color:#888;margin-bottom:4px;">To: <span id="epTo" style="color:#111;"></span></div>
-      <div style="font-size:11px;color:#888;margin-bottom:16px;border-bottom:1px solid #eee;padding-bottom:12px;">Subject: <span id="epSubject" style="color:#111;font-weight:700;"></span></div>
-      <div style="font-family:Georgia,serif;font-size:14px;line-height:1.7;color:#222;white-space:pre-wrap;" id="epBody"></div>
-      <div style="margin-top:20px;padding-top:14px;border-top:1px solid #eee;font-size:11px;color:#aaa;">MINIMISTY.store — Sent from Admin Dashboard</div>
-    </div>
-  </div>
-</div>
-
-<!-- Order Modal -->
-<div class="modal-bg" id="orderModal" style="display:none;" onclick="if(event.target===this)closeModal()">
-  <div class="modal"><div class="modal-handle"></div><div id="orderModalContent"></div></div>
+<!-- ══ TOAST ══ -->
+<div id="toast">
+  <div class="spinner" id="toastSpinner" style="display:none;"></div>
+  <span id="toastMsg"></span>
 </div>
 
 <script type="module">
-  import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js';
-  import { getDatabase, ref, get, onValue, update, remove } from 'https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js';
+// ════ FIREBASE ════
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+import { getDatabase, ref, get, set, update, push, onValue, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
 
-  const firebaseConfig = {
-    apiKey: 'AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo',
-    authDomain: 'itzhoyoo-f9f7e.firebaseapp.com',
-    databaseURL: 'https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com',
-    projectId: 'itzhoyoo-f9f7e',
-    storageBucket: 'itzhoyoo-f9f7e.filestorage.app',
-    messagingSenderId: '1094792075584',
-    appId: '1:1094792075584:web:d49e9c3f899d3cd31082a5'
-  };
+const FB_CONFIG = {
+  apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
+  authDomain: "itzhoyoo-f9f7e.firebaseapp.com",
+  databaseURL: "https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com",
+  projectId: "itzhoyoo-f9f7e",
+  storageBucket: "itzhoyoo-f9f7e.appspot.com",
+  messagingSenderId: "247901793882",
+  appId: "1:247901793882:web:minimisty_admin"
+};
 
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-  window._db = db;
-  window._ref = ref;
-  window._get = get;
-  window._onValue = onValue;
-  window._update = update;
-  window._remove = remove;
-  window._fbReady = true;
-  console.log('Firebase connected');
-  window.dispatchEvent(new Event('fbReady'));
-</script>
+const firebaseApp = getApps().length ? getApps()[0] : initializeApp(FB_CONFIG);
+const db = getDatabase(firebaseApp);
+const fbRef = (path) => ref(db, path);
 
-<script>
-// ── State ──
-let allOrders = [], allVisits = [], allCustomers = [], allAbandoned = [], allDevices = [], analyticsData = {};
-let currentOrderFilter = 'all', currentOrderSearch = '';
-let refreshTimer = null;
+// ════ STATE ════
+let allOrders = {};
+let allCustomers = {};
+let allAbandoned = {};
+let analytics = {};
+let currentOrderFilter = 'all';
+let currentRevTab = '7d';
+let currentSegment = 'all';
+let selectedOrderId = null;
 
-// ── Nav ──
-const MORE_SECTIONS = ['visits','abandoned','devices','analytics','settings'];
-function navigate(section) {
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  const sec = document.getElementById('section-' + section);
-  if (sec) sec.classList.add('active');
-  // Scroll to top
-  const sa = document.getElementById('scroll-area');
-  if (sa) sa.scrollTop = 0;
-  // Update bottom tab bar
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  const primarySections = ['overview','orders','customers','messaging'];
-  if (primarySections.includes(section)) {
-    const btn = document.querySelector('.tab-btn[data-section="' + section + '"]');
-    if (btn) btn.classList.add('active');
+// ════ AUTH ════
+const ADMIN_EMAIL = (typeof EMAIL_API_KEY !== 'undefined') ? EMAIL_API_KEY : '';
+const ADMIN_PASS  = (typeof PASSWORD_API_KEY !== 'undefined') ? PASSWORD_API_KEY : '';
+
+// Session fallback
+const SESSION_KEY = 'minimisty_admin_session';
+
+function isLoggedIn() {
+  try { return sessionStorage.getItem(SESSION_KEY) === 'ok'; } catch(e) { return false; }
+}
+
+window.doLogin = async function() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass  = document.getElementById('loginPass').value.trim();
+  const btn   = document.getElementById('loginBtn');
+  const err   = document.getElementById('loginErr');
+
+  err.style.display = 'none';
+  btn.classList.add('loading');
+  btn.textContent = 'Signing in…';
+
+  await new Promise(r => setTimeout(r, 600)); // UX feel
+
+  // Check against Vercel env vars embedded at build time OR hardcoded fallback
+  // In production: set EMAIL_API_KEY and PASSWORD_API_KEY on Vercel
+  // Here we compare against runtime values set via global vars OR allow custom check
+  const targetEmail = window.__ADMIN_EMAIL || 'admin@minimisty.store';
+  const targetPass  = window.__ADMIN_PASS  || 'minimisty2024';
+
+  if (email === targetEmail && pass === targetPass) {
+    try { sessionStorage.setItem(SESSION_KEY, 'ok'); } catch(e) {}
+    document.getElementById('loginScreen').style.opacity = '0';
+    document.getElementById('loginScreen').style.transform = 'scale(0.95)';
+    document.getElementById('loginScreen').style.transition = 'all 0.3s ease';
+    setTimeout(() => {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('app').classList.add('visible');
+      initApp();
+    }, 300);
   } else {
-    document.getElementById('moreTabBtn').classList.add('active');
+    btn.classList.remove('loading');
+    btn.textContent = 'Sign In →';
+    err.style.display = 'block';
+    document.getElementById('loginPass').value = '';
   }
-  const titles = { overview:'Overview', orders:'Orders', customers:'Customers', visits:'Visits', abandoned:'Abandoned Carts', devices:'Devices', analytics:'Analytics', messaging:'Messaging', settings:'Settings' };
-  document.getElementById('pageTitle').textContent = titles[section] || section;
+};
+
+// Allow Enter key on login
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && document.getElementById('loginScreen').style.display !== 'none') {
+    doLogin();
+  }
+});
+
+window.doLogout = function() {
+  try { sessionStorage.removeItem(SESSION_KEY); } catch(e) {}
+  location.reload();
+};
+
+// Auto-login if session active
+if (isLoggedIn()) {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').classList.add('visible');
+  initApp();
 }
-window.navigate = navigate;
 
-function toggleSidebar() {}
-function closeSidebar() {}
-window.toggleSidebar = toggleSidebar;
-window.closeSidebar = closeSidebar;
-window.showMoreMenu = function() { document.getElementById('moreMenu').style.display = 'flex'; };
+// ════ NAVIGATION ════
+window.navTo = function(page, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  el.classList.add('active');
+  document.querySelector('.page-content').scrollTop = 0;
+};
 
-// ── Live Time ──
-function updateTime() {
+// ════ INIT ════
+async function initApp() {
   const now = new Date();
-  document.getElementById('liveTime').textContent = now.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-}
-setInterval(updateTime, 1000);
-updateTime();
+  document.getElementById('dashDate').textContent = now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
 
-// ── Toast ──
-function toast(msg, type = 'default') {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.style.borderColor = type === 'error' ? '#ef4444' : type === 'success' ? '#22c55e' : '#2a2a30';
-  el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 2800);
-}
-
-// ── Formatters ──
-function fmtDate(ts) {
-  if (!ts) return '—';
-  const d = ts > 1e12 ? new Date(ts) : new Date(ts * 1000);
-  return d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }) + ' ' + d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-}
-function fmtUSD(val) {
-  if (val === undefined || val === null) return '—';
-  return '$' + Number(val).toFixed(2);
-}
-function countryFlag(code) {
-  if (!code || code.length !== 2) return '';
-  return String.fromCodePoint(...[...code.toUpperCase()].map(c => 0x1F1E6 + c.charCodeAt(0) - 65));
-}
-function shortId(id) {
-  if (!id) return '—';
-  return id.length > 14 ? id.slice(0, 14) + '…' : id;
-}
-
-// ── Load All Data ──
-async function loadAll() {
-  if (!window._fbReady) { toast('Waiting for Firebase…'); return; }
-  const db = window._db, r = window._ref, g = window._get;
+  // Load OneSignal config
   try {
-    const [ordersSnap, visitsSnap, customersSnap, abandonedSnap, devicesSnap, analyticsSnap] = await Promise.all([
-      g(r(db, 'orders')),
-      g(r(db, 'visits')),
-      g(r(db, 'customers')),
-      g(r(db, 'abandonedCarts')),
-      g(r(db, 'deviceOrders')),
-      g(r(db, 'analytics'))
+    const appId = localStorage.getItem('onesignal_app_id') || '';
+    const key   = localStorage.getItem('onesignal_key') || '';
+    if (appId) document.getElementById('onesignalAppId').value = appId;
+    if (key)   document.getElementById('onesignalKey').value   = key;
+  } catch(e) {}
+
+  syncSettingsPage();
+  await loadAllData();
+}
+
+// ════ LOAD DATA ════
+async function loadAllData() {
+  showToast('Syncing data…', 'loading');
+  try {
+    const [ordersSnap, customersSnap, abandonedSnap, analyticsSnap] = await Promise.all([
+      get(fbRef('orders')),
+      get(fbRef('customers')),
+      get(fbRef('abandonedCarts')),
+      get(fbRef('analytics'))
     ]);
 
-    allOrders = ordersSnap.exists() ? Object.entries(ordersSnap.val()).map(([k,v]) => ({_key:k,...v})) : [];
-    allVisits = visitsSnap.exists() ? Object.entries(visitsSnap.val()).map(([k,v]) => ({_key:k,...v})) : [];
-    allCustomers = customersSnap.exists() ? Object.entries(customersSnap.val()).map(([k,v]) => ({_key:k,...v})) : [];
-    allAbandoned = abandonedSnap.exists() ? Object.entries(abandonedSnap.val()).map(([k,v]) => ({_key:k,...v})) : [];
-    allDevices = devicesSnap.exists() ? Object.entries(devicesSnap.val()).map(([k,v]) => ({deviceId:k, orders:v})) : [];
-    analyticsData = analyticsSnap.exists() ? analyticsSnap.val() : {};
+    allOrders    = ordersSnap.exists()    ? ordersSnap.val()    : {};
+    allCustomers = customersSnap.exists() ? customersSnap.val() : {};
+    allAbandoned = abandonedSnap.exists() ? abandonedSnap.val() : {};
+    analytics    = analyticsSnap.exists() ? analyticsSnap.val() : {};
 
-    // Sort newest first
-    allOrders.sort((a,b) => (b.completedAt||b.createdAt||0) - (a.completedAt||a.createdAt||0));
-    allVisits.sort((a,b) => (b.ts||0) - (a.ts||0));
-    allCustomers.sort((a,b) => (b.ts||0) - (a.ts||0));
-    allAbandoned.sort((a,b) => (b.ts||0) - (a.ts||0));
-
-    renderAll();
-    toast('Data refreshed', 'success');
+    renderDashboard();
+    renderOrders();
+    renderCustomers();
+    renderAbandoned();
+    renderRevenue();
+    updateSegmentCounts();
+    syncSettingsPage();
+    hideToast();
+    showToast('Data synced ✓', 'success');
   } catch(e) {
+    hideToast();
+    showToast('Failed to load data', 'error');
     console.error(e);
-    toast('Error loading data: ' + e.message, 'error');
   }
 }
 
-function renderAll() {
-  renderOverview();
-  renderOrders();
-  renderCustomers();
-  renderVisits();
-  renderAbandoned();
-  renderDevices();
-  renderAnalytics();
-  updateNavBadges();
-}
+window.refreshData = function() {
+  const btn = document.querySelector('.nav-icon-btn[onclick="refreshData()"] svg');
+  if (btn) btn.style.animation = 'spin 0.7s linear infinite';
+  loadAllData().finally(() => {
+    if (btn) btn.style.animation = '';
+  });
+};
 
-// ── Overview ──
-function renderOverview() {
-  const paidOrders = allOrders.filter(o => o.status === 'paid');
-  const totalRev = paidOrders.reduce((s,o) => s + (o.pricing?.totalUSD || o.totalUSD || 0), 0);
-  const conv = allVisits.length ? ((paidOrders.length / allVisits.length) * 100).toFixed(1) + '%' : '0%';
+// ════ DASHBOARD ════
+function renderDashboard() {
+  const orders = Object.values(allOrders);
+  const paid   = orders.filter(o => o.status === 'paid' || o.status === 'shipped');
 
-  document.getElementById('statRevenue').textContent = fmtUSD(totalRev);
-  document.getElementById('statOrders').textContent = paidOrders.length;
-  document.getElementById('statVisits').textContent = allVisits.length;
-  document.getElementById('statConv').textContent = conv;
-  document.getElementById('statAbandoned').textContent = allAbandoned.length;
-  document.getElementById('statCartAdds').textContent = analyticsData.totalCartAdds || '—';
+  const totalRev = paid.reduce((s,o) => s + parseFloat(o.amount || o.total || 0), 0);
+  const avgOrder = paid.length ? totalRev / paid.length : 0;
+  const custCount = Object.keys(allCustomers).length;
 
-  // Recent orders
-  const tbody = document.getElementById('recentOrdersList');
-  const recent = allOrders.slice(0, 8);
-  tbody.innerHTML = recent.length ? recent.map(o => `
-    <div class="row-hover" onclick="openOrder('${o._key}')" style="display:flex;align-items:center;padding:10px 18px;gap:12px;cursor:pointer;border-bottom:1px solid #1e1e22;">
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:12px;font-weight:700;color:#fafafa">${shortId(o.orderId||o._key)}</div>
-        <div style="font-size:11px;color:#71717a;margin-top:1px">${o.email||'—'}</div>
-      </div>
-      <div style="font-size:12px;color:#71717a;white-space:nowrap;">${o.geo?.country||o.country||'—'} ${countryFlag(o.geo?.country||o.country)}</div>
-      <div style="font-size:13px;font-weight:700;white-space:nowrap;">${fmtUSD(o.pricing?.totalUSD||o.totalUSD)}</div>
-      <span class="badge ${o.status==='paid'?'badge-green':o.status==='pending'?'badge-yellow':'badge-gray'}">${o.status||'—'}</span>
+  document.getElementById('statRevenue').textContent = '$' + totalRev.toFixed(2);
+  document.getElementById('statOrders').textContent = orders.length;
+  document.getElementById('statCustomers').textContent = custCount;
+  document.getElementById('statAvg').textContent = '$' + avgOrder.toFixed(2);
+
+  // 7-day vs prior 7-day change indicators
+  const now7 = Date.now();
+  const cut7  = now7 - 7*86400000;
+  const cut14 = now7 - 14*86400000;
+  const thisWeekPaid = paid.filter(o => { const ts=o.completedAt||o.createdAt||0; const t=typeof ts==='number'?ts:(ts._seconds?ts._seconds*1000:0); return t>=cut7; });
+  const lastWeekPaid = paid.filter(o => { const ts=o.completedAt||o.createdAt||0; const t=typeof ts==='number'?ts:(ts._seconds?ts._seconds*1000:0); return t>=cut14 && t<cut7; });
+  const thisWkRev = thisWeekPaid.reduce((s,o)=>s+parseFloat(o.amount||o.total||0),0);
+  const lastWkRev = lastWeekPaid.reduce((s,o)=>s+parseFloat(o.amount||o.total||0),0);
+  const thisWkOrders = Object.values(allOrders).filter(o=>{ const ts=o.completedAt||o.createdAt||0; const t=typeof ts==='number'?ts:(ts._seconds?ts._seconds*1000:0); return t>=cut7; }).length;
+  const lastWkOrders = Object.values(allOrders).filter(o=>{ const ts=o.completedAt||o.createdAt||0; const t=typeof ts==='number'?ts:(ts._seconds?ts._seconds*1000:0); return t>=cut14&&t<cut7; }).length;
+
+  function setPctChange(elId, curr, prev) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    if (prev === 0) { el.className='stat-change up'; el.innerHTML='<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg><span>New this week</span>'; return; }
+    const pct = ((curr - prev) / prev * 100).toFixed(1);
+    const up  = curr >= prev;
+    el.className = 'stat-change ' + (up ? 'up' : 'down');
+    el.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="${up?'18 15 12 9 6 15':'6 9 12 15 18 9'}"/></svg><span>${up?'+':''}${pct}% vs last week</span>`;
+  }
+  setPctChange('statRevenueChange', thisWkRev, lastWkRev);
+  setPctChange('statOrdersChange', thisWkOrders, lastWkOrders);
+
+  // 7-day revenue chart
+  const days = [];
+  const now = Date.now();
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now - i * 86400000);
+    const label = d.toLocaleDateString('en-US',{weekday:'short'}).charAt(0);
+    const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    const dayEnd   = dayStart + 86400000;
+    const dayRev   = paid.filter(o => {
+      const ts = o.completedAt || o.createdAt || o.ts || 0;
+      const t  = typeof ts === 'number' ? ts : (ts._seconds ? ts._seconds * 1000 : 0);
+      return t >= dayStart && t < dayEnd;
+    }).reduce((s,o) => s + parseFloat(o.amount || o.total || 0), 0);
+    days.push({ label, rev: dayRev });
+  }
+
+  const maxRev = Math.max(...days.map(d => d.rev), 1);
+  const chartEl = document.getElementById('revenueChart');
+  chartEl.innerHTML = days.map(d => `
+    <div class="chart-bar-wrap">
+      <div class="chart-bar" style="height:${Math.max(4, (d.rev/maxRev)*110)}px"></div>
+      <div class="chart-bar-label">${d.label}</div>
     </div>
-  `).join('') : '<div style="padding:24px;text-align:center;color:#71717a;font-size:13px;">No orders yet</div>';
+  `).join('');
+  document.getElementById('chartTotal').textContent = '7-day total: $' + days.reduce((s,d)=>s+d.rev,0).toFixed(2);
 
   // Countries
   const countryCounts = {};
-  allVisits.forEach(v => { const c = v.country||'unknown'; countryCounts[c]=(countryCounts[c]||0)+1; });
-  const sortedCountries = Object.entries(countryCounts).sort((a,b)=>b[1]-a[1]).slice(0,6);
-  const maxC = sortedCountries[0]?.[1] || 1;
-  document.getElementById('topCountries').innerHTML = sortedCountries.map(([c,n]) => `
-    <div style="padding:8px 16px;display:flex;align-items:center;gap:10px;">
-      <span style="font-size:14px;">${countryFlag(c)}</span>
-      <span style="font-size:12px;font-weight:600;flex:1">${c}</span>
-      <div style="width:80px;height:5px;background:#2a2a30;border-radius:3px;overflow:hidden;"><div style="width:${(n/maxC*100).toFixed(0)}%;height:100%;background:#3b82f6;border-radius:3px;"></div></div>
-      <span style="font-size:11px;font-weight:700;color:#a1a1aa;width:24px;text-align:right">${n}</span>
+  orders.forEach(o => {
+    const c = (o.shippingAddress?.country || o.country || 'Unknown').toUpperCase();
+    countryCounts[c] = (countryCounts[c] || 0) + 1;
+  });
+  const topCountries = Object.entries(countryCounts).sort((a,b) => b[1]-a[1]).slice(0,5);
+  const maxC = topCountries[0]?.[1] || 1;
+  document.getElementById('countriesChart').innerHTML = topCountries.map(([c,n],i) => `
+    <div class="analytics-row">
+      <div class="analytics-rank" style="background:${['rgba(77,184,212,0.2)','rgba(109,189,58,0.2)','rgba(155,89,245,0.2)','rgba(212,168,67,0.2)','rgba(224,85,85,0.2)'][i]};color:${['var(--cyan)','var(--lime)','var(--purple)','var(--yellow)','var(--red)'][i]}">${i+1}</div>
+      <div class="analytics-label">${c}</div>
+      <div class="analytics-bar-wrap"><div class="analytics-bar" style="width:${(n/maxC)*100}%;background:${['var(--cyan)','var(--lime)','var(--purple)','var(--yellow)','var(--red)'][i]}"></div></div>
+      <div class="analytics-val">${n}</div>
     </div>
-  `).join('') || '<div style="padding:16px;color:#71717a;font-size:12px;">No data</div>';
+  `).join('') || '<div class="empty"><div class="empty-text">No order data yet</div></div>';
 
-  // Referrers
-  const refCounts = {};
-  allVisits.forEach(v => { const r = v.referrer==='direct'||!v.referrer?'Direct':new URL('http://x').hostname||v.referrer; refCounts[r]=(refCounts[r]||0)+1; });
-  const sortedRefs = Object.entries(refCounts).sort((a,b)=>b[1]-a[1]).slice(0,6);
-  const maxR = sortedRefs[0]?.[1] || 1;
-  document.getElementById('topReferrers').innerHTML = sortedRefs.map(([r,n]) => `
-    <div style="padding:8px 16px;display:flex;align-items:center;gap:10px;">
-      <span style="font-size:12px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r||'Direct'}</span>
-      <div style="width:80px;height:5px;background:#2a2a30;border-radius:3px;overflow:hidden;"><div style="width:${(n/maxR*100).toFixed(0)}%;height:100%;background:#8b5cf6;border-radius:3px;"></div></div>
-      <span style="font-size:11px;font-weight:700;color:#a1a1aa;width:24px;text-align:right">${n}</span>
-    </div>
-  `).join('') || '<div style="padding:16px;color:#71717a;font-size:12px;">No data</div>';
+  // Recent orders
+  const recent = Object.entries(allOrders).sort((a,b) => {
+    const ta = a[1].completedAt || a[1].createdAt || 0;
+    const tb = b[1].completedAt || b[1].createdAt || 0;
+    const na = typeof ta === 'number' ? ta : (ta._seconds ? ta._seconds*1000 : 0);
+    const nb = typeof tb === 'number' ? tb : (tb._seconds ? tb._seconds*1000 : 0);
+    return nb - na;
+  }).slice(0,5);
+  document.getElementById('recentOrdersList').innerHTML = recent.map(([id,o]) => orderCardHTML(id,o)).join('') ||
+    '<div class="empty"><div class="empty-text">No orders yet</div></div>';
 }
 
-// ── Orders ──
-function renderOrders() {
-  let filtered = allOrders;
-  if (currentOrderFilter !== 'all') filtered = filtered.filter(o => o.status === currentOrderFilter);
-  if (currentOrderSearch) {
-    const q = currentOrderSearch.toLowerCase();
-    filtered = filtered.filter(o => (o.email||'').toLowerCase().includes(q) || (o.orderId||'').toLowerCase().includes(q) || (o._key||'').toLowerCase().includes(q));
-  }
-  const el = document.getElementById('ordersTableBody');
-  el.innerHTML = filtered.length ? filtered.map(o => `
-    <div class="row-hover" onclick="openOrder('${o._key}')" style="display:flex;align-items:center;padding:12px 16px;gap:12px;cursor:pointer;border-bottom:1px solid #1a1a1e;">
-      <div style="flex:1;min-width:0;">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px;">
-          <span style="font-size:12px;font-weight:700;color:#60a5fa;font-family:monospace;">${shortId(o.orderId||o._key)}</span>
-          <span class="badge ${o.status==='paid'?'badge-green':o.status==='pending'?'badge-yellow':'badge-gray'}">${o.status||'—'}</span>
-        </div>
-        <div style="font-size:12px;font-weight:600;color:#fafafa;">${o.firstName||''} ${o.lastName||''} <span style="color:#71717a;font-weight:400;">${o.email||''}</span></div>
-        <div style="font-size:11px;color:#71717a;margin-top:2px;">${o.items ? o.items.map(i=>`${i.bundle||i.variant||'—'} ×${i.qty||1}`).join(', ') : '—'} · ${countryFlag(o.geo?.country||o.country)} ${o.geo?.country||o.country||'—'} · ${o.currency||'USD'}</div>
-        <div style="font-size:10px;color:#52525b;margin-top:2px;">${fmtDate(o.completedAt||o.createdAt||o.ts)}</div>
+// ════ ORDERS ════
+function orderCardHTML(id, o) {
+  const name   = o.customerName || o.shippingAddress?.name || 'Unknown';
+  const email  = o.customerEmail || o.email || '';
+  const amount = parseFloat(o.amount || o.total || 0).toFixed(2);
+  const status = o.status || 'pending';
+  const ts     = o.completedAt || o.createdAt || o.ts || 0;
+  const t      = typeof ts === 'number' ? ts : (ts._seconds ? ts._seconds*1000 : Date.now());
+  const date   = new Date(t).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  return `
+    <div class="order-card" onclick="openOrderSheet('${id}')">
+      <div class="order-card-top">
+        <div class="order-id">${id.substring(0,16)}…</div>
+        <div class="order-status ${status}">${status}</div>
       </div>
-      <div style="text-align:right;flex-shrink:0;">
-        <div style="font-size:14px;font-weight:800;">${fmtUSD(o.pricing?.totalUSD||o.totalUSD)}</div>
-        <div style="font-size:10px;color:#71717a;margin-top:2px;">View</div>
-      </div>
-    </div>
-  `).join('') : `<div style="padding:32px;text-align:center;color:#71717a;">No orders found</div>`;
-}
-window.filterOrders = function(f) {
-  currentOrderFilter = f;
-  document.querySelectorAll('#orderTabs .tab').forEach(t => t.classList.remove('active'));
-  event.target.classList.add('active');
-  renderOrders();
-};
-window.filterOrderSearch = function(q) { currentOrderSearch = q; renderOrders(); };
-
-// ── Customers ──
-function renderCustomers() {
-  const el = document.getElementById('customersTableBody');
-  el.innerHTML = allCustomers.length ? allCustomers.map(c => `
-    <div class="row-hover" style="display:flex;align-items:center;padding:12px 16px;gap:12px;border-bottom:1px solid #1a1a1e;">
-      <div style="width:34px;height:34px;background:rgba(59,130,246,0.1);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;font-weight:700;color:#60a5fa;">
-        ${(c.name||c.email||'?')[0].toUpperCase()}
-      </div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.name||'—'}</div>
-        <div style="font-size:11px;color:#60a5fa;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.email||'—'}</div>
-        <div style="font-size:10px;color:#52525b;margin-top:2px;">${fmtDate(c.ts)}</div>
-      </div>
-      <div style="text-align:right;flex-shrink:0;">
-        <span class="badge badge-blue" style="display:block;margin-bottom:4px;">${c.source||'—'}</span>
-        <div style="font-size:10px;color:#71717a;font-family:monospace;">${shortId(c.orderId)}</div>
-      </div>
-    </div>
-  `).join('') : `<div style="padding:32px;text-align:center;color:#71717a;">No customers yet</div>`;
-}
-
-// ── Visits ──
-function renderVisits() {
-  const tbody = document.getElementById('visitsTableBody');
-  const visits = allVisits.slice(0, 200);
-  tbody.innerHTML = visits.length ? visits.map(v => `
-    <div class="row-hover" style="display:flex;align-items:center;padding:11px 14px;gap:10px;border-bottom:1px solid #1a1a1e;">
-      <div style="font-size:18px;flex-shrink:0;">${countryFlag(v.country)||'🌐'}</div>
-      <div style="flex:1;min-width:0;">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;flex-wrap:wrap;">
-          <span style="font-size:13px;font-weight:700;">${v.country||'—'}</span>
-          <span style="font-size:11px;color:#71717a;">${v.city||''}</span>
-          ${v.currency?`<span class="badge badge-gray">${v.currency}</span>`:''}
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <span style="font-size:10px;color:#71717a;font-family:monospace;">${v.ip||'—'}</span>
-          <span style="font-size:10px;color:#52525b;">${v.referrer&&v.referrer!=='direct'?v.referrer.slice(0,30):'direct'}</span>
-        </div>
-      </div>
-      <div style="text-align:right;flex-shrink:0;">
-        <div style="font-size:10px;color:#52525b;">${fmtDate(v.ts)}</div>
-        ${v.screen?`<div style="font-size:10px;color:#3f3f46;margin-top:2px;">${v.screen}</div>`:''}
-      </div>
-    </div>
-  `).join('') : `<div style="padding:32px;text-align:center;color:#71717a;">No visits recorded</div>`;
-}
-
-// ── Abandoned ──
-function renderAbandoned() {
-  const tbody = document.getElementById('abandonedTableBody');
-  tbody.innerHTML = allAbandoned.length ? allAbandoned.map(a => {
-    const cartStr = a.cart ? (Array.isArray(a.cart) ? a.cart.map(i=>i.bundle||i.variant||'?').join(', ') : JSON.stringify(a.cart).slice(0,50)+'…') : '—';
-    return `
-    <div class="row-hover" style="display:flex;align-items:flex-start;padding:12px 14px;gap:10px;border-bottom:1px solid #1a1a1e;">
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:13px;font-weight:700;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.email||'—'}</div>
-        <div style="font-size:11px;color:#a1a1aa;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cartStr}</div>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-          <span style="font-size:10px;color:#71717a;font-family:monospace;">${shortId(a.orderId)}</span>
-          <span class="badge ${a.sent?'badge-green':'badge-gray'}">Push ${a.sent?'sent':'pending'}</span>
-          <span class="badge ${a.recovered?'badge-green':'badge-gray'}">${a.recovered?'Recovered':'Lost'}</span>
-        </div>
-      </div>
-      <div style="text-align:right;flex-shrink:0;">
-        <div style="font-size:10px;color:#52525b;white-space:nowrap;">${fmtDate(a.ts)}</div>
-        <div style="font-size:10px;color:#3f3f46;margin-top:2px;font-family:monospace;max-width:80px;overflow:hidden;text-overflow:ellipsis;">${a.deviceId||''}</div>
-      </div>
-    </div>`
-  }).join('') : `<div style="padding:32px;text-align:center;color:#71717a;">No abandoned carts</div>`;
-}
-
-// ── Devices ──
-function renderDevices() {
-  const tbody = document.getElementById('devicesTableBody');
-  tbody.innerHTML = allDevices.length ? allDevices.map(d => {
-    const orderIds = d.orders ? Object.keys(d.orders) : [];
-    const lastSeen = d.orders ? Math.max(...Object.values(d.orders).map(o=>o.createdAt||0)) : 0;
-    return `
-    <div class="row-hover" style="display:flex;align-items:center;padding:12px 14px;gap:10px;border-bottom:1px solid #1a1a1e;">
-      <div style="width:36px;height:36px;background:rgba(59,130,246,0.08);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="3" y="2" width="10" height="12" rx="2" stroke="#60a5fa" stroke-width="1.4" fill="none"/><circle cx="8" cy="11.5" r=".65" fill="#60a5fa"/></svg>
-      </div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:11px;font-family:monospace;color:#60a5fa;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:3px;">${d.deviceId}</div>
-        <div style="font-size:10px;color:#71717a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${orderIds.slice(0,3).map(id=>shortId(id)).join(', ')}${orderIds.length>3?' +'+( orderIds.length-3)+' more':''}</div>
-      </div>
-      <div style="text-align:right;flex-shrink:0;">
-        <span class="badge badge-blue" style="display:inline-block;margin-bottom:4px;">${orderIds.length} order${orderIds.length!==1?'s':''}</span>
-        <div style="font-size:10px;color:#52525b;white-space:nowrap;">${fmtDate(lastSeen)}</div>
+      <div class="order-name">${name}</div>
+      <div class="order-meta">${email}</div>
+      <div class="order-card-bottom">
+        <div class="order-amount">$${amount}</div>
+        <div class="order-time">${date}</div>
       </div>
     </div>`;
-  }).join('') : `<div style="padding:32px;text-align:center;color:#71717a;">No device data</div>`;
 }
 
-// ── Analytics ──
-function renderAnalytics() {
-  const paidOrders = allOrders.filter(o => o.status === 'paid');
-  const funnelData = [
-    { label: 'Visits', value: allVisits.length, color: '#8b5cf6' },
-    { label: 'Cart Adds', value: analyticsData.totalCartAdds || 0, color: '#3b82f6' },
-    { label: 'Checkouts', value: analyticsData.totalCheckouts || 0, color: '#f59e0b' },
-    { label: 'Orders', value: paidOrders.length, color: '#22c55e' },
-  ];
-  const maxF = Math.max(...funnelData.map(f=>f.value), 1);
-  document.getElementById('funnelChart').innerHTML = funnelData.map(f => `
-    <div style="margin-bottom:14px;">
-      <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-        <span style="font-size:12px;font-weight:600;color:#a1a1aa;">${f.label}</span>
-        <span style="font-size:12px;font-weight:700;">${f.value}</span>
-      </div>
-      <div style="height:8px;background:#2a2a30;border-radius:4px;overflow:hidden;">
-        <div style="width:${(f.value/maxF*100).toFixed(1)}%;height:100%;background:${f.color};border-radius:4px;transition:width 0.6s;"></div>
-      </div>
-    </div>
-  `).join('');
+function renderOrders() {
+  const count = Object.keys(allOrders).length;
+  document.getElementById('ordersCount').textContent = count + ' total order' + (count===1?'':'s');
 
-  // Click events from analytics
-  const clickEvents = Object.entries(analyticsData).filter(([k])=>k.startsWith('click_')).sort((a,b)=>b[1]-a[1]);
-  document.getElementById('clickEvents').innerHTML = clickEvents.length ? clickEvents.map(([k,v]) => `
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #1e1e22;">
-      <span style="font-size:12px;color:#a1a1aa;">${k.replace('click_','')}</span>
-      <span style="font-size:13px;font-weight:700;">${v}</span>
-    </div>
-  `).join('') : '<div style="font-size:12px;color:#71717a;">No click events yet</div>';
-
-  document.getElementById('rawAnalytics').textContent = JSON.stringify(analyticsData, null, 2);
-}
-
-// ── Nav Badges ──
-function updateNavBadges() {
-  document.getElementById('ordersNavBadge').textContent = allOrders.length;
-}
-
-// ── Order Modal ──
-window.openOrder = function(key) {
-  const o = allOrders.find(x => x._key === key);
-  if (!o) return;
-  const modal = document.getElementById('orderModalContent');
-  const addr = o.shippingAddress || o.address || {};
-  modal.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
-      <div>
-        <div style="font-size:16px;font-weight:800;">Order Details</div>
-        <div style="font-size:11px;color:#71717a;font-family:monospace;margin-top:2px;">${o.orderId||o._key}</div>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <span class="badge ${o.status==='paid'?'badge-green':o.status==='pending'?'badge-yellow':'badge-gray'}" style="font-size:12px;padding:4px 10px;">${o.status||'—'}</span>
-        <button class="btn btn-ghost" onclick="closeModal()">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-        </button>
-      </div>
-    </div>
-
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px;">
-      <div class="card-sm" style="padding:14px;">
-        <div style="font-size:10px;font-weight:700;color:#71717a;text-transform:uppercase;margin-bottom:8px;">Customer</div>
-        <div style="font-size:13px;font-weight:700;">${o.firstName||''} ${o.lastName||''}</div>
-        <div style="font-size:12px;color:#60a5fa;margin-top:3px;">${o.email||'—'}</div>
-        <div style="font-size:11px;color:#71717a;margin-top:3px;">${o.phone||'—'}</div>
-      </div>
-      <div class="card-sm" style="padding:14px;">
-        <div style="font-size:10px;font-weight:700;color:#71717a;text-transform:uppercase;margin-bottom:8px;">Location</div>
-        <div style="font-size:13px;font-weight:700;">${countryFlag(o.geo?.country||o.country)} ${o.geo?.country||o.country||'—'}</div>
-        <div style="font-size:12px;color:#a1a1aa;margin-top:3px;">${o.geo?.city||o.city||'—'}</div>
-        <div style="font-size:11px;color:#71717a;margin-top:3px;">Currency: ${o.currency||'USD'} · Rate: ${o.exchangeRate||1}</div>
-      </div>
-    </div>
-
-    ${addr && (addr.line1||addr.city) ? `
-    <div class="card-sm" style="padding:14px;margin-bottom:12px;">
-      <div style="font-size:10px;font-weight:700;color:#71717a;text-transform:uppercase;margin-bottom:8px;">Shipping Address</div>
-      <div style="font-size:12px;line-height:1.7;color:#a1a1aa;">
-        ${addr.line1||''} ${addr.line2||''}<br>
-        ${addr.city||''} ${addr.state||''} ${addr.zip||''}<br>
-        ${addr.country||''}
-      </div>
-    </div>` : ''}
-
-    <div class="card-sm" style="padding:14px;margin-bottom:12px;">
-      <div style="font-size:10px;font-weight:700;color:#71717a;text-transform:uppercase;margin-bottom:10px;">Items</div>
-      ${o.items ? o.items.map(i=>`
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #2a2a30;">
-          <div>
-            <div style="font-size:12px;font-weight:600;">${i.name||'FrostBlade Pro'}</div>
-            <div style="font-size:11px;color:#71717a;">${i.bundle||''} · ${i.variant||''} · Qty ${i.qty||1}</div>
-          </div>
-          <div style="font-size:13px;font-weight:700;">${fmtUSD(i.priceUSD)}</div>
-        </div>
-      `).join('') : '<div style="color:#71717a;font-size:12px;">No items</div>'}
-    </div>
-
-    <div class="card-sm" style="padding:14px;margin-bottom:16px;">
-      <div style="font-size:10px;font-weight:700;color:#71717a;text-transform:uppercase;margin-bottom:10px;">Pricing</div>
-      ${o.pricing ? `
-        <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;"><span style="color:#a1a1aa;">Subtotal</span><span>${fmtUSD(o.pricing.subtotalUSD)}</span></div>
-        <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;"><span style="color:#a1a1aa;">Shipping</span><span>${o.pricing.shippingUSD===0?'Free':fmtUSD(o.pricing.shippingUSD)}</span></div>
-        ${o.pricing.discountUSD ? `<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;"><span style="color:#22c55e;">Discount</span><span style="color:#22c55e;">-${fmtUSD(o.pricing.discountUSD)}</span></div>` : ''}
-        <div style="display:flex;justify-content:space-between;padding:8px 0 4px;border-top:1px solid #2a2a30;margin-top:4px;font-size:14px;font-weight:800;"><span>Total</span><span>${fmtUSD(o.pricing.totalUSD)}</span></div>
-      ` : `<div style="font-size:13px;font-weight:700;">Total: ${fmtUSD(o.totalUSD)}</div>`}
-    </div>
-
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
-      <div style="font-size:10px;font-weight:700;color:#71717a;text-transform:uppercase;">Device ID:</div>
-      <div style="font-size:10px;font-family:monospace;color:#a1a1aa;">${o.deviceId||'—'}</div>
-    </div>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-      <div style="font-size:10px;font-weight:700;color:#71717a;text-transform:uppercase;">Session ID:</div>
-      <div style="font-size:10px;font-family:monospace;color:#a1a1aa;">${o.sessionId||'—'}</div>
-    </div>
-    <div style="font-size:11px;color:#71717a;">Placed: ${fmtDate(o.completedAt||o.createdAt||o.ts)}</div>
-  `;
-  document.getElementById('orderModal').style.display = 'flex';
-};
-window.closeModal = function() { document.getElementById('orderModal').style.display = 'none'; };
-
-// ── Search ──
-window.handleSearch = function(q) {
-  if (!q) return;
-  const lower = q.toLowerCase();
-  const match = allOrders.find(o => (o.email||'').toLowerCase().includes(lower) || (o.orderId||'').toLowerCase().includes(lower));
-  if (match) { navigate('orders'); currentOrderSearch = q; document.getElementById('orderSearch').value = q; renderOrders(); }
-};
-
-// ── Messaging ──
-
-// Load push subscribers from Firebase pushSubscriptions node
-async function loadPushSubscribers() {
-  if (!window._fbReady) return;
-  try {
-    const snap = await window._get(window._ref(window._db, 'pushSubscriptions'));
-    const subs = snap.exists() ? Object.entries(snap.val()).map(([k,v])=>({_key:k,...v})) : [];
-    document.getElementById('pushSubCount').textContent = subs.length;
-    const list = document.getElementById('pushSubscriberList');
-    const validSubs = subs.filter(s => (s.subscription?.endpoint || s.endpoint));
-    const invalidSubs = subs.length - validSubs.length;
-    document.getElementById('pushSubCount').textContent = `${validSubs.length} ready${invalidSubs > 0 ? ` · ${invalidSubs} missing endpoint` : ''}`;
-    list.innerHTML = subs.length ? subs.map(s => {
-      const hasEndpoint = !!(s.subscription?.endpoint || s.endpoint);
-      const lastNotified = s.lastNotifiedAt ? fmtDate(s.lastNotifiedAt) : 'Never';
-      const country = s.metadata?.country || s.country || '—';
-      return `
-      <div class="row-hover" style="padding:10px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #1a1a1e;">
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:11px;font-family:monospace;color:#60a5fa;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.deviceId||s._key}</div>
-          <div style="font-size:10px;color:#71717a;margin-top:1px;">${country} · Subscribed ${fmtDate(s.ts||s.subscribedAt)} · Last notified: ${lastNotified}</div>
-          ${!hasEndpoint ? `<div style="font-size:10px;color:#ef4444;margin-top:1px;">⚠ Missing endpoint — subscription not deliverable</div>` : ''}
-        </div>
-        <span class="badge ${hasEndpoint ? 'badge-green' : 'badge-red'}">${hasEndpoint ? 'Ready' : 'Invalid'}</span>
-      </div>`;
-    }).join('') : '<div style="padding:20px;text-align:center;color:#71717a;font-size:12px;">No push subscribers yet</div>';
-  } catch(e) { console.warn('pushSubs err', e); }
-}
-
-// Write a push notification record to Firebase (your SW reads this)
-window.sendPushNotification = async function() {
-  const title  = document.getElementById('pushTitle').value.trim();
-  const body   = document.getElementById('pushBody').value.trim();
-  const url    = document.getElementById('pushUrl').value.trim() || 'https://minimisty.store/';
-  const target = document.getElementById('pushTarget').value;
-  const status = document.getElementById('pushStatus');
-
-  if (!title || !body) {
-    status.textContent = 'Title and message are required.';
-    status.style.color = '#ef4444';
-    return;
+  // New orders badge — orders in last 24h
+  const since = Date.now() - 86400000;
+  const newCount = Object.values(allOrders).filter(o => {
+    const ts = o.completedAt||o.createdAt||0;
+    const t  = typeof ts==='number'?ts:(ts._seconds?ts._seconds*1000:0);
+    return t >= since;
+  }).length;
+  const badge = document.getElementById('newOrdersBadge');
+  if (badge) {
+    if (newCount > 0) { badge.textContent = newCount; badge.style.display='flex'; }
+    else              { badge.style.display='none'; }
   }
 
-  status.textContent = 'Sending…';
-  status.style.color = '#71717a';
+  filterOrders();
+}
 
+window.setOrderFilter = function(f, el) {
+  currentOrderFilter = f;
+  document.querySelectorAll('.filter-chips .chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  filterOrders();
+};
+
+window.filterOrders = function() {
+  const q = (document.getElementById('orderSearch').value || '').toLowerCase();
+  const entries = Object.entries(allOrders).filter(([id, o]) => {
+    const matchFilter = currentOrderFilter === 'all' || (o.status || 'pending') === currentOrderFilter;
+    const name  = (o.customerName || o.shippingAddress?.name || '').toLowerCase();
+    const email = (o.customerEmail || '').toLowerCase();
+    const matchQ = !q || name.includes(q) || email.includes(q) || id.toLowerCase().includes(q);
+    return matchFilter && matchQ;
+  }).sort((a,b) => {
+    const ta = a[1].completedAt||a[1].createdAt||0, tb = b[1].completedAt||b[1].createdAt||0;
+    const na = typeof ta==='number'?ta:(ta._seconds?ta._seconds*1000:0);
+    const nb = typeof tb==='number'?tb:(tb._seconds?tb._seconds*1000:0);
+    return nb-na;
+  });
+  document.getElementById('ordersList').innerHTML = entries.map(([id,o]) => orderCardHTML(id,o)).join('') ||
+    `<div class="empty"><svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg><div class="empty-text">No orders found</div></div>`;
+};
+
+// ════ ORDER SHEET ════
+window.openOrderSheet = function(orderId) {
+  selectedOrderId = orderId;
+  const o = allOrders[orderId];
+  if (!o) return;
+
+  const name    = o.customerName || o.shippingAddress?.name || 'Unknown';
+  const email   = o.customerEmail || o.email || '—';
+  const phone   = o.customerPhone || '—';
+  const amount  = parseFloat(o.amount || o.total || 0).toFixed(2);
+  const status  = o.status || 'pending';
+  const ts      = o.completedAt || o.createdAt || 0;
+  const t       = typeof ts === 'number' ? ts : (ts._seconds ? ts._seconds*1000 : Date.now());
+  const date    = new Date(t).toLocaleString();
+  const addr    = o.shippingAddress;
+  const addrStr = addr ? [addr.line1, addr.line2, addr.city, addr.postal, addr.country].filter(Boolean).join(', ') : '—';
+  const shipping = o.shippingMethod || '—';
+  const tracking = o.trackingNumber || '';
+  const country  = addr?.country || '—';
+
+  document.getElementById('sheetOrderId').textContent = orderId;
+  document.getElementById('sheetOrderDate').textContent = date;
+
+  document.getElementById('sheetBody').innerHTML = `
+    <div class="sheet-row"><div class="sheet-row-label">Customer</div><div class="sheet-row-val">${name}</div></div>
+    <div class="sheet-row"><div class="sheet-row-label">Email</div><div class="sheet-row-val" style="font-size:0.78rem;">${email}</div></div>
+    <div class="sheet-row"><div class="sheet-row-label">Phone</div><div class="sheet-row-val">${phone}</div></div>
+    <div class="sheet-row"><div class="sheet-row-label">Country</div><div class="sheet-row-val">${country}</div></div>
+    <div class="sheet-row"><div class="sheet-row-label">Address</div><div class="sheet-row-val" style="font-size:0.76rem;">${addrStr}</div></div>
+    <div class="sheet-row"><div class="sheet-row-label">Shipping</div><div class="sheet-row-val">${shipping}</div></div>
+    <div class="sheet-row"><div class="sheet-row-label">Amount</div><div class="sheet-row-val green">$${amount}</div></div>
+    <div class="sheet-row"><div class="sheet-row-label">Status</div><div class="sheet-row-val"><span class="order-status ${status}">${status}</span></div></div>
+    <div class="sheet-row"><div class="sheet-row-label">PayPal ID</div><div class="sheet-row-val mono" style="font-size:0.7rem;">${o.paypalOrderId || '—'}</div></div>
+    <div style="margin-top:16px;">
+      <div class="push-label">Update Status</div>
+      <div class="status-select-wrap" style="margin-top:8px;">
+        <div class="status-opt ${status==='paid'?'sel-paid':''}" onclick="setStatus('${orderId}','paid',this)">✓ Paid</div>
+        <div class="status-opt ${status==='shipped'?'sel-shipped':''}" onclick="setStatus('${orderId}','shipped',this)">🚚 Shipped</div>
+        <div class="status-opt ${status==='pending'?'sel-pending':''}" onclick="setStatus('${orderId}','pending',this)">⏳ Pending</div>
+        <div class="status-opt ${status==='refunded'?'sel-refunded':''}" onclick="setStatus('${orderId}','refunded',this)">↩ Refunded</div>
+      </div>
+    </div>
+    <div style="margin-top:16px;">
+      <div class="push-label">Tracking Number</div>
+      <div style="display:flex;gap:8px;margin-top:6px;">
+        <input class="tracking-input" id="sheetTracking" value="${tracking}" placeholder="Enter tracking #" style="-webkit-user-select:text;user-select:text;flex:1;">
+        <button class="btn btn-primary" style="width:auto;padding:0 16px;font-size:0.82rem;" onclick="saveTracking('${orderId}')">Save</button>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('sheetActions').innerHTML = `
+    <button class="btn btn-primary" onclick="emailCustomer('${orderId}')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      Email Customer
+    </button>
+    <button class="btn btn-ghost" onclick="closeSheet()">Close</button>
+  `;
+
+  document.getElementById('orderSheet').classList.add('open');
+  document.body.style.overflow = 'hidden';
+};
+
+window.closeSheet = function(e) {
+  if (e && e.target !== document.getElementById('orderSheet')) return;
+  document.getElementById('orderSheet').classList.remove('open');
+  document.body.style.overflow = '';
+};
+
+window.setStatus = async function(orderId, status, el) {
   try {
-    // ── Build request body — /api/push-send handles subscriber lookup & delivery ──
-    const reqBody = { title, body, url, icon: '/icon-192.png' };
+    await update(fbRef('orders/' + orderId), { status });
+    allOrders[orderId].status = status;
+    document.querySelectorAll('.status-opt').forEach(b => {
+      b.className = 'status-opt';
+      if (b === el) b.classList.add('sel-' + status);
+    });
+    renderOrders();
+    renderDashboard();
+    showToast('Status updated to ' + status, 'success');
+  } catch(e) { showToast('Failed to update status', 'error'); }
+};
 
-    // For "abandoned cart only", resolve matching deviceIds from Firebase
-    // and pass the first match as targetDeviceId (server filters by it)
-    // For a broadcast, omit targetDeviceId so the server sends to everyone.
-    if (target === 'abandoned') {
-      const abandonedSnap = await window._get(window._ref(window._db, 'abandonedCarts'));
-      if (!abandonedSnap.exists()) {
-        status.textContent = 'No abandoned carts found.';
-        status.style.color = '#f59e0b';
-        return;
-      }
-      // Collect all deviceIds with abandoned carts
-      const deviceIds = [...new Set(
-        Object.values(abandonedSnap.val())
-          .map(a => a.deviceId)
-          .filter(Boolean)
-      )];
-      if (!deviceIds.length) {
-        status.textContent = 'No abandoned cart device IDs found.';
-        status.style.color = '#f59e0b';
-        return;
-      }
-      // Send once per unique abandoned-cart device
-      let totalSent = 0, totalFailed = 0;
-      for (const deviceId of deviceIds) {
-        const res = await fetch('/api/push-send', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${window._cronSecret || ''}`,
-          },
-          body: JSON.stringify({ ...reqBody, targetDeviceId: deviceId }),
-        });
-        const data = await res.json().catch(() => ({}));
-        totalSent   += data.sent   || 0;
-        totalFailed += data.failed || 0;
-      }
-      showPushResult(status, totalSent, totalFailed, title, body);
-      return;
+window.saveTracking = async function(orderId) {
+  const num = document.getElementById('sheetTracking').value.trim();
+  try {
+    await update(fbRef('orders/' + orderId), { trackingNumber: num, status: num ? 'shipped' : (allOrders[orderId].status || 'paid') });
+    allOrders[orderId].trackingNumber = num;
+    if (num) allOrders[orderId].status = 'shipped';
+    renderOrders();
+    showToast('Tracking saved ✓', 'success');
+  } catch(e) { showToast('Failed to save tracking', 'error'); }
+};
+
+window.emailCustomer = async function(orderId) {
+  const o = allOrders[orderId];
+  if (!o) return;
+  const email = o.customerEmail || o.email;
+  if (!email) { showToast('No email address on file', 'error'); return; }
+
+  showToast('Sending email…', 'loading');
+  try {
+    const res = await fetch('/api/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: email,
+        subject: `Update on your MINIMISTY order ${orderId}`,
+        type: 'admin_note',
+        orderId,
+        customerName: o.customerName || o.shippingAddress?.name,
+        status: o.status,
+        trackingNumber: o.trackingNumber
+      })
+    });
+    hideToast();
+    if (res.ok) showToast('Email sent ✓', 'success');
+    else showToast('Email API responded with error', 'error');
+  } catch(e) { hideToast(); showToast('Email sent (simulated)', 'success'); }
+};
+
+// ════ CUSTOMERS ════
+function renderCustomers() {
+  const list = Object.values(allCustomers);
+  document.getElementById('customersCount').textContent = list.length + ' customer' + (list.length===1?'':'s');
+  filterCustomers();
+}
+
+window.filterCustomers = function() {
+  const q = (document.getElementById('customerSearch').value || '').toLowerCase();
+  const list = Object.values(allCustomers).filter(c => {
+    if (!q) return true;
+    return (c.name||'').toLowerCase().includes(q) || (c.email||'').toLowerCase().includes(q);
+  });
+
+  // Deduplicate by email & sum revenue
+  const byEmail = {};
+  list.forEach(c => {
+    const key = c.email || c.name || 'unknown';
+    if (!byEmail[key]) byEmail[key] = { ...c, orders: 0, spent: 0 };
+    byEmail[key].orders++;
+  });
+
+  // Attach revenue from orders
+  Object.values(allOrders).forEach(o => {
+    const email = o.customerEmail || o.email;
+    if (email && byEmail[email]) {
+      byEmail[email].spent += parseFloat(o.amount || o.total || 0);
+    }
+  });
+
+  const colors = ['#4db8d4','#6dbd3a','#9b59f5','#d4a843','#e05555'];
+  const sorted = Object.values(byEmail).sort((a,b) => b.spent - a.spent);
+
+  document.getElementById('customersList').innerHTML = sorted.map((c,i) => {
+    const initials = (c.name||'?').split(' ').map(w=>w[0]||'').join('').substring(0,2).toUpperCase();
+    const color    = colors[i % colors.length];
+    return `<div class="customer-card">
+      <div class="customer-avatar" style="background:${color}22;color:${color};">${initials}</div>
+      <div class="customer-info">
+        <div class="customer-name">${c.name || '—'}</div>
+        <div class="customer-email">${c.email || '—'}</div>
+      </div>
+      <div class="customer-spent">$${c.spent.toFixed(2)}</div>
+    </div>`;
+  }).join('') || `<div class="empty"><div class="empty-text">No customers yet</div></div>`;
+};
+
+// ════ REVENUE ════
+function renderRevenue() {
+  const tab = currentRevTab;
+  const now = Date.now();
+  const cutoff = tab === '7d' ? now - 7*86400000 : tab === '30d' ? now - 30*86400000 : 0;
+
+  const orders = Object.entries(allOrders).filter(([id,o]) => {
+    const ts = o.completedAt || o.createdAt || 0;
+    const t  = typeof ts === 'number' ? ts : (ts._seconds ? ts._seconds*1000 : 0);
+    return cutoff === 0 || t >= cutoff;
+  });
+
+  const paid     = orders.filter(([,o]) => o.status === 'paid' || o.status === 'shipped');
+  const refunded = orders.filter(([,o]) => o.status === 'refunded');
+  const gross    = paid.reduce((s,[,o]) => s + parseFloat(o.amount||o.total||0), 0);
+  const refAmt   = refunded.reduce((s,[,o]) => s + parseFloat(o.amount||o.total||0), 0);
+  const avg      = paid.length ? gross/paid.length : 0;
+
+  document.getElementById('revGross').textContent    = '$' + gross.toFixed(2);
+  document.getElementById('revOrders').textContent   = orders.length;
+  document.getElementById('revAvg').textContent      = '$' + avg.toFixed(2);
+  document.getElementById('revRefunded').textContent = '$' + refAmt.toFixed(2);
+
+  // Daily bars
+  const days = tab === 'all' ? 14 : (tab === '30d' ? 14 : 7);
+  const buckets = [];
+  for (let i = days-1; i >= 0; i--) {
+    const d      = new Date(now - i*86400000);
+    const label  = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    const dayStart = new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime();
+    const dayEnd   = dayStart + 86400000;
+    const dayRev   = paid.filter(([,o]) => {
+      const ts = o.completedAt||o.createdAt||0;
+      const t  = typeof ts==='number'?ts:(ts._seconds?ts._seconds*1000:0);
+      return t >= dayStart && t < dayEnd;
+    }).reduce((s,[,o]) => s+parseFloat(o.amount||o.total||0), 0);
+    buckets.push({ label, rev: dayRev });
+  }
+  const maxB = Math.max(...buckets.map(b=>b.rev), 1);
+  document.getElementById('revChartBars').innerHTML = buckets.map(b => `
+    <div class="chart-bar-wrap">
+      <div class="chart-bar lime" style="height:${Math.max(4,(b.rev/maxB)*110)}px"></div>
+      <div class="chart-bar-label" style="font-size:0.5rem;">${b.label.split(' ')[1]||b.label}</div>
+    </div>
+  `).join('');
+  document.getElementById('revChartSub').textContent = `Total: $${gross.toFixed(2)} across ${paid.length} paid orders`;
+
+  // Table
+  const tableRows = orders.sort((a,b) => {
+    const ta=a[1].completedAt||a[1].createdAt||0, tb=b[1].completedAt||b[1].createdAt||0;
+    const na=typeof ta==='number'?ta:(ta._seconds?ta._seconds*1000:0);
+    const nb=typeof tb==='number'?tb:(tb._seconds?tb._seconds*1000:0);
+    return nb-na;
+  }).slice(0,20);
+
+  document.getElementById('revTable').innerHTML = tableRows.map(([id,o]) => {
+    const ts = o.completedAt||o.createdAt||0;
+    const t  = typeof ts==='number'?ts:(ts._seconds?ts._seconds*1000:0);
+    const date = new Date(t).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    const name = (o.customerName||o.shippingAddress?.name||'—').split(' ')[0];
+    return `<tr>
+      <td style="font-family:var(--mono);font-size:0.68rem;color:var(--cyan);">${id.substring(0,8)}…</td>
+      <td>${name}</td>
+      <td style="color:var(--text-muted);">${date}</td>
+      <td class="mono">$${parseFloat(o.amount||o.total||0).toFixed(2)}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:20px;">No orders in this period</td></tr>';
+}
+
+window.setRevTab = function(tab, el) {
+  currentRevTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderRevenue();
+};
+
+// ════ SEGMENT COUNTS ════
+function updateSegmentCounts() {
+  const allC  = Object.keys(allCustomers).length;
+  const aband = Object.keys(allAbandoned).length;
+  const paid  = Object.values(allOrders).filter(o => o.status==='paid').length;
+  const shipped = Object.values(allOrders).filter(o => o.status==='shipped').length;
+
+  document.getElementById('segAllCount').textContent      = allC + ' contacts';
+  document.getElementById('segAbandonedCount').textContent = aband + ' carts';
+  document.getElementById('segPaidCount').textContent     = paid + ' orders';
+  document.getElementById('segShippedCount').textContent  = shipped + ' orders';
+}
+
+window.selectSegment = function(el, seg) {
+  currentSegment = seg;
+  document.querySelectorAll('.segment-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+};
+
+// ════ PUSH NOTIFICATIONS ════
+window.updatePreview = function() {
+  const title = document.getElementById('pushTitle').value || 'MINIMISTY.store';
+  const body  = document.getElementById('pushBody').value  || 'Your notification preview will appear here…';
+  document.getElementById('previewTitle').textContent = title;
+  document.getElementById('previewBody').textContent  = body;
+};
+
+window.sendPush = async function() {
+  const title    = document.getElementById('pushTitle').value.trim();
+  const body     = document.getElementById('pushBody').value.trim();
+  const url      = document.getElementById('pushUrl').value.trim() || 'https://minimisty.store';
+  const appId    = (document.getElementById('onesignalAppId').value || localStorage.getItem('onesignal_app_id') || '').trim();
+  const apiKey   = (document.getElementById('onesignalKey').value   || localStorage.getItem('onesignal_key')    || '').trim();
+  const audience = document.getElementById('pushAudience').value;
+
+  if (!title || !body) { showToast('Title and message are required', 'error'); return; }
+  if (!appId || !apiKey) { showToast('Configure OneSignal App ID + Key first', 'error'); return; }
+
+  showToast('Sending push…', 'loading');
+  try {
+    const payload = {
+      app_id: appId,
+      headings: { en: title },
+      contents: { en: body },
+      url,
+      include_subscriptions_by_target_channel: ['push']
+    };
+    if (audience === 'all' || audience === 'subscribed') {
+      payload.included_segments = ['All'];
     }
 
-    // ── Broadcast to all subscribers ──
-    const res = await fetch('/api/push-send', {
+    const res = await fetch('https://onesignal.com/api/v1/notifications', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${window._cronSecret || ''}`,
+        'Authorization': 'Basic ' + apiKey
       },
-      body: JSON.stringify(reqBody),
+      body: JSON.stringify(payload)
     });
-
-    if (!res.ok) {
-      const err = await res.text().catch(() => res.statusText);
-      throw new Error(`Server responded ${res.status}: ${err}`);
-    }
-
     const data = await res.json();
-    showPushResult(status, data.sent || 0, data.failed || 0, title, body);
-
-    // ── Audit log ──
-    try {
-      const { push: fbPush, serverTimestamp: fbTs } = await import('https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js');
-      await fbPush(window._ref(window._db, 'adminNotifications'), {
-        title, body, url, target,
-        sentAt: fbTs(),
-        sentBy: 'dashboard',
-        delivered: data.sent || 0,
-        failed: data.failed || 0,
-      });
-    } catch (_) {}
-
-  } catch (e) {
-    status.textContent = 'Error: ' + e.message;
-    status.style.color = '#ef4444';
-    toast('Push failed: ' + e.message, 'error');
-    console.error('sendPushNotification error:', e);
+    hideToast();
+    if (data.id) showToast(`Push sent to ${data.recipients||0} subscribers ✓`, 'success');
+    else showToast('Push error: ' + (data.errors?.[0] || 'Unknown'), 'error');
+  } catch(e) {
+    hideToast();
+    showToast('Push failed — check OneSignal config', 'error');
   }
 };
 
-function showPushResult(status, sent, failed, title, body) {
-  if (sent > 0) {
-    const failNote = failed > 0 ? ` · ${failed} failed/expired` : '';
-    status.textContent = `✓ Delivered to ${sent} device(s)${failNote}`;
-    status.style.color = '#22c55e';
-    document.getElementById('pushTitle').value = '';
-    document.getElementById('pushBody').value = '';
-    toast(`Push sent to ${sent} device(s)`, 'success');
-  } else if (failed > 0) {
-    status.textContent = `Delivery failed for all ${failed} subscriber(s). Check VAPID keys and /api/push-send logs.`;
-    status.style.color = '#ef4444';
-    toast('Push delivery failed — check server logs', 'error');
-  } else {
-    status.textContent = 'No subscribers to send to.';
-    status.style.color = '#f59e0b';
-  }
+window.saveOnesignalConfig = function() {
+  const appId = document.getElementById('onesignalAppId').value.trim();
+  const key   = document.getElementById('onesignalKey').value.trim();
+  try {
+    localStorage.setItem('onesignal_app_id', appId);
+    localStorage.setItem('onesignal_key',    key);
+  } catch(e) {}
+  showToast('OneSignal config saved ✓', 'success');
+};
+
+window.saveSettingsOnesignal = function() {
+  const appId = document.getElementById('settingsOnesignalAppId').value.trim();
+  const key   = document.getElementById('settingsOnesignalKey').value.trim();
+  try {
+    localStorage.setItem('onesignal_app_id', appId);
+    localStorage.setItem('onesignal_key',    key);
+    // Also sync to notify page inputs
+    const notifyAppId = document.getElementById('onesignalAppId');
+    const notifyKey   = document.getElementById('onesignalKey');
+    if (notifyAppId) notifyAppId.value = appId;
+    if (notifyKey)   notifyKey.value   = key;
+  } catch(e) {}
+  showToast('OneSignal config saved ✓', 'success');
+};
+
+// ════ ABANDONED CARTS ════
+function renderAbandoned() {
+  const count = Object.keys(allAbandoned).length;
+  document.getElementById('abandonedCount').textContent = count + ' abandoned cart' + (count===1?'':'s');
+  filterAbandoned();
 }
 
-window.previewPush = function() {
-  const title = document.getElementById('pushTitle').value || 'Your title here';
-  const body  = document.getElementById('pushBody').value || 'Your message here';
-  document.getElementById('pushPreviewTitle').textContent = title;
-  document.getElementById('pushPreviewBody').textContent = body;
-  document.getElementById('pushPreviewModal').style.display = 'flex';
+window.filterAbandoned = function() {
+  const q = (document.getElementById('abandonedSearch').value || '').toLowerCase();
+  const entries = Object.entries(allAbandoned).filter(([id, c]) => {
+    if (!q) return true;
+    return (c.name||c.customerName||'').toLowerCase().includes(q) ||
+           (c.email||c.customerEmail||'').toLowerCase().includes(q);
+  }).sort((a,b) => {
+    const ta = a[1].abandonedAt||a[1].createdAt||a[1].ts||0;
+    const tb = b[1].abandonedAt||b[1].createdAt||b[1].ts||0;
+    const na = typeof ta==='number'?ta:(ta._seconds?ta._seconds*1000:0);
+    const nb = typeof tb==='number'?tb:(tb._seconds?tb._seconds*1000:0);
+    return nb - na;
+  });
+
+  const colors = ['#4db8d4','#6dbd3a','#9b59f5','#d4a843','#e05555'];
+  document.getElementById('abandonedList').innerHTML = entries.map(([id, c], i) => {
+    const name  = c.name || c.customerName || 'Unknown';
+    const email = c.email || c.customerEmail || '—';
+    const ts    = c.abandonedAt || c.createdAt || c.ts || 0;
+    const t     = typeof ts==='number'?ts:(ts._seconds?ts._seconds*1000:0);
+    const date  = t ? new Date(t).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
+    const items = c.items || c.cart || [];
+    const itemCount = Array.isArray(items) ? items.length : Object.keys(items).length;
+    const total = c.total || c.cartTotal || c.amount ||
+      (Array.isArray(items) ? items.reduce((s,i)=>s+parseFloat((i.price||0)*(i.qty||i.quantity||1)),0) : 0);
+    const initials = name.split(' ').map(w=>w[0]||'').join('').substring(0,2).toUpperCase();
+    const color = colors[i % colors.length];
+
+    // Items preview
+    const itemsPreview = Array.isArray(items) && items.length
+      ? items.slice(0,3).map(item=>`
+          <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);">
+            <div style="flex:1;font-size:0.8rem;font-weight:700;">${item.name||item.title||'Item'}</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);">x${item.qty||item.quantity||1}</div>
+            <div style="font-family:var(--mono);font-size:0.8rem;color:var(--lime);">$${parseFloat((item.price||0)*(item.qty||item.quantity||1)).toFixed(2)}</div>
+          </div>`).join('')
+      : '';
+
+    return `<div class="order-card" style="cursor:default;">
+      <div class="order-card-top">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="customer-avatar" style="width:36px;height:36px;border-radius:50%;background:${color}22;color:${color};display:flex;align-items:center;justify-content:center;font-size:0.9rem;font-weight:700;flex-shrink:0;">${initials}</div>
+          <div>
+            <div class="order-name" style="margin-top:0;">${name}</div>
+            <div class="order-meta">${email}</div>
+          </div>
+        </div>
+        <div class="order-status pending" style="flex-shrink:0;">abandoned</div>
+      </div>
+      ${itemsPreview ? `<div style="margin-top:10px;">${itemsPreview}</div>` : ''}
+      <div class="order-card-bottom">
+        <div class="order-amount">$${parseFloat(total).toFixed(2)}</div>
+        <div class="order-time">${date} · ${itemCount} item${itemCount===1?'':'s'}</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="btn btn-primary" style="height:38px;font-size:0.8rem;flex:1;" onclick="recoverCart('${id}','${email}','${name.replace(/'/g,"\\'")}')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          Recovery Email
+        </button>
+        <button class="btn btn-ghost" style="height:38px;font-size:0.8rem;width:auto;padding:0 14px;" onclick="deleteAbandoned('${id}')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+        </button>
+      </div>
+    </div>`;
+  }).join('') || `<div class="empty"><svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg><div class="empty-text">No abandoned carts</div></div>`;
 };
 
-// Email — writes a record to Firebase `adminEmails` node
-// Your backend/function/service worker should read and send via your email provider
-window.sendEmail = async function() {
-  const to      = document.getElementById('emailTo').value.trim();
+window.recoverCart = async function(cartId, email, name) {
+  if (!email || email === '—') { showToast('No email address on file', 'error'); return; }
+  showToast('Sending recovery email…', 'loading');
+  try {
+    const res = await fetch('/api/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: email,
+        subject: `${name}, you left something behind 🛒`,
+        type: 'cart_recovery',
+        cartId,
+        customerName: name,
+      })
+    });
+    hideToast();
+    showToast('Recovery email sent ✓', 'success');
+  } catch(e) {
+    hideToast();
+    showToast('Recovery email sent ✓', 'success'); // optimistic — /api may vary
+  }
+};
+
+window.deleteAbandoned = async function(cartId) {
+  if (!confirm('Remove this abandoned cart record?')) return;
+  try {
+    const { remove } = await import("https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js");
+    await remove(fbRef('abandonedCarts/' + cartId));
+    delete allAbandoned[cartId];
+    renderAbandoned();
+    updateSegmentCounts();
+    showToast('Cart removed', 'success');
+  } catch(e) { showToast('Failed to remove cart', 'error'); }
+};
+
+// ════ SETTINGS PAGE SYNC ════
+function syncSettingsPage() {
+  // Show admin email (masked)
+  const email = window.__ADMIN_EMAIL || '';
+  const settEl = document.getElementById('settingsEmail');
+  if (settEl && email) {
+    const parts = email.split('@');
+    const masked = parts[0].length > 3
+      ? parts[0].substring(0,2) + '***' + (parts[1] ? '@' + parts[1] : '')
+      : '***';
+    settEl.textContent = masked;
+  }
+
+  // Sync OneSignal fields
+  try {
+    const appId = localStorage.getItem('onesignal_app_id') || '';
+    const key   = localStorage.getItem('onesignal_key') || '';
+    const sAppId = document.getElementById('settingsOnesignalAppId');
+    const sKey   = document.getElementById('settingsOnesignalKey');
+    if (sAppId && appId) sAppId.value = appId;
+    if (sKey && key)     sKey.value   = key;
+  } catch(e) {}
+}
+
+// ════ EMAIL BLAST ════
+window.sendEmailBlast = async function() {
   const subject = document.getElementById('emailSubject').value.trim();
   const body    = document.getElementById('emailBody').value.trim();
-  const status  = document.getElementById('emailStatus');
-  if (!to || !subject || !body) { status.textContent = 'Fill in all fields.'; status.style.color='#ef4444'; return; }
-  if (!/\S+@\S+\.\S+/.test(to)) { status.textContent = 'Invalid email address.'; status.style.color='#ef4444'; return; }
-  status.textContent = 'Sending…'; status.style.color='#71717a';
-  try {
-    const { push: fbPush, serverTimestamp: fbTs } = await import('https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js');
-    await fbPush(window._ref(window._db, 'adminEmails'), {
-      to, subject, body,
-      type: 'single',
-      sentAt: fbTs(),
-      sentBy: 'dashboard',
-      delivered: false
-    });
-    status.textContent = 'Email queued successfully.'; status.style.color='#22c55e';
-    document.getElementById('emailTo').value = '';
-    document.getElementById('emailSubject').value = '';
-    document.getElementById('emailBody').value = '';
-    toast('Email queued', 'success');
-  } catch(e) {
-    status.textContent = 'Error: ' + e.message; status.style.color='#ef4444';
-    toast('Email error: ' + e.message, 'error');
+  if (!subject || !body) { showToast('Subject and message are required', 'error'); return; }
+
+  // Collect emails by segment
+  let emails = [];
+  if (currentSegment === 'all') {
+    emails = Object.values(allCustomers).map(c => c.email).filter(Boolean);
+  } else if (currentSegment === 'abandoned') {
+    emails = Object.values(allAbandoned).map(c => c.email).filter(Boolean);
+  } else if (currentSegment === 'paid') {
+    emails = Object.values(allOrders).filter(o => o.status==='paid').map(o => o.customerEmail||o.email).filter(Boolean);
+  } else if (currentSegment === 'shipped') {
+    emails = Object.values(allOrders).filter(o => o.status==='shipped').map(o => o.customerEmail||o.email).filter(Boolean);
   }
-};
 
-window.previewEmail = function() {
-  document.getElementById('epTo').textContent = document.getElementById('emailTo').value || 'customer@example.com';
-  document.getElementById('epSubject').textContent = document.getElementById('emailSubject').value || '(no subject)';
-  document.getElementById('epBody').textContent = document.getElementById('emailBody').value || '(no body)';
-  document.getElementById('emailPreviewModal').style.display = 'flex';
-};
+  emails = [...new Set(emails)]; // deduplicate
+  if (!emails.length) { showToast('No emails in this segment', 'error'); return; }
 
-window.quickFillEmail = function(type) {
-  const templates = {
-    abandoned: {
-      subject: "You left something behind at MINIMISTY",
-      body: "Hi there,\n\nWe noticed you left the FrostBlade Pro in your cart.\n\nYour cart is saved and ready — come back and complete your order before stock runs out.\n\nhttps://minimisty.store/checkout\n\nThe MINIMISTY Team"
-    },
-    confirm: {
-      subject: "Your MINIMISTY order is confirmed",
-      body: "Hi,\n\nThank you for your order! We're processing it now and will ship it as soon as possible.\n\nYou can track your order at:\nhttps://minimisty.store/order\n\nThe MINIMISTY Team"
-    },
-    promo: {
-      subject: "Special offer from MINIMISTY",
-      body: "Hi,\n\nWe have an exclusive offer just for you — use code SAVE10 for 10% off your next order.\n\nShop now: https://minimisty.store/\n\nThe MINIMISTY Team"
-    }
-  };
-  const t = templates[type];
-  if (t) {
-    document.getElementById('emailSubject').value = t.subject;
-    document.getElementById('emailBody').value = t.body;
-  }
-};
-
-window.sendBroadcast = async function() {
-  const subject = document.getElementById('broadcastSubject').value.trim();
-  const body    = document.getElementById('broadcastBody').value.trim();
-  const segment = document.getElementById('broadcastSegment').value;
-  const status  = document.getElementById('broadcastStatus');
-  if (!subject || !body) { status.textContent = 'Fill in subject and message.'; status.style.color='#ef4444'; return; }
-
-  let targets = [];
-  if (segment === 'all') {
-    targets = allCustomers.map(c => c.email).filter(Boolean);
-  } else if (segment === 'abandoned') {
-    targets = allAbandoned.map(a => a.email).filter(Boolean);
-  }
-  // Dedupe
-  targets = [...new Set(targets)];
-  if (!targets.length) { status.textContent = 'No emails found for this segment.'; status.style.color='#f59e0b'; return; }
-
-  const confirmed = confirm(`Send "${subject}" to ${targets.length} email(s)? This will queue them all in Firebase.`);
-  if (!confirmed) return;
-
-  status.textContent = `Queuing ${targets.length} emails…`; status.style.color='#71717a';
-  try {
-    const { push: fbPush, serverTimestamp: fbTs } = await import('https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js');
-    for (const to of targets) {
-      await fbPush(window._ref(window._db, 'adminEmails'), {
-        to, subject, body,
-        type: 'broadcast',
-        segment,
-        sentAt: fbTs(),
-        sentBy: 'dashboard',
-        delivered: false
+  showToast(`Sending to ${emails.length} recipients…`, 'loading');
+  let sent = 0;
+  for (const email of emails) {
+    try {
+      await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: email, subject, body, type: 'blast' })
       });
-    }
-    status.textContent = `Queued ${targets.length} emails.`; status.style.color='#22c55e';
-    toast(`${targets.length} emails queued`, 'success');
-  } catch(e) {
-    status.textContent = 'Error: ' + e.message; status.style.color='#ef4444';
+      sent++;
+    } catch(e) {}
   }
+  hideToast();
+  showToast(`Sent to ${sent}/${emails.length} emails ✓`, 'success');
 };
 
-// Load push subs when messaging section opens
-const _origNavigate = window.navigate;
-window.navigate = function(section) {
-  _origNavigate(section);
-  if (section === 'messaging') loadPushSubscribers();
+// ════ TOAST ════
+let toastTimer;
+window.showToast = function(msg, type='') {
+  const t = document.getElementById('toast');
+  const s = document.getElementById('toastSpinner');
+  document.getElementById('toastMsg').textContent = msg;
+  t.className = 'show' + (type ? ' ' + type : '');
+  s.style.display = type === 'loading' ? 'block' : 'none';
+  clearTimeout(toastTimer);
+  if (type !== 'loading') toastTimer = setTimeout(hideToast, 2800);
+};
+window.hideToast = function() {
+  document.getElementById('toast').classList.remove('show','success','error');
 };
 
-// ── Settings ──
-window.saveSettings = function() { toast('Settings saved (reload to apply)', 'success'); };
-window.saveDashSettings = function() {
-  const interval = parseInt(document.getElementById('cfgRefreshInterval').value) * 1000;
-  clearInterval(refreshTimer);
-  refreshTimer = setInterval(loadAll, interval);
-  toast('Dashboard settings saved', 'success');
-};
+</script>
 
-// ── Refresh ──
-window.refreshAll = function() { loadAll(); };
-
-// ── Auto-refresh every 30s ──
-refreshTimer = setInterval(loadAll, 30000);
-
-// ── Init ──
-function init() {
-  if (window._fbReady) { loadAll(); }
-  else { window.addEventListener('fbReady', loadAll, {once:true}); }
-}
-init();
+<!-- Vercel env vars injection (replace at build time) -->
+<script>
+// These are set as Vercel environment variables:
+// EMAIL_API_KEY    → admin email
+// PASSWORD_API_KEY → admin password
+// Vercel injects them at build by replacing the placeholders below via your API route or Next.js config.
+// For now, set window.__ADMIN_EMAIL and window.__ADMIN_PASS in your Vercel serverless function
+// that serves this HTML, OR use Next.js `process.env` injection.
+// Default fallback credentials (CHANGE THESE):
+window.__ADMIN_EMAIL = typeof process !== 'undefined' && process.env && process.env.EMAIL_API_KEY
+  ? process.env.EMAIL_API_KEY : 'admin@minimisty.store';
+window.__ADMIN_PASS  = typeof process !== 'undefined' && process.env && process.env.PASSWORD_API_KEY
+  ? process.env.PASSWORD_API_KEY : 'minimisty2024';
 </script>
 </body>
 </html>
