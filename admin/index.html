@@ -1036,9 +1036,14 @@ window.doLogin = async function() {
 
   await new Promise(r => setTimeout(r, 600)); // UX feel
 
-  // Check against Vercel env vars embedded at build time OR hardcoded fallback
-  // In production: set EMAIL_API_KEY and PASSWORD_API_KEY on Vercel
-  // Here we compare against runtime values set via global vars OR allow custom check
+  // Wait for /api/config fetch to complete (max 5s) before comparing creds
+  if (!window.__CREDS_READY) {
+    await new Promise(resolve => {
+      const t = setInterval(() => { if (window.__CREDS_READY) { clearInterval(t); resolve(); } }, 100);
+      setTimeout(() => { clearInterval(t); resolve(); }, 5000);
+    });
+  }
+
   const targetEmail = window.__ADMIN_EMAIL || 'admin@minimisty.store';
   const targetPass  = window.__ADMIN_PASS  || 'minimisty2024';
 
@@ -1831,19 +1836,25 @@ window.hideToast = function() {
 
 </script>
 
-<!-- Vercel env vars injection (replace at build time) -->
+<!-- Vercel env vars: fetched server-side via /api/config -->
 <script>
-// These are set as Vercel environment variables:
-// EMAIL_API_KEY    → admin email
-// PASSWORD_API_KEY → admin password
-// Vercel injects them at build by replacing the placeholders below via your API route or Next.js config.
-// For now, set window.__ADMIN_EMAIL and window.__ADMIN_PASS in your Vercel serverless function
-// that serves this HTML, OR use Next.js `process.env` injection.
-// Default fallback credentials (CHANGE THESE):
-window.__ADMIN_EMAIL = typeof process !== 'undefined' && process.env && process.env.EMAIL_API_KEY
-  ? process.env.EMAIL_API_KEY : 'admin@minimisty.store';
-window.__ADMIN_PASS  = typeof process !== 'undefined' && process.env && process.env.PASSWORD_API_KEY
-  ? process.env.PASSWORD_API_KEY : 'minimisty2024';
+window.__ADMIN_EMAIL = null;
+window.__ADMIN_PASS  = null;
+window.__CREDS_READY = false;
+
+fetch('/api/config')
+  .then(r => r.json())
+  .then(d => {
+    window.__ADMIN_EMAIL = d.email || 'admin@minimisty.store';
+    window.__ADMIN_PASS  = d.pass  || 'minimisty2024';
+    window.__CREDS_READY = true;
+  })
+  .catch(() => {
+    // fallback if /api/config unreachable
+    window.__ADMIN_EMAIL = 'admin@minimisty.store';
+    window.__ADMIN_PASS  = 'minimisty2024';
+    window.__CREDS_READY = true;
+  });
 </script>
 </body>
 </html>
