@@ -1142,10 +1142,10 @@
       backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
     }
     table { width: 100%; border-collapse: collapse; text-align: center; }
-    thead tr { background: rgba(255,255,255,0.05); }
+    thead tr { background: rgba(255,255,255,0.04); }
     th { padding: 14px 10px; font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-family: var(--font); font-weight: 700; }
     th.highlight { color: var(--cyan); font-size: 0.8rem; }
-    td { padding: 13px 10px; font-size: 0.82rem; font-weight: 600; color: var(--text); border-bottom: 1px solid rgba(255,255,255,0.05); }
+    td { padding: 13px 10px; font-size: 0.82rem; font-weight: 600; color: var(--text); border-bottom: 1px solid rgba(255,255,255,0.04); }
     tbody tr:last-child td { border-bottom: none; }
     td.td-key { color: var(--text-muted); font-size: 0.74rem; text-align: left; }
 
@@ -1232,7 +1232,7 @@
     @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
     /* ── BUY SECTION ── */
-    .buy-section { padding: 36px 20px; }
+    .buy-section { padding: 0 20px 16px; }
     @media (min-width: 900px) { .desktop-right .buy-section { padding: 0; } }
     .buy-inner { max-width: 500px; margin: 0 auto; }
 
@@ -1511,7 +1511,11 @@
     .arrival-bar {
       background: #06060f;
       border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 12px;
+      border-radius: 0;
+      border-left: none;
+      border-right: none;
+      margin-left: -15px;
+      margin-right: -15px;
       margin-bottom: 18px;
       padding: 12px 14px 10px;
       overflow: hidden;
@@ -1595,7 +1599,54 @@
     [data-theme="light"] .arrival-date-val { color: #111; }
     [data-theme="light"] .arrival-label { color: #999; }
 
-    /* Order summary — clean */
+    /* ── Unified arrival + totals panel ── */
+    .arrival-summary-panel {
+      background: #06060f;
+      border-top: 1px solid rgba(255,255,255,0.07);
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      margin-left: -15px;
+      margin-right: -15px;
+      margin-top: 16px;
+      margin-bottom: 18px;
+      overflow: hidden;
+      position: relative;
+    }
+    .arrival-summary-panel .arrival-truck-track {
+      padding: 12px 14px 0;
+    }
+    [data-theme="light"] .arrival-summary-panel {
+      background: #f0f0f8;
+      border-color: rgba(0,0,0,0.08);
+    }
+
+    /* Inline totals inside the unified panel */
+    .order-summary-inline {
+      padding: 14px 16px 16px;
+    }
+    .order-summary-inline .summary-row {
+      display: flex; justify-content: space-between;
+      font-size: 0.8rem; margin-bottom: 6px;
+    }
+    .order-summary-inline .summary-row .label { color: var(--text-dim); font-weight: 600; }
+    .order-summary-inline .summary-row .discount-val { color: var(--red); font-weight: 800; }
+    .order-summary-inline .summary-row .shipping-val { color: var(--yellow); font-weight: 800; }
+    .order-summary-inline .summary-total {
+      color: var(--text);
+      display: flex; justify-content: space-between;
+      font-size: 1.2rem; font-weight: 900;
+      border-top: 1.5px solid var(--border2); padding-top: 12px; margin-top: 10px;
+    }
+    /* Button and payment row sit inside the panel — remove extra top margin */
+    .order-summary-inline .add-to-cart-btn {
+      margin-top: 16px !important;
+    }
+    .order-summary-inline .payment-row {
+      background: transparent;
+      padding: 0;
+      margin-top: 0;
+    }
+
+    /* Order summary — keep for cart/other uses but no longer used on main panel */
     .order-summary {
       background: var(--bg3); border-radius: 14px;
       padding: 15px 16px; border: 1.5px solid var(--border2);
@@ -2042,6 +2093,28 @@
       /* Hero viewer sharper */
       #mainHeroViewer { border-radius: 0; border: none; }
       .hero-below { padding: 0; }
+
+      /* Arrival bar: restore contained style on desktop (no bleed needed) */
+      .arrival-bar {
+        border-radius: 12px;
+        border-left: 1px solid rgba(255,255,255,0.07);
+        border-right: 1px solid rgba(255,255,255,0.07);
+        margin-left: 0;
+        margin-right: 0;
+      }
+
+      /* Unified panel: contained + rounded on desktop */
+      .arrival-summary-panel {
+        border-radius: 14px;
+        border: 1px solid rgba(255,255,255,0.07) !important;
+        border-left: 1px solid rgba(255,255,255,0.07) !important;
+        border-right: 1px solid rgba(255,255,255,0.07) !important;
+        margin-left: 0;
+        margin-right: 0;
+      }
+      .arrival-summary-panel .arrival-truck-track {
+        border-radius: 14px 14px 0 0;
+      }
 
       /* Tabs slightly bigger */
       .tab-btn { font-size: 0.86rem; padding: 11px 10px; }
@@ -2763,15 +2836,14 @@
     #storeLoader {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.72);
-      backdrop-filter: blur(18px) saturate(0.4);
-      -webkit-backdrop-filter: blur(18px) saturate(0.4);
+      background: var(--bg, #050508);
       z-index: 99999;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       overflow: hidden;
+      opacity: 1;
       transition: opacity 0.6s cubic-bezier(0.4,0,0.2,1), visibility 0.6s;
     }
     #storeLoader.hiding {
@@ -5000,8 +5072,8 @@
     /* ── ARRIVAL BAR ── */
     .arrival-bar {
       background: #06060f !important;
-      border: 1px solid rgba(255,255,255,0.07) !important;
-      border-radius: 12px !important;
+      border-top: 1px solid rgba(255,255,255,0.07) !important;
+      border-bottom: 1px solid rgba(255,255,255,0.07) !important;
     }
 
     /* ── PRICE DISPLAY ── */
@@ -5974,8 +6046,8 @@
     /* ── ARRIVAL BAR ── */
     .arrival-bar {
       background: #06060f !important;
-      border: 1px solid rgba(255,255,255,0.07) !important;
-      border-radius: 12px !important;
+      border-top: 1px solid rgba(255,255,255,0.07) !important;
+      border-bottom: 1px solid rgba(255,255,255,0.07) !important;
     }
 
     /* ── PRICE DISPLAY ── */
@@ -6179,15 +6251,14 @@
     #storeLoader {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.72);
-      backdrop-filter: blur(18px) saturate(0.4);
-      -webkit-backdrop-filter: blur(18px) saturate(0.4);
+      background: var(--bg, #050508);
       z-index: 99999;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       overflow: hidden;
+      opacity: 1;
       transition: opacity 0.7s cubic-bezier(0.4,0,0.2,1), visibility 0.7s;
     }
     #storeLoader.hiding {
@@ -6303,7 +6374,7 @@
     /* ── Status ── */
 
     /* Light theme */
-    [data-theme="light"] #storeLoader { background: rgba(247,245,242,0.75); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+    [data-theme="light"] #storeLoader { background: #fafafa; }
     [data-theme="light"] .ldr-brand { color: #111; }
     [data-theme="light"] .ldr-fan-svg path, [data-theme="light"] .ldr-fan-svg circle { fill: #111 !important; }
     [data-theme="light"] .ldr-fan-hole { fill: #f7f5f2 !important; }
@@ -6555,7 +6626,7 @@
       <span class="badge-text">16h <span>Single Charge</span></span>
     </div>
     <div class="badge-item">
-      <div class="badge-icon" style="background:rgba(255,255,255,0.05)">
+      <div class="badge-icon" style="background:rgba(255,255,255,0.04)">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
       </div>
       <span class="badge-text">1-Year <span>Warranty</span></span>
@@ -6580,7 +6651,7 @@
       <span class="badge-text">16h <span>Single Charge</span></span>
     </div>
     <div class="badge-item">
-      <div class="badge-icon" style="background:rgba(255,255,255,0.05)">
+      <div class="badge-icon" style="background:rgba(255,255,255,0.04)">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
       </div>
       <span class="badge-text">1-Year <span>Warranty</span></span>
@@ -6744,7 +6815,7 @@
     }
     .led-seg {
       width: 8px; height: 14px; border-radius: 2px;
-      background: rgba(255,255,255,0.05);
+      background: rgba(255,255,255,0.04);
       border: 1px solid rgba(255,255,255,0.1);
       transition: background 0.25s, border-color 0.25s, box-shadow 0.25s;
     }
@@ -6964,7 +7035,7 @@
       <div class="led-label" style="color:#f87171">Motor Speed</div>
       <div class="led-speed-ring">
         <svg class="led-speed-svg" viewBox="0 0 64 64" fill="none">
-          <circle cx="32" cy="32" r="26" stroke="rgba(255,255,255,0.05)" stroke-width="5"/>
+          <circle cx="32" cy="32" r="26" stroke="rgba(255,255,255,0.04)" stroke-width="5"/>
           <circle cx="32" cy="32" r="26" id="ledSpeedArc"
             stroke="#f87171" stroke-width="5"
             stroke-linecap="round"
@@ -7698,8 +7769,9 @@
 
     </div>
 
-    <!-- Arrival -->
-    <div class="arrival-bar" style="margin-top:16px">
+    <!-- Arrival + Summary unified panel -->
+    <div class="arrival-summary-panel">
+      <!-- Truck animation -->
       <div class="arrival-truck-track">
         <div class="arrival-road-line"></div>
         <div class="arrival-boxes">
@@ -7711,9 +7783,9 @@
             <rect x="1" y="8" width="30" height="18" rx="2" fill="#1a1a2e" stroke="#00d4ff" stroke-width="1.5"/>
             <path d="M31 14 L31 26 L47 26 L47 18 L41 8 L31 8 Z" fill="#0d0d1a" stroke="#00d4ff" stroke-width="1.5"/>
             <rect x="34" y="10" width="8" height="7" rx="1" fill="#00d4ff" opacity="0.25"/>
-            <circle cx="9" cy="28" r="4" fill="#0a0a14" stroke="#7fff00" stroke-width="1.5"/>
+            <circle cx="9" cy="28" r="4" fill="#030305" stroke="#7fff00" stroke-width="1.5"/>
             <circle cx="9" cy="28" r="1.5" fill="#7fff00"/>
-            <circle cx="38" cy="28" r="4" fill="#0a0a14" stroke="#7fff00" stroke-width="1.5"/>
+            <circle cx="38" cy="28" r="4" fill="#030305" stroke="#7fff00" stroke-width="1.5"/>
             <circle cx="38" cy="28" r="1.5" fill="#7fff00"/>
             <rect x="2" y="16" width="6" height="4" rx="1" fill="#00d4ff" opacity="0.4"/>
           </svg></div>
@@ -7721,60 +7793,46 @@
             <rect x="1" y="8" width="30" height="18" rx="2" fill="#1a1a2e" stroke="#00d4ff" stroke-width="1.5"/>
             <path d="M31 14 L31 26 L47 26 L47 18 L41 8 L31 8 Z" fill="#0d0d1a" stroke="#00d4ff" stroke-width="1.5"/>
             <rect x="34" y="10" width="8" height="7" rx="1" fill="#00d4ff" opacity="0.25"/>
-            <circle cx="9" cy="28" r="4" fill="#0a0a14" stroke="#7fff00" stroke-width="1.5"/>
+            <circle cx="9" cy="28" r="4" fill="#030305" stroke="#7fff00" stroke-width="1.5"/>
             <circle cx="9" cy="28" r="1.5" fill="#7fff00"/>
-            <circle cx="38" cy="28" r="4" fill="#0a0a14" stroke="#7fff00" stroke-width="1.5"/>
+            <circle cx="38" cy="28" r="4" fill="#030305" stroke="#7fff00" stroke-width="1.5"/>
             <circle cx="38" cy="28" r="1.5" fill="#7fff00"/>
             <rect x="2" y="16" width="6" height="4" rx="1" fill="#00d4ff" opacity="0.4"/>
           </svg></div>
       </div>
-      <div class="arrival-text-row">
+      <!-- Delivery date row -->
+      <div class="arrival-text-row" style="padding:0 14px 12px">
         <span class="arrival-label">GET IT BY</span>
         <span class="arrival-date-val" id="arrival-date">---</span>
       </div>
-    </div>
-
-    <!-- Summary -->
-    <div class="order-summary" style="margin-top:14px">
-      <div class="summary-row"><span class="label">Subtotal</span><span id="summary-subtotal">$39.99</span></div>
-      <div class="summary-row"><span class="label">Discount</span><span id="summary-discount" class="discount-val">-$0.00</span></div>
-      <div class="summary-row"><span class="label">Shipping</span><span id="summary-shipping" class="shipping-val">$1.99</span></div>
-      <div class="summary-row"><span class="label">Tax (5%)</span><span id="summary-tax">$2.00</span></div>
-      <div class="summary-total"><span>Total</span><span id="summary-total">$43.99</span></div>
-    </div>
-
-<div class="spin-discount-badge" style="display:none;align-items:center;gap:10px;padding:10px 14px;margin-bottom:10px;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.3);border-radius:12px">
-      <span style="font-size:1rem">&#x1F3A1;</span>
-      <span class="spin-badge-label" style="font-family:var(--font);font-size:0.78rem;font-weight:800;color:var(--cyan)"></span>
-    </div>
-        <button class="add-to-cart-btn" onclick="addToCart()">ADD TO CART</button>
-    <!-- Payment icons -->
-    <div class="payment-row">
-      <span class="payment-label">Secure Checkout</span>
-      <div class="payment-icons">
-        <!-- Visa -->
-        <div class="pay-icon">
-          <svg viewBox="0 0 50 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <text x="0" y="13" font-family="Arial" font-weight="900" font-size="14" fill="#1a1f71">VISA</text>
-          </svg>
+      <!-- Divider -->
+      <div style="height:1px;background:var(--border2);margin:0 14px"></div>
+      <!-- Order totals -->
+      <div class="order-summary-inline">
+        <div class="summary-row"><span class="label">Subtotal</span><span id="summary-subtotal">$39.99</span></div>
+        <div class="summary-row"><span class="label">Bundle Saving</span><span id="summary-discount" class="discount-val">-$0.00</span></div>
+        <div class="summary-row" id="summary-code-row" style="display:none"><span class="label" style="color:var(--cyan)">&#127905; Code (<span id="summary-code-name"></span>)</span><span id="summary-code-val" class="discount-val"></span></div>
+        <div class="spin-discount-badge" id="summary-spin-badge" style="display:none;align-items:center;gap:8px;padding:5px 0 7px">
+          <span style="font-size:0.85rem">&#127905;</span>
+          <span class="spin-badge-label" style="font-family:var(--font);font-size:0.74rem;font-weight:800;color:var(--cyan)"></span>
         </div>
-        <!-- Mastercard -->
-        <div class="pay-icon" style="gap:4px;display:flex;align-items:center;">
-          <svg width="18" height="12" viewBox="0 0 38 24"><circle cx="13" cy="12" r="12" fill="#eb001b"/><circle cx="25" cy="12" r="12" fill="#f79e1b"/><path d="M19 4.8a12 12 0 0 1 0 14.4A12 12 0 0 1 19 4.8z" fill="#ff5f00"/></svg>
-        </div>
-        <!-- Amex -->
-        <div class="pay-icon"><span style="color:#2557d6">AMEX</span></div>
-        <!-- PayPal -->
-        <div class="pay-icon"><span style="color:#003087">Pay<span style="color:#009cde">Pal</span></span></div>
-        <!-- Apple Pay -->
-        <div class="pay-icon" style="min-width:60px">
-          <span style="font-size:0.62rem;font-weight:800;letter-spacing:0.3px;color:var(--text);white-space:nowrap">Apple Pay</span>
-        </div>
-        <!-- Google Pay -->
-        <div class="pay-icon"><span style="color:var(--text)">G<span style="color:#4285f4">o</span><span style="color:#ea4335">o</span><span style="color:#fbbc04">g</span><span style="color:#34a853">l</span><span style="color:#4285f4">e</span> Pay</span></div>
-        <!-- SSL -->
-        <div class="pay-icon">
-          <svg width="12" height="14" viewBox="0 0 24 28" fill="none" stroke="#a3ff12" stroke-width="2"><rect x="2" y="11" width="20" height="16" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <div class="summary-row"><span class="label">Shipping</span><span id="summary-shipping" class="shipping-val">$1.99</span></div>
+        <div class="summary-row"><span class="label">Tax (5%)</span><span id="summary-tax">$2.00</span></div>
+        <div class="summary-total"><span>Total</span><span id="summary-total">$43.99</span></div>
+        <!-- Add to cart inside panel -->
+        <button class="add-to-cart-btn" onclick="addToCart()" style="margin-top:16px;margin-bottom:14px">ADD TO CART</button>
+        <!-- Payment icons -->
+        <div class="payment-row" style="margin-top:0">
+          <span class="payment-label">Secure Checkout</span>
+          <div class="payment-icons">
+            <div class="pay-icon"><svg viewBox="0 0 50 16" fill="none" xmlns="http://www.w3.org/2000/svg"><text x="0" y="13" font-family="Arial" font-weight="900" font-size="14" fill="#1a1f71">VISA</text></svg></div>
+            <div class="pay-icon" style="gap:4px;display:flex;align-items:center;"><svg width="18" height="12" viewBox="0 0 38 24"><circle cx="13" cy="12" r="12" fill="#eb001b"/><circle cx="25" cy="12" r="12" fill="#f79e1b"/><path d="M19 4.8a12 12 0 0 1 0 14.4A12 12 0 0 1 19 4.8z" fill="#ff5f00"/></svg></div>
+            <div class="pay-icon"><span style="color:#2557d6">AMEX</span></div>
+            <div class="pay-icon"><span style="color:#003087">Pay<span style="color:#009cde">Pal</span></span></div>
+            <div class="pay-icon" style="min-width:60px"><span style="font-size:0.62rem;font-weight:800;letter-spacing:0.3px;color:var(--text);white-space:nowrap">Apple Pay</span></div>
+            <div class="pay-icon"><span style="color:var(--text)">G<span style="color:#4285f4">o</span><span style="color:#ea4335">o</span><span style="color:#fbbc04">g</span><span style="color:#34a853">l</span><span style="color:#4285f4">e</span> Pay</span></div>
+            <div class="pay-icon"><svg width="12" height="14" viewBox="0 0 24 28" fill="none" stroke="#a3ff12" stroke-width="2"><rect x="2" y="11" width="20" height="16" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+          </div>
         </div>
       </div>
     </div>
@@ -7967,7 +8025,7 @@
       </div>
 
       <div class="trust-card">
-        <div class="trust-icon-wrap" style="background:rgba(255,255,255,0.05)">
+        <div class="trust-icon-wrap" style="background:rgba(255,255,255,0.04)">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
         </div>
         <h4>Secure Payment</h4>
@@ -8435,9 +8493,9 @@
             <rect x="1" y="8" width="30" height="18" rx="2" fill="#1a1a2e" stroke="#00d4ff" stroke-width="1.5"/>
             <path d="M31 14 L31 26 L47 26 L47 18 L41 8 L31 8 Z" fill="#0d0d1a" stroke="#00d4ff" stroke-width="1.5"/>
             <rect x="34" y="10" width="8" height="7" rx="1" fill="#00d4ff" opacity="0.25"/>
-            <circle cx="9" cy="28" r="4" fill="#0a0a14" stroke="#7fff00" stroke-width="1.5"/>
+            <circle cx="9" cy="28" r="4" fill="#030305" stroke="#7fff00" stroke-width="1.5"/>
             <circle cx="9" cy="28" r="1.5" fill="#7fff00"/>
-            <circle cx="38" cy="28" r="4" fill="#0a0a14" stroke="#7fff00" stroke-width="1.5"/>
+            <circle cx="38" cy="28" r="4" fill="#030305" stroke="#7fff00" stroke-width="1.5"/>
             <circle cx="38" cy="28" r="1.5" fill="#7fff00"/>
             <rect x="2" y="16" width="6" height="4" rx="1" fill="#00d4ff" opacity="0.4"/>
           </svg></div>
@@ -8445,9 +8503,9 @@
             <rect x="1" y="8" width="30" height="18" rx="2" fill="#1a1a2e" stroke="#00d4ff" stroke-width="1.5"/>
             <path d="M31 14 L31 26 L47 26 L47 18 L41 8 L31 8 Z" fill="#0d0d1a" stroke="#00d4ff" stroke-width="1.5"/>
             <rect x="34" y="10" width="8" height="7" rx="1" fill="#00d4ff" opacity="0.25"/>
-            <circle cx="9" cy="28" r="4" fill="#0a0a14" stroke="#7fff00" stroke-width="1.5"/>
+            <circle cx="9" cy="28" r="4" fill="#030305" stroke="#7fff00" stroke-width="1.5"/>
             <circle cx="9" cy="28" r="1.5" fill="#7fff00"/>
-            <circle cx="38" cy="28" r="4" fill="#0a0a14" stroke="#7fff00" stroke-width="1.5"/>
+            <circle cx="38" cy="28" r="4" fill="#030305" stroke="#7fff00" stroke-width="1.5"/>
             <circle cx="38" cy="28" r="1.5" fill="#7fff00"/>
             <rect x="2" y="16" width="6" height="4" rx="1" fill="#00d4ff" opacity="0.4"/>
           </svg></div>
@@ -8456,10 +8514,10 @@
         <span class="arrival-label">GET IT BY</span>
         <span class="arrival-date-val" id="doc-arrival">---</span>
       </div>
+      <div class="spin-discount-badge" style="display:none;align-items:center;gap:8px;padding:8px 0 2px">
+        <span style="font-size:0.85rem">&#127905;</span>
+        <span class="spin-badge-label" style="font-family:var(--font);font-size:0.74rem;font-weight:800;color:var(--cyan)"></span>
       </div>
-<div class="spin-discount-badge" style="display:none;align-items:center;gap:10px;padding:10px 14px;margin-bottom:10px;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.3);border-radius:12px">
-        <span style="font-size:1rem">&#x1F3A1;</span>
-        <span class="spin-badge-label" style="font-family:var(--font);font-size:0.78rem;font-weight:800;color:var(--cyan)"></span>
       </div>
             <button class="add-to-cart-btn" onclick="addToCart()" style="margin-top:16px;">ADD TO CART</button>
       <p style="text-align:center;font-size:0.65rem;color:var(--text-faint);font-weight:600;margin-top:10px;">30-Day Returns · 1-Year Warranty · Secure Checkout</p>
@@ -8968,6 +9026,8 @@
         <div id="prizeText" style="font-size:2rem;font-weight:900;color:var(--cyan);font-family:var(--font);margin-bottom:6px">10% OFF</div>
         <div id="prizeCode" style="font-size:0.78rem;background:rgba(255,255,255,0.06);border:1px dashed rgba(255,255,255,0.2);border-radius:8px;padding:6px 12px;display:inline-block;color:var(--text);font-family:monospace;font-weight:700;letter-spacing:1.5px;margin-bottom:8px"></div>
         <div style="font-size:0.68rem;color:var(--text-muted);font-family:var(--font-body)">Code sent to your email &amp; applied to your cart!</div>
+        <div id="prizeExpiryTimer" style="display:none;margin-top:10px;font-size:0.7rem;font-family:var(--font-body);text-align:center;padding:6px 10px;background:rgba(255,68,68,0.08);border:1px solid rgba(255,68,68,0.2);border-radius:8px"></div>
+        <div id="prizeSpinAgainTimer" style="display:none;margin-top:6px;font-size:0.7rem;font-family:var(--font-body);text-align:center;padding:6px 10px;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);border-radius:8px"></div>
       </div>
       <button onclick="closeSpinWheel()" style="width:100%;padding:13px;background:linear-gradient(135deg,#00d4ff,#7fff00);border:none;border-radius:14px;font-family:var(--font);font-size:0.95rem;font-weight:900;color:#000;cursor:pointer;box-shadow:0 4px 16px rgba(0,212,255,0.3)">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:6px"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg> SHOP NOW &amp; SAVE
@@ -9345,15 +9405,40 @@
     const ship  = SHIPS_USD[k];
     const disc  = SAVES_USD[k];
     const tax   = price * 0.05;
-    const total = price + ship + tax;
+
+    // Apply spin/code discount if present
+    let codeDiscUSD = 0;
+    if (window._appliedCode) {
+      if (window._appliedCode.type === 'pct') {
+        codeDiscUSD = price * (window._appliedCode.value / 100);
+      } else {
+        codeDiscUSD = Math.min(window._appliedCode.value, price);
+      }
+    }
+
+    const total = price - codeDiscUSD + ship + tax;
 
     document.getElementById('summary-subtotal').textContent = fx(price);
-    document.getElementById('summary-discount').textContent = '-' + fx(disc);
+    document.getElementById('summary-discount').textContent = disc > 0 ? '-' + fx(disc) : fx(0);
     const shipEl = document.getElementById('summary-shipping');
     if (ship === 0) { shipEl.textContent = 'FREE'; shipEl.style.color = 'var(--lime)'; }
     else { shipEl.textContent = fx(ship); shipEl.style.color = 'var(--yellow)'; }
     document.getElementById('summary-tax').textContent = fx(tax);
     document.getElementById('summary-total').textContent = fx(total);
+
+    // Inline code row
+    const codeRow = document.getElementById('summary-code-row');
+    const codeVal = document.getElementById('summary-code-val');
+    const codeName = document.getElementById('summary-code-name');
+    if (codeRow && codeVal) {
+      if (window._appliedCode && codeDiscUSD > 0) {
+        if (codeName) codeName.textContent = window._appliedCode.code;
+        codeVal.textContent = '-' + fx(codeDiscUSD);
+        codeRow.style.display = 'flex';
+      } else {
+        codeRow.style.display = 'none';
+      }
+    }
   }
 
   function buildArrivalHTML() {
@@ -10099,7 +10184,12 @@ function sendAbandonedCartPush() {
       bar.style.width = '100%'; status.textContent = '';
       setTimeout(function() {
         loader.classList.add('hiding');
-        setTimeout(function() { loader.style.display='none'; document.body.classList.remove('loader-active'); }, 700);
+        setTimeout(function() { 
+          loader.style.display='none'; 
+          document.body.classList.remove('loader-active');
+          // Signal that loader is fully gone so push sheet countdown can start
+          window.dispatchEvent(new CustomEvent('loaderDone'));
+        }, 700);
       }, 220);
     }
 
@@ -10482,6 +10572,49 @@ async function submitFooterEmail() {
     });
   }
 
+  function getSpinCodeExpiry() {
+    // Returns ms remaining on the 2-hour prize expiry, or 0 if expired/not set
+    try {
+      const ts = localStorage.getItem('minimisty_spin_ts');
+      if (!ts) return 0;
+      return Math.max(0, 2 * 60 * 60 * 1000 - (Date.now() - parseInt(ts)));
+    } catch(e) { return 0; }
+  }
+
+  function formatExpiry(ms) {
+    const h = Math.floor(ms / 3600000);
+    const m = Math.floor((ms % 3600000) / 60000);
+    const s = Math.floor((ms % 60000) / 1000);
+    if (h > 0) return h + 'h ' + m + 'm ' + s + 's';
+    return m + 'm ' + s + 's';
+  }
+
+  function startPrizeExpiryTimer() {
+    const el = document.getElementById('prizeExpiryTimer');
+    const spinAgainEl = document.getElementById('prizeSpinAgainTimer');
+    if (window._prizeExpiryInterval) clearInterval(window._prizeExpiryInterval);
+    window._prizeExpiryInterval = setInterval(function() {
+      const expMs = getSpinCodeExpiry();
+      const coolMs = getSpinCooldownMs();
+      if (el) {
+        if (expMs > 0) {
+          el.style.display = 'block';
+          el.innerHTML = '⏰ Code expires in <strong style="color:var(--red)">' + formatExpiry(expMs) + '</strong>';
+        } else {
+          el.style.display = 'none';
+        }
+      }
+      if (spinAgainEl) {
+        if (coolMs > 0) {
+          spinAgainEl.style.display = 'block';
+          spinAgainEl.innerHTML = '🔄 Spin again in <strong style="color:var(--cyan)">' + formatCooldown(coolMs) + '</strong>';
+        } else {
+          spinAgainEl.style.display = 'none';
+        }
+      }
+    }, 1000);
+  }
+
   function showSpinWheel(force) {
     if (!force && localStorage.getItem('minimisty_spin_dismissed') === 'true') return;
     const modal = document.getElementById('spinWheelModal');
@@ -10490,6 +10623,9 @@ async function submitFooterEmail() {
     const hasEmail    = !!localStorage.getItem('minimisty_spin_email');
 
     if (alreadySpun) {
+      // On auto-open (page load), don't re-show the "You Won" popup —
+      // only open it if the user explicitly clicks the trigger button (force=true)
+      if (!force) return;
       try {
         const saved = JSON.parse(localStorage.getItem('minimisty_spin_code') || 'null');
         if (saved) {
@@ -10500,6 +10636,7 @@ async function submitFooterEmail() {
         }
       } catch(e) {}
       spinGoToStep('spinPrizeStep');
+      startPrizeExpiryTimer();
     } else if (hasEmail) {
       spinGoToStep('spinWheelStep');
       updateSpinBtnCooldown();
@@ -10547,9 +10684,10 @@ async function submitFooterEmail() {
       }
     } catch(e) {}
     spinGoToStep('spinPrizeStep');
+    startPrizeExpiryTimer();
   };
 
-  window.spinNotifSkip = function() { spinGoToStep('spinPrizeStep'); };
+  window.spinNotifSkip = function() { spinGoToStep('spinPrizeStep'); startPrizeExpiryTimer(); };
 
   function closeSpinWheel() {
     const modal = document.getElementById('spinWheelModal');
@@ -10656,6 +10794,7 @@ async function submitFooterEmail() {
         spinGoToStep('spinNotifStep');
       } else {
         spinGoToStep('spinPrizeStep');
+        startPrizeExpiryTimer();
       }
       sendSpinWinPush(prize);
     }, 4000);
@@ -10667,13 +10806,24 @@ async function submitFooterEmail() {
       if (!raw) return;
       const code = JSON.parse(raw);
       if (!code) return;
+      const label = code.type === 'fixed'
+        ? '$' + parseFloat(code.value).toFixed(2) + ' OFF (' + code.code + ') applied!'
+        : code.value + '% OFF (' + code.code + ') applied!';
+      // Update all floating badges (desktop CTA panel etc.)
       document.querySelectorAll('.spin-discount-badge').forEach(el => {
         el.style.display = 'flex';
-        el.querySelector('.spin-badge-label').textContent =
-          code.type === 'fixed'
-            ? 'Discount: $' + parseFloat(code.value).toFixed(2) + ' OFF (' + code.code + ') applied!'
-            : 'Discount: ' + code.value + '% OFF (' + code.code + ') applied!';
+        const lbl = el.querySelector('.spin-badge-label');
+        if (lbl) lbl.textContent = label;
       });
+      // Update the inline badge inside the unified summary panel
+      const inlineBadge = document.getElementById('summary-spin-badge');
+      if (inlineBadge) {
+        inlineBadge.style.display = 'flex';
+        const lbl = inlineBadge.querySelector('.spin-badge-label');
+        if (lbl) lbl.textContent = label;
+      }
+      // Reflect spin code in the totals
+      if (typeof updateSummary === 'function') updateSummary();
     } catch(e) {}
   }
   // Run after DOM is ready so badge elements exist
@@ -11322,11 +11472,7 @@ async function submitFooterEmail() {
     if (Notification.permission === 'granted') return false;      // already subscribed
     if (Notification.permission === 'denied')  return false;      // blocked — can't ask
     if (LS.get('minimisty_push_subscribed') === 'true') return false;
-
-    // Check snooze (48h after "don't show again")
-    const snoozed = parseInt(LS.get('minimisty_push_snoozed') || '0', 10);
-    if (snoozed && Date.now() < snoozed) return false;
-
+    // Always show on every page load until permission is granted or denied
     return true;
   }
 
@@ -11418,8 +11564,23 @@ async function submitFooterEmail() {
 
     syncPushUI();
 
-    // Show bottom sheet after 10s on first visit (or after 48h snooze expires)
-    maybeTriggerPushSheet(10000);
+    // Show bottom sheet 10s AFTER the loader fully finishes (not from page load)
+    // We hook into the loader's hide() completion signal via a custom event.
+    function schedulePushAfterLoader() {
+      if (!shouldShowPushSheet()) return;
+      // If loader is already gone (or doesn't exist), start 10s immediately
+      const loaderEl = document.getElementById('storeLoader');
+      if (!loaderEl || loaderEl.style.display === 'none') {
+        maybeTriggerPushSheet(10000);
+        return;
+      }
+      // Otherwise wait for 'loaderDone' custom event fired when loader hides
+      window.addEventListener('loaderDone', function onLoaderDone() {
+        window.removeEventListener('loaderDone', onLoaderDone);
+        maybeTriggerPushSheet(10000);
+      }, { once: true });
+    }
+    schedulePushAfterLoader();
   }
 
   if (document.readyState === 'loading') {
@@ -12443,7 +12604,7 @@ Keep responses concise, friendly, and helpful. Use short paragraphs. If unsure, 
   flex-shrink: 0; width: 58px; height: 58px;
   border-radius: 12px; overflow: hidden;
   border: 1.5px solid rgba(0,212,255,0.2);
-  background: #0a0a14;
+  background: #030305;
   animation: pushItemFloat 3s ease-in-out infinite;
   position: relative;
 }
@@ -13062,7 +13223,7 @@ section, .reviews-section, .how-section, .trust-section,
   border-bottom: 2px solid #0d0d18 !important;
 }
 .trust-card {
-  background: #080810 !important;
+  background: #040408 !important;
   border: 1.5px solid #111122 !important;
   border-radius: 18px !important;
   box-shadow: 4px 4px 0 #000 !important;
@@ -13119,7 +13280,7 @@ section, .reviews-section, .how-section, .trust-section,
   border-bottom: 2px solid #0d0d18 !important;
 }
 .ba-card {
-  background: #080810 !important;
+  background: #040408 !important;
   border-radius: 18px !important;
   border: 1.5px solid #111122 !important;
   box-shadow: 4px 4px 0 #000 !important;
@@ -13135,7 +13296,7 @@ section, .reviews-section, .how-section, .trust-section,
 .ba-label { font-family: var(--font) !important; color: var(--text) !important; }
 .ba-list li { color: #7070900 !important; font-family: var(--font-body) !important; }
 .ba-vs-badge {
-  background: #0a0a14 !important;
+  background: #030305 !important;
   border: 2px solid #1a1a2a !important;
   color: #444460 !important;
   font-family: var(--font) !important;
@@ -13184,7 +13345,7 @@ section, .reviews-section, .how-section, .trust-section,
 }
 .temp-scale-labels span { color: #333350 !important; }
 .temp-bar-label { color: #6060800 !important; }
-.temp-bar-track { background: #0a0a14 !important; }
+.temp-bar-track { background: #030305 !important; }
 
 /* ══════════════════════════════════════
    GUARANTEE SECTION
@@ -13200,7 +13361,7 @@ section, .reviews-section, .how-section, .trust-section,
 }
 .guarantee-sub { color: #606080 !important; font-family: var(--font-body) !important; }
 .gi-icon {
-  background: #0a0a14 !important;
+  background: #030305 !important;
   border: 1.5px solid #1a1a2a !important;
   box-shadow: 3px 3px 0 #000 !important;
 }
@@ -13223,7 +13384,7 @@ section, .reviews-section, .how-section, .trust-section,
   font-family: var(--font) !important;
 }
 .loyalty-step-icon {
-  background: #0a0a14 !important;
+  background: #030305 !important;
   border: 1.5px solid #1a1a2a !important;
   border-radius: 14px !important;
 }
@@ -13238,7 +13399,7 @@ section, .reviews-section, .how-section, .trust-section,
   border-top: 2px solid #0d0d18 !important;
 }
 .faq-item {
-  background: #080810 !important;
+  background: #040408 !important;
   border: 1.5px solid #111122 !important;
   border-radius: 14px !important;
   margin-bottom: 8px !important;
