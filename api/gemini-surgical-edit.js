@@ -1,34 +1,24 @@
 // File: /api/gemini-surgical-edit.js
-import { GoogleGenAI } from "@google/genai";
 
 export default async function handler(req, res) {
-  // Enforce CORS cross-origin safe validation rules
+  // Enforce cross-origin security rules
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
+    res.setHeader('Allow', ['POST']);
+    return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
   }
 
   try {
     const { sourceCode, userInstructions } = req.body;
     
-    // Auto-fetch variable straight from system server parameters
+    // Fetch your API key from the Vercel environment variables
     const apiKey = process.env.GEMINI_API_KEY; 
     
     if (!apiKey) {
-      return res.status(500).json({ error: "Missing backend configuration key environmental parameters." });
+      return res.status(500).json({ error: "Missing backend configuration: GEMINI_API_KEY is not defined on Vercel." });
     }
 
-    // Initialize standard official current SDK packages calls 
-    const ai = new GoogleGenAI({ apiKey: apiKey });
-
-    // Enforce system instructions that require it to act as an inline diff editor
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash', // Using current stable optimized flash execution engines
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            {
-              text: `You are a surgical front-end development optimizer. Analyze this code entirely, but do not drop sections or truncate parts with short remarks. Deliver the fully optimized codebase back with the requested modifications applied seamlessly.
+    // Surgical system prompt injection to ensure clean, untruncated code replacement
+    const promptPayload = `You are a surgical front-end development optimizer. Analyze this code entirely, but do not truncate sections or omit parts with short placeholder remarks like "rest of code remains the same". Deliver the fully optimized codebase back with the requested modifications applied seamlessly.
 
 Original Input Code:
 \`\`\`html
@@ -38,27 +28,52 @@ ${sourceCode}
 Modifications Requested:
 ${userInstructions}
 
-Provide your response wrapped exactly inside standard code blocks without conversational filler text.`
-            }
-          ]
-        }
-      ]
+Provide your response wrapped exactly inside standard markdown code blocks without any conversational filler text or conversational intro/outro lines.`;
+
+    // Direct HTTP handshake pipeline targeting Google's optimized production gateway
+    const googleResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              { text: promptPayload }
+            ]
+          }
+        ]
+      })
     });
 
-    let generatedText = response.text || "";
+    if (!googleResponse.ok) {
+      const errText = await googleResponse.text();
+      console.error('Google Gateway Error Log:', errText);
+      throw new Error(`Google API Server responded with status: ${googleResponse.status}`);
+    }
 
-    // Parse clean up code wrapper backticks arrays formatting if present
+    const data = await googleResponse.json();
+    
+    // Extract generated string safely from response matrix
+    let generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+    if (!generatedText) {
+      throw new Error("Empty response received from the model architecture.");
+    }
+
+    // Strip markdown formatting boundaries if present
     if (generatedText.includes("```html")) {
         generatedText = generatedText.split("```html")[1].split("```")[0].trim();
     } else if (generatedText.includes("```")) {
         generatedText = generatedText.split("```")[1].split("```")[0].trim();
     }
 
-    // Deliver exact payload parameters straight to your HTML engine interface
+    // Deliver exact payload back to your custom user interface
     return res.status(200).json({ optimizedCode: generatedText });
 
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: error.message });
+    console.error('Surgical Edit API Error:', error);
+    return res.status(500).json({ error: error.message || "Internal server pipeline failure." });
   }
 }
