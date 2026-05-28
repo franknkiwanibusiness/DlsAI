@@ -1,6 +1,6 @@
-// api/chat.js — MINIMISTY AI assistant with live order context
-// Fetches the user's real orders from Firebase using their deviceId
-// so the AI can answer order questions accurately without the user typing an ID.
+// api/chat.js — Siterifty AI Assistant with live seller/buyer context
+// Fetches the user's real listings and plan data from Firebase
+// so the AI can answer account questions accurately without the user typing IDs.
 
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getDatabase } from 'firebase-admin/database';
@@ -17,155 +17,157 @@ function initFirebase() {
   });
 }
 
-// Fetch up to 5 most recent orders for this device
-async function getOrdersForDevice(deviceId) {
-  if (!deviceId || typeof deviceId !== 'string') return [];
+// Fetch user data: plan, balance, and recent listings
+async function getUserData(uid) {
+  if (!uid || typeof uid !== 'string') return null;
   try {
     initFirebase();
     const db = getDatabase();
-    const snap = await db.ref('deviceOrders/' + deviceId).get();
-    if (!snap.exists()) return [];
+    const snap = await db.ref('users/' + uid).get();
+    if (!snap.exists()) return null;
 
-    // deviceOrders/{deviceId}/{orderId} = { orderId, totalUSD, status, createdAt }
-    const entries = Object.values(snap.val() || {});
-    // Sort newest first, take up to 5
-    entries.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-    const recent = entries.slice(0, 5);
+    const user = snap.val();
+    
+    // Fetch user's listings (up to 5 most recent)
+    const listingsSnap = await db.ref('listings/' + uid).get();
+    let listings = [];
+    if (listingsSnap.exists()) {
+      const entries = Object.values(listingsSnap.val() || {});
+      entries.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      listings = entries.slice(0, 5).map(l => ({
+        title: l.title || 'Untitled',
+        price: l.price || 0,
+        status: l.status || 'draft',
+        views: l.views || 0,
+        createdAt: l.createdAt
+      }));
+    }
 
-    // Fetch full order details for each
-    const orders = await Promise.all(recent.map(async entry => {
-      try {
-        const orderSnap = await db.ref('orders/' + entry.orderId).get();
-        return orderSnap.exists() ? orderSnap.val() : null;
-      } catch(e) { return null; }
-    }));
-
-    return orders.filter(Boolean);
+    return {
+      plan: user.plan || 'Free',
+      balance: user.balance || 0,
+      username: user.username || 'there',
+      email: user.email || '',
+      listings: listings,
+      totalListings: listingsSnap.exists() ? Object.keys(listingsSnap.val() || {}).length : 0
+    };
   } catch(e) {
-    console.warn('Order fetch error:', e);
-    return [];
+    console.warn('User data fetch error:', e);
+    return null;
   }
 }
 
-// Build a concise order context string to inject into the system prompt
-function buildOrderContext(orders) {
-  if (!orders.length) return '';
+// Build context string for the AI
+function buildUserContext(userData) {
+  if (!userData) return '';
 
-  const lines = orders.map(o => {
-    const items = (o.items || [])
-      .map(i => `${i.qty}x ${i.product || 'FrostBlade Pro'} (${i.variant || '—'})`)
-      .join(', ');
-    const status = (o.status || 'unknown').replace(/_/g, ' ');
-    const total  = o.pricing ? `$${o.pricing.totalUSD?.toFixed(2)}` : '—';
-    const date   = o.createdAt ? new Date(o.createdAt).toLocaleDateString('en-GB') : '—';
-    const tracking = o.trackingNumber || null;
-    return [
-      `• Order ID: ${o.orderId}`,
-      `  Items: ${items}`,
-      `  Status: ${status}`,
-      `  Total: ${total}`,
-      `  Placed: ${date}`,
-      tracking ? `  Tracking: ${tracking}` : '  Tracking: not yet dispatched',
-    ].join('\n');
-  }).join('\n\n');
+  const listingLines = userData.listings.map(l => {
+    const date = l.createdAt ? new Date(l.createdAt).toLocaleDateString('en-GB') : 'recently';
+    return `• "${l.title}" — $${l.price} — ${l.status} — ${l.views} views (listed ${date})`;
+  }).join('\n');
 
-  return `\n\n== THIS CUSTOMER'S ORDERS (from our database) ==\nThe following orders are linked to this customer's device. Use this information to answer questions about their orders accurately. Do not reveal the full device ID.\n\n${lines}\n\nIf the customer asks about an order, use the above data. If they mention an order ID that isn't listed here, tell them to email support@minimisty.store with that ID and we'll look it up.`;
+  const planFeatures = {
+    Free: '1 listing/day, 5/month cap, 30% platform fee, community support',
+    Starter: '5 listings/day, 150/month, 15% fee, priority search, email support (24h), basic analytics',
+    Growth: '15 listings/day, unlimited monthly, 10% fee, featured highlights, priority support (4h), advanced analytics, bulk management',
+    Pro: 'Unlimited daily, unlimited monthly, 5% fee, top search placement, dedicated account manager, 24/7 live chat, custom storefront'
+  };
+
+  return `
+== THIS SELLER'S ACCOUNT DATA ==
+Plan: ${userData.plan}
+Wallet Balance: $${userData.balance.toFixed(2)}
+Username: ${userData.username}
+Email: ${userData.email}
+Total listings created: ${userData.totalListings}
+
+${userData.listings.length > 0 ? `Recent Listings:\n${listingLines}\n` : 'No listings created yet.\n'}
+
+Plan Features (${userData.plan}):
+${planFeatures[userData.plan] || planFeatures.Free}
+
+== IMPORTANT RULES ==
+- Use this data to answer questions about their plan, balance, and listings.
+- If they ask about upgrading, explain the benefits of Starter ($20/mo), Growth ($40/mo - most popular), and Pro ($50/mo - best value).
+- If they have low balance, suggest topping up via PayPal (minimum $10, 3.49% + $0.49 fee).
+- Never reveal the user's email or full user ID in responses.
+- Always be helpful and concise — 2-4 sentences unless more detail is needed.`;
 }
 
-const BASE_SYSTEM_PROMPT = `You are the MINIMISTY store assistant — a smart, friendly, and concise support agent for MINIMISTY.store.
+const BASE_SYSTEM_PROMPT = `You are the Siterifty assistant — a friendly, knowledgeable support agent for Siterifty.com, a premium marketplace to buy and sell websites and digital businesses.
 
-== PRODUCT ==
-FrostBlade Pro — Portable Ice-Cold Handheld Electric Fan
-- Colors: Phantom Black, Arctic White, Ice Blue, Sakura Pink (limited — low stock)
-- Battery: 4000mAh Li-Ion, up to 16 hours on Eco, ~8h Normal, ~3h Turbo
-- Charging: USB-C Fast Charge, full charge in ~2 hours. Pass-through charging supported (use while plugged in)
-- Motor: 20,000 RPM Brushless — near-silent on low speeds, well under 60dB even on Turbo
-- Speed: 1–100 adjustable via rotary dial, real-time LED display shows exact level
-- Materials: PP body + Aerospace Alloy ice-cold plate (no ice needed — the alloy plate passively chills airflow)
-- Extras: Neck lanyard included for hands-free use, foldable for travel, premium retail gift-ready box
-- What's in the box: FrostBlade Pro fan, USB-C charging cable, neck lanyard, instruction card
-- NOT waterproof. Keep away from liquids.
-- Does NOT function as a power bank.
+== PLATFORM OVERVIEW ==
+Siterifty connects website sellers with buyers. Sellers list their sites, buyers purchase via secure escrow, and funds go to the seller's wallet.
 
-== PRICING (USD base — displayed in customer's local currency on site) ==
-- Single Pack: $39.95 + $1.99 shipping
-- Dual Pack (2 units): $74.95, FREE shipping, saves $5.00 vs buying separately
-- Family Pack (3 units): $99.95, FREE shipping, saves $19.90 vs buying separately
-Bundle deals always ship free. Single pack has a small shipping charge.
+== SELLER PLANS ==
+- Free: $0/mo — 1 listing/day, 5/month cap, 30% platform fee, community support
+- Starter: $20/mo — 5 listings/day, 150/month, 15% fee, priority search, email support (24h), basic analytics
+- Growth: $40/mo — 15 listings/day, unlimited monthly, 10% fee, featured highlights, priority support (4h), advanced analytics, bulk management
+- Pro: $50/mo — Unlimited everything, 5% fee, top search placement, dedicated account manager, 24/7 live chat, custom storefront
 
-== VAT / TAX ==
-- A 5% tax is applied at checkout on top of the product price.
-- VAT/tax rates may vary by country. The 5% is our base platform tax. Customers in the EU or other VAT-registered regions may see additional import duties — this is handled by their local customs authority, not by us. We are not responsible for import duties or local taxes beyond our checkout tax.
-- Prices shown on site are before tax unless stated otherwise.
+Upgrade anytime from the dashboard. Plans are monthly, cancel anytime.
 
-== SHIPPING ==
-- Processing time: within 24 hours of order placement (business days)
-- Delivery: 7–14 business days to most destinations worldwide
-- Tracked shipping on all orders — tracking link emailed once dispatched
-- Free shipping on Dual Pack and Family Pack
-- Single Pack: $1.99 flat shipping fee
-- We ship globally. Some remote regions may take slightly longer.
-- Once dispatched, customers receive an email with tracking details. If no email received within 48 hours of ordering, check spam or contact us.
+== WALLET & PAYMENTS ==
+- Wallet balance can be used for: buying websites, paying your monthly plan, paying hosting fees
+- Top up via PayPal: minimum $10, one-time payment (not recurring)
+- PayPal fee: 3.49% + $0.49 per transaction (shown before you pay)
+- Wallet balance is non-refundable store credit — cannot be withdrawn to bank/PayPal
+- Balance never expires
 
-== WHAT HAPPENS AFTER YOU ORDER ==
-1. Order confirmed immediately — confirmation shown on screen and sent to email
-2. Within 24 hours: order is packed and dispatched from our warehouse
-3. Tracking number emailed to customer once shipped
-4. Delivery in 7–14 business days
-5. If item arrives damaged or incorrect: contact us within 7 days of delivery with your order ID and a photo — we will reship or refund immediately
-6. If order not received after 18 business days: contact us and we will investigate and resolve
+== HOSTING FOR BUYERS ==
+- When a buyer purchases your site, they can subscribe to managed hosting: $49.99/month
+- Includes: database, serverless functions, admin dashboard
+- You earn the sale, they get infrastructure to run their new site
 
-== RETURNS & REFUNDS ==
-- 30-day risk-free return from delivery date
-- Item must be in original condition (not physically damaged by user)
-- To start a return: email support@minimisty.store with order ID and reason
-- Refund processed within 5–7 business days back to original payment method
-- Shipping costs are non-refundable unless the item arrived defective or incorrect
-- Defective on arrival: full refund or free replacement, customer keeps item
+== ESCROW & TRANSACTIONS ==
+- All site sales use secure escrow
+- Buyer pays → funds held → site transferred → buyer confirms → funds released to seller's wallet
+- Platform fee deducted from sale amount based on seller's plan
+- Free sellers: 30% fee
+- Starter: 15% fee (save 15%)
+- Growth: 10% fee (save 20%)
+- Pro: 5% fee (save 25%)
 
-== WARRANTY ==
-- 1-year manufacturer warranty on every unit
-- Covers: motor failure, battery defects, manufacturing faults
-- Does not cover: physical damage, water damage, misuse
-- To claim: email support@minimisty.store with order ID and description of issue
+== BUYING A WEBSITE ==
+- Browse listings, view site metrics and pricing
+- Click "Buy" — funds taken from wallet or prompt to top up
+- Site transferred within 48 hours after purchase confirmation
+- Buyer gets: all assets, domain transfer support, optional hosting subscription
+
+== LISTING A WEBSITE ==
+- From dashboard, create listing with title, description, price, metrics (traffic, revenue, profit)
+- Listings are reviewed within 24 hours
+- Once approved, appears in search results
+- Higher plans get priority placement and featured highlights
+
+== FEES (for sellers) ==
+- Free: 30% of sale price
+- Starter: 15% of sale price
+- Growth: 10% of sale price  
+- Pro: 5% of sale price
+Example: $1,000 sale on Pro plan → you keep $950, platform fee $50
+
+== STATS ==
+- 8,400+ sellers on the platform
+- 12,000+ sites listed
+- 4.9★ average rating
+- Ships to 180+ countries
 
 == CONTACT & SUPPORT ==
-- Email only: support@minimisty.store
-- We do not have a phone number — all support is handled via email
-- Response time: within 24 hours on business days
-- For order issues, always include your Order ID (format: ORD_XXXXX_XXXXX) in the subject line
-
-== PAYMENT ==
-- Accepted: Visa, Mastercard, Amex, PayPal, Apple Pay, Google Pay
-- All payments SSL-encrypted — we never store card details
-- Prices shown in customer's local currency (converted at live exchange rate)
-
-== PRIVACY ==
-- We only collect name, shipping address, and email to fulfil orders
-- We never sell personal data to third parties
-- Data deletion requests: email support@minimisty.store
-- Full privacy policy available on the website
-
-== TERMS ==
-- By purchasing you agree to our terms of service
-- We reserve the right to cancel orders suspected of fraud
-- Minimum affiliate payout: $50 via PayPal or bank transfer
-
-== AFFILIATE PROGRAM ==
-- Free to join via the website footer
-- Earn 15% commission per verified sale through your link
-- Real-time tracking dashboard, monthly payouts
-- No phone support for affiliate queries — email support@minimisty.store
+- Email: support@siterifty.com
+- In-app chat (you!)
+- Response time: within 24 hours for Free, 24h for Starter, 4h for Growth, immediate for Pro
+- For urgent issues, Pro members get dedicated account manager
 
 == BEHAVIOUR RULES ==
-- Be concise. 2–4 sentences max per reply unless a detailed explanation is genuinely needed.
+- Be concise. 2-4 sentences max per reply unless detailed explanation is needed.
 - Never make up information not listed here.
-- Never invent phone numbers, addresses, or policies.
-- If you don't know something, say: "I don't have that info — please email support@minimisty.store and we'll get back to you within 24 hours."
-- Be warm and human. Avoid robotic phrasing.
-- When a customer seems frustrated, acknowledge it first before solving.
-- Currency: always refer to prices in USD when quoting — the site handles local conversion automatically.
-- If a customer asks about their order and order data is provided above, use it directly. Never say you cannot look up orders if their data is already in context.`;
+- If asked about a feature not documented, say: "I don't have that info — please email support@siterifty.com and we'll get back to you within 24 hours."
+- Be warm, professional, and helpful.
+- When a customer seems frustrated, acknowledge first, then solve.
+- Always use dollar amounts with $ symbol.
+- If they ask about upgrading, highlight the fee savings: "On Pro you keep 95% of every sale vs 70% on Free."
+- If they have wallet balance, remind them they can use it to pay for their monthly plan.`;
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -174,16 +176,16 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { messages, deviceId } = req.body;
+    const { messages, deviceId, userPlan, username } = req.body;
 
     if (!messages || !Array.isArray(messages)) {
       return res.status(400).json({ reply: 'Malformed request: messages array is required.' });
     }
 
-    // Fetch this customer's real orders and inject into system prompt
-    const orders = await getOrdersForDevice(deviceId);
-    const orderContext = buildOrderContext(orders);
-    const systemPrompt = BASE_SYSTEM_PROMPT + orderContext;
+    // Fetch user data using deviceId (which is the Firebase UID)
+    const userData = await getUserData(deviceId);
+    const userContext = buildUserContext(userData);
+    const systemPrompt = BASE_SYSTEM_PROMPT + userContext;
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -205,7 +207,7 @@ export default async function handler(req, res) {
     if (!response.ok) {
       const errText = await response.text();
       console.error('Groq API error:', errText);
-      return res.status(500).json({ reply: "Sorry, I'm having trouble connecting right now. Please email support@minimisty.store for help." });
+      return res.status(500).json({ reply: "Sorry, I'm having trouble connecting right now. Please email support@siterifty.com for help." });
     }
 
     const data = await response.json();
@@ -214,6 +216,6 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('chat handler error:', error);
-    return res.status(500).json({ reply: "Something went sideways on our end. Please drop a line to support@minimisty.store." });
+    return res.status(500).json({ reply: "Something went sideways on our end. Please drop a line to support@siterifty.com." });
   }
 }
