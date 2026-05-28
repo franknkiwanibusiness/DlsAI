@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0a0a0f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>Siterifty.com</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,23 +25,51 @@
             --muted: #8b8aa8;
         }
 
-        * { font-family: 'DM Sans', sans-serif; box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; -webkit-tap-highlight-color: transparent; }
+        /* ── Native app reset — zero browser chrome ── */
+        *, *::before, *::after {
+            font-family: 'DM Sans', sans-serif;
+            box-sizing: border-box;
+            margin: 0; padding: 0;
+            /* Kill ALL browser selection/highlight */
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            /* Smooth font rendering */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+        }
 
-        /* Hide scrollbar everywhere */
+        /* Allow text selection only in input/textarea */
+        input, textarea {
+            user-select: text;
+            -webkit-user-select: text;
+        }
+
+        /* Invisible scrollbars everywhere — native momentum */
         * { scrollbar-width: none; -ms-overflow-style: none; }
         *::-webkit-scrollbar { display: none; }
 
         html {
             background: var(--bg);
-            min-height: 100vh;
+            height: 100%;
             width: 100%;
             overflow-x: hidden;
+            /* Prevent iOS bounce on html itself */
+            overscroll-behavior: none;
         }
+
         body {
             background: var(--bg);
-            min-height: 100vh;
-            overflow-x: clip;
+            min-height: 100%;
             width: 100%;
+            overflow-x: hidden;
+            /* Native iOS momentum scrolling */
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-y: none;
         }
 
         /* ── Background glows (fixed, behind everything) ── */
@@ -98,7 +130,60 @@
             animation: text-scroll 4s ease-in-out infinite alternate;
         }
         /* ── Upgrade overlay open ── */
-        #upgradeOverlay.open { display: flex !important; }
+        #upgradeOverlay[style*="flex"] { display: flex !important; }
+
+        /* ── Shared modal animations ── */
+        @keyframes sheetUp {
+            from { transform: translateY(100%); opacity: 0.7; }
+            to   { transform: translateY(0);    opacity: 1; }
+        }
+        @keyframes modalPop {
+            from { opacity: 0; transform: scale(0.94) translateY(12px); }
+            to   { opacity: 1; transform: scale(1)    translateY(0); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+        button, [onclick], a, input, select, textarea {
+            outline: none !important;
+        }
+        button:focus, a:focus, [onclick]:focus {
+            outline: none !important;
+            box-shadow: none !important;
+        }
+        /* Restore outline only for keyboard navigation */
+        button:focus-visible {
+            outline: 2px solid rgba(168,85,247,0.6) !important;
+            outline-offset: 2px !important;
+        }
+
+        /* Premium button press — all buttons get this */
+        button, .plan-btn, .wm-topup-btn, .auth-btn, .save-btn, .dash-btn-sm {
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        button:active, .plan-btn:active {
+            transform: scale(0.97) !important;
+            transition: transform 0.08s ease !important;
+        }
+
+        /* Input fields — native feel */
+        input, textarea, select {
+            -webkit-appearance: none;
+            appearance: none;
+            outline: none;
+            border: none;
+        }
+        input[type="password"] { -webkit-text-security: disc; }
+
+        /* Prevent iOS zoom on input focus */
+        input, select, textarea {
+            font-size: 16px !important;
+        }
+        @media (min-width: 480px) {
+            input, select, textarea { font-size: 14px !important; }
+        }
 
                 /* ── Header mobile responsiveness ── */
         @media (max-width: 480px) {
@@ -112,25 +197,33 @@
             .credit-pill { display: none; }
         }
 
-        /* ── Header — sticky with no overflow interference ── */
+        /* ── Site Header — premium sticky glass with safe area ── */
         header {
             position: sticky;
             top: 0;
             z-index: 100;
             height: 62px;
             padding: 0 16px;
+            padding-left: max(16px, env(safe-area-inset-left));
+            padding-right: max(16px, env(safe-area-inset-right));
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 8px;
-            background: rgba(18,18,26,0.8);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border-bottom: 1px solid var(--border);
+            background: linear-gradient(180deg,
+                rgba(16,16,26,0.94) 0%,
+                rgba(12,12,20,0.88) 100%);
+            backdrop-filter: blur(28px) saturate(180%);
+            -webkit-backdrop-filter: blur(28px) saturate(180%);
+            border-bottom: 1px solid rgba(255,255,255,0.07);
             width: 100%;
-            max-width: 100vw;
             box-sizing: border-box;
-            overflow: hidden;
+            /* Prevent any overflow artifacts */
+            overflow: visible;
+            /* Top glass highlight */
+            box-shadow:
+                0 1px 0 rgba(255,255,255,0.06) inset,
+                0 1px 20px rgba(0,0,0,0.3);
         }
         @keyframes line-slide {
             0%   { transform: translateX(0); }
@@ -351,35 +444,49 @@
             overflow: hidden;
             padding: 0;
         }
-        /* Full-width 1:1 square image */
+        /* Full-width image — natural height */
         .hero-img-wrap {
             position: relative;
             width: 100%;
-            aspect-ratio: 1 / 1;
             overflow: hidden;
             flex-shrink: 0;
+            /* min-height prevents a flash of zero-height before first image loads */
+            min-height: 200px;
         }
         .hero-bg {
-            position: absolute;
-            inset: 0;
+            position: relative;
+            width: 100%;
             z-index: 0;
         }
         .hero-bg-slide {
             position: absolute;
             inset: 0;
-            background-size: cover;
-            background-position: center;
+            width: 100%;
             opacity: 0;
             transition: opacity 1s ease-in-out;
+            /* first slide is position:relative to drive the container height */
         }
         .hero-bg-slide.active { opacity: 1; }
+        .hero-bg-slide.sizer {
+            position: relative;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .hero-bg-slide.sizer.active { opacity: 1; }
+        .hero-bg-slide img {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
         /* Subtle bottom fade so image blends into content */
         .hero-bg::after {
             content: '';
             position: absolute;
-            inset: 0;
-            background: linear-gradient(to bottom, transparent 55%, var(--bg) 100%);
+            bottom: 0; left: 0; right: 0;
+            height: 40%;
+            background: linear-gradient(to bottom, transparent, var(--bg));
             z-index: 1;
+            pointer-events: none;
         }
         /* Content sits BELOW the image */
         .hero-content {
@@ -1207,37 +1314,48 @@
         }
         .chat-bubble:hover { background: var(--surface); border-color: rgba(255,255,255,0.18); transform: scale(1.08); }
 
-        /* ══ WALLET MODAL ══ */
+        /* ══ WALLET MODAL — premium glass sheet ══ */
         #walletOverlay {
             display: none;
             position: fixed;
             inset: 0;
             z-index: 5000;
-            background: rgba(0,0,0,0.72);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            align-items: center;
+            background: rgba(0,0,0,0.65);
+            backdrop-filter: blur(16px) saturate(140%);
+            -webkit-backdrop-filter: blur(16px) saturate(140%);
+            align-items: flex-end;
             justify-content: center;
-            padding: 20px;
+            padding: 0;
             overflow: hidden;
+            touch-action: none;
+            /* Smooth entry */
+            transition: background 0.25s;
         }
         #walletOverlay.open { display: flex; }
 
         #walletModal {
-            background: #13131e;
-            border: 1px solid rgba(255,255,255,0.09);
-            border-radius: 24px;
+            background: linear-gradient(160deg, #16162a 0%, #0f0f1c 100%);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-top: 1px solid rgba(255,255,255,0.14);
+            border-radius: 28px 28px 0 0;
             width: 100%;
-            max-width: 400px;
-            max-height: calc(100vh - 48px);
-            overflow: hidden;
-            box-shadow: 0 32px 80px rgba(0,0,0,0.8), 0 0 0 1px rgba(168,85,247,0.1), inset 0 1px 0 rgba(255,255,255,0.05);
-            animation: walletIn 0.3s cubic-bezier(0.34,1.4,0.64,1) both;
+            max-width: 480px;
+            max-height: 92svh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+            box-shadow:
+                0 1px 0 rgba(255,255,255,0.07) inset,
+                0 -4px 60px rgba(0,0,0,0.7),
+                0 0 0 1px rgba(168,85,247,0.08);
+            animation: sheetUp 0.32s cubic-bezier(0.32,0.72,0,1) both;
             position: relative;
+            /* Safe area bottom */
+            padding-bottom: env(safe-area-inset-bottom, 0px);
         }
-        @keyframes walletIn {
-            from { opacity: 0; transform: scale(0.9) translateY(16px); }
-            to   { opacity: 1; transform: scale(1)   translateY(0); }
+        @keyframes sheetUp {
+            from { transform: translateY(100%); opacity: 0.6; }
+            to   { transform: translateY(0);    opacity: 1; }
         }
         @keyframes spin {
             from { transform: rotate(0deg); }
@@ -1393,26 +1511,33 @@
             position: fixed;
             inset: 0;
             z-index: 6000;
-            background: rgba(10,10,15,0.97);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            overflow-y: auto;
+            background: rgba(0,0,0,0.72);
+            backdrop-filter: blur(18px) saturate(150%);
+            -webkit-backdrop-filter: blur(18px) saturate(150%);
+            overflow: hidden;
+            touch-action: none;
+            align-items: flex-end;
+            justify-content: center;
         }
-        #topupOverlay.open { display: block; }
+        #topupOverlay.open { display: flex; }
 
         #topupModal {
-            background: transparent;
-            border: none;
-            border-radius: 0;
+            background: linear-gradient(160deg, #16162a 0%, #0f0f1e 100%);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-top: 1px solid rgba(255,255,255,0.14);
+            border-radius: 28px 28px 0 0;
             width: 100%;
             max-width: 480px;
-            margin: 0 auto;
-            min-height: 100vh;
-            overflow-y: visible;
-            box-shadow: none;
-            animation: topupIn 0.28s cubic-bezier(0.34,1.2,0.64,1) both;
+            max-height: 94svh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+            box-shadow:
+                0 1px 0 rgba(255,255,255,0.07) inset,
+                0 -4px 60px rgba(0,0,0,0.75);
+            animation: sheetUp 0.3s cubic-bezier(0.32,0.72,0,1) both;
             position: relative;
-            padding: 0 0 60px;
+            padding-bottom: env(safe-area-inset-bottom, 0px);
         }
         @keyframes topupIn {
             from { opacity: 0; transform: translateY(18px); }
@@ -2240,6 +2365,10 @@
     <!-- ══ WALLET MODAL ══ -->
     <div id="walletOverlay" onclick="if(event.target===this)closeWalletModal()">
         <div id="walletModal">
+            <!-- Drag handle -->
+            <div style="display:flex;justify-content:center;padding:12px 0 4px;">
+                <div style="width:36px;height:4px;border-radius:999px;background:rgba(255,255,255,0.15);"></div>
+            </div>
             <div class="wm-header">
                 <div>
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;">
@@ -2316,6 +2445,10 @@
     <!-- ══ TOP-UP MODAL ══ -->
     <div id="topupOverlay">
         <div id="topupModal">
+            <!-- Drag handle -->
+            <div style="display:flex;justify-content:center;padding:12px 0 0;">
+                <div style="width:36px;height:4px;border-radius:999px;background:rgba(255,255,255,0.15);"></div>
+            </div>
             <div class="tu-header">
                 <div class="tu-title-row">
                     <div class="tu-gold-icon">
@@ -2462,25 +2595,70 @@
     </div>
 
     <!-- ══ AUTH MODAL ══ -->
-    <div id="authModal" style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(10,10,15,0.96); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); overflow-y:auto;">
+    <div id="authModal" style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,0.7); backdrop-filter:blur(20px) saturate(150%); -webkit-backdrop-filter:blur(20px) saturate(150%); overflow:hidden;">
         <style>
-            .auth-wrap { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px 16px; }
-            .auth-box { width:100%; max-width:420px; background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:36px 32px; position:relative; }
-            @media(max-width:480px){ .auth-box{ padding:28px 20px; border-radius:16px; } }
-            .auth-close { position:absolute; top:16px; right:16px; width:32px; height:32px; border-radius:999px; background:var(--surface2); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--muted); font-size:16px; transition:background .15s, color .15s; }
-            .auth-close:hover { background:rgba(255,255,255,0.07); color:var(--text); }
-            .auth-logo { display:flex; align-items:center; gap:8px; margin-bottom:28px; }
+            .auth-wrap {
+                height: 100%;
+                display: flex;
+                align-items: flex-end;
+                justify-content: center;
+            }
+            @media (min-width: 600px) {
+                .auth-wrap { align-items: center; padding: 24px 16px; }
+            }
+            .auth-box {
+                width: 100%;
+                max-width: 460px;
+                background: linear-gradient(160deg, #16162a 0%, #0f0f1e 100%);
+                border: 1px solid rgba(255,255,255,0.1);
+                border-top: 1px solid rgba(255,255,255,0.14);
+                border-radius: 28px 28px 0 0;
+                padding: 8px 28px 36px;
+                position: relative;
+                box-shadow:
+                    0 1px 0 rgba(255,255,255,0.07) inset,
+                    0 -4px 60px rgba(0,0,0,0.7);
+                animation: sheetUp 0.3s cubic-bezier(0.32,0.72,0,1) both;
+                /* Safe area */
+                padding-bottom: max(36px, env(safe-area-inset-bottom, 36px));
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+                max-height: 95svh;
+            }
+            /* Drag handle */
+            .auth-box::before {
+                content: '';
+                display: block;
+                width: 36px;
+                height: 4px;
+                border-radius: 999px;
+                background: rgba(255,255,255,0.15);
+                margin: 10px auto 20px;
+            }
+            @media (min-width: 600px) {
+                .auth-box {
+                    border-radius: 24px;
+                    padding: 32px 32px 36px;
+                    max-height: calc(100svh - 48px);
+                }
+                .auth-box::before { display: none; }
+            }
+            @media(max-width:480px){ .auth-box { padding-left: 20px; padding-right: 20px; } }
+            .auth-close { position:absolute; top:20px; right:20px; width:32px; height:32px; border-radius:999px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.09); display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--muted); font-size:16px; transition:background .15s, color .15s; }
+            .auth-close:hover { background:rgba(255,255,255,0.1); color:var(--text); }
+            .auth-logo { display:flex; align-items:center; gap:8px; margin-bottom:24px; }
             .auth-logo span { font-family:'Syne',sans-serif; font-weight:800; font-size:1rem; letter-spacing:-0.04em; color:var(--text); }
             .auth-logo span em { background:linear-gradient(135deg,var(--accent),var(--accent2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; font-style:normal; font-weight:400; }
             .auth-title { font-family:'Syne',sans-serif; font-size:1.45rem; font-weight:800; letter-spacing:-0.04em; color:var(--text); margin-bottom:6px; }
             .auth-sub { font-size:12px; color:var(--muted); margin-bottom:28px; line-height:1.6; }
             .auth-label { display:block; font-size:11px; font-weight:500; letter-spacing:0.06em; text-transform:uppercase; color:var(--muted); margin-bottom:7px; }
-            .auth-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:11px 14px; font-size:14px; color:var(--text); outline:none; transition:border-color .2s; margin-bottom:16px; font-family:'DM Sans',sans-serif; }
-            .auth-input:focus { border-color:rgba(168,85,247,0.45); }
-            .auth-input::placeholder { color:var(--muted); }
-            .auth-btn { width:100%; padding:12px; border-radius:10px; background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; font-family:'Syne',sans-serif; font-weight:700; font-size:14px; border:none; cursor:pointer; transition:opacity .15s; margin-top:4px; letter-spacing:0.01em; }
-            .auth-btn:hover { opacity:.87; }
-            .auth-btn:disabled { opacity:.5; cursor:default; }
+            .auth-input { width:100%; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:12px 14px; font-size:15px; color:var(--text); outline:none; transition:border-color .2s, background .2s; margin-bottom:14px; font-family:'DM Sans',sans-serif; -webkit-appearance:none; appearance:none; }
+            .auth-input:focus { border-color:rgba(168,85,247,0.55); background:rgba(255,255,255,0.08); }
+            .auth-input::placeholder { color:rgba(139,138,168,0.5); }
+            .auth-btn { width:100%; padding:13px; border-radius:12px; background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; font-family:'Syne',sans-serif; font-weight:700; font-size:14px; border:none; cursor:pointer; transition:opacity .15s, transform .1s; margin-top:4px; letter-spacing:0.01em; box-shadow:0 4px 20px rgba(168,85,247,0.3); }
+            .auth-btn:hover { opacity:.88; }
+            .auth-btn:active { transform:scale(0.97); opacity:.85; }
+            .auth-btn:disabled { opacity:.45; cursor:default; transform:none; }
             .auth-switch { text-align:center; font-size:12px; color:var(--muted); margin-top:20px; }
             .auth-switch a { color:var(--accent); cursor:pointer; text-decoration:none; font-weight:500; }
             .auth-switch a:hover { text-decoration:underline; }
@@ -2488,18 +2666,10 @@
             .auth-ok  { font-size:12px; color:#34d399; background:rgba(52,211,153,0.1); border:1px solid rgba(52,211,153,0.2); border-radius:8px; padding:9px 12px; margin-bottom:14px; display:none; }
             .auth-divider { display:flex; align-items:center; gap:10px; margin:20px 0; color:var(--muted); font-size:11px; }
             .auth-divider::before,.auth-divider::after { content:''; flex:1; height:1px; background:var(--border); }
-            /* ── Dashboard ── */
-            #dashModal { display:none; position:fixed; inset:0; z-index:1000; background:rgba(10,10,15,0.97); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); overflow-y:auto; }
-            .dash-wrap { min-height:100vh; display:flex; flex-direction:column; }
-            .dash-header { position:sticky; top:0; background:rgba(18,18,26,0.9); border-bottom:1px solid var(--border); backdrop-filter:blur(20px); padding:0 24px; height:60px; display:flex; align-items:center; justify-content:space-between; z-index:10; }
-            .dash-logo { font-family:'Syne',sans-serif; font-weight:800; font-size:.95rem; letter-spacing:-0.04em; color:var(--text); }
-            .dash-logo em { background:linear-gradient(135deg,var(--accent),var(--accent2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; font-style:normal; font-weight:400; }
-            .dash-signout { font-size:12px; color:var(--muted); cursor:pointer; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:6px 12px; transition:border-color .2s,color .2s; }
-            .dash-signout:hover { border-color:rgba(255,255,255,.18); color:var(--text); }
-            .dash-close { width:32px; height:32px; border-radius:999px; background:var(--surface2); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--muted); transition:background .15s,color .15s,border-color .15s; flex-shrink:0; }
-            .dash-close:hover { background:rgba(255,255,255,0.07); color:var(--text); border-color:rgba(255,255,255,.18); }
-            .dash-header-right { display:flex; align-items:center; gap:8px; }
-            .dash-body { flex:1; max-width:700px; width:100%; margin:0 auto; padding:32px 20px 60px; }
+            /* ── Dashboard (these are overridden by the dashModal's own style block below) ── */
+            #dashModal { display:none; position:fixed; inset:0; z-index:1000; background:rgba(8,8,14,0.97); backdrop-filter:blur(28px) saturate(160%); -webkit-backdrop-filter:blur(28px) saturate(160%); overflow:hidden; }
+            .dash-wrap { height:100%; display:flex; flex-direction:column; overflow:hidden; }
+            .dash-body { flex:1; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; padding-bottom:env(safe-area-inset-bottom,24px); }
             .dash-greeting { font-family:'Syne',sans-serif; font-weight:800; font-size:1.5rem; letter-spacing:-0.04em; color:var(--text); margin-bottom:4px; }
             .dash-email-line { font-size:12px; color:var(--muted); margin-bottom:32px; }
             .dash-tabs { display:flex; gap:6px; margin-bottom:28px; flex-wrap:wrap; }
@@ -2509,46 +2679,15 @@
             .dash-panel { display:none; }
             .dash-panel.active { display:block; }
             .dash-section-title { font-family:'Syne',sans-serif; font-size:.85rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); margin-bottom:16px; }
-            .plan-badge-current { display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg,rgba(168,85,247,.15),rgba(244,114,182,.1)); border:1px solid rgba(168,85,247,.3); border-radius:999px; padding:5px 14px; font-size:11px; font-weight:600; color:var(--accent); letter-spacing:.05em; text-transform:uppercase; margin-bottom:20px; }
-            .dash-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:20px; margin-bottom:12px; }
-            .dash-card-title { font-family:'Syne',sans-serif; font-weight:700; font-size:13px; color:var(--text); margin-bottom:4px; }
-            .dash-card-sub { font-size:12px; color:var(--muted); }
-            .plan-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; margin-top:16px; }
-            .plan-opt { background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:16px; cursor:pointer; transition:border-color .2s,background .2s; }
-            .plan-opt:hover { border-color:var(--border-glow); }
-            .plan-opt.selected { border-color:rgba(168,85,247,.5); background:rgba(168,85,247,.07); }
-            .plan-opt-name { font-family:'Syne',sans-serif; font-weight:700; font-size:13px; color:var(--text); margin-bottom:2px; }
-            .plan-opt-price { font-size:11px; color:var(--muted); }
-
-            /* New plan row styles */
-            .plan-opt-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 20px; cursor:pointer; border-bottom:1px solid var(--border); transition:background .15s; }
+            /* Plan rows */
+            .plan-opt-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 20px; cursor:pointer; border-bottom:1px solid rgba(255,255,255,0.06); transition:background .15s; }
             .plan-opt-row:last-child { border-bottom:none; }
             .plan-opt-row:hover { background:rgba(255,255,255,.025); }
             .plan-opt-row.selected { background:rgba(168,85,247,.06); }
-            .plan-opt-row-featured { background:rgba(244,114,182,.025); }
-            .plan-opt-row-featured:hover { background:rgba(244,114,182,.05); }
-            .plan-opt-icon { width:36px; height:36px; border-radius:10px; border:1px solid; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-            .plan-opt-name-r { font-family:'Syne',sans-serif; font-weight:700; font-size:13px; color:var(--text); }
-            .plan-opt-desc { font-size:11px; color:var(--muted); margin-top:2px; }
-            .plan-opt-price-r { font-family:'Syne',sans-serif; font-weight:800; font-size:15px; color:var(--text); letter-spacing:-.03em; }
-            .plan-opt-per { font-size:10px; color:var(--muted); }
-            .plan-opt-radio { width:18px; height:18px; border-radius:999px; border:1.5px solid var(--border); flex-shrink:0; transition:border-color .15s, background .15s; display:flex; align-items:center; justify-content:center; }
+            .plan-opt-radio { width:18px; height:18px; border-radius:999px; border:1.5px solid rgba(255,255,255,0.15); flex-shrink:0; transition:border-color .15s,background .15s; display:flex; align-items:center; justify-content:center; }
             .plan-opt-radio.checked { border-color:var(--accent); background:var(--accent); }
             .plan-opt-radio.checked::after { content:''; display:block; width:7px; height:7px; border-radius:999px; background:#fff; }
-            .dash-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:10px 14px; font-size:13px; color:var(--text); outline:none; transition:border-color .2s; margin-bottom:10px; font-family:'DM Sans',sans-serif; }
-            .dash-input:focus { border-color:rgba(168,85,247,.45); }
-            .dash-input::placeholder { color:var(--muted); }
-            .dash-btn-sm { padding:9px 20px; border-radius:9px; background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; font-family:'Syne',sans-serif; font-weight:700; font-size:12px; border:none; cursor:pointer; transition:opacity .15s; }
-            .dash-btn-sm:hover { opacity:.85; }
-            .order-row { display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid var(--border); gap:12px; }
-            .order-row:last-child { border-bottom:none; }
-            .order-name { font-size:13px; color:var(--text); font-weight:500; }
-            .order-meta { font-size:11px; color:var(--muted); margin-top:2px; }
-            .order-status { font-size:10px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; padding:3px 10px; border-radius:999px; }
-            .status-shipped { background:rgba(52,211,153,.12); color:#34d399; border:1px solid rgba(52,211,153,.25); }
-            .status-processing { background:rgba(168,85,247,.12); color:var(--accent); border:1px solid rgba(168,85,247,.25); }
             .no-data { text-align:center; padding:48px 0; color:var(--muted); font-size:13px; }
-            .no-data-icon { font-size:32px; margin-bottom:10px; }
         </style>
 
         <div class="auth-wrap">
@@ -2614,38 +2753,42 @@
     <!-- ══ DASHBOARD MODAL ══ -->
     <div id="dashModal">
         <style>
-            /* ── Dashboard Modal Reset ── */
+            /* ── Dashboard Modal — true native fixed layout ── */
             #dashModal {
                 display: none;
                 position: fixed;
                 inset: 0;
                 z-index: 1000;
-                background: rgba(8,8,14,0.96);
-                backdrop-filter: blur(24px);
-                -webkit-backdrop-filter: blur(24px);
-                overflow: hidden;
+                background: rgba(8,8,14,0.97);
+                backdrop-filter: blur(28px) saturate(160%);
+                -webkit-backdrop-filter: blur(28px) saturate(160%);
+                overflow: hidden; /* body never scrolls — only dash-body does */
             }
             .dash-wrap {
                 height: 100%;
                 display: flex;
                 flex-direction: column;
                 overflow: hidden;
-                position: relative;
             }
 
-            /* ── Dash Header ── */
+            /* ── Dash Header — premium sticky glass ── */
             .dash-header {
                 position: relative;
                 flex-shrink: 0;
-                background: rgba(18,18,26,0.8);
-                border-bottom: 1px solid rgba(255,255,255,0.07);
-                backdrop-filter: blur(20px);
+                background: linear-gradient(180deg,
+                    rgba(18,18,30,0.95) 0%,
+                    rgba(14,14,22,0.88) 100%);
+                border-bottom: 1px solid rgba(255,255,255,0.08);
+                backdrop-filter: blur(28px) saturate(160%);
+                -webkit-backdrop-filter: blur(28px) saturate(160%);
                 padding: 0 20px;
                 height: 58px;
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
                 z-index: 10;
+                /* Subtle top highlight */
+                box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset;
             }
             .dash-logo {
                 font-family: 'Syne', sans-serif;
@@ -2689,19 +2832,19 @@
             }
             .dash-close-btn:hover { background: rgba(255,255,255,0.09); color: var(--text); border-color: rgba(255,255,255,.18); }
 
-            /* ── Scrollable body ── */
+            /* ── Scrollable body — true native inner scroll ── */
             .dash-body {
                 flex: 1;
                 overflow-y: auto;
                 overflow-x: hidden;
                 -webkit-overflow-scrolling: touch;
-                padding-bottom: 24px;
+                overscroll-behavior: contain; /* no bounce propagating to page */
+                padding-bottom: env(safe-area-inset-bottom, 24px);
             }
             .dash-inner {
-                max-width: 640px;
                 width: 100%;
-                margin: 0 auto;
-                padding: 28px 20px 20px;
+                padding: 24px 20px 20px;
+                box-sizing: border-box;
             }
 
             /* ── Profile hero block ── */
@@ -2709,12 +2852,19 @@
                 display: flex;
                 align-items: center;
                 gap: 16px;
-                margin-bottom: 28px;
-                padding: 20px;
-                background: rgba(255,255,255,0.03);
-                border: 1px solid rgba(255,255,255,0.07);
-                border-radius: 18px;
-                backdrop-filter: blur(8px);
+                margin-bottom: 20px;
+                padding: 18px 20px;
+                background: linear-gradient(145deg,
+                    rgba(168,85,247,0.08) 0%,
+                    rgba(255,255,255,0.03) 100%);
+                border: 1px solid rgba(168,85,247,0.15);
+                border-top: 1px solid rgba(168,85,247,0.22);
+                border-radius: 20px;
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                box-shadow:
+                    0 1px 0 rgba(255,255,255,0.06) inset,
+                    0 4px 20px rgba(0,0,0,0.2);
             }
             .dash-avatar-lg {
                 width: 52px; height: 52px;
@@ -2757,19 +2907,23 @@
                 margin-top: 6px;
             }
 
-            /* ── Top Tab Bar (always visible, right under the header) ── */
+            /* ── Top Tab Bar — premium glassy pill navigation ── */
             .dash-bottom-nav {
                 position: relative;
                 flex-shrink: 0;
-                height: 52px;
-                background: rgba(13,13,20,0.97);
-                backdrop-filter: blur(20px);
-                -webkit-backdrop-filter: blur(20px);
-                border-bottom: 1px solid rgba(255,255,255,0.07);
+                height: 54px;
+                background: linear-gradient(180deg,
+                    rgba(12,12,20,0.98) 0%,
+                    rgba(10,10,16,0.95) 100%);
+                backdrop-filter: blur(20px) saturate(150%);
+                -webkit-backdrop-filter: blur(20px) saturate(150%);
+                border-bottom: 1px solid rgba(255,255,255,0.06);
                 display: flex;
                 align-items: stretch;
                 z-index: 9;
                 width: 100%;
+                /* Top inner highlight */
+                box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset;
             }
             .dash-nav-item {
                 flex: 1;
@@ -2779,52 +2933,75 @@
                 justify-content: center;
                 gap: 3px;
                 cursor: pointer;
-                color: var(--muted);
-                transition: color 0.18s;
+                color: rgba(139,138,168,0.55);
+                transition: color 0.18s ease;
                 position: relative;
                 -webkit-tap-highlight-color: transparent;
+                /* Tap press effect */
+                transition: color 0.18s, transform 0.1s;
             }
+            .dash-nav-item:active { transform: scale(0.92); }
+
+            /* Active indicator — glowing top pill */
             .dash-nav-item::before {
                 content: '';
                 position: absolute;
-                top: 0; left: 20%; right: 20%;
+                top: 0; left: 25%; right: 25%;
                 height: 2px;
-                border-radius: 0 0 2px 2px;
+                border-radius: 0 0 3px 3px;
                 background: linear-gradient(90deg, var(--accent), var(--accent2));
+                box-shadow: 0 0 8px rgba(168,85,247,0.6);
                 opacity: 0;
-                transition: opacity 0.18s;
+                transform: scaleX(0.6);
+                transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.34,1.5,0.64,1);
             }
             .dash-nav-item.active { color: var(--text); }
-            .dash-nav-item.active::before { opacity: 1; }
-            .dash-nav-item svg { transition: transform 0.18s; }
-            .dash-nav-item.active svg { transform: scale(1.1); }
+            .dash-nav-item.active::before {
+                opacity: 1;
+                transform: scaleX(1);
+            }
+            .dash-nav-item svg {
+                transition: transform 0.18s cubic-bezier(0.34,1.4,0.64,1);
+                flex-shrink: 0;
+            }
+            .dash-nav-item.active svg { transform: scale(1.12) translateY(-1px); }
             .dash-nav-label {
                 font-family: 'Syne', sans-serif;
                 font-size: 9px;
                 font-weight: 700;
-                letter-spacing: 0.05em;
+                letter-spacing: 0.06em;
                 text-transform: uppercase;
+                transition: letter-spacing 0.18s;
             }
+            .dash-nav-item.active .dash-nav-label { letter-spacing: 0.04em; }
 
             /* ── Panels ── */
             .dash-panel { display: none; }
             .dash-panel.active { display: block; }
 
-            /* ── Glass cards ── */
+            /* ── Premium glass cards ── */
             .glass-card {
-                background: rgba(255,255,255,0.03);
-                border: 1px solid rgba(255,255,255,0.07);
-                border-radius: 16px;
+                background: linear-gradient(145deg,
+                    rgba(255,255,255,0.055) 0%,
+                    rgba(255,255,255,0.025) 100%);
+                border: 1px solid rgba(255,255,255,0.09);
+                border-top: 1px solid rgba(255,255,255,0.13);
+                border-radius: 18px;
                 padding: 20px;
-                margin-bottom: 14px;
-                backdrop-filter: blur(8px);
-                -webkit-backdrop-filter: blur(8px);
+                margin-bottom: 12px;
+                backdrop-filter: blur(20px) saturate(180%);
+                -webkit-backdrop-filter: blur(20px) saturate(180%);
+                box-shadow:
+                    0 1px 0 rgba(255,255,255,0.07) inset,
+                    0 4px 24px rgba(0,0,0,0.25),
+                    0 1px 3px rgba(0,0,0,0.18);
+                transition: border-color 0.2s, box-shadow 0.2s;
             }
             .glass-card-title {
                 font-family: 'Syne', sans-serif;
-                font-size: 11px;
+                font-size: 10px;
                 font-weight: 700;
-                letter-spacing: .07em;
+                letter-spacing: .09em;
                 text-transform: uppercase;
                 color: var(--muted);
                 margin-bottom: 16px;
@@ -2832,7 +3009,7 @@
                 align-items: center;
                 gap: 7px;
             }
-            .glass-card-title svg { opacity: 0.6; }
+            .glass-card-title svg { opacity: 0.55; flex-shrink: 0; }
 
             /* ── Address saved summary ── */
             #addrSavedSummary {
@@ -2956,32 +3133,36 @@
             .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
             @media(max-width:480px){ .field-row { grid-template-columns: 1fr; } }
 
-            /* ── Alert strips ── */
+            /* ── Alert strips — premium glass ── */
             .alert-err {
                 font-size: 12px; color: #f87171;
-                background: rgba(248,113,113,0.08);
-                border: 1px solid rgba(248,113,113,0.2);
-                border-radius: 9px; padding: 10px 13px;
+                background: rgba(248,113,113,0.07);
+                border: 1px solid rgba(248,113,113,0.18);
+                border-left: 3px solid rgba(248,113,113,0.7);
+                border-radius: 10px; padding: 10px 13px;
                 margin-bottom: 14px; display: none;
-                border-left: 3px solid #f87171;
+                backdrop-filter: blur(8px);
+                line-height: 1.5;
             }
             .alert-ok {
                 font-size: 12px; color: #34d399;
-                background: rgba(52,211,153,0.08);
-                border: 1px solid rgba(52,211,153,0.2);
-                border-radius: 9px; padding: 10px 13px;
+                background: rgba(52,211,153,0.07);
+                border: 1px solid rgba(52,211,153,0.18);
+                border-left: 3px solid rgba(52,211,153,0.7);
+                border-radius: 10px; padding: 10px 13px;
                 margin-bottom: 14px; display: none;
-                border-left: 3px solid #34d399;
+                backdrop-filter: blur(8px);
+                line-height: 1.5;
             }
 
-            /* ── Save button ── */
+            /* ── Save button — premium gradient with glow ── */
             .save-btn {
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 gap: 7px;
-                padding: 11px 20px;
-                border-radius: 10px;
+                padding: 12px 20px;
+                border-radius: 12px;
                 background: linear-gradient(135deg, var(--accent), var(--accent2));
                 color: #fff;
                 font-family: 'Syne', sans-serif;
@@ -2989,14 +3170,15 @@
                 font-size: 13px;
                 border: none;
                 cursor: pointer;
-                transition: opacity .15s, transform .15s;
+                transition: opacity .15s, transform .1s;
                 letter-spacing: 0.01em;
                 width: 100%;
                 margin-top: 4px;
+                box-shadow: 0 4px 18px rgba(168,85,247,0.28);
             }
-            .save-btn:hover { opacity: .87; transform: translateY(-1px); }
-            .save-btn:active { transform: translateY(0); }
-            .save-btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+            .save-btn:hover { opacity: .88; }
+            .save-btn:active { transform: scale(0.97); opacity: .84; }
+            .save-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; box-shadow: none; }
 
             /* ── Section title ── */
             .dash-section-title {
@@ -3075,6 +3257,55 @@
                 .dash-avatar-lg { width: 44px; height: 44px; font-size: 17px; }
                 .dash-greeting { font-size: 1.05rem; }
             }
+
+            /* ══ SETTINGS-STYLE ACCOUNT TAB ══ */
+            .settings-identity-card {
+                background: linear-gradient(145deg, rgba(255,255,255,0.055), rgba(255,255,255,0.02));
+                border: 1px solid rgba(255,255,255,0.09);
+                border-top: 1px solid rgba(255,255,255,0.13);
+                border-radius: 16px;
+                padding: 14px 16px;
+                margin-bottom: 10px;
+                backdrop-filter: blur(16px);
+                -webkit-backdrop-filter: blur(16px);
+            }
+            .settings-email-row { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+            .settings-email-text { font-size:14px; font-weight:500; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+            .settings-plan-pill { flex-shrink:0; font-family:'Syne',sans-serif; font-size:11px; font-weight:700; letter-spacing:0.04em; color:var(--text); background:rgba(255,255,255,0.09); border:1px solid rgba(255,255,255,0.14); border-radius:999px; padding:4px 12px; }
+            .settings-upgrade-card { background:linear-gradient(145deg,rgba(168,85,247,0.1),rgba(244,114,182,0.06)); border:1px solid rgba(168,85,247,0.22); border-radius:16px; padding:16px; margin-bottom:10px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+            .settings-upgrade-card.hidden { display:none; }
+            .settings-upgrade-body { flex:1; min-width:0; }
+            .settings-upgrade-title { font-family:'Syne',sans-serif; font-size:14px; font-weight:800; color:var(--text); margin-bottom:3px; }
+            .settings-upgrade-sub { font-size:12px; color:var(--muted); line-height:1.5; }
+            .settings-upgrade-btn { flex-shrink:0; padding:8px 18px; border-radius:999px; background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.18); color:var(--text); font-family:'Syne',sans-serif; font-size:13px; font-weight:700; cursor:pointer; transition:background .15s; touch-action:manipulation; }
+            .settings-upgrade-btn:hover { background:rgba(255,255,255,0.18); }
+            .settings-upgrade-btn:active { transform:scale(0.96); }
+            .settings-group { background:linear-gradient(145deg,rgba(255,255,255,0.055),rgba(255,255,255,0.02)); border:1px solid rgba(255,255,255,0.09); border-top:1px solid rgba(255,255,255,0.12); border-radius:16px; overflow:hidden; margin-bottom:10px; backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); box-shadow:0 1px 0 rgba(255,255,255,0.06) inset,0 2px 12px rgba(0,0,0,0.15); }
+            .settings-row { display:flex; align-items:center; gap:13px; padding:13px 16px; cursor:pointer; transition:background .12s; -webkit-tap-highlight-color:transparent; touch-action:manipulation; background:none; border:none; width:100%; text-align:left; color:var(--text); }
+            .settings-row:active { background:rgba(255,255,255,0.05); }
+            .settings-row-toggle { cursor:default; }
+            .settings-row-toggle:active { background:none; }
+            .settings-row-divider { height:1px; background:rgba(255,255,255,0.06); margin:0 16px; }
+            .settings-row-icon { width:30px; height:30px; border-radius:9px; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.09); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--muted); }
+            .settings-row-icon-danger { background:rgba(248,113,113,0.1); border-color:rgba(248,113,113,0.18); color:#f87171; }
+            .settings-row-label { flex:1; font-size:14px; font-weight:500; color:var(--text); }
+            .settings-row-label-danger { color:#f87171; }
+            .settings-row-danger:active { background:rgba(248,113,113,0.05); }
+            .settings-row-value { font-size:13px; color:var(--muted); }
+            .settings-row-chevron { color:rgba(139,138,168,0.4); flex-shrink:0; }
+            .settings-row-sub { font-size:11px; color:var(--muted); margin-top:1px; }
+            .settings-row-check { flex-shrink:0; }
+            .settings-row-check.hidden { display:none; }
+            /* Sub-panels */
+            .settings-sub-panel { display:none; position:absolute; inset:0; background:var(--bg); z-index:20; flex-direction:column; overflow:hidden; transform:translateX(100%); transition:transform 0.28s cubic-bezier(0.32,0.72,0,1); }
+            .settings-sub-panel.open { display:flex; transform:translateX(0); }
+            .settings-sub-header { flex-shrink:0; height:52px; display:flex; align-items:center; gap:10px; padding:0 16px; border-bottom:1px solid rgba(255,255,255,0.07); background:linear-gradient(180deg,rgba(16,16,26,0.96),rgba(12,12,20,0.9)); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); }
+            .settings-back-btn { width:32px; height:32px; border-radius:999px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.09); display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--muted); flex-shrink:0; transition:background .15s,color .15s; touch-action:manipulation; }
+            .settings-back-btn:hover { background:rgba(255,255,255,0.1); color:var(--text); }
+            .settings-back-btn:active { transform:scale(0.93); }
+            .settings-sub-title { font-family:'Syne',sans-serif; font-size:14px; font-weight:700; color:var(--text); letter-spacing:-0.02em; }
+            .settings-sub-body { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; padding:16px; }
+            .settings-sub-section-title { font-family:'Syne',sans-serif; font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:12px; }
 
             /* ── Dashboard loading spinner ── */
             #dashSpinner {
@@ -3302,130 +3533,280 @@
 
                     <!-- ── SETTINGS TAB ── -->
                     <div id="tabAccount" class="dash-panel">
-                        <div class="glass-card" style="display:none;padding:0;overflow:hidden;margin-bottom:14px;">
-                            <div style="padding:16px 20px 14px;border-bottom:1px solid rgba(255,255,255,0.06);">
-                                <div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:7px;">
-                                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="opacity:.6"><circle cx="6.5" cy="4" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 11c0-2.485 2.239-4.5 5-4.5s5 2.015 5 4.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-                                    Account
+
+                        <!-- ── Email + Plan pill row (like Claude settings top bar) ── -->
+                        <div class="settings-identity-card">
+                            <div class="settings-email-row">
+                                <span class="settings-email-text" id="settingsEmail">—</span>
+                                <span class="settings-plan-pill" id="settingsPlanBadge">FREE</span>
+                            </div>
+                        </div>
+
+                        <!-- ── Upgrade prompt (shown when on Free plan) ── -->
+                        <div class="settings-upgrade-card" id="settingsUpgradeCard">
+                            <div class="settings-upgrade-body">
+                                <div class="settings-upgrade-title">Want more Siterifty?</div>
+                                <div class="settings-upgrade-sub">Upgrade for more listings and lower fees.</div>
+                            </div>
+                            <button class="settings-upgrade-btn" onclick="openUpgradeModal('starter')">Upgrade</button>
+                        </div>
+
+                        <!-- ── Group 1: Account ── -->
+                        <div class="settings-group">
+                            <div class="settings-row" onclick="openSettingsPanel('profile')">
+                                <div class="settings-row-icon">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5.5" r="3" stroke="currentColor" stroke-width="1.3"/><path d="M2 14c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
                                 </div>
-                                <!-- Profile pic + name + plan row -->
-                                <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
-                                    <div style="position:relative;flex-shrink:0;">
-                                        <div id="settingsAvatarCircle" style="width:60px;height:60px;border-radius:999px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#fff;border:2px solid rgba(255,255,255,0.12);cursor:pointer;" title="Change avatar">?</div>
-                                        <div style="position:absolute;bottom:0;right:0;width:18px;height:18px;border-radius:999px;background:var(--surface2);border:1.5px solid rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;cursor:pointer;" title="Change photo">
-                                            <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M1 9h8M7.5 1.5a1.06 1.06 0 0 1 1.5 1.5L3.5 8.5l-2 .5.5-2Z" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                        </div>
+                                <span class="settings-row-label">Profile</span>
+                                <svg class="settings-row-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none"><path d="M1 1l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </div>
+                            <div class="settings-row-divider"></div>
+                            <div class="settings-row" onclick="openSettingsPanel('billing')">
+                                <div class="settings-row-icon">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="4" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M1 7.5h14" stroke="currentColor" stroke-width="1.3"/><circle cx="12.5" cy="10.5" r="1" fill="currentColor"/></svg>
+                                </div>
+                                <span class="settings-row-label">Billing</span>
+                                <svg class="settings-row-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none"><path d="M1 1l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </div>
+                        </div>
+
+                        <!-- ── Group 2: Preferences ── -->
+                        <div class="settings-group">
+                            <div class="settings-row" onclick="openSettingsPanel('appearance')">
+                                <div class="settings-row-icon">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="1.3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                                </div>
+                                <span class="settings-row-label">Color mode</span>
+                                <span class="settings-row-value" id="settingsColorModeVal">System</span>
+                                <svg class="settings-row-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none"><path d="M1 1l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </div>
+                            <div class="settings-row-divider"></div>
+                            <div class="settings-row" onclick="openSettingsPanel('notifications')">
+                                <div class="settings-row-icon">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2a5 5 0 0 0-5 5v2.5L1.5 11h13L13 9.5V7a5 5 0 0 0-5-5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M6.5 13a1.5 1.5 0 0 0 3 0" stroke="currentColor" stroke-width="1.3"/></svg>
+                                </div>
+                                <span class="settings-row-label">Notifications</span>
+                                <svg class="settings-row-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none"><path d="M1 1l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </div>
+                        </div>
+
+                        <!-- ── Group 3: Support ── -->
+                        <div class="settings-group">
+                            <div class="settings-row" onclick="openSettingsPanel('contact')">
+                                <div class="settings-row-icon">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1.5C4.41 1.5 1.5 4.19 1.5 7.56c0 1.87.84 3.55 2.16 4.77L2.9 14.5l2.96-1.25c.67.21 1.38.31 2.14.31C11.59 13.56 14.5 10.87 14.5 7.5S11.59 1.5 8 1.5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+                                </div>
+                                <span class="settings-row-label">Contact us</span>
+                                <svg class="settings-row-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none"><path d="M1 1l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </div>
+                            <div class="settings-row-divider"></div>
+                            <div class="settings-row" onclick="openSettingsPanel('about')">
+                                <div class="settings-row-icon">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3"/><path d="M8 7v5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="8" cy="4.5" r=".8" fill="currentColor"/></svg>
+                                </div>
+                                <span class="settings-row-label">About Siterifty</span>
+                                <svg class="settings-row-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none"><path d="M1 1l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </div>
+                        </div>
+
+                        <!-- ── Sign out row ── -->
+                        <div class="settings-group">
+                            <div class="settings-row settings-row-danger" onclick="doSignOut()">
+                                <div class="settings-row-icon settings-row-icon-danger">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 8h8M11 5l3 3-3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                                </div>
+                                <span class="settings-row-label settings-row-label-danger">Sign out</span>
+                            </div>
+                        </div>
+
+                        <!-- ══ SUB-PANELS (slide in over settings list) ══ -->
+
+                        <!-- Profile sub-panel -->
+                        <div class="settings-sub-panel" id="subProfile">
+                            <div class="settings-sub-header">
+                                <button class="settings-back-btn" onclick="closeSettingsPanel('subProfile')">
+                                    <svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7l6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                </button>
+                                <span class="settings-sub-title">Profile</span>
+                            </div>
+                            <div class="settings-sub-body">
+                                <div id="accErr" class="alert-err"></div>
+                                <div id="accOk" class="alert-ok"></div>
+                                <div class="field-group">
+                                    <label class="field-label">Display name</label>
+                                    <input id="accUsername" class="dash-input" type="text" placeholder="coolperson123" autocomplete="off" spellcheck="false">
+                                </div>
+                                <div class="field-group" style="margin-bottom:20px">
+                                    <label class="field-label">Email address</label>
+                                    <input id="accEmail" class="dash-input" type="email" disabled style="opacity:.4;cursor:not-allowed;">
+                                </div>
+                                <button class="save-btn" onclick="saveAccount()" id="btnSaveAccount">
+                                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 7l3.5 3.5 5.5-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    Save name
+                                </button>
+                                <div style="height:20px;"></div>
+                                <div class="settings-sub-section-title">Password</div>
+                                <div id="pwErr" class="alert-err"></div>
+                                <div id="pwOk" class="alert-ok"></div>
+                                <div class="field-group">
+                                    <label class="field-label">New password</label>
+                                    <div class="field-wrap">
+                                        <input id="accPassword" class="dash-input" type="password" placeholder="Min. 6 characters" autocomplete="new-password">
+                                        <button class="pw-toggle" type="button" onclick="togglePw('accPassword',this)" tabindex="-1">
+                                            <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M1 7.5S3.5 3 7.5 3s6.5 4.5 6.5 4.5S13 12 9 12M1 7.5C1 7.5 3.5 12 7.5 12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="7.5" cy="7.5" r="1.8" stroke="currentColor" stroke-width="1.2"/></svg>
+                                        </button>
                                     </div>
-                                    <div style="flex:1;min-width:0;">
-                                        <div id="settingsName" style="font-family:'Syne',sans-serif;font-weight:800;font-size:1rem;letter-spacing:-.02em;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Loading…</div>
-                                        <div id="settingsEmail" style="font-size:11px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
-                                        <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
-                                            <div id="settingsPlanBadge" style="display:inline-flex;align-items:center;gap:5px;background:linear-gradient(135deg,rgba(168,85,247,.15),rgba(244,114,182,.1));border:1px solid rgba(168,85,247,.3);border-radius:999px;padding:3px 10px;font-size:9px;font-weight:700;color:var(--accent);letter-spacing:.06em;text-transform:uppercase;">
-                                                <svg width="8" height="8" viewBox="0 0 10 10" fill="none"><path d="M5 1l1.18 2.39L9 3.82 7 5.76l.47 2.74L5 7.23 2.53 8.5 3 5.76 1 3.82l2.82-.43Z" fill="currentColor"/></svg>
-                                                FREE PLAN
-                                            </div>
-                                            <button onclick="switchTab('plan')" style="font-size:10px;font-weight:700;font-family:'Syne',sans-serif;color:var(--accent);background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.25);border-radius:999px;padding:3px 10px;cursor:pointer;transition:opacity .15s;letter-spacing:.04em;">Upgrade Now</button>
-                                        </div>
+                                </div>
+                                <div class="field-group" style="margin-bottom:20px">
+                                    <label class="field-label">Confirm new password</label>
+                                    <div class="field-wrap">
+                                        <input id="accPasswordConfirm" class="dash-input" type="password" placeholder="Repeat password" autocomplete="new-password">
+                                        <button class="pw-toggle" type="button" onclick="togglePw('accPasswordConfirm',this)" tabindex="-1">
+                                            <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M1 7.5S3.5 3 7.5 3s6.5 4.5 6.5 4.5S13 12 9 12M1 7.5C1 7.5 3.5 12 7.5 12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="7.5" cy="7.5" r="1.8" stroke="currentColor" stroke-width="1.2"/></svg>
+                                        </button>
+                                    </div>
+                                    <div class="field-hint" id="pwMatchHint"></div>
+                                </div>
+                                <button class="save-btn" onclick="savePassword()" id="btnSavePw">
+                                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="2" y="5.5" width="9" height="6.5" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M4.5 5.5V4a2 2 0 1 1 4 0v1.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+                                    Update password
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Billing sub-panel -->
+                        <div class="settings-sub-panel" id="subBilling">
+                            <div class="settings-sub-header">
+                                <button class="settings-back-btn" onclick="closeSettingsPanel('subBilling')">
+                                    <svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7l6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                </button>
+                                <span class="settings-sub-title">Billing</span>
+                            </div>
+                            <div class="settings-sub-body" id="subBillingBody">
+                                <!-- populated by populateAccountTab -->
+                            </div>
+                        </div>
+
+                        <!-- Appearance sub-panel -->
+                        <div class="settings-sub-panel" id="subAppearance">
+                            <div class="settings-sub-header">
+                                <button class="settings-back-btn" onclick="closeSettingsPanel('subAppearance')">
+                                    <svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7l6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                </button>
+                                <span class="settings-sub-title">Color mode</span>
+                            </div>
+                            <div class="settings-sub-body">
+                                <div class="settings-group" style="margin-top:0;">
+                                    <div class="settings-row settings-row-selectable" id="themeRowDark" onclick="setTheme('dark',this);selectThemeRow('dark')">
+                                        <div class="settings-row-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.5 10.5A6.5 6.5 0 0 1 5.5 2.5a6.5 6.5 0 1 0 8 8Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg></div>
+                                        <span class="settings-row-label">Dark</span>
+                                        <svg class="settings-row-check hidden" id="themeCheckDark" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7l3.5 3.5 6.5-7" stroke="#a855f7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    </div>
+                                    <div class="settings-row-divider"></div>
+                                    <div class="settings-row settings-row-selectable" id="themeRowLight" onclick="setTheme('light',this);selectThemeRow('light')">
+                                        <div class="settings-row-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="1.3"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></div>
+                                        <span class="settings-row-label">Light</span>
+                                        <svg class="settings-row-check hidden" id="themeCheckLight" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7l3.5 3.5 6.5-7" stroke="#a855f7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    </div>
+                                    <div class="settings-row-divider"></div>
+                                    <div class="settings-row settings-row-selectable" id="themeRowPurple" onclick="setTheme('purple',this);selectThemeRow('purple')">
+                                        <div class="settings-row-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.5" stroke="#a855f7" stroke-width="1.3"/><circle cx="8" cy="8" r="2" fill="#a855f7"/></svg></div>
+                                        <span class="settings-row-label">Purple</span>
+                                        <svg class="settings-row-check hidden" id="themeCheckPurple" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7l3.5 3.5 6.5-7" stroke="#a855f7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
 
-                                <!-- Account management buttons -->
-                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                                    <button onclick="scrollToSection('changeName')" style="padding:9px 12px;border-radius:9px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:var(--muted);font-family:'Syne',sans-serif;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:border-color .15s,color .15s;" onmouseover="this.style.borderColor='rgba(255,255,255,.18)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='rgba(255,255,255,.08)';this.style.color='var(--muted)'">
-                                        <svg width="11" height="11" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="4" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 11c0-2.485 2.239-4.5 5-4.5s5 2.015 5 4.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-                                        Edit Profile
-                                    </button>
-                                    <button onclick="scrollToSection('changePw')" style="padding:9px 12px;border-radius:9px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:var(--muted);font-family:'Syne',sans-serif;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:border-color .15s,color .15s;" onmouseover="this.style.borderColor='rgba(255,255,255,.18)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='rgba(255,255,255,.08)';this.style.color='var(--muted)'">
-                                        <svg width="11" height="11" viewBox="0 0 13 13" fill="none"><rect x="2" y="5.5" width="9" height="6.5" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M4.5 5.5V4a2 2 0 1 1 4 0v1.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-                                        Password
-                                    </button>
-                                    <button onclick="switchTab('plan')" style="padding:9px 12px;border-radius:9px;background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.2);color:var(--accent);font-family:'Syne',sans-serif;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:border-color .15s,background .15s;" onmouseover="this.style.background='rgba(168,85,247,.14)'" onmouseout="this.style.background='rgba(168,85,247,.08)'">
-                                        <svg width="11" height="11" viewBox="0 0 13 13" fill="none"><path d="M6.5 1l1.18 2.39L10.5 3.82l-2 1.94.47 2.74L6.5 7.23 4.03 8.5l.47-2.74L2.5 3.82l2.82-.43Z" fill="currentColor"/></svg>
-                                        Upgrade Plan
-                                    </button>
-                                    <button onclick="scrollToSection('contactUs')" style="padding:9px 12px;border-radius:9px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:var(--muted);font-family:'Syne',sans-serif;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:border-color .15s,color .15s;" onmouseover="this.style.borderColor='rgba(255,255,255,.18)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='rgba(255,255,255,.08)';this.style.color='var(--muted)'">
-                                        <svg width="11" height="11" viewBox="0 0 13 13" fill="none"><path d="M6.5 1C3.47 1 1 3.24 1 6.05c0 1.56.7 2.96 1.8 3.97L2.1 12l2.47-1.04C5.25 11.3 5.87 11.2 6.5 11.2c3.03 0 5.5-2.24 5.5-5s-2.47-5-5.5-5Z" stroke="currentColor" stroke-width="1.2"/></svg>
-                                        Contact Us
-                                    </button>
+                        <!-- Notifications sub-panel -->
+                        <div class="settings-sub-panel" id="subNotifications">
+                            <div class="settings-sub-header">
+                                <button class="settings-back-btn" onclick="closeSettingsPanel('subNotifications')">
+                                    <svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7l6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                </button>
+                                <span class="settings-sub-title">Notifications</span>
+                            </div>
+                            <div class="settings-sub-body">
+                                <div class="settings-group" style="margin-top:0;">
+                                    <div class="settings-row settings-row-toggle">
+                                        <div class="settings-row-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M1 6.5l7 4 7-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></div>
+                                        <div style="flex:1;min-width:0;"><div class="settings-row-label">Sale alerts</div><div class="settings-row-sub">Email me when my site sells</div></div>
+                                        <div class="toggle-switch" id="notifSales" onclick="toggleNotif(this)" style="width:36px;height:20px;border-radius:999px;background:var(--accent);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;"><div style="width:16px;height:16px;border-radius:999px;background:#fff;position:absolute;top:2px;right:2px;transition:right .2s;left:auto;"></div></div>
+                                    </div>
+                                    <div class="settings-row-divider"></div>
+                                    <div class="settings-row settings-row-toggle">
+                                        <div class="settings-row-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.5 10.5H2.5a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h11a1 1 0 0 1 1 1v6.5a1 1 0 0 1-1 1ZM5 13h6M8 10.5V13" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></div>
+                                        <div style="flex:1;min-width:0;"><div class="settings-row-label">Buyer messages</div><div class="settings-row-sub">Email when a buyer contacts me</div></div>
+                                        <div class="toggle-switch" id="notifMessages" onclick="toggleNotif(this)" style="width:36px;height:20px;border-radius:999px;background:var(--accent);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;"><div style="width:16px;height:16px;border-radius:999px;background:#fff;position:absolute;top:2px;right:2px;transition:right .2s;left:auto;"></div></div>
+                                    </div>
+                                    <div class="settings-row-divider"></div>
+                                    <div class="settings-row settings-row-toggle">
+                                        <div class="settings-row-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1l1.5 3 3.5.5-2.5 2.5.5 3.5L8 9l-3 1.5.5-3.5L3 4.5 6.5 4Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg></div>
+                                        <div style="flex:1;min-width:0;"><div class="settings-row-label">Platform updates</div><div class="settings-row-sub">Monthly product news and tips</div></div>
+                                        <div class="toggle-switch" id="notifUpdates" onclick="toggleNotif(this)" style="width:36px;height:20px;border-radius:999px;background:rgba(255,255,255,0.15);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;"><div style="width:16px;height:16px;border-radius:999px;background:#fff;position:absolute;top:2px;left:2px;transition:left .2s;right:auto;"></div></div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Theme -->
-                        <div class="glass-card" id="themeSection">
-                            <div class="glass-card-title">
-                                <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="opacity:.6"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/><circle cx="6.5" cy="6.5" r="2" fill="currentColor"/></svg>
-                                Appearance
+                        <!-- Contact sub-panel -->
+                        <div class="settings-sub-panel" id="subContact">
+                            <div class="settings-sub-header">
+                                <button class="settings-back-btn" onclick="closeSettingsPanel('subContact')">
+                                    <svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7l6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                </button>
+                                <span class="settings-sub-title">Contact us</span>
                             </div>
-                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-                                <button class="theme-btn active" onclick="setTheme('dark',this)" style="padding:10px 8px;border-radius:9px;background:rgba(255,255,255,0.04);border:1px solid rgba(168,85,247,.4);color:var(--text);font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;transition:border-color .15s;">
-                                    <svg width="18" height="14" viewBox="0 0 18 14" fill="none"><rect width="18" height="14" rx="3" fill="#0a0a0f"/><rect x="2" y="2" width="14" height="4" rx="1" fill="#1a1a26"/><rect x="2" y="8" width="8" height="2" rx="1" fill="#1a1a26"/></svg>
-                                    Dark
-                                </button>
-                                <button class="theme-btn" onclick="setTheme('light',this)" style="padding:10px 8px;border-radius:9px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:var(--muted);font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;transition:border-color .15s;" onmouseover="this.style.borderColor='rgba(255,255,255,.18)'" onmouseout="if(!this.classList.contains('active'))this.style.borderColor='rgba(255,255,255,.08)'">
-                                    <svg width="18" height="14" viewBox="0 0 18 14" fill="none"><rect width="18" height="14" rx="3" fill="#f1f0ff"/><rect x="2" y="2" width="14" height="4" rx="1" fill="#e0e0f0"/><rect x="2" y="8" width="8" height="2" rx="1" fill="#e0e0f0"/></svg>
-                                    Light
-                                </button>
-                                <button class="theme-btn" onclick="setTheme('purple',this)" style="padding:10px 8px;border-radius:9px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:var(--muted);font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;transition:border-color .15s;" onmouseover="this.style.borderColor='rgba(255,255,255,.18)'" onmouseout="if(!this.classList.contains('active'))this.style.borderColor='rgba(255,255,255,.08)'">
-                                    <svg width="18" height="14" viewBox="0 0 18 14" fill="none"><rect width="18" height="14" rx="3" fill="#1a0a2e"/><rect x="2" y="2" width="14" height="4" rx="1" fill="#2d1050"/><rect x="2" y="8" width="8" height="2" rx="1" fill="#2d1050"/></svg>
-                                    Purple
+                            <div class="settings-sub-body">
+                                <p style="font-size:12px;color:var(--muted);margin-bottom:18px;line-height:1.65;">Have a question, issue, or feedback? We'll get back to you within 24 hours.</p>
+                                <div class="field-group">
+                                    <label class="field-label">Subject</label>
+                                    <input id="contactSubject" class="dash-input" type="text" placeholder="e.g. Issue with my listing">
+                                </div>
+                                <div class="field-group" style="margin-bottom:18px;">
+                                    <label class="field-label">Message</label>
+                                    <textarea id="contactMessage" class="dash-input" rows="4" placeholder="Describe your issue or question…" style="resize:vertical;min-height:90px;"></textarea>
+                                </div>
+                                <div id="contactOk" class="alert-ok"></div>
+                                <div id="contactErr" class="alert-err"></div>
+                                <button class="save-btn" onclick="sendContactMessage()">
+                                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M1.5 3.5h10v7a1 1 0 0 1-1 1h-8a1 1 0 0 1-1-1v-7ZM1.5 3.5l5 4 5-4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    Send message
                                 </button>
                             </div>
                         </div>
 
-                        <!-- Change name -->
-                        <div class="glass-card" id="changeName">
-                            <div class="glass-card-title">
-                                <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="opacity:.6"><circle cx="6.5" cy="4" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 11c0-2.485 2.239-4.5 5-4.5s5 2.015 5 4.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-                                Edit Profile
+                        <!-- About sub-panel -->
+                        <div class="settings-sub-panel" id="subAbout">
+                            <div class="settings-sub-header">
+                                <button class="settings-back-btn" onclick="closeSettingsPanel('subAbout')">
+                                    <svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7l6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                </button>
+                                <span class="settings-sub-title">About Siterifty</span>
                             </div>
-                            <div id="accErr" class="alert-err"></div>
-                            <div id="accOk" class="alert-ok"></div>
-                            <div class="field-group">
-                                <label class="field-label">Display name</label>
-                                <input id="accUsername" class="dash-input" type="text" placeholder="coolperson123" autocomplete="off" spellcheck="false">
-                            </div>
-                            <div class="field-group" style="margin-bottom:16px">
-                                <label class="field-label">Email address</label>
-                                <input id="accEmail" class="dash-input" type="email" disabled style="opacity:.4;cursor:not-allowed;">
-                            </div>
-                            <button class="save-btn" onclick="saveAccount()" id="btnSaveAccount">
-                                <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 7l3.5 3.5 5.5-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                Save name
-                            </button>
-                        </div>
-
-                        <!-- Change password -->
-                        <div class="glass-card" id="changePw">
-                            <div class="glass-card-title">
-                                <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="opacity:.6"><rect x="2" y="5.5" width="9" height="6.5" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M4.5 5.5V4a2 2 0 1 1 4 0v1.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-                                Change Password
-                            </div>
-                            <div id="pwErr" class="alert-err"></div>
-                            <div id="pwOk" class="alert-ok"></div>
-                            <div class="field-group">
-                                <label class="field-label">New password</label>
-                                <div class="field-wrap">
-                                    <input id="accPassword" class="dash-input" type="password" placeholder="Min. 6 characters" autocomplete="new-password">
-                                    <button class="pw-toggle" type="button" onclick="togglePw('accPassword',this)" tabindex="-1">
-                                        <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M1 7.5S3.5 3 7.5 3s6.5 4.5 6.5 4.5S13 12 9 12M1 7.5C1 7.5 3.5 12 7.5 12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="7.5" cy="7.5" r="1.8" stroke="currentColor" stroke-width="1.2"/></svg>
-                                    </button>
+                            <div class="settings-sub-body">
+                                <p style="font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:20px;">Siterifty.com is a premium marketplace to buy and sell websites and digital businesses. Sellers on paid plans unlock lower fees and powerful tools to scale.</p>
+                                <div class="settings-group" style="margin-top:0;">
+                                    <a href="#" class="settings-row" style="text-decoration:none;">
+                                        <div class="settings-row-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 3h10a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.3"/><path d="M5 7h6M5 10h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></div>
+                                        <span class="settings-row-label">Terms of Service</span>
+                                        <svg class="settings-row-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none"><path d="M1 1l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    </a>
+                                    <div class="settings-row-divider"></div>
+                                    <a href="#" class="settings-row" style="text-decoration:none;">
+                                        <div class="settings-row-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1Z" stroke="currentColor" stroke-width="1.3"/><path d="M8 7v5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="8" cy="4.5" r=".8" fill="currentColor"/></svg></div>
+                                        <span class="settings-row-label">Privacy Policy</span>
+                                        <svg class="settings-row-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none"><path d="M1 1l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    </a>
+                                    <div class="settings-row-divider"></div>
+                                    <a href="#" class="settings-row" style="text-decoration:none;">
+                                        <div class="settings-row-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3"/><path d="M5.5 6.5C5.5 5.12 6.62 4 8 4s2.5 1.12 2.5 2.5c0 1.5-2.5 3-2.5 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="8" cy="11.5" r=".7" fill="currentColor"/></svg></div>
+                                        <span class="settings-row-label">Help Center</span>
+                                        <svg class="settings-row-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none"><path d="M1 1l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    </a>
                                 </div>
+                                <div style="text-align:center;margin-top:24px;font-size:11px;color:rgba(139,138,168,0.4);letter-spacing:0.04em;">Version 1.0 · Siterifty.com</div>
                             </div>
-                            <div class="field-group" style="margin-bottom:16px">
-                                <label class="field-label">Confirm new password</label>
-                                <div class="field-wrap">
-                                    <input id="accPasswordConfirm" class="dash-input" type="password" placeholder="Repeat password" autocomplete="new-password">
-                                    <button class="pw-toggle" type="button" onclick="togglePw('accPasswordConfirm',this)" tabindex="-1">
-                                        <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M1 7.5S3.5 3 7.5 3s6.5 4.5 6.5 4.5S13 12 9 12M1 7.5C1 7.5 3.5 12 7.5 12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="7.5" cy="7.5" r="1.8" stroke="currentColor" stroke-width="1.2"/></svg>
-                                    </button>
-                                </div>
-                                <div class="field-hint" id="pwMatchHint"></div>
-                            </div>
-                            <button class="save-btn" onclick="savePassword()" id="btnSavePw">
-                                <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="2" y="5.5" width="9" height="6.5" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M4.5 5.5V4a2 2 0 1 1 4 0v1.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-                                Update password
-                            </button>
                         </div>
 
                         <!-- Password reset link -->
@@ -3443,94 +3824,6 @@
                             </button>
                         </div>
 
-                        <!-- Notifications -->
-                        <div class="glass-card">
-                            <div class="glass-card-title">
-                                <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="opacity:.6"><path d="M6.5 1.5C4.29 1.5 2.5 3.29 2.5 5.5v3l-1 1.5h10l-1-1.5v-3C10.5 3.29 8.71 1.5 6.5 1.5Z" stroke="currentColor" stroke-width="1.2"/><path d="M5.5 10a1 1 0 0 0 2 0" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-                                Notifications
-                            </div>
-                            <div style="display:flex;flex-direction:column;gap:12px;">
-                                <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
-                                    <div>
-                                        <div style="font-size:13px;color:var(--text);font-weight:500;">Sale alerts</div>
-                                        <div style="font-size:11px;color:var(--muted);margin-top:1px;">Get notified when a site sells</div>
-                                    </div>
-                                    <div class="toggle-switch" id="notifSales" onclick="toggleNotif(this)" style="width:36px;height:20px;border-radius:999px;background:var(--accent);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;">
-                                        <div style="width:16px;height:16px;border-radius:999px;background:#fff;position:absolute;top:2px;right:2px;transition:right .2s;"></div>
-                                    </div>
-                                </label>
-                                <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
-                                    <div>
-                                        <div style="font-size:13px;color:var(--text);font-weight:500;">New buyer messages</div>
-                                        <div style="font-size:11px;color:var(--muted);margin-top:1px;">Email me when a buyer contacts me</div>
-                                    </div>
-                                    <div class="toggle-switch" id="notifMessages" onclick="toggleNotif(this)" style="width:36px;height:20px;border-radius:999px;background:var(--accent);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;">
-                                        <div style="width:16px;height:16px;border-radius:999px;background:#fff;position:absolute;top:2px;right:2px;transition:right .2s;"></div>
-                                    </div>
-                                </label>
-                                <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
-                                    <div>
-                                        <div style="font-size:13px;color:var(--text);font-weight:500;">Platform updates</div>
-                                        <div style="font-size:11px;color:var(--muted);margin-top:1px;">Monthly product news and tips</div>
-                                    </div>
-                                    <div class="toggle-switch" id="notifUpdates" onclick="toggleNotif(this)" style="width:36px;height:20px;border-radius:999px;background:rgba(255,255,255,0.15);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;">
-                                        <div style="width:16px;height:16px;border-radius:999px;background:#fff;position:absolute;top:2px;left:2px;transition:left .2s;right:auto;"></div>
-                                    </div>
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- Contact us -->
-                        <div class="glass-card" id="contactUs">
-                            <div class="glass-card-title">
-                                <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="opacity:.6"><path d="M6.5 1C3.47 1 1 3.24 1 6.05c0 1.56.7 2.96 1.8 3.97L2.1 12l2.47-1.04C5.25 11.3 5.87 11.2 6.5 11.2c3.03 0 5.5-2.24 5.5-5s-2.47-5-5.5-5Z" stroke="currentColor" stroke-width="1.2"/></svg>
-                                Contact Us
-                            </div>
-                            <p style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6;">Have a question, issue, or feedback? Send us a message and we'll get back to you within 24 hours.</p>
-                            <div class="field-group">
-                                <label class="field-label">Subject</label>
-                                <input id="contactSubject" class="dash-input" type="text" placeholder="e.g. Issue with my listing">
-                            </div>
-                            <div class="field-group" style="margin-bottom:16px;">
-                                <label class="field-label">Message</label>
-                                <textarea id="contactMessage" class="dash-input" rows="4" placeholder="Describe your issue or question…" style="resize:vertical;min-height:90px;"></textarea>
-                            </div>
-                            <div id="contactOk" class="alert-ok"></div>
-                            <div id="contactErr" class="alert-err"></div>
-                            <button class="save-btn" onclick="sendContactMessage()">
-                                <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M1.5 3.5h10v7a1 1 0 0 1-1 1h-8a1 1 0 0 1-1-1v-7ZM1.5 3.5l5 4 5-4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                Send message
-                            </button>
-                        </div>
-
-                        <!-- About -->
-                        <div class="glass-card">
-                            <div class="glass-card-title">
-                                <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="opacity:.6"><circle cx="6.5" cy="6.5" r="5.75" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 5.5v4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="6.5" cy="3.5" r=".7" fill="currentColor"/></svg>
-                                About Siterifty
-                            </div>
-                            <p style="font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:12px;">Siterifty.com is a premium marketplace to buy and sell websites and digital businesses. List your assets, reach serious buyers globally, and close deals with confidence — all from one clean dashboard. Sellers on paid plans unlock lower fees and powerful tools to scale.</p>
-                            <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                                <a href="#" style="font-size:11px;color:var(--accent);text-decoration:none;font-weight:600;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Terms of Service</a>
-                                <span style="color:var(--border);font-size:11px;">·</span>
-                                <a href="#" style="font-size:11px;color:var(--accent);text-decoration:none;font-weight:600;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Privacy Policy</a>
-                                <span style="color:var(--border);font-size:11px;">·</span>
-                                <a href="#" style="font-size:11px;color:var(--accent);text-decoration:none;font-weight:600;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Help Center</a>
-                            </div>
-                        </div>
-
-                        <!-- Danger zone -->
-                        <div class="glass-card" style="border-color:rgba(248,113,113,0.15);">
-                            <div class="glass-card-title" style="color:rgba(248,113,113,0.7);">
-                                <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="opacity:.7"><path d="M6.5 1.5l5 9H1.5Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M6.5 5v3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="6.5" cy="9.5" r=".6" fill="currentColor"/></svg>
-                                Danger Zone
-                            </div>
-                            <button onclick="doSignOut()" style="padding:9px 16px;border-radius:9px;background:rgba(248,113,113,0.07);border:1px solid rgba(248,113,113,0.2);color:#f87171;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .15s;" onmouseover="this.style.background='rgba(248,113,113,0.12)'" onmouseout="this.style.background='rgba(248,113,113,0.07)'">
-                                <svg width="12" height="12" viewBox="0 0 13 13" fill="none"><path d="M4.5 6.5H12M9 3.5l3 3-3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.5 1.5H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h4.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-                                Sign out
-                            </button>
-                        </div>
-
                         <div style="height:8px;"></div>
                     </div><!-- end tabAccount -->
 
@@ -3539,41 +3832,6 @@
                 </div><!-- dash-inner -->
             </div><!-- dash-body -->
 
-            <!-- ── BOTTOM NAV ── -->
-            <nav class="dash-bottom-nav">
-                <div class="dash-nav-item active" onclick="switchTab('plan')" id="nav-plan">
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                        <circle cx="10" cy="7" r="3.5" stroke="currentColor" stroke-width="1.4"/>
-                        <path d="M3 17c0-3.314 3.134-6 7-6s7 2.686 7 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-                    </svg>
-                    <span class="dash-nav-label">Account</span>
-                </div>
-                <div class="dash-nav-item" onclick="switchTab('orders')" id="nav-orders">
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                        <rect x="3" y="4" width="14" height="12" rx="2.5" stroke="currentColor" stroke-width="1.4"/>
-                        <path d="M7 4V3a3 3 0 0 1 6 0v1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-                        <path d="M7 10h6M7 13h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-                    </svg>
-                    <span class="dash-nav-label">My Sites</span>
-                </div>
-                <div class="dash-nav-item" onclick="switchTab('address')" id="nav-address">
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                        <path d="M10 2C7.239 2 5 4.239 5 7c0 3.75 5 11 5 11s5-7.25 5-11c0-2.761-2.239-5-5-5Z" stroke="currentColor" stroke-width="1.4" style="display:none"/>
-                        <path d="M3 5.5h14v9a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 3 14.5V5.5Z" stroke="currentColor" stroke-width="1.4"/>
-                        <path d="M3 5.5l7 6 7-6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    <span class="dash-nav-label">Support</span>
-                </div>
-                <div class="dash-nav-item" onclick="switchTab('account')" id="nav-account">
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                        <circle cx="10" cy="7" r="3.5" stroke="currentColor" stroke-width="1.4" style="display:none"/>
-                        <path d="M10 3a1.5 1.5 0 0 1 1.5 1.5v.5h1a1.5 1.5 0 0 1 0 3h-1v.5a1.5 1.5 0 0 1-3 0V8h-1a1.5 1.5 0 0 1 0-3h1v-.5A1.5 1.5 0 0 1 10 3Z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
-                        <circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.4"/>
-                        <path d="M7 14s.5-2 3-2 3 2 3 2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
-                    </svg>
-                    <span class="dash-nav-label">Settings</span>
-                </div>
-            </nav>
         </div><!-- dash-wrap -->
     </div><!-- dashModal -->
 
@@ -3629,23 +3887,53 @@
         function hideMsg(...ids){ ids.forEach(id=>{ const el=$(id); if(el){el.style.display='none'; el.textContent='';} }); }
         function setBtn(id, text, disabled){ const b=$(id); b.textContent=text; b.disabled=disabled; }
 
-        // ── Scroll lock (simple flag — no counter drift) ──
+        // ── Scroll lock — bulletproof, no layout jump, no body flicker ──
+        // Uses a reference counter so nested modals never unlock too early
+        let _scrollLockCount = 0;
         let _savedScrollY = 0;
+        let _scrollbarWidth = 0;
+
+        function getScrollbarWidth() {
+            if (_scrollbarWidth) return _scrollbarWidth;
+            const el = document.createElement('div');
+            el.style.cssText = 'overflow:scroll;width:100px;height:100px;position:absolute;top:-9999px;visibility:hidden;';
+            document.body.appendChild(el);
+            _scrollbarWidth = el.offsetWidth - el.clientWidth;
+            document.body.removeChild(el);
+            return _scrollbarWidth;
+        }
+
         function lockScroll() {
-            if (document.body.style.position === 'fixed') return; // already locked
+            _scrollLockCount++;
+            if (_scrollLockCount > 1) return; // already locked
             _savedScrollY = window.scrollY;
+            const sbw = getScrollbarWidth();
+            // Compensate scrollbar width to prevent layout shift
+            if (sbw > 0) document.body.style.paddingRight = sbw + 'px';
+            document.body.style.overflow = 'hidden';
             document.body.style.position = 'fixed';
             document.body.style.top = `-${_savedScrollY}px`;
             document.body.style.width = '100%';
-            document.body.style.overflow = 'hidden';
+            document.body.style.left = '0';
         }
+
         function unlockScroll() {
-            if (document.body.style.position !== 'fixed') return; // already unlocked
+            _scrollLockCount = Math.max(0, _scrollLockCount - 1);
+            if (_scrollLockCount > 0) return; // still locked by another modal
+            document.body.style.overflow = '';
             document.body.style.position = '';
             document.body.style.top = '';
             document.body.style.width = '';
-            document.body.style.overflow = '';
-            window.scrollTo(0, _savedScrollY);
+            document.body.style.left = '';
+            document.body.style.paddingRight = '';
+            // Restore scroll position without any visual glitch
+            window.scrollTo({ top: _savedScrollY, behavior: 'instant' });
+        }
+
+        function forceUnlockScroll() {
+            _scrollLockCount = 0;
+            document.body.style.cssText = '';
+            window.scrollTo({ top: _savedScrollY, behavior: 'instant' });
         }
 
         // ── panel switcher ──
@@ -3670,9 +3958,15 @@
             $('authModal').style.display='none';
             $('dashModal').style.display='block';
             lockScroll();
-            // Reset spinner so it shows fresh every open
+            // Reset spinner fresh every open
             const spinner = $('dashSpinner');
-            if(spinner) spinner.classList.remove('hidden');
+            if(spinner) {
+                spinner.style.opacity = '1';
+                spinner.style.pointerEvents = 'all';
+                spinner.classList.remove('hidden');
+            }
+            // Always start on plan tab
+            switchTab('plan');
             loadDash();
         }
         window.doSignOut = function(){
@@ -4032,71 +4326,116 @@
             const meta  = PLAN_META[plan] || PLAN_META.Free;
             const bal   = parseFloat(data.balance || 0);
 
-            // Current plan card
-            $('acPlanName').textContent  = plan + ' Plan';
-            $('acPlanPrice').textContent = meta.price === 0 ? 'Free forever' : '$' + meta.price + ' / month';
-            const badge = $('acPlanBadge');
-            if (plan === 'Free') {
-                badge.textContent = 'FREE';
-                badge.style.background = 'rgba(139,138,168,.12)';
-                badge.style.border = '1px solid rgba(139,138,168,.2)';
-                badge.style.color = 'var(--muted)';
-            } else {
-                badge.textContent = 'ACTIVE';
-                badge.style.background = 'rgba(52,211,153,.1)';
-                badge.style.border = '1px solid rgba(52,211,153,.28)';
-                badge.style.color = '#34d399';
-            }
+            // ── New: Settings-style top row ──
+            const emailEl = $('settingsEmail');
+            if (emailEl) emailEl.textContent = user.email || '—';
 
-            // Billing date
-            const billingRow = $('acBillingRow');
-            if (plan !== 'Free') {
+            const pillEl = $('settingsPlanBadge');
+            if (pillEl) pillEl.textContent = plan.toUpperCase();
+
+            // Show upgrade card only on Free plan
+            const upgradeCard = $('settingsUpgradeCard');
+            if (upgradeCard) upgradeCard.classList.toggle('hidden', plan !== 'Free');
+
+            // ── Billing sub-panel ──
+            const billingBody = $('subBillingBody');
+            if (billingBody) {
                 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
                 const now = new Date();
                 const nextMonth = (now.getMonth() + 1) % 12;
                 const nextYear  = now.getMonth() === 11 ? now.getFullYear() + 1 : now.getFullYear();
-                $('acNextBill').textContent = '1 ' + MONTHS[nextMonth] + ' ' + nextYear;
-                billingRow.style.display = 'flex';
-                billingRow.style.borderTop = '1px solid rgba(255,255,255,0.05)';
-            } else {
-                billingRow.style.display = 'none';
+                const nextBillStr = '1 ' + MONTHS[nextMonth] + ' ' + nextYear;
+
+                billingBody.innerHTML = `
+                    <div class="settings-identity-card" style="margin-bottom:10px;">
+                        <div class="settings-email-row">
+                            <span style="font-size:13px;font-weight:500;color:var(--text);">${plan} Plan</span>
+                            <span class="settings-plan-pill" style="${plan !== 'Free' ? 'background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.3);color:#34d399;' : ''}">${plan === 'Free' ? 'FREE' : 'ACTIVE'}</span>
+                        </div>
+                        <div style="font-size:12px;color:var(--muted);margin-top:4px;">${meta.price === 0 ? 'Free forever · no card required' : '$' + meta.price + '/month · cancel anytime'}</div>
+                        ${plan !== 'Free' ? `<div style="font-size:11px;color:var(--muted);margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.06);">Next billing: <span style="color:var(--accent);font-weight:600;">${nextBillStr}</span></div>` : ''}
+                    </div>
+                    <div class="settings-identity-card" style="margin-bottom:10px;">
+                        <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Wallet Balance</div>
+                        <div style="font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;letter-spacing:-.04em;background:linear-gradient(135deg,#a855f7,#f472b6,#38bdf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">$${bal.toFixed(2)}</div>
+                        <button onclick="closeSettingsPanel('subBilling');openTopUpModal();" style="margin-top:12px;width:100%;padding:10px;border-radius:10px;background:linear-gradient(135deg,rgba(255,200,80,0.15),rgba(255,170,30,0.1));border:1px solid rgba(220,185,100,0.35);color:#f5e8b0;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s;touch-action:manipulation;">+ Top up wallet</button>
+                    </div>
+                    <div class="settings-group" style="margin-top:0;">
+                        <div class="settings-row settings-row-selectable" onclick="openUpgradeModal('starter')">
+                            <div class="settings-row-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2l1.5 3 3.5.5-2.5 2.5.5 3.5L8 10l-3 1.5.5-3.5L3 5.5 6.5 5Z" stroke="#a855f7" stroke-width="1.3" stroke-linejoin="round"/></svg></div>
+                            <span class="settings-row-label">Upgrade plan</span>
+                            <svg class="settings-row-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none"><path d="M1 1l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                    </div>`;
+
+                // Re-populate plan rows inside billing
+                const container = $('acPlanRows');
+                if (container) {
+                    container.innerHTML = '';
+                    _selectedPlan = plan;
+                    Object.entries(PLAN_META).forEach(([key, m]) => {
+                        const isSelected = key === plan;
+                        const row = document.createElement('div');
+                        row.className = 'plan-opt-row' + (key === 'Growth' ? ' plan-opt-row-featured' : '');
+                        row.id = 'acRow-' + key;
+                        row.style.cursor = 'pointer';
+                        if (isSelected) row.style.background = 'rgba(168,85,247,.06)';
+                        row.innerHTML = `
+                            <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;">
+                                <div class="plan-opt-icon" style="background:rgba(${m.color === '#a855f7' ? '168,85,247' : m.color === '#f472b6' ? '244,114,182' : m.color === '#38bdf8' ? '56,189,248' : '139,138,168'},.1);border-color:${m.glow};">
+                                    <svg width="14" height="14" viewBox="0 0 13 13" fill="none"><path d="M6.5 1l1.18 2.39L10.5 3.82l-2 1.94.47 2.74L6.5 7.23 4.03 8.5l.47-2.74L2.5 3.82l2.82-.43Z" fill="${m.color}" opacity="${key === 'Free' ? '.5' : '1'}"/></svg>
+                                </div>
+                                <div style="flex:1;min-width:0;">
+                                    <div class="plan-opt-name-r">${key}</div>
+                                    <div class="plan-opt-desc">${m.desc}</div>
+                                </div>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+                                <div style="text-align:right;">
+                                    <div class="plan-opt-price-r" style="color:${m.color};">${m.price === 0 ? 'Free' : '$' + m.price}</div>
+                                    <div class="plan-opt-per">${m.price === 0 ? 'forever' : '/mo'}</div>
+                                </div>
+                                <div class="plan-opt-radio ${isSelected ? 'checked' : ''}" id="acRadio-${key}"></div>
+                            </div>`;
+                        row.onclick = () => selectPlanInAccount(key);
+                        container.appendChild(row);
+                    });
+                }
             }
 
-            // Wallet balance on account tab
-            $('acWalletBal').textContent = '$' + bal.toFixed(2);
-
-            // Plan picker rows
-            const container = $('acPlanRows');
-            container.innerHTML = '';
-            _selectedPlan = plan; // pre-select current plan
-
-            Object.entries(PLAN_META).forEach(([key, m]) => {
-                const isSelected = key === plan;
-                const row = document.createElement('div');
-                row.className = 'plan-opt-row' + (key === 'Growth' ? ' plan-opt-row-featured' : '');
-                row.id = 'acRow-' + key;
-                row.style.cursor = 'pointer';
-                if (isSelected) row.style.background = 'rgba(168,85,247,.06)';
-                row.innerHTML = `
-                    <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;">
-                        <div class="plan-opt-icon" style="background:rgba(${m.color === '#a855f7' ? '168,85,247' : m.color === '#f472b6' ? '244,114,182' : m.color === '#38bdf8' ? '56,189,248' : '139,138,168'},.1);border-color:${m.glow};">
-                            <svg width="14" height="14" viewBox="0 0 13 13" fill="none"><path d="M6.5 1l1.18 2.39L10.5 3.82l-2 1.94.47 2.74L6.5 7.23 4.03 8.5l.47-2.74L2.5 3.82l2.82-.43Z" fill="${m.color}" opacity="${key === 'Free' ? '.5' : '1'}"/></svg>
-                        </div>
-                        <div style="flex:1;min-width:0;">
-                            <div class="plan-opt-name-r">${key}</div>
-                            <div class="plan-opt-desc">${m.desc}</div>
-                        </div>
-                    </div>
-                    <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
-                        <div style="text-align:right;">
-                            <div class="plan-opt-price-r" style="color:${m.color};">${m.price === 0 ? 'Free' : '$' + m.price}</div>
-                            <div class="plan-opt-per">${m.price === 0 ? 'forever' : '/mo'}</div>
-                        </div>
-                        <div class="plan-opt-radio ${isSelected ? 'checked' : ''}" id="acRadio-${key}"></div>
-                    </div>`;
-                row.onclick = () => selectPlanInAccount(key);
-                container.appendChild(row);
-            });
+            // Legacy: keep old acPlanName/acPlanPrice/acPlanBadge/acBillingRow/acWalletBal in sync
+            // (they live inside tabPlan which is still the plan tab)
+            if ($('acPlanName'))  $('acPlanName').textContent  = plan + ' Plan';
+            if ($('acPlanPrice')) $('acPlanPrice').textContent = meta.price === 0 ? 'Free forever' : '$' + meta.price + ' / month';
+            const badge = $('acPlanBadge');
+            if (badge) {
+                if (plan === 'Free') {
+                    badge.textContent = 'FREE';
+                    badge.style.background = 'rgba(139,138,168,.12)';
+                    badge.style.border = '1px solid rgba(139,138,168,.2)';
+                    badge.style.color = 'var(--muted)';
+                } else {
+                    badge.textContent = 'ACTIVE';
+                    badge.style.background = 'rgba(52,211,153,.1)';
+                    badge.style.border = '1px solid rgba(52,211,153,.28)';
+                    badge.style.color = '#34d399';
+                }
+            }
+            const billingRow = $('acBillingRow');
+            if (billingRow) {
+                const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                const now = new Date();
+                const nextMonth = (now.getMonth() + 1) % 12;
+                const nextYear  = now.getMonth() === 11 ? now.getFullYear() + 1 : now.getFullYear();
+                if (plan !== 'Free') {
+                    if ($('acNextBill')) $('acNextBill').textContent = '1 ' + MONTHS[nextMonth] + ' ' + nextYear;
+                    billingRow.style.display = 'flex';
+                    billingRow.style.borderTop = '1px solid rgba(255,255,255,0.05)';
+                } else {
+                    billingRow.style.display = 'none';
+                }
+            }
+            if ($('acWalletBal')) $('acWalletBal').textContent = '$' + bal.toFixed(2);
         }
 
         let _acSelectedPlan = null;
@@ -4482,6 +4821,50 @@
         })();
 
         // ── Notification toggles ──
+        // ══ Settings panel navigation ══
+        const SETTINGS_PANEL_MAP = {
+            profile:       'subProfile',
+            billing:       'subBilling',
+            appearance:    'subAppearance',
+            notifications: 'subNotifications',
+            contact:       'subContact',
+            about:         'subAbout'
+        };
+
+        window.openSettingsPanel = function(name) {
+            const id = SETTINGS_PANEL_MAP[name];
+            if (!id) return;
+            const el = document.getElementById(id);
+            if (!el) return;
+            // Force display:flex then trigger the slide
+            el.style.display = 'flex';
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => { el.classList.add('open'); });
+            });
+        };
+
+        window.closeSettingsPanel = function(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.classList.remove('open');
+            setTimeout(() => { el.style.display = 'none'; }, 300);
+        };
+
+        window.selectThemeRow = function(theme) {
+            ['dark','light','purple'].forEach(t => {
+                const check = document.getElementById('themeCheck' + t.charAt(0).toUpperCase() + t.slice(1));
+                if (check) check.classList.toggle('hidden', t !== theme);
+            });
+            const valEl = document.getElementById('settingsColorModeVal');
+            if (valEl) valEl.textContent = theme.charAt(0).toUpperCase() + theme.slice(1);
+        };
+
+        // Init theme check on load
+        document.addEventListener('DOMContentLoaded', () => {
+            const saved = localStorage.getItem('siterifty_theme') || 'dark';
+            selectThemeRow(saved);
+        });
+
         window.toggleNotif = function(el) {
             const dot = el.querySelector('div');
             const isOn = dot.style.right === '2px' || getComputedStyle(dot).right === '2px';
@@ -4558,6 +4941,89 @@
             document.getElementById(id)?.addEventListener('keydown', e=>{ if(e.key==='Enter') window.doLogin(); });
         });
         document.getElementById('fpEmail')?.addEventListener('keydown', e=>{ if(e.key==='Enter') window.doForgot(); });
+
+        // ══ STEP 26 — Native swipe-to-close for ALL bottom sheets ══
+        // Bulletproof: tracks the initial touch Y on each sheet,
+        // applies translate() in real time, and flicks closed on fast/far swipe.
+        // No body scroll leak, no duplicate event listeners, touch-action locked.
+
+        const SWIPE_THRESHOLD  = 90;  // px downward before auto-close
+        const VELOCITY_THRESH  = 0.5; // px/ms — fast flick = close even if short
+
+        function addSwipeToClose(sheetEl, closeCallback) {
+            if (!sheetEl) return;
+
+            // Ensure native touch handling on the sheet
+            sheetEl.style.touchAction = 'pan-x pan-y';
+
+            let startY = 0, startTime = 0, lastY = 0, isDragging = false;
+
+            function onTouchStart(e) {
+                // Only begin drag from the drag handle area OR if the sheet is at top of its scroll
+                const scrollable = sheetEl.scrollTop || 0;
+                if (scrollable > 2) return; // let normal scroll happen first
+                startY    = e.touches[0].clientY;
+                lastY     = startY;
+                startTime = Date.now();
+                isDragging = true;
+                sheetEl.style.transition = 'none';
+            }
+
+            function onTouchMove(e) {
+                if (!isDragging) return;
+                const dy = e.touches[0].clientY - startY;
+                lastY = e.touches[0].clientY;
+                if (dy < 0) { sheetEl.style.transform = ''; return; } // no upward drag
+                sheetEl.style.transform = `translateY(${dy}px)`;
+                // Dim the backdrop proportionally
+                const progress = Math.min(dy / 260, 1);
+                const overlay  = sheetEl.parentElement;
+                if (overlay && overlay.style.background !== undefined) {
+                    const alpha = Math.max(0.1, 0.65 - progress * 0.5);
+                    overlay.style.background = `rgba(0,0,0,${alpha.toFixed(2)})`;
+                }
+            }
+
+            function onTouchEnd(e) {
+                if (!isDragging) return;
+                isDragging = false;
+                const dy       = lastY - startY;
+                const duration = Date.now() - startTime;
+                const velocity = dy / Math.max(duration, 1);
+
+                sheetEl.style.transition = 'transform 0.28s cubic-bezier(0.32,0.72,0,1)';
+
+                if (dy > SWIPE_THRESHOLD || velocity > VELOCITY_THRESH) {
+                    // Close: animate all the way out
+                    sheetEl.style.transform = `translateY(110%)`;
+                    const overlay = sheetEl.parentElement;
+                    if (overlay) overlay.style.background = 'rgba(0,0,0,0)';
+                    setTimeout(() => {
+                        sheetEl.style.transform = '';
+                        sheetEl.style.transition = '';
+                        if (overlay) overlay.style.background = '';
+                        closeCallback();
+                    }, 300);
+                } else {
+                    // Snap back
+                    sheetEl.style.transform = '';
+                    const overlay = sheetEl.parentElement;
+                    if (overlay) overlay.style.background = '';
+                    setTimeout(() => { sheetEl.style.transition = ''; }, 300);
+                }
+            }
+
+            sheetEl.addEventListener('touchstart', onTouchStart, { passive: true });
+            sheetEl.addEventListener('touchmove',  onTouchMove,  { passive: true });
+            sheetEl.addEventListener('touchend',   onTouchEnd,   { passive: true });
+        }
+
+        // Wire up all bottom sheets once DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            addSwipeToClose(document.getElementById('walletModal'),  () => window.closeWalletModal());
+            addSwipeToClose(document.getElementById('topupModal'),   () => window.closeTopUpModal());
+            addSwipeToClose(document.getElementById('upgradeModal'), () => window.closeUpgradeModal());
+        });
     </script>
 
 
@@ -4626,11 +5092,15 @@
         function buildSlides(urls) {
             const shuffled = shuffle(urls);
 
-            // Create slide elements
-            const slides = shuffled.map(src => {
+            // Create slide elements using real <img> tags so height is natural
+            const slides = shuffled.map((src, i) => {
                 const div = document.createElement('div');
-                div.className = 'hero-bg-slide';
-                div.style.backgroundImage = `url(${src})`;
+                div.className = 'hero-bg-slide' + (i === 0 ? ' sizer' : '');
+                const img = document.createElement('img');
+                img.src = src;
+                img.alt = '';
+                img.draggable = false;
+                div.appendChild(img);
                 heroBg.appendChild(div);
                 return div;
             });
@@ -4654,9 +5124,27 @@
             shuffled.forEach(src => {
                 const img = new Image();
                 img.onload = onImageLoaded;
-                img.onerror = onImageLoaded; // count errors too so we never hang
+                img.onerror = onImageLoaded;
                 img.src = src;
             });
+        }
+
+        // Slideshow: crossfade every 4s, swapping the sizer class to keep height natural
+        function startSlideshow(slides) {
+            if (slides.length === 0) return;
+            slides[0].classList.add('active');
+            let current = 0;
+            setInterval(() => {
+                const prev = current;
+                current = (current + 1) % slides.length;
+
+                // Move sizer to new active slide so container height matches it
+                slides[prev].classList.remove('sizer');
+                slides[current].classList.add('sizer');
+
+                slides[prev].classList.remove('active');
+                slides[current].classList.add('active');
+            }, 4000);
         }
 
         function dismissLoader(slides) {
@@ -4674,17 +5162,6 @@
                 document.body.style.overflow = '';
             }
             if (slides.length > 0) startSlideshow(slides);
-        }
-
-        // Slideshow: crossfade every 4s
-        function startSlideshow(slides) {
-            slides[0].classList.add('active');
-            let current = 0;
-            setInterval(() => {
-                slides[current].classList.remove('active');
-                current = (current + 1) % slides.length;
-                slides[current].classList.add('active');
-            }, 4000);
         }
     </script>
     <!-- ══ PAYPAL SDK ══ -->
@@ -4899,8 +5376,12 @@
 
 
     <!-- ══ UPGRADE PLAN MODAL ══ -->
-    <div id="upgradeOverlay" onclick="if(event.target===this)closeUpgradeModal()" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);align-items:center;justify-content:center;padding:20px;overflow-y:auto;">
-        <div id="upgradeModal" style="background:linear-gradient(160deg,#14141e 0%,#101018 100%);border:1px solid rgba(255,255,255,0.1);border-radius:24px;width:100%;max-width:420px;max-height:calc(100vh - 48px);overflow-y:auto;box-shadow:0 40px 100px rgba(0,0,0,0.9);animation:topupIn 0.32s cubic-bezier(0.34,1.4,0.64,1) both;position:relative;">
+    <div id="upgradeOverlay" onclick="if(event.target===this)closeUpgradeModal()" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.75);backdrop-filter:blur(18px) saturate(150%);-webkit-backdrop-filter:blur(18px) saturate(150%);align-items:flex-end;justify-content:center;overflow:hidden;">
+        <div id="upgradeModal" style="background:linear-gradient(160deg,#17172a 0%,#10101c 100%);border:1px solid rgba(255,255,255,0.1);border-top:1px solid rgba(255,255,255,0.14);border-radius:28px 28px 0 0;width:100%;max-width:480px;max-height:92svh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;box-shadow:0 1px 0 rgba(255,255,255,0.07) inset,0 -4px 60px rgba(0,0,0,0.8),0 0 0 1px rgba(168,85,247,0.06);animation:sheetUp 0.32s cubic-bezier(0.32,0.72,0,1) both;position:relative;padding-bottom:env(safe-area-inset-bottom,0px);">
+            <!-- Drag handle -->
+            <div style="display:flex;justify-content:center;padding:12px 0 0;">
+                <div style="width:36px;height:4px;border-radius:999px;background:rgba(255,255,255,0.15);"></div>
+            </div>
             <!-- Header -->
             <div style="padding:22px 22px 0;display:flex;align-items:center;justify-content:space-between;">
                 <div style="display:flex;align-items:center;gap:10px;">
