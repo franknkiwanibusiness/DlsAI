@@ -130,7 +130,7 @@
             animation: text-scroll 4s ease-in-out infinite alternate;
         }
         /* ── Upgrade overlay open ── */
-        #upgradeOverlay[style*="flex"] { display: flex !important; }
+        #upgradeOverlay.open { display: flex !important; }
 
         /* ── Shared modal animations ── */
         @keyframes sheetUp {
@@ -415,7 +415,14 @@
         /* ── Loading Screen ── */
         #loadingScreen {
             position: fixed;
-            inset: 0;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            /* dvh covers full viewport including mobile browser chrome */
+            width: 100%;
+            height: 100%;
+            min-height: 100dvh;
             z-index: 9999;
             background: var(--bg);
             display: flex;
@@ -423,9 +430,16 @@
             align-items: center;
             justify-content: center;
             gap: 20px;
+            /* GPU-composite the layer so scroll can't cause it to lag */
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
+            will-change: opacity;
+            /* Prevent any touch events scrolling through it */
+            touch-action: none;
+            overscroll-behavior: none;
             transition: opacity 0.55s ease, visibility 0.55s ease;
         }
-        #loadingScreen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+        #loadingScreen.hidden { opacity: 0; visibility: hidden; pointer-events: none; touch-action: auto; }
         .loader-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
         .loader-wordmark { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.1rem; letter-spacing: -0.05em; color: var(--text); }
         .loader-wordmark span { background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 400; }
@@ -3307,6 +3321,12 @@
             .settings-sub-body { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; padding:16px; }
             .settings-sub-section-title { font-family:'Syne',sans-serif; font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:12px; }
 
+            /* ── Skeleton shimmer animation ── */
+            @keyframes skeletonPulse {
+                0%   { background-position: 200% 0; }
+                100% { background-position: -200% 0; }
+            }
+
             /* ── Dashboard loading spinner ── */
             #dashSpinner {
                 position: absolute;
@@ -3525,10 +3545,26 @@
 
 <!-- ── MY SITES TAB ── -->
                     <div id="tabOrders" class="dash-panel">
+                        <div id="tabOrdersSkeleton" style="padding:16px 0;">
+                            <!-- Skeleton shimmer rows shown before data loads -->
+                            <div style="display:flex;flex-direction:column;gap:10px;">
+                                <div style="height:72px;border-radius:14px;background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.07) 50%,rgba(255,255,255,0.04) 75%);background-size:200% 100%;animation:skeletonPulse 1.4s ease-in-out infinite;"></div>
+                                <div style="height:72px;border-radius:14px;background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.07) 50%,rgba(255,255,255,0.04) 75%);background-size:200% 100%;animation:skeletonPulse 1.4s ease-in-out infinite 0.15s;"></div>
+                                <div style="height:72px;border-radius:14px;background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.07) 50%,rgba(255,255,255,0.04) 75%);background-size:200% 100%;animation:skeletonPulse 1.4s ease-in-out infinite 0.3s;"></div>
+                            </div>
+                        </div>
+                        <div id="tabOrdersContent" style="display:none;"></div>
                     </div>
 
                     <!-- ── SUPPORT TAB ── -->
                     <div id="tabAddress" class="dash-panel">
+                        <div id="tabAddressSkeleton" style="padding:16px 0;">
+                            <div style="display:flex;flex-direction:column;gap:10px;">
+                                <div style="height:88px;border-radius:14px;background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.07) 50%,rgba(255,255,255,0.04) 75%);background-size:200% 100%;animation:skeletonPulse 1.4s ease-in-out infinite;"></div>
+                                <div style="height:56px;border-radius:14px;background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.07) 50%,rgba(255,255,255,0.04) 75%);background-size:200% 100%;animation:skeletonPulse 1.4s ease-in-out infinite 0.2s;"></div>
+                            </div>
+                        </div>
+                        <div id="tabAddressContent" style="display:none;"></div>
                     </div>
 
                     <!-- ── SETTINGS TAB ── -->
@@ -4271,6 +4307,12 @@
             const spinner = $('dashSpinner');
             if(spinner) { spinner.classList.remove('hidden'); }
 
+            // Keep skeleton visible; hide real content containers until loaded
+            const ordersContent  = $('tabOrdersContent');
+            const addressContent = $('tabAddressContent');
+            if(ordersContent)  ordersContent.style.display  = 'none';
+            if(addressContent) addressContent.style.display = 'none';
+
             try {
                 const snap = await get(ref(db,'users/'+user.uid));
                 const data = snap.val() || {};
@@ -4306,6 +4348,16 @@
             } catch(e) {
                 // Still hide spinner on error
             } finally {
+                // Dismiss skeletons and reveal real tab content
+                const ordersSkel  = $('tabOrdersSkeleton');
+                const addressSkel = $('tabAddressSkeleton');
+                const ordersContent2  = $('tabOrdersContent');
+                const addressContent2 = $('tabAddressContent');
+                if(ordersSkel)  ordersSkel.style.display  = 'none';
+                if(addressSkel) addressSkel.style.display = 'none';
+                if(ordersContent2)  ordersContent2.style.display  = '';
+                if(addressContent2) addressContent2.style.display = '';
+
                 // Hide spinner with a short delay so content renders first
                 if(spinner) {
                     setTimeout(() => spinner.classList.add('hidden'), 120);
@@ -4685,12 +4737,12 @@
                 benefitsList.appendChild(row);
             });
 
-            overlay.style.display = 'flex';
+            overlay.classList.add('open');
             lockScroll();
         };
 
         window.closeUpgradeModal = function() {
-            $('upgradeOverlay').style.display = 'none';
+            $('upgradeOverlay').classList.remove('open');
             unlockScroll();
         };
 
@@ -5051,17 +5103,32 @@
         const loaderText  = document.getElementById('loaderText');
         const loadingScreen = document.getElementById('loadingScreen');
 
+        // ── Start bar immediately so it never looks stuck ──
+        // Animate to 30% right away (indeterminate phase while Firebase fetches)
+        requestAnimationFrame(() => {
+            loaderBar.style.transition = 'width 1.2s cubic-bezier(0.4,0,0.2,1)';
+            loaderBar.style.width = '30%';
+        });
+        loaderText.textContent = 'Connecting…';
+
         // Safety: dismiss loader after 6s no matter what
         const safetyTimer = setTimeout(() => dismissLoader([]), 6000);
 
-        // Lock scroll while loading
-        document.body.style.overflow = 'hidden';
+        // NOTE: scroll is blocked by touch-action:none on #loadingScreen itself.
+        // Do NOT set document.body.style.overflow here — it bypasses lockScroll's
+        // reference counter and permanently breaks scroll after dismissal.
 
         // ── Fetch URLs from /heroimages ──
         // Supports both array  [ "url1", "url2", … ]
         // and object  { key1: "url1", key2: "url2", … }
         try {
             const snap = await get(ref(db, 'heroimages'));
+
+            // Firebase responded — jump bar to 50% to show progress
+            loaderBar.style.transition = 'width 0.3s ease';
+            loaderBar.style.width = '50%';
+            loaderText.textContent = 'Loading assets…';
+
             let urls = [];
             if (snap.exists()) {
                 const val = snap.val();
@@ -5111,9 +5178,11 @@
 
             function onImageLoaded() {
                 loaded++;
-                const pct = Math.round((loaded / total) * 100);
+                // Map image progress to 50–100% range (0–50% was Firebase fetch phase)
+                const pct = Math.round(50 + (loaded / total) * 50);
+                loaderBar.style.transition = 'width 0.25s ease';
                 loaderBar.style.width = pct + '%';
-                loaderText.textContent = 'Loading assets… ' + pct + '%';
+                loaderText.textContent = 'Loading assets… ' + Math.round((loaded / total) * 100) + '%';
                 if (loaded >= total) {
                     loaderText.textContent = 'Ready!';
                     loaderBar.style.width = '100%';
@@ -5151,16 +5220,6 @@
             clearTimeout(safetyTimer);
             loadingScreen.classList.add('hidden');
             setTimeout(() => { loadingScreen.style.display = 'none'; }, 600);
-            // Restore scroll only if no modal has taken over the lock
-            const anyModalOpen =
-                document.getElementById('authModal').style.display === 'block' ||
-                document.getElementById('dashModal').style.display === 'block' ||
-                document.getElementById('walletOverlay').classList.contains('open') ||
-                document.getElementById('topupOverlay').classList.contains('open') ||
-                document.getElementById('upgradeOverlay').style.display !== 'none';
-            if (!anyModalOpen) {
-                document.body.style.overflow = '';
-            }
             if (slides.length > 0) startSlideshow(slides);
         }
     </script>
