@@ -79,6 +79,11 @@
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
         }
+        /* Applied while loading screen is visible — blocks all page scroll instantly */
+        body.loader-lock {
+            overflow-y: hidden !important;
+            touch-action: none; /* iOS Safari: kills momentum scroll bleed-through */
+        }
 
         /* ── Background glows (fixed, behind everything) ── */
         body::before {
@@ -1225,6 +1230,290 @@
             line-height: 1.2;
         }
 
+        /* ── Pulse / radar section ── */
+        .pulse-section {
+            position: relative;
+            z-index: 1;
+            padding: 80px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow: hidden;
+        }
+        .pulse-label {
+            text-align: center;
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 10px;
+        }
+        .pulse-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            color: var(--text);
+            text-align: center;
+            margin-bottom: 60px;
+        }
+        .pulse-wrap {
+            position: relative;
+            width: 340px;
+            height: 340px;
+            flex-shrink: 0;
+        }
+        /* Pulsing rings */
+        @keyframes pulse-ring {
+            0%   { transform: translate(-50%,-50%) scale(0.55); opacity: 0.55; }
+            100% { transform: translate(-50%,-50%) scale(1);    opacity: 0; }
+        }
+        .pulse-ring {
+            position: absolute;
+            top: 50%; left: 50%;
+            border-radius: 999px;
+            border: 1px solid rgba(168,85,247,0.35);
+            animation: pulse-ring 3s ease-out infinite;
+        }
+        .pulse-ring-1 { width: 340px; height: 340px; animation-delay: 0s; }
+        .pulse-ring-2 { width: 340px; height: 340px; animation-delay: 1s; }
+        .pulse-ring-3 { width: 340px; height: 340px; animation-delay: 2s; }
+        /* Static guide rings */
+        .pulse-guide {
+            position: absolute;
+            top: 50%; left: 50%;
+            border-radius: 999px;
+            border: 1px dashed rgba(255,255,255,0.06);
+            transform: translate(-50%,-50%);
+        }
+        .pulse-guide-1 { width: 160px; height: 160px; }
+        .pulse-guide-2 { width: 280px; height: 280px; }
+        /* Centre hub */
+        .pulse-hub {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%,-50%);
+            width: 88px; height: 88px;
+            border-radius: 999px;
+            background: var(--surface2);
+            border: 1px solid rgba(168,85,247,0.4);
+            box-shadow: 0 0 24px rgba(168,85,247,0.15);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            z-index: 5;
+        }
+        .pulse-hub-icon { font-size: 22px; }
+        .pulse-hub-text {
+            font-family: 'Syne', sans-serif;
+            font-size: 9px;
+            font-weight: 700;
+            color: var(--accent2);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+        /* Stat nodes — positioned absolutely around the rings */
+        .pulse-node {
+            position: absolute;
+            width: 68px; height: 68px;
+            border-radius: 16px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1px;
+            transform: translate(-50%,-50%);
+            transition: border-color 0.2s;
+        }
+        .pulse-node:hover { border-color: rgba(244,114,182,0.4); }
+        .pulse-node-val {
+            font-family: 'Syne', sans-serif;
+            font-size: 13px;
+            font-weight: 800;
+            color: var(--text);
+            letter-spacing: -0.03em;
+        }
+        .pulse-node-lbl {
+            font-size: 8px;
+            font-weight: 500;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            text-align: center;
+            line-height: 1.2;
+        }
+        /* Connector lines */
+        .pulse-svg {
+            position: absolute;
+            inset: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* ── Flow / pipeline section ── */
+        .flow-section {
+            position: relative;
+            z-index: 1;
+            padding: 80px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .flow-label {
+            text-align: center;
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 10px;
+        }
+        .flow-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            color: var(--text);
+            text-align: center;
+            margin-bottom: 56px;
+        }
+        .flow-track {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            align-items: center;
+            width: 100%;
+            max-width: 360px;
+        }
+        /* Each step row */
+        .flow-step {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            width: 100%;
+        }
+        /* Numbered badge */
+        .flow-badge {
+            flex-shrink: 0;
+            width: 42px; height: 42px;
+            border-radius: 999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Syne', sans-serif;
+            font-size: 14px;
+            font-weight: 800;
+            color: #fff;
+            position: relative;
+            z-index: 2;
+        }
+        .flow-card {
+            flex: 1;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 14px 16px;
+            transition: border-color 0.2s;
+        }
+        .flow-card:hover { border-color: var(--border-glow); }
+        .flow-card-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 3px;
+        }
+        .flow-card-desc {
+            font-size: 11px;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+        /* Animated connector pipe between steps */
+        .flow-pipe {
+            width: 2px;
+            height: 32px;
+            margin-left: 21px; /* align with badge centre */
+            position: relative;
+            overflow: hidden;
+            background: var(--surface2);
+            border-radius: 999px;
+        }
+        @keyframes flow-drip {
+            0%   { top: -100%; }
+            100% { top: 100%; }
+        }
+        .flow-pipe::after {
+            content: '';
+            position: absolute;
+            left: 0; right: 0;
+            height: 50%;
+            border-radius: 999px;
+            animation: flow-drip 1.4s linear infinite;
+        }
+        .flow-pipe-1::after { background: linear-gradient(180deg,transparent,#a855f7); animation-delay: 0s; }
+        .flow-pipe-2::after { background: linear-gradient(180deg,transparent,#f472b6); animation-delay: 0.35s; }
+        .flow-pipe-3::after { background: linear-gradient(180deg,transparent,#38bdf8); animation-delay: 0.7s; }
+        .flow-pipe-4::after { background: linear-gradient(180deg,transparent,#34d399); animation-delay: 1.05s; }
+
+        /* ── Scroll-reveal base states ── */
+        /* Elements start hidden; JS adds .is-visible when they enter the viewport */
+        .reveal-fade {
+            opacity: 0;
+            transform: translateY(22px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+            transition-delay: var(--reveal-delay, 0ms);
+        }
+        .reveal-scale {
+            opacity: 0;
+            transform: scale(0.88);
+            transition: opacity 0.7s cubic-bezier(0.22,1,0.36,1), transform 0.7s cubic-bezier(0.22,1,0.36,1);
+            transition-delay: var(--reveal-delay, 0ms);
+        }
+        .reveal-step {
+            opacity: 0;
+            transform: translateX(-18px);
+            transition: opacity 0.55s ease, transform 0.55s ease;
+            transition-delay: var(--reveal-delay, 0ms);
+        }
+        /* Triggered state — all variants share this */
+        .reveal-section.is-visible .reveal-fade,
+        .reveal-section.is-visible .reveal-scale,
+        .reveal-section.is-visible .reveal-step {
+            opacity: 1;
+            transform: none;
+        }
+        /* Orbit & pulse animations only start once visible */
+        .orbit-arm-1,
+        .orbit-arm-2,
+        .orbit-arm-1 .orbit-node,
+        .orbit-arm-2 .orbit-node {
+            animation-play-state: paused;
+        }
+        .reveal-section.is-visible .orbit-arm-1,
+        .reveal-section.is-visible .orbit-arm-2,
+        .reveal-section.is-visible .orbit-arm-1 .orbit-node,
+        .reveal-section.is-visible .orbit-arm-2 .orbit-node {
+            animation-play-state: running;
+        }
+        .pulse-ring {
+            animation-play-state: paused;
+        }
+        .reveal-section.is-visible .pulse-ring {
+            animation-play-state: running;
+        }
+        .flow-pipe::after {
+            animation-play-state: paused;
+        }
+        .reveal-section.is-visible .flow-pipe::after {
+            animation-play-state: running;
+        }
+
         /* ── FAQ ── */
         .faq-section {
             position: relative;
@@ -1857,9 +2146,10 @@
         }
         #paypal-button-container {
             background: #ffffff;
-            border-radius: 999px;
-            padding: 10px 12px;
+            border-radius: 12px;
+            padding: 6px 0;
             overflow: hidden;
+            width: 100%;
         }
 
         /* FAQ accordion */
@@ -2036,7 +2326,7 @@
         .tr-cta-ghost:hover { border-color: rgba(255,255,255,.2); color: var(--text); }
     </style>
 </head>
-<body>
+<body class="loader-lock">
 
     <!-- ══ LOADING SCREEN ══ -->
     <div id="loadingScreen">
@@ -2476,6 +2766,194 @@
                 <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:#38bdf8;margin-bottom:3px;">Hosting for site buyers</div>
                 <div style="font-size:12px;color:var(--muted);line-height:1.6;">When a buyer purchases your site, they can subscribe to our hosting plan at <strong style="color:var(--text);">$49.99/month</strong> — giving them access to our database, serverless functions, and admin dashboard to run their new site. You earn, they grow.</div>
             </div>
+        </div>
+    </div>
+
+<!-- ══ ORBIT SECTION ══ -->
+    <div class="orbit-section reveal-section" id="orbitSection">
+        <p class="orbit-label reveal-fade" style="--reveal-delay:0ms">Platform ecosystem</p>
+        <h2 class="orbit-title reveal-fade" style="--reveal-delay:80ms">Everything orbits around your deal</h2>
+        <div class="orbit-wrap reveal-scale" style="--reveal-delay:180ms">
+            <!-- Static dashed guide rings -->
+            <div class="orbit-ring orbit-ring-1"></div>
+            <div class="orbit-ring orbit-ring-2"></div>
+            <!-- Centre hub -->
+            <div class="orbit-hub">
+                <!-- Globe / network icon -->
+                <svg class="orbit-hub-icon" width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="11" cy="11" r="9.5" stroke="url(#og1)" stroke-width="1.4"/>
+                    <ellipse cx="11" cy="11" rx="4" ry="9.5" stroke="url(#og1)" stroke-width="1.2"/>
+                    <line x1="1.5" y1="11" x2="20.5" y2="11" stroke="url(#og1)" stroke-width="1.2"/>
+                    <line x1="11" y1="1.5" x2="11" y2="20.5" stroke="url(#og1)" stroke-width="1.2"/>
+                    <defs>
+                        <linearGradient id="og1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#a855f7"/><stop offset="100%" stop-color="#38bdf8"/></linearGradient>
+                    </defs>
+                </svg>
+                <span class="orbit-hub-text">Siterifty</span>
+            </div>
+            <!-- Inner arm — Seller + Buyer -->
+            <div class="orbit-arm-1">
+                <div class="orbit-node orbit-node-t">
+                    <!-- Tag / seller icon -->
+                    <svg class="orbit-node-icon" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M2 2h6l8 8-6 6-8-8V2Z" stroke="#a855f7" stroke-width="1.3" stroke-linejoin="round"/>
+                        <circle cx="5.5" cy="5.5" r="1.2" fill="#a855f7"/>
+                    </svg>
+                    <span class="orbit-node-label">Seller</span>
+                </div>
+                <div class="orbit-node orbit-node-b">
+                    <!-- Buyer / person icon -->
+                    <svg class="orbit-node-icon" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="9" cy="6.5" r="3" stroke="#f472b6" stroke-width="1.3"/>
+                        <path d="M2 16c0-3.314 3.134-6 7-6s7 2.686 7 6" stroke="#f472b6" stroke-width="1.3" stroke-linecap="round"/>
+                    </svg>
+                    <span class="orbit-node-label">Buyer</span>
+                </div>
+            </div>
+            <!-- Outer arm — Escrow + Hosting -->
+            <div class="orbit-arm-2">
+                <div class="orbit-node orbit-node-t">
+                    <!-- Lock / escrow icon -->
+                    <svg class="orbit-node-icon" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="3" y="8" width="12" height="9" rx="2" stroke="#38bdf8" stroke-width="1.3"/>
+                        <path d="M6 8V5.5a3 3 0 1 1 6 0V8" stroke="#38bdf8" stroke-width="1.3" stroke-linecap="round"/>
+                        <circle cx="9" cy="12.5" r="1.2" fill="#38bdf8"/>
+                    </svg>
+                    <span class="orbit-node-label">Escrow</span>
+                </div>
+                <div class="orbit-node orbit-node-b">
+                    <!-- Server / hosting icon -->
+                    <svg class="orbit-node-icon" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="2" y="3" width="14" height="5" rx="1.5" stroke="#34d399" stroke-width="1.3"/>
+                        <rect x="2" y="10" width="14" height="5" rx="1.5" stroke="#34d399" stroke-width="1.3"/>
+                        <circle cx="4.5" cy="5.5" r="1" fill="#34d399"/>
+                        <circle cx="4.5" cy="12.5" r="1" fill="#34d399"/>
+                    </svg>
+                    <span class="orbit-node-label">Hosting</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ PULSE SECTION ══ -->
+    <div class="pulse-section reveal-section" id="pulseSection">
+        <p class="pulse-label reveal-fade" style="--reveal-delay:0ms">Live marketplace</p>
+        <h2 class="pulse-title reveal-fade" style="--reveal-delay:80ms">A market that never sleeps</h2>
+        <div class="pulse-wrap reveal-scale" style="--reveal-delay:180ms">
+            <!-- Pulsing rings -->
+            <div class="pulse-ring pulse-ring-1"></div>
+            <div class="pulse-ring pulse-ring-2"></div>
+            <div class="pulse-ring pulse-ring-3"></div>
+            <!-- Static guide rings -->
+            <div class="pulse-guide pulse-guide-1"></div>
+            <div class="pulse-guide pulse-guide-2"></div>
+            <!-- Connector lines SVG -->
+            <svg class="pulse-svg" viewBox="0 0 340 340" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <line x1="170" y1="170" x2="170" y2="30"  stroke="rgba(255,255,255,0.06)" stroke-width="1" stroke-dasharray="3 4"/>
+                <line x1="170" y1="170" x2="310" y2="170" stroke="rgba(255,255,255,0.06)" stroke-width="1" stroke-dasharray="3 4"/>
+                <line x1="170" y1="170" x2="170" y2="310" stroke="rgba(255,255,255,0.06)" stroke-width="1" stroke-dasharray="3 4"/>
+                <line x1="170" y1="170" x2="30"  y2="170" stroke="rgba(255,255,255,0.06)" stroke-width="1" stroke-dasharray="3 4"/>
+            </svg>
+            <!-- Centre hub — bar chart SVG -->
+            <div class="pulse-hub">
+                <svg class="pulse-hub-icon" width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="2"  y="13" width="4" height="7" rx="1" fill="url(#pg1)"/>
+                    <rect x="9"  y="8"  width="4" height="12" rx="1" fill="url(#pg1)"/>
+                    <rect x="16" y="4"  width="4" height="16" rx="1" fill="url(#pg1)"/>
+                    <defs>
+                        <linearGradient id="pg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f472b6"/><stop offset="100%" stop-color="#a855f7"/></linearGradient>
+                    </defs>
+                </svg>
+                <span class="pulse-hub-text">Live</span>
+            </div>
+            <!-- Stat nodes at N/E/S/W — people icon, coin icon, star icon, globe icon -->
+            <div class="pulse-node" style="top:30px;left:50%;">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style="margin-bottom:2px"><circle cx="10" cy="7" r="3" stroke="#a855f7" stroke-width="1.3"/><path d="M3 17c0-3.314 3.134-5 7-5s7 1.686 7 5" stroke="#a855f7" stroke-width="1.3" stroke-linecap="round"/></svg>
+                <span class="pulse-node-val">8.4k</span>
+                <span class="pulse-node-lbl">Sellers</span>
+            </div>
+            <div class="pulse-node" style="top:50%;left:310px;">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style="margin-bottom:2px"><circle cx="10" cy="10" r="8" stroke="#f472b6" stroke-width="1.3"/><path d="M10 5v10M7 7.5c0-1.38 1.343-2.5 3-2.5h1c1.657 0 3 .895 3 2s-1.343 2-3 2H9c-1.657 0-3 .895-3 2s1.343 2 3 2h1c1.657 0 3-1.12 3-2.5" stroke="#f472b6" stroke-width="1.2" stroke-linecap="round"/></svg>
+                <span class="pulse-node-val">$2.1M</span>
+                <span class="pulse-node-lbl">Volume</span>
+            </div>
+            <div class="pulse-node" style="top:310px;left:50%;">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style="margin-bottom:2px"><path d="M10 2l2.39 4.84L18 7.64l-4 3.9.94 5.5L10 14.27l-4.94 2.77.94-5.5-4-3.9 5.61-.8L10 2Z" stroke="#38bdf8" stroke-width="1.3" stroke-linejoin="round"/></svg>
+                <span class="pulse-node-val">4.9</span>
+                <span class="pulse-node-lbl">Rating</span>
+            </div>
+            <div class="pulse-node" style="top:50%;left:30px;">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style="margin-bottom:2px"><circle cx="10" cy="10" r="8.5" stroke="#34d399" stroke-width="1.3"/><ellipse cx="10" cy="10" rx="3.5" ry="8.5" stroke="#34d399" stroke-width="1.1"/><line x1="1.5" y1="10" x2="18.5" y2="10" stroke="#34d399" stroke-width="1.1"/></svg>
+                <span class="pulse-node-val">180+</span>
+                <span class="pulse-node-lbl">Countries</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ FLOW SECTION ══ -->
+    <div class="flow-section reveal-section" id="flowSection">
+        <p class="flow-label reveal-fade" style="--reveal-delay:0ms">Money flow</p>
+        <h2 class="flow-title reveal-fade" style="--reveal-delay:80ms">From listing to payout</h2>
+        <div class="flow-track">
+
+            <div class="flow-step reveal-step" style="--reveal-delay:140ms">
+                <div class="flow-badge" style="background:linear-gradient(135deg,#a855f7,#818cf8);">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="2" width="14" height="12" rx="2" stroke="#fff" stroke-width="1.3"/><path d="M4 6h8M4 9h5" stroke="#fff" stroke-width="1.2" stroke-linecap="round"/></svg>
+                </div>
+                <div class="flow-card">
+                    <div class="flow-card-title">Seller lists the site</div>
+                    <div class="flow-card-desc">Set price, attach metrics and traffic data. Goes live to thousands of buyers instantly.</div>
+                </div>
+            </div>
+
+            <div class="flow-pipe flow-pipe-1"></div>
+
+            <div class="flow-step reveal-step" style="--reveal-delay:220ms">
+                <div class="flow-badge" style="background:linear-gradient(135deg,#f472b6,#a855f7);">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5.5" r="2.5" stroke="#fff" stroke-width="1.3"/><path d="M2 13c0-2.761 2.686-5 6-5s6 2.239 6 5" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/></svg>
+                </div>
+                <div class="flow-card">
+                    <div class="flow-card-title">Buyer places offer</div>
+                    <div class="flow-card-desc">Funds are held in secure escrow — neither side can access them until the deal confirms.</div>
+                </div>
+            </div>
+
+            <div class="flow-pipe flow-pipe-2"></div>
+
+            <div class="flow-step reveal-step" style="--reveal-delay:300ms">
+                <div class="flow-badge" style="background:linear-gradient(135deg,#38bdf8,#f472b6);">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 8h12M9 4l4 4-4 4" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <div class="flow-card">
+                    <div class="flow-card-title">Transfer &amp; verification</div>
+                    <div class="flow-card-desc">Domain, codebase, and assets move to buyer. Both parties confirm delivery on-platform.</div>
+                </div>
+            </div>
+
+            <div class="flow-pipe flow-pipe-3"></div>
+
+            <div class="flow-step reveal-step" style="--reveal-delay:380ms">
+                <div class="flow-badge" style="background:linear-gradient(135deg,#34d399,#38bdf8);">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="#fff" stroke-width="1.3"/><path d="M8 4.5v7M5.5 6.5c0-1.1.9-2 2-2h1.5a2 2 0 0 1 0 4H7a2 2 0 0 0 0 4H9a2 2 0 0 0 2-2" stroke="#fff" stroke-width="1.2" stroke-linecap="round"/></svg>
+                </div>
+                <div class="flow-card">
+                    <div class="flow-card-title">Payout hits your wallet</div>
+                    <div class="flow-card-desc">Escrow releases to your Siterifty wallet instantly. Withdraw or reinvest in your next deal.</div>
+                </div>
+            </div>
+
+            <div class="flow-pipe flow-pipe-4"></div>
+
+            <div class="flow-step reveal-step" style="--reveal-delay:460ms">
+                <div class="flow-badge" style="background:linear-gradient(135deg,#fbbf24,#34d399);">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="4.5" rx="1.5" stroke="#fff" stroke-width="1.3"/><rect x="1" y="9" width="14" height="4.5" rx="1.5" stroke="#fff" stroke-width="1.3"/><circle cx="3.5" cy="5.25" r=".9" fill="#fff"/><circle cx="3.5" cy="11.25" r=".9" fill="#fff"/></svg>
+                </div>
+                <div class="flow-card">
+                    <div class="flow-card-title">Buyer activates hosting</div>
+                    <div class="flow-card-desc">Optional managed hosting at $49.99/mo keeps their new site running with zero DevOps hassle.</div>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -3731,37 +4209,306 @@
 
 <!-- ── MY SITES TAB ── -->
                     <div id="tabOrders" class="dash-panel">
-                        <div id="tabOrdersSkeleton" style="padding:16px 0;">
-                            <!-- Skeleton shimmer rows shown before data loads -->
-                            <div style="display:flex;flex-direction:column;gap:10px;">
-                                <div style="height:72px;border-radius:14px;background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.07) 50%,rgba(255,255,255,0.04) 75%);background-size:200% 100%;animation:skeletonPulse 1.4s ease-in-out infinite;"></div>
-                                <div style="height:72px;border-radius:14px;background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.07) 50%,rgba(255,255,255,0.04) 75%);background-size:200% 100%;animation:skeletonPulse 1.4s ease-in-out infinite 0.15s;"></div>
-                                <div style="height:72px;border-radius:14px;background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.07) 50%,rgba(255,255,255,0.04) 75%);background-size:200% 100%;animation:skeletonPulse 1.4s ease-in-out infinite 0.3s;"></div>
+
+                        <!-- Toggle row -->
+                        <div style="display:flex;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:4px;gap:4px;margin-bottom:14px;">
+                            <button id="msSellBtn" onclick="switchSitesView('listed')" style="flex:1;padding:9px 0;border-radius:10px;border:none;cursor:pointer;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;letter-spacing:.02em;transition:background .15s,color .15s;background:linear-gradient(135deg,#a855f7,#f472b6);color:#fff;box-shadow:0 2px 10px rgba(168,85,247,0.25);">Listed Sites</button>
+                            <button id="msBuyBtn"  onclick="switchSitesView('bought')" style="flex:1;padding:9px 0;border-radius:10px;border:none;cursor:pointer;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;letter-spacing:.02em;transition:background .15s,color .15s;background:transparent;color:var(--muted);">Bought Sites</button>
+                        </div>
+
+                        <!-- Listed Sites panel -->
+                        <div id="msListed">
+                            <div id="tabOrdersSkeleton" style="padding:4px 0 8px;">
+                                <div style="display:flex;flex-direction:column;gap:10px;">
+                                    <div style="height:72px;border-radius:14px;background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.07) 50%,rgba(255,255,255,0.04) 75%);background-size:200% 100%;animation:skeletonPulse 1.4s ease-in-out infinite;"></div>
+                                    <div style="height:72px;border-radius:14px;background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.07) 50%,rgba(255,255,255,0.04) 75%);background-size:200% 100%;animation:skeletonPulse 1.4s ease-in-out infinite 0.15s;"></div>
+                                    <div style="height:72px;border-radius:14px;background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.07) 50%,rgba(255,255,255,0.04) 75%);background-size:200% 100%;animation:skeletonPulse 1.4s ease-in-out infinite 0.3s;"></div>
+                                </div>
+                            </div>
+                            <div id="tabOrdersContent" style="display:none;"></div>
+                            <!-- Empty state -->
+                            <div id="msListedEmpty" style="display:none;flex-direction:column;align-items:center;padding:48px 20px 40px;gap:14px;">
+                                <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+                                    <circle cx="28" cy="28" r="27" stroke="rgba(52,211,153,0.18)" stroke-width="1.5"/>
+                                    <circle cx="28" cy="28" r="20" fill="rgba(52,211,153,0.06)"/>
+                                    <path d="M20 30c1.5-3 4-5 8-5s6.5 2 8 5" stroke="#34d399" stroke-width="1.6" stroke-linecap="round"/>
+                                    <circle cx="23" cy="24" r="1.5" fill="#34d399" opacity=".7"/>
+                                    <circle cx="33" cy="24" r="1.5" fill="#34d399" opacity=".7"/>
+                                    <path d="M22 37h12" stroke="rgba(52,211,153,0.3)" stroke-width="1.2" stroke-linecap="round"/>
+                                </svg>
+                                <div style="text-align:center;">
+                                    <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:#34d399;letter-spacing:-.02em;margin-bottom:6px;">Nothing you're selling</div>
+                                    <div style="font-size:12px;color:var(--muted);line-height:1.6;max-width:220px;">You haven't listed any sites for sale yet. Start selling to grow your income.</div>
+                                </div>
                             </div>
                         </div>
-                        <div id="tabOrdersContent" style="display:none;"></div>
+
+                        <!-- Bought Sites panel -->
+                        <div id="msBought" style="display:none;">
+                            <div id="msBoughtSkeleton" style="padding:4px 0 8px;">
+                                <div style="display:flex;flex-direction:column;gap:10px;">
+                                    <div style="height:72px;border-radius:14px;background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.07) 50%,rgba(255,255,255,0.04) 75%);background-size:200% 100%;animation:skeletonPulse 1.4s ease-in-out infinite;"></div>
+                                    <div style="height:72px;border-radius:14px;background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.07) 50%,rgba(255,255,255,0.04) 75%);background-size:200% 100%;animation:skeletonPulse 1.4s ease-in-out infinite 0.2s;"></div>
+                                </div>
+                            </div>
+                            <div id="msBoughtContent" style="display:none;"></div>
+                            <!-- Empty state -->
+                            <div id="msBoughtEmpty" style="display:none;flex-direction:column;align-items:center;padding:48px 20px 40px;gap:14px;">
+                                <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+                                    <circle cx="28" cy="28" r="27" stroke="rgba(248,113,113,0.18)" stroke-width="1.5"/>
+                                    <circle cx="28" cy="28" r="20" fill="rgba(248,113,113,0.06)"/>
+                                    <path d="M20 32c1.5-4 4-6 8-6s6.5 2 8 6" stroke="#f87171" stroke-width="1.6" stroke-linecap="round"/>
+                                    <circle cx="23" cy="25" r="1.5" fill="#f87171" opacity=".7"/>
+                                    <circle cx="33" cy="25" r="1.5" fill="#f87171" opacity=".7"/>
+                                    <path d="M22 39h12" stroke="rgba(248,113,113,0.3)" stroke-width="1.2" stroke-linecap="round"/>
+                                </svg>
+                                <div style="text-align:center;">
+                                    <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:#f87171;letter-spacing:-.02em;margin-bottom:6px;">Nothing you've bought</div>
+                                    <div style="font-size:12px;color:var(--muted);line-height:1.6;max-width:220px;">You haven't purchased any sites yet. Browse listings to find your next digital asset.</div>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
 
                     <!-- ── SUPPORT TAB ── -->
                     <div id="tabAddress" class="dash-panel">
-                        <div id="tabAddressSkeleton" style="padding:16px 0;">
-                            <div style="display:flex;flex-direction:column;gap:10px;">
-                                <div style="height:88px;border-radius:14px;background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.07) 50%,rgba(255,255,255,0.04) 75%);background-size:200% 100%;animation:skeletonPulse 1.4s ease-in-out infinite;"></div>
-                                <div style="height:56px;border-radius:14px;background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.07) 50%,rgba(255,255,255,0.04) 75%);background-size:200% 100%;animation:skeletonPulse 1.4s ease-in-out infinite 0.2s;"></div>
+
+                        <!-- Header -->
+                        <div style="margin-bottom:16px;">
+                            <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:var(--text);letter-spacing:-.03em;margin-bottom:4px;">Support</div>
+                            <div style="font-size:12px;color:var(--muted);line-height:1.6;">We typically reply within a few hours. Drop us a message and we'll get back to you.</div>
+                        </div>
+
+                        <!-- Contact form card -->
+                        <div class="settings-group" style="margin-bottom:14px;overflow:visible;">
+                            <div style="padding:18px 16px 16px;display:flex;flex-direction:column;gap:12px;">
+
+                                <!-- Name field (auto-filled) -->
+                                <div>
+                                    <label style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px;">Your Name</label>
+                                    <div style="position:relative;">
+                                        <div style="position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none;opacity:.4;">
+                                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="4.5" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 12c0-3 2.462-4.5 5.5-4.5s5.5 1.5 5.5 4.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+                                        </div>
+                                        <input id="supportName" class="dash-input" type="text" placeholder="Your display name" autocomplete="name" style="padding-left:34px;margin:0;">
+                                    </div>
+                                </div>
+
+                                <!-- Email field (auto-filled) -->
+                                <div>
+                                    <label style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px;">Email Address</label>
+                                    <div style="position:relative;">
+                                        <div style="position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none;opacity:.4;">
+                                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="2.5" width="12" height="9" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M1 5.5l6 3.5 6-3.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+                                        </div>
+                                        <input id="supportEmail" class="dash-input" type="email" placeholder="Your email" autocomplete="email" style="padding-left:34px;margin:0;">
+                                    </div>
+                                </div>
+
+                                <!-- Message field -->
+                                <div>
+                                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                                        <label style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);">Message</label>
+                                        <span id="supportCharCount" style="font-size:10px;color:var(--muted);">0 / 1000</span>
+                                    </div>
+                                    <textarea id="supportMsg" class="dash-input" rows="5" placeholder="Tell us what's on your mind — we're here to help…" maxlength="1000" oninput="document.getElementById('supportCharCount').textContent=this.value.length+' / 1000'" style="margin:0;resize:none;min-height:110px;padding-top:12px;padding-bottom:12px;font-size:13px;line-height:1.6;"></textarea>
+                                </div>
+
+                                <!-- Status messages -->
+                                <div id="supportErr" style="display:none;padding:10px 14px;border-radius:10px;background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.2);font-size:12px;color:#f87171;"></div>
+                                <div id="supportOk"  style="display:none;padding:10px 14px;border-radius:10px;background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2);font-size:12px;color:#34d399;display:flex;align-items:center;gap:7px;">
+                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7.5l3.5 3.5 6.5-7" stroke="#34d399" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    Message sent! We'll be in touch soon.
+                                </div>
+
+                                <!-- Send button -->
+                                <button class="save-btn" id="supportSendBtn" onclick="sendSupportMessage()" style="width:100%;margin:0;">
+                                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M1.5 6.5L11.5 1.5l-3 9-2-4-4.5-2Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+                                    Send message
+                                </button>
                             </div>
                         </div>
-                        <div id="tabAddressContent" style="display:none;"></div>
+
+                        <!-- FAQ section -->
+                        <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:4px 0 8px 2px;">Common Questions</div>
+                        <div class="settings-group" style="margin-bottom:14px;">
+
+                            <div class="settings-row" onclick="toggleFaq(this)" style="flex-direction:column;align-items:flex-start;gap:0;padding:14px 16px;">
+                                <div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:10px;">
+                                    <div style="display:flex;align-items:center;gap:10px;">
+                                        <div class="settings-row-icon" style="background:rgba(168,85,247,0.1);border-color:rgba(168,85,247,0.2);flex-shrink:0;">
+                                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="#a855f7" stroke-width="1.2"/><path d="M7 9V7" stroke="#a855f7" stroke-width="1.2" stroke-linecap="round"/><circle cx="7" cy="5" r=".6" fill="#a855f7"/></svg>
+                                        </div>
+                                        <span class="settings-row-label" style="cursor:pointer;">How do I list a site for sale?</span>
+                                    </div>
+                                    <svg class="faq-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none" style="flex-shrink:0;transition:transform .2s;"><path d="M1 1l5 5-5 5" stroke="rgba(139,138,168,0.5)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                </div>
+                                <div class="faq-answer" style="display:none;padding:10px 0 0 40px;font-size:12px;color:var(--muted);line-height:1.65;">Go to the main marketplace and tap <strong style="color:var(--text);">+ List a Site</strong>. Fill in the details — URL, revenue, traffic, asking price — and submit. Your listing goes live immediately on the Free plan (1 slot) or up to your plan limit.</div>
+                            </div>
+
+                            <div class="settings-row-divider"></div>
+
+                            <div class="settings-row" onclick="toggleFaq(this)" style="flex-direction:column;align-items:flex-start;gap:0;padding:14px 16px;">
+                                <div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:10px;">
+                                    <div style="display:flex;align-items:center;gap:10px;">
+                                        <div class="settings-row-icon" style="background:rgba(52,211,153,0.1);border-color:rgba(52,211,153,0.2);flex-shrink:0;">
+                                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="3.5" width="12" height="8" rx="2" stroke="#34d399" stroke-width="1.2"/><path d="M1 6.5h12" stroke="#34d399" stroke-width="1.2"/><circle cx="11" cy="9.5" r=".9" fill="#34d399"/></svg>
+                                        </div>
+                                        <span class="settings-row-label" style="cursor:pointer;">What payment methods are accepted?</span>
+                                    </div>
+                                    <svg class="faq-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none" style="flex-shrink:0;transition:transform .2s;"><path d="M1 1l5 5-5 5" stroke="rgba(139,138,168,0.5)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                </div>
+                                <div class="faq-answer" style="display:none;padding:10px 0 0 40px;font-size:12px;color:var(--muted);line-height:1.65;">We currently process payments through <strong style="color:var(--text);">PayPal</strong>. All site purchases and subscription payments are handled securely through PayPal's checkout. Your wallet balance can be used toward any purchase.</div>
+                            </div>
+
+                            <div class="settings-row-divider"></div>
+
+                            <div class="settings-row" onclick="toggleFaq(this)" style="flex-direction:column;align-items:flex-start;gap:0;padding:14px 16px;">
+                                <div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:10px;">
+                                    <div style="display:flex;align-items:center;gap:10px;">
+                                        <div class="settings-row-icon" style="background:rgba(244,114,182,0.1);border-color:rgba(244,114,182,0.2);flex-shrink:0;">
+                                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1.5l1.3 2.64 2.9.42-2.1 2.05.5 2.9L7 8.04 4.4 9.51l.5-2.9L2.8 4.56l2.9-.42Z" fill="#f472b6"/></svg>
+                                        </div>
+                                        <span class="settings-row-label" style="cursor:pointer;">What are the platform fees?</span>
+                                    </div>
+                                    <svg class="faq-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none" style="flex-shrink:0;transition:transform .2s;"><path d="M1 1l5 5-5 5" stroke="rgba(139,138,168,0.5)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                </div>
+                                <div class="faq-answer" style="display:none;padding:10px 0 0 40px;font-size:12px;color:var(--muted);line-height:1.65;">Free plan: <strong style="color:var(--text);">10% fee</strong> per sale. Starter: <strong style="color:var(--text);">8%</strong>. Growth: <strong style="color:var(--text);">5%</strong>. Pro: <strong style="color:var(--text);">3%</strong> — the lowest on the platform. Upgrade anytime from the Account tab to keep more of what you earn.</div>
+                            </div>
+
+                            <div class="settings-row-divider"></div>
+
+                            <div class="settings-row" onclick="toggleFaq(this)" style="flex-direction:column;align-items:flex-start;gap:0;padding:14px 16px;">
+                                <div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:10px;">
+                                    <div style="display:flex;align-items:center;gap:10px;">
+                                        <div class="settings-row-icon" style="background:rgba(56,189,248,0.1);border-color:rgba(56,189,248,0.2);flex-shrink:0;">
+                                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="#38bdf8" stroke-width="1.2"/><path d="M5 7l1.5 1.5 2.5-2.5" stroke="#38bdf8" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                        </div>
+                                        <span class="settings-row-label" style="cursor:pointer;">Can I cancel my subscription?</span>
+                                    </div>
+                                    <svg class="faq-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none" style="flex-shrink:0;transition:transform .2s;"><path d="M1 1l5 5-5 5" stroke="rgba(139,138,168,0.5)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                </div>
+                                <div class="faq-answer" style="display:none;padding:10px 0 0 40px;font-size:12px;color:var(--muted);line-height:1.65;">Yes, anytime. Go to <strong style="color:var(--text);">Settings → Billing</strong> and switch to the Free plan. Your paid features remain active until the end of your current billing period. No penalties, no hassle.</div>
+                            </div>
+
+                            <div class="settings-row-divider"></div>
+
+                            <div class="settings-row" onclick="toggleFaq(this)" style="flex-direction:column;align-items:flex-start;gap:0;padding:14px 16px;">
+                                <div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:10px;">
+                                    <div style="display:flex;align-items:center;gap:10px;">
+                                        <div class="settings-row-icon" style="background:rgba(251,191,36,0.1);border-color:rgba(251,191,36,0.2);flex-shrink:0;">
+                                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="1.5" width="10" height="11" rx="2" stroke="#fbbf24" stroke-width="1.2"/><path d="M4.5 5h5M4.5 7h5M4.5 9h3" stroke="#fbbf24" stroke-width="1.2" stroke-linecap="round"/></svg>
+                                        </div>
+                                        <span class="settings-row-label" style="cursor:pointer;">How does wallet balance work?</span>
+                                    </div>
+                                    <svg class="faq-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none" style="flex-shrink:0;transition:transform .2s;"><path d="M1 1l5 5-5 5" stroke="rgba(139,138,168,0.5)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                </div>
+                                <div class="faq-answer" style="display:none;padding:10px 0 0 40px;font-size:12px;color:var(--muted);line-height:1.65;">Top up your wallet with any amount via PayPal. Your balance is then used for site purchases, monthly plan payments, and hosting fees — all in one place. Balances never expire and are non-refundable store credit.</div>
+                            </div>
+
+                        </div>
+
+                        <!-- Links / policy row -->
+                        <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:4px 0 8px 2px;">Legal & Info</div>
+                        <div class="settings-group" style="margin-bottom:24px;">
+                            <a href="https://siterifty.com/privacy" target="_blank" rel="noopener" style="text-decoration:none;">
+                                <div class="settings-row">
+                                    <div class="settings-row-icon" style="background:rgba(129,140,248,0.1);border-color:rgba(129,140,248,0.2);">
+                                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1.5L2 4v3.5c0 3 2.2 5 5 5.5 2.8-.5 5-2.5 5-5.5V4L7 1.5Z" stroke="#818cf8" stroke-width="1.2" stroke-linejoin="round"/></svg>
+                                    </div>
+                                    <div style="flex:1;min-width:0;">
+                                        <div class="settings-row-label">Privacy Policy</div>
+                                        <div class="settings-row-sub">How we store and protect your data</div>
+                                    </div>
+                                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style="color:rgba(139,138,168,0.35);flex-shrink:0;"><path d="M2 8L8 2M8 2H4M8 2v4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                </div>
+                            </a>
+                            <div class="settings-row-divider"></div>
+                            <a href="https://siterifty.com/terms" target="_blank" rel="noopener" style="text-decoration:none;">
+                                <div class="settings-row">
+                                    <div class="settings-row-icon" style="background:rgba(168,85,247,0.1);border-color:rgba(168,85,247,0.2);">
+                                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="1.5" width="10" height="11" rx="2" stroke="#a855f7" stroke-width="1.2"/><path d="M4.5 5h5M4.5 7h5M4.5 9h3" stroke="#a855f7" stroke-width="1.2" stroke-linecap="round"/></svg>
+                                    </div>
+                                    <div style="flex:1;min-width:0;">
+                                        <div class="settings-row-label">Terms of Service</div>
+                                        <div class="settings-row-sub">Platform rules and agreements</div>
+                                    </div>
+                                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style="color:rgba(139,138,168,0.35);flex-shrink:0;"><path d="M2 8L8 2M8 2H4M8 2v4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                </div>
+                            </a>
+                            <div class="settings-row-divider"></div>
+                            <a href="mailto:support@siterifty.com" style="text-decoration:none;">
+                                <div class="settings-row">
+                                    <div class="settings-row-icon" style="background:rgba(56,189,248,0.1);border-color:rgba(56,189,248,0.2);">
+                                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="2.5" width="12" height="9" rx="1.5" stroke="#38bdf8" stroke-width="1.2"/><path d="M1 5.5l6 3.5 6-3.5" stroke="#38bdf8" stroke-width="1.2" stroke-linecap="round"/></svg>
+                                    </div>
+                                    <div style="flex:1;min-width:0;">
+                                        <div class="settings-row-label">Email Us Directly</div>
+                                        <div class="settings-row-sub">support@siterifty.com</div>
+                                    </div>
+                                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style="color:rgba(139,138,168,0.35);flex-shrink:0;"><path d="M2 8L8 2M8 2H4M8 2v4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                </div>
+                            </a>
+                        </div>
+
                     </div>
 
                     <!-- ── SETTINGS TAB ── -->
                     <div id="tabAccount" class="dash-panel">
 
-                        <!-- ── Email + Plan pill row (like Claude settings top bar) ── -->
-                        <div class="settings-identity-card">
-                            <div class="settings-email-row">
-                                <span class="settings-email-text" id="settingsEmail">—</span>
-                                <span class="settings-plan-pill" id="settingsPlanBadge">FREE</span>
+                        <!-- ── Full identity hero card ── -->
+                        <div style="position:relative;overflow:hidden;background:linear-gradient(150deg,rgba(168,85,247,0.14) 0%,rgba(244,114,182,0.08) 55%,rgba(56,189,248,0.05) 100%);border:1px solid rgba(168,85,247,0.15);border-radius:18px;padding:20px 18px 18px;margin-bottom:10px;">
+                            <!-- subtle dot grid -->
+                            <div style="position:absolute;inset:0;background-image:radial-gradient(circle,rgba(168,85,247,0.12) 1px,transparent 1px);background-size:22px 22px;pointer-events:none;border-radius:18px;"></div>
+                            <div style="position:relative;display:flex;align-items:center;gap:14px;">
+                                <!-- avatar -->
+                                <div style="position:relative;flex-shrink:0;">
+                                    <div style="position:absolute;inset:-4px;border-radius:999px;background:conic-gradient(from 180deg,#a855f7,#f472b6,#38bdf8,#a855f7);opacity:0.3;filter:blur(6px);"></div>
+                                    <div id="settingsAvatarHero" style="position:relative;width:56px;height:56px;border-radius:999px;background:linear-gradient(135deg,#a855f7,#f472b6);border:2px solid rgba(255,255,255,0.15);box-shadow:0 4px 18px rgba(168,85,247,0.28);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:#fff;">?</div>
+                                </div>
+                                <!-- info -->
+                                <div style="flex:1;min-width:0;">
+                                    <div id="settingsHeroName" style="font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:var(--text);letter-spacing:-0.03em;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">—</div>
+                                    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                                        <span class="settings-email-text" id="settingsEmail" style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;">—</span>
+                                        <span class="settings-plan-pill" id="settingsPlanBadge">FREE</span>
+                                    </div>
+                                </div>
+                                <!-- edit arrow -->
+                                <button onclick="openSettingsPanel('profile')" style="flex-shrink:0;width:32px;height:32px;border-radius:10px;background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.25);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='rgba(168,85,247,0.22)'" onmouseout="this.style.background='rgba(168,85,247,0.12)'">
+                                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M9 2.5L10.5 4 4.5 10H3V8.5L9 2.5Z" stroke="#a855f7" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                </button>
                             </div>
+                            <!-- status bar -->
+                            <div style="position:relative;display:flex;align-items:center;gap:6px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.07);">
+                                <div style="width:7px;height:7px;border-radius:999px;background:#34d399;box-shadow:0 0 6px rgba(52,211,153,0.6);flex-shrink:0;"></div>
+                                <span style="font-size:11px;color:rgba(139,138,168,0.7);">Account active</span>
+                                <div style="flex:1;"></div>
+                                <span style="font-size:10px;color:rgba(139,138,168,0.4);">Siterifty member</span>
+                            </div>
+                        </div>
+
+                        <!-- ── Quick actions row ── -->
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+                            <button onclick="openSettingsPanel('profile')" style="display:flex;align-items:center;gap:9px;background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:12px 14px;cursor:pointer;transition:border-color 0.15s,background 0.15s;text-align:left;" onmouseover="this.style.borderColor='rgba(168,85,247,0.3)'" onmouseout="this.style.borderColor='var(--border)'">
+                                <div style="width:30px;height:30px;border-radius:9px;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="4.5" r="2.5" stroke="#a855f7" stroke-width="1.2"/><path d="M1.5 12c0-3 2.462-4 5.5-4s5.5 1 5.5 4" stroke="#a855f7" stroke-width="1.2" stroke-linecap="round"/></svg>
+                                </div>
+                                <div>
+                                    <div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--text);">Edit profile</div>
+                                    <div style="font-size:10px;color:var(--muted);">Name &amp; password</div>
+                                </div>
+                            </button>
+                            <button onclick="openSettingsPanel('billing')" style="display:flex;align-items:center;gap:9px;background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:12px 14px;cursor:pointer;transition:border-color 0.15s,background 0.15s;text-align:left;" onmouseover="this.style.borderColor='rgba(52,211,153,0.3)'" onmouseout="this.style.borderColor='var(--border)'">
+                                <div style="width:30px;height:30px;border-radius:9px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="3.5" width="12" height="8" rx="2" stroke="#34d399" stroke-width="1.2"/><path d="M1 6.5h12" stroke="#34d399" stroke-width="1.2"/><circle cx="11" cy="9.5" r=".9" fill="#34d399"/></svg>
+                                </div>
+                                <div>
+                                    <div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--text);">Billing</div>
+                                    <div style="font-size:10px;color:var(--muted);">Plan &amp; wallet</div>
+                                </div>
+                            </button>
                         </div>
 
                         <!-- ── Upgrade prompt (shown when on Free plan) ── -->
@@ -3773,62 +4520,128 @@
                             <button class="settings-upgrade-btn" onclick="openUpgradeModal('starter')">Upgrade</button>
                         </div>
 
+                        <!-- ── Activity stats card ── -->
+                        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
+                            <div style="background:linear-gradient(145deg,rgba(168,85,247,0.1),rgba(168,85,247,0.04));border:1px solid rgba(168,85,247,0.18);border-radius:14px;padding:12px 10px;display:flex;flex-direction:column;align-items:center;gap:3px;">
+                                <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="4" width="14" height="11" rx="2" stroke="#a855f7" stroke-width="1.3"/><path d="M2 7.5h14" stroke="#a855f7" stroke-width="1.2"/><path d="M6 2v2.5M12 2v2.5" stroke="#a855f7" stroke-width="1.2" stroke-linecap="round"/></svg>
+                                <div id="statsListingsCount" style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:var(--text);letter-spacing:-0.03em;">—</div>
+                                <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;text-align:center;">Listings</div>
+                            </div>
+                            <div style="background:linear-gradient(145deg,rgba(244,114,182,0.1),rgba(244,114,182,0.04));border:1px solid rgba(244,114,182,0.18);border-radius:14px;padding:12px 10px;display:flex;flex-direction:column;align-items:center;gap:3px;">
+                                <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="#f472b6" stroke-width="1.3"/><path d="M9 5v4l3 2" stroke="#f472b6" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                <div id="statsMemberSince" style="font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:var(--text);letter-spacing:-0.02em;">—</div>
+                                <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;text-align:center;">Member since</div>
+                            </div>
+                            <div style="background:linear-gradient(145deg,rgba(56,189,248,0.1),rgba(56,189,248,0.04));border:1px solid rgba(56,189,248,0.18);border-radius:14px;padding:12px 10px;display:flex;flex-direction:column;align-items:center;gap:3px;">
+                                <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="#38bdf8" stroke-width="1.3"/><path d="M9 5.5v4l2.5 2.5" stroke="#38bdf8" stroke-width="1.2" stroke-linecap="round"/></svg>
+                                <div id="statsLastSeen" style="font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:var(--text);letter-spacing:-0.02em;">Now</div>
+                                <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;text-align:center;">Last active</div>
+                            </div>
+                        </div>
+
                         <!-- ── Group 1: Account ── -->
+                        <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:4px 0 8px 2px;">Account</div>
                         <div class="settings-group">
                             <div class="settings-row" onclick="openSettingsPanel('profile')">
-                                <div class="settings-row-icon">
-                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5.5" r="3" stroke="currentColor" stroke-width="1.3"/><path d="M2 14c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                                <div class="settings-row-icon" style="background:rgba(168,85,247,0.1);border-color:rgba(168,85,247,0.2);">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5.5" r="3" stroke="#a855f7" stroke-width="1.3"/><path d="M2 14c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="#a855f7" stroke-width="1.3" stroke-linecap="round"/></svg>
                                 </div>
-                                <span class="settings-row-label">Profile</span>
+                                <div style="flex:1;min-width:0;">
+                                    <div class="settings-row-label">Profile</div>
+                                    <div class="settings-row-sub">Name, email &amp; password</div>
+                                </div>
                                 <svg class="settings-row-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none"><path d="M1 1l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                             </div>
                             <div class="settings-row-divider"></div>
                             <div class="settings-row" onclick="openSettingsPanel('billing')">
-                                <div class="settings-row-icon">
-                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="4" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M1 7.5h14" stroke="currentColor" stroke-width="1.3"/><circle cx="12.5" cy="10.5" r="1" fill="currentColor"/></svg>
+                                <div class="settings-row-icon" style="background:rgba(52,211,153,0.1);border-color:rgba(52,211,153,0.2);">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="4" width="14" height="9" rx="2" stroke="#34d399" stroke-width="1.3"/><path d="M1 7.5h14" stroke="#34d399" stroke-width="1.3"/><circle cx="12.5" cy="10.5" r="1" fill="#34d399"/></svg>
                                 </div>
-                                <span class="settings-row-label">Billing</span>
+                                <div style="flex:1;min-width:0;">
+                                    <div class="settings-row-label">Billing</div>
+                                    <div class="settings-row-sub">Plan, invoices &amp; wallet</div>
+                                </div>
                                 <svg class="settings-row-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none"><path d="M1 1l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                             </div>
                         </div>
 
                         <!-- ── Group 2: Preferences ── -->
+                        <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:4px 0 8px 2px;">Preferences</div>
                         <div class="settings-group">
                             <div class="settings-row" onclick="openSettingsPanel('appearance')">
-                                <div class="settings-row-icon">
-                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="1.3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                                <div class="settings-row-icon" style="background:rgba(251,191,36,0.1);border-color:rgba(251,191,36,0.2);">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="3" stroke="#fbbf24" stroke-width="1.3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41" stroke="#fbbf24" stroke-width="1.3" stroke-linecap="round"/></svg>
                                 </div>
-                                <span class="settings-row-label">Color mode</span>
+                                <div style="flex:1;min-width:0;">
+                                    <div class="settings-row-label">Color mode</div>
+                                    <div class="settings-row-sub">Dark or purple theme</div>
+                                </div>
                                 <span class="settings-row-value" id="settingsColorModeVal">System</span>
                                 <svg class="settings-row-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none"><path d="M1 1l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                             </div>
                             <div class="settings-row-divider"></div>
                             <div class="settings-row" onclick="openSettingsPanel('notifications')">
-                                <div class="settings-row-icon">
-                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2a5 5 0 0 0-5 5v2.5L1.5 11h13L13 9.5V7a5 5 0 0 0-5-5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M6.5 13a1.5 1.5 0 0 0 3 0" stroke="currentColor" stroke-width="1.3"/></svg>
+                                <div class="settings-row-icon" style="background:rgba(244,114,182,0.1);border-color:rgba(244,114,182,0.2);">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2a5 5 0 0 0-5 5v2.5L1.5 11h13L13 9.5V7a5 5 0 0 0-5-5Z" stroke="#f472b6" stroke-width="1.3" stroke-linejoin="round"/><path d="M6.5 13a1.5 1.5 0 0 0 3 0" stroke="#f472b6" stroke-width="1.3"/></svg>
                                 </div>
-                                <span class="settings-row-label">Notifications</span>
+                                <div style="flex:1;min-width:0;">
+                                    <div class="settings-row-label">Notifications</div>
+                                    <div class="settings-row-sub">Email &amp; push alerts</div>
+                                </div>
                                 <svg class="settings-row-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none"><path d="M1 1l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                             </div>
                         </div>
 
-                        <!-- ── Group 3: Support ── -->
+                        <!-- ── Group 3: Support & Info ── -->
+                        <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:4px 0 8px 2px;">Support</div>
                         <div class="settings-group">
                             <div class="settings-row" onclick="openSettingsPanel('contact')">
-                                <div class="settings-row-icon">
-                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1.5C4.41 1.5 1.5 4.19 1.5 7.56c0 1.87.84 3.55 2.16 4.77L2.9 14.5l2.96-1.25c.67.21 1.38.31 2.14.31C11.59 13.56 14.5 10.87 14.5 7.5S11.59 1.5 8 1.5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+                                <div class="settings-row-icon" style="background:rgba(56,189,248,0.1);border-color:rgba(56,189,248,0.2);">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1.5C4.41 1.5 1.5 4.19 1.5 7.56c0 1.87.84 3.55 2.16 4.77L2.9 14.5l2.96-1.25c.67.21 1.38.31 2.14.31C11.59 13.56 14.5 10.87 14.5 7.5S11.59 1.5 8 1.5Z" stroke="#38bdf8" stroke-width="1.3" stroke-linejoin="round"/></svg>
                                 </div>
-                                <span class="settings-row-label">Contact us</span>
+                                <div style="flex:1;min-width:0;">
+                                    <div class="settings-row-label">Contact us</div>
+                                    <div class="settings-row-sub">Send a message to our team</div>
+                                </div>
                                 <svg class="settings-row-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none"><path d="M1 1l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                             </div>
                             <div class="settings-row-divider"></div>
                             <div class="settings-row" onclick="openSettingsPanel('about')">
-                                <div class="settings-row-icon">
-                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3"/><path d="M8 7v5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="8" cy="4.5" r=".8" fill="currentColor"/></svg>
+                                <div class="settings-row-icon" style="background:rgba(129,140,248,0.1);border-color:rgba(129,140,248,0.2);">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="#818cf8" stroke-width="1.3"/><path d="M8 7v5" stroke="#818cf8" stroke-width="1.3" stroke-linecap="round"/><circle cx="8" cy="4.5" r=".8" fill="#818cf8"/></svg>
                                 </div>
-                                <span class="settings-row-label">About Siterifty</span>
+                                <div style="flex:1;min-width:0;">
+                                    <div class="settings-row-label">About Siterifty</div>
+                                    <div class="settings-row-sub">Version, legal &amp; credits</div>
+                                </div>
                                 <svg class="settings-row-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none"><path d="M1 1l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                             </div>
+                            <div class="settings-row-divider"></div>
+                            <a href="https://siterifty.com/privacy" target="_blank" rel="noopener" style="text-decoration:none;">
+                                <div class="settings-row">
+                                    <div class="settings-row-icon">
+                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1.5L2.5 4v4c0 3.5 2.5 5.5 5.5 6.5 3-1 5.5-3 5.5-6.5V4L8 1.5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+                                    </div>
+                                    <div style="flex:1;min-width:0;">
+                                        <div class="settings-row-label">Privacy policy</div>
+                                        <div class="settings-row-sub">How we handle your data</div>
+                                    </div>
+                                    <svg width="11" height="11" viewBox="0 0 11 11" fill="none" style="color:rgba(139,138,168,0.4);flex-shrink:0;"><path d="M2 9L9 2M9 2H4M9 2v5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                </div>
+                            </a>
+                            <div class="settings-row-divider"></div>
+                            <a href="https://siterifty.com/terms" target="_blank" rel="noopener" style="text-decoration:none;">
+                                <div class="settings-row">
+                                    <div class="settings-row-icon">
+                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="1.5" width="12" height="13" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M5 5.5h6M5 8h6M5 10.5h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+                                    </div>
+                                    <div style="flex:1;min-width:0;">
+                                        <div class="settings-row-label">Terms of service</div>
+                                        <div class="settings-row-sub">Platform rules &amp; agreements</div>
+                                    </div>
+                                    <svg width="11" height="11" viewBox="0 0 11 11" fill="none" style="color:rgba(139,138,168,0.4);flex-shrink:0;"><path d="M2 9L9 2M9 2H4M9 2v5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                </div>
+                            </a>
                         </div>
 
                         <!-- ── Sign out row ── -->
@@ -3837,8 +4650,20 @@
                                 <div class="settings-row-icon settings-row-icon-danger">
                                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 8h8M11 5l3 3-3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
                                 </div>
-                                <span class="settings-row-label settings-row-label-danger">Sign out</span>
+                                <div style="flex:1;min-width:0;">
+                                    <span class="settings-row-label settings-row-label-danger">Sign out</span>
+                                    <div class="settings-row-sub" style="color:rgba(248,113,113,0.6);">End session on this device</div>
+                                </div>
                             </div>
+                        </div>
+
+                        <!-- ── App version footer ── -->
+                        <div style="text-align:center;padding:16px 0 8px;display:flex;flex-direction:column;align-items:center;gap:4px;">
+                            <div style="display:flex;align-items:center;gap:6px;">
+                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="1.5" width="11" height="11" rx="3" stroke="rgba(139,138,168,0.3)" stroke-width="1.1"/><path d="M4.5 7l2 2 3-3" stroke="rgba(139,138,168,0.4)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                <span style="font-size:11px;color:rgba(139,138,168,0.4);">Siterifty · v1.0.0</span>
+                            </div>
+                            <span style="font-size:10px;color:rgba(139,138,168,0.25);">© 2025 Siterifty. All rights reserved.</span>
                         </div>
 
                         <!-- ══ SUB-PANELS (slide in over settings list) ══ -->
@@ -3851,48 +4676,154 @@
                                 </button>
                                 <span class="settings-sub-title">Profile</span>
                             </div>
-                            <div class="settings-sub-body">
+                            <div class="settings-sub-body" style="padding:0 0 40px;">
+
+                                <!-- ── Premium avatar hero banner ── -->
+                                <div style="position:relative;overflow:hidden;background:linear-gradient(160deg,rgba(168,85,247,0.18) 0%,rgba(244,114,182,0.1) 50%,rgba(56,189,248,0.06) 100%);border-bottom:1px solid rgba(168,85,247,0.15);padding:32px 20px 28px;display:flex;flex-direction:column;align-items:center;gap:12px;">
+                                    <!-- subtle grid overlay -->
+                                    <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(168,85,247,0.06) 1px,transparent 1px),linear-gradient(90deg,rgba(168,85,247,0.06) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;"></div>
+                                    <!-- avatar with glow ring -->
+                                    <div style="position:relative;flex-shrink:0;z-index:1;">
+                                        <div style="position:absolute;inset:-6px;border-radius:999px;background:conic-gradient(from 0deg,#a855f7,#f472b6,#38bdf8,#a855f7);opacity:0.35;filter:blur(8px);"></div>
+                                        <div id="profileAvatarCircle" style="position:relative;width:80px;height:80px;border-radius:999px;background:linear-gradient(135deg,#a855f7,#f472b6);border:2.5px solid rgba(255,255,255,0.18);box-shadow:0 0 0 4px rgba(168,85,247,0.18),0 12px 32px rgba(168,85,247,0.3);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:#fff;letter-spacing:-0.02em;">?</div>
+                                        <!-- edit pencil badge -->
+                                        <div style="position:absolute;bottom:1px;right:1px;width:24px;height:24px;border-radius:999px;background:linear-gradient(135deg,var(--surface2),rgba(26,26,38,0.95));border:1.5px solid rgba(168,85,247,0.35);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.4);">
+                                            <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M8.5 2.5L9.5 3.5 3.5 9.5H2.5V8.5L8.5 2.5Z" stroke="#a855f7" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                        </div>
+                                    </div>
+                                    <div style="text-align:center;z-index:1;">
+                                        <div id="profileDisplayName" style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--text);letter-spacing:-0.03em;margin-bottom:4px;">—</div>
+                                        <div id="profileEmailDisplay" style="font-size:12px;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:5px;">
+                                            <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><rect x="1" y="2" width="10" height="8" rx="1.5" stroke="rgba(139,138,168,0.6)" stroke-width="1.1"/><path d="M1 4.5l5 3 5-3" stroke="rgba(139,138,168,0.6)" stroke-width="1.1" stroke-linecap="round"/></svg>
+                                            <span>—</span>
+                                        </div>
+                                    </div>
+                                    <!-- verified + member pill row -->
+                                    <div style="display:flex;align-items:center;gap:8px;z-index:1;">
+                                        <div style="display:inline-flex;align-items:center;gap:4px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.25);border-radius:999px;padding:3px 10px;">
+                                            <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5.5l2.5 2.5 4-5" stroke="#34d399" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                            <span style="font-size:10px;font-weight:700;color:#34d399;letter-spacing:0.05em;text-transform:uppercase;">Verified</span>
+                                        </div>
+                                        <div style="display:inline-flex;align-items:center;gap:4px;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.25);border-radius:999px;padding:3px 10px;">
+                                            <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M5 1l.9 1.8 2.1.3-1.5 1.5.35 2.1L5 5.75 3.15 6.7l.35-2.1L2 3.1l2.1-.3Z" fill="#a855f7"/></svg>
+                                            <span style="font-size:10px;font-weight:700;color:#a855f7;letter-spacing:0.05em;text-transform:uppercase;" id="profilePlanBadgeHero">Free</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- ── Content area ── -->
+                                <div style="padding:20px 16px 0;">
+
+                                <!-- ── Alerts ── -->
                                 <div id="accErr" class="alert-err"></div>
                                 <div id="accOk" class="alert-ok"></div>
-                                <div class="field-group">
-                                    <label class="field-label">Display name</label>
-                                    <input id="accUsername" class="dash-input" type="text" placeholder="coolperson123" autocomplete="off" spellcheck="false">
+
+                                <!-- ── Display name section ── -->
+                                <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;margin-top:4px;">
+                                    <svg width="11" height="11" viewBox="0 0 12 12" fill="none" style="opacity:0.5;"><circle cx="6" cy="4.5" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 11c0-2.485 2.015-4.5 4.5-4.5s4.5 2.015 4.5 4.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+                                    <span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Display Name</span>
                                 </div>
-                                <div class="field-group" style="margin-bottom:20px">
-                                    <label class="field-label">Email address</label>
-                                    <input id="accEmail" class="dash-input" type="email" disabled style="opacity:.4;cursor:not-allowed;">
+                                <div class="settings-group" style="margin-bottom:16px;">
+                                    <div style="padding:16px;">
+                                        <div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.55;">How you appear to buyers and on your seller profile. Choose something memorable.</div>
+                                        <input id="accUsername" class="dash-input" type="text" placeholder="e.g. alexbuilds" autocomplete="off" spellcheck="false" style="margin-bottom:0;">
+                                    </div>
                                 </div>
-                                <button class="save-btn" onclick="saveAccount()" id="btnSaveAccount">
+                                <button class="save-btn" onclick="saveAccount()" id="btnSaveAccount" style="margin-bottom:24px;width:100%;">
                                     <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 7l3.5 3.5 5.5-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                    Save name
+                                    Save display name
                                 </button>
-                                <div style="height:20px;"></div>
-                                <div class="settings-sub-section-title">Password</div>
+
+                                <!-- ── Email section (read-only) ── -->
+                                <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+                                    <svg width="11" height="11" viewBox="0 0 12 12" fill="none" style="opacity:0.5;"><rect x="1" y="2" width="10" height="8" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M1 4.5l5 3 5-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+                                    <span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Email Address</span>
+                                </div>
+                                <div class="settings-group" style="margin-bottom:24px;">
+                                    <div style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+                                        <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+                                            <div style="width:32px;height:32px;border-radius:10px;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="2.5" width="12" height="9" rx="1.5" stroke="#38bdf8" stroke-width="1.2"/><path d="M1 5.5l6 3.5 6-3.5" stroke="#38bdf8" stroke-width="1.2" stroke-linecap="round"/></svg>
+                                            </div>
+                                            <div style="min-width:0;">
+                                                <input id="accEmail" class="dash-input" type="email" disabled style="opacity:1;cursor:not-allowed;background:transparent;border:none;padding:0;font-size:13px;font-weight:500;color:var(--text);height:auto;min-height:auto;pointer-events:none;">
+                                                <div style="font-size:10px;color:rgba(52,211,153,0.8);margin-top:2px;display:flex;align-items:center;gap:4px;">
+                                                    <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5.5l2.5 2.5 4-5" stroke="#34d399" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                                    Email verified
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div style="font-size:10px;color:rgba(139,138,168,0.5);flex-shrink:0;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:3px 9px;letter-spacing:0.04em;">Locked</div>
+                                    </div>
+                                </div>
+
+                                <!-- ── Password section ── -->
+                                <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+                                    <svg width="11" height="11" viewBox="0 0 12 12" fill="none" style="opacity:0.5;"><rect x="2" y="5" width="8" height="6" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M4 5V4a2 2 0 1 1 4 0v1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+                                    <span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Security</span>
+                                </div>
                                 <div id="pwErr" class="alert-err"></div>
                                 <div id="pwOk" class="alert-ok"></div>
-                                <div class="field-group">
-                                    <label class="field-label">New password</label>
-                                    <div class="field-wrap">
-                                        <input id="accPassword" class="dash-input" type="password" placeholder="Min. 6 characters" autocomplete="new-password">
-                                        <button class="pw-toggle" type="button" onclick="togglePw('accPassword',this)" tabindex="-1">
-                                            <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M1 7.5S3.5 3 7.5 3s6.5 4.5 6.5 4.5S13 12 9 12M1 7.5C1 7.5 3.5 12 7.5 12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="7.5" cy="7.5" r="1.8" stroke="currentColor" stroke-width="1.2"/></svg>
-                                        </button>
+                                <div class="settings-group" style="margin-bottom:16px;">
+                                    <div style="padding:16px 16px 10px;">
+                                        <div style="display:flex;align-items:flex-start;gap:10px;background:rgba(56,189,248,0.05);border:1px solid rgba(56,189,248,0.12);border-radius:10px;padding:10px 12px;margin-bottom:14px;">
+                                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink:0;margin-top:1px;"><circle cx="7" cy="7" r="5.5" stroke="#38bdf8" stroke-width="1.2"/><path d="M7 6v4" stroke="#38bdf8" stroke-width="1.2" stroke-linecap="round"/><circle cx="7" cy="4.5" r=".65" fill="#38bdf8"/></svg>
+                                            <span style="font-size:11px;color:rgba(139,138,168,0.85);line-height:1.55;">Use a strong password with at least 6 characters. You'll be signed out after updating.</span>
+                                        </div>
+                                        <div class="field-group" style="margin-bottom:12px;">
+                                            <label class="field-label">New password</label>
+                                            <div class="field-wrap">
+                                                <input id="accPassword" class="dash-input" type="password" placeholder="Min. 6 characters" autocomplete="new-password">
+                                                <button class="pw-toggle" type="button" onclick="togglePw('accPassword',this)" tabindex="-1">
+                                                    <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M1 7.5S3.5 3 7.5 3s6.5 4.5 6.5 4.5S13 12 9 12M1 7.5C1 7.5 3.5 12 7.5 12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="7.5" cy="7.5" r="1.8" stroke="currentColor" stroke-width="1.2"/></svg>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="field-group" style="margin-bottom:4px;">
+                                            <label class="field-label">Confirm new password</label>
+                                            <div class="field-wrap">
+                                                <input id="accPasswordConfirm" class="dash-input" type="password" placeholder="Repeat password" autocomplete="new-password">
+                                                <button class="pw-toggle" type="button" onclick="togglePw('accPasswordConfirm',this)" tabindex="-1">
+                                                    <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M1 7.5S3.5 3 7.5 3s6.5 4.5 6.5 4.5S13 12 9 12M1 7.5C1 7.5 3.5 12 7.5 12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="7.5" cy="7.5" r="1.8" stroke="currentColor" stroke-width="1.2"/></svg>
+                                                </button>
+                                            </div>
+                                            <div class="field-hint" id="pwMatchHint"></div>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="field-group" style="margin-bottom:20px">
-                                    <label class="field-label">Confirm new password</label>
-                                    <div class="field-wrap">
-                                        <input id="accPasswordConfirm" class="dash-input" type="password" placeholder="Repeat password" autocomplete="new-password">
-                                        <button class="pw-toggle" type="button" onclick="togglePw('accPasswordConfirm',this)" tabindex="-1">
-                                            <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M1 7.5S3.5 3 7.5 3s6.5 4.5 6.5 4.5S13 12 9 12M1 7.5C1 7.5 3.5 12 7.5 12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="7.5" cy="7.5" r="1.8" stroke="currentColor" stroke-width="1.2"/></svg>
-                                        </button>
-                                    </div>
-                                    <div class="field-hint" id="pwMatchHint"></div>
-                                </div>
-                                <button class="save-btn" onclick="savePassword()" id="btnSavePw">
+                                <button class="save-btn" onclick="savePassword()" id="btnSavePw" style="margin-bottom:28px;width:100%;background:linear-gradient(135deg,#38bdf8,#818cf8);">
                                     <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="2" y="5.5" width="9" height="6.5" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M4.5 5.5V4a2 2 0 1 1 4 0v1.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
                                     Update password
                                 </button>
+
+                                <!-- ── Danger zone ── -->
+                                <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+                                    <svg width="11" height="11" viewBox="0 0 12 12" fill="none" style="opacity:0.55;"><path d="M6 1l1 2 2.2.3-1.6 1.56.38 2.14L6 6.03 3.02 7 3.4 4.86 1.8 3.3 4 3Z" stroke="rgba(248,113,113,0.8)" fill="none" stroke-width="1.1"/></svg>
+                                    <span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(248,113,113,0.65);">Danger Zone</span>
+                                </div>
+                                <div class="settings-group" style="border-color:rgba(248,113,113,0.15);margin-bottom:8px;">
+                                    <div class="settings-row settings-row-danger" onclick="doSignOut()">
+                                        <div class="settings-row-icon settings-row-icon-danger">
+                                            <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M5.5 7.5h7M10 4.5l3 3-3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 2.5H3a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                                        </div>
+                                        <div style="flex:1;min-width:0;">
+                                            <div class="settings-row-label settings-row-label-danger">Sign out</div>
+                                            <div class="settings-row-sub">End your current session on this device</div>
+                                        </div>
+                                    </div>
+                                    <div class="settings-row-divider"></div>
+                                    <div class="settings-row settings-row-danger" style="cursor:default;opacity:0.45;" title="Contact support to delete your account">
+                                        <div class="settings-row-icon settings-row-icon-danger">
+                                            <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M2 13L7.5 2 13 13H2Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M7.5 6v3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="7.5" cy="11" r=".7" fill="currentColor"/></svg>
+                                        </div>
+                                        <div style="flex:1;min-width:0;">
+                                            <div class="settings-row-label settings-row-label-danger">Delete account</div>
+                                            <div class="settings-row-sub">Contact support@siterifty.com to request deletion</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                </div><!-- end content padding -->
                             </div>
                         </div>
 
@@ -4490,11 +5421,7 @@
                 if(spinner) spinner.classList.add('hidden');
             }, 8000);
 
-            // Keep skeleton visible; hide real content containers until loaded
-            const ordersContent  = $('tabOrdersContent');
-            const addressContent = $('tabAddressContent');
-            if(ordersContent)  ordersContent.style.display  = 'none';
-            if(addressContent) addressContent.style.display = 'none';
+            // Content containers are managed per-tab now
 
             try {
                 const snap = await get(ref(db,'users/'+user.uid));
@@ -4524,7 +5451,63 @@
                     $('settingsPlanBadge').innerHTML = `<svg width="8" height="8" viewBox="0 0 10 10" fill="none"><path d="M5 1l1.18 2.39L9 3.82 7 5.76l.47 2.74L5 7.23 2.53 8.5 3 5.76 1 3.82l2.82-.43Z" fill="currentColor"/></svg> ${planName.toUpperCase()} PLAN`;
                 }
 
-                // (address and orders tabs removed)
+                // ── Populate My Sites (listed) ──
+                const listedContent = $('tabOrdersContent');
+                const listedSkel    = $('tabOrdersSkeleton');
+                const listedEmpty   = $('msListedEmpty');
+                if (listedSkel)  listedSkel.style.display = 'none';
+                if (listedContent) {
+                    listedContent.style.display = '';
+                    // data.listings is an object keyed by listing id
+                    const listings = data.listings ? Object.values(data.listings) : [];
+                    if (listings.length === 0) {
+                        listedContent.innerHTML = '';
+                        if (listedEmpty) listedEmpty.style.display = 'flex';
+                    } else {
+                        if (listedEmpty) listedEmpty.style.display = 'none';
+                        listedContent.innerHTML = listings.map(l => `
+                            <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;">
+                                <div style="width:40px;height:40px;border-radius:10px;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="10" rx="2" stroke="#a855f7" stroke-width="1.2"/><path d="M2 6h12" stroke="#a855f7" stroke-width="1.2"/><circle cx="13" cy="9" r=".8" fill="#a855f7"/></svg>
+                                </div>
+                                <div style="flex:1;min-width:0;">
+                                    <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${l.title || l.url || 'Untitled listing'}</div>
+                                    <div style="font-size:11px;color:var(--muted);margin-top:1px;">${l.price ? '$'+l.price : 'Price TBD'}</div>
+                                </div>
+                                <div style="font-size:10px;font-weight:700;letter-spacing:.05em;padding:3px 8px;border-radius:999px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.25);color:#34d399;flex-shrink:0;">LIVE</div>
+                            </div>`).join('');
+                    }
+                }
+
+                // ── Populate My Sites (bought) ──
+                const boughtContent = $('msBoughtContent');
+                const boughtSkel    = $('msBoughtSkeleton');
+                const boughtEmpty   = $('msBoughtEmpty');
+                if (boughtSkel)  boughtSkel.style.display = 'none';
+                if (boughtContent) {
+                    boughtContent.style.display = '';
+                    const purchases = data.purchases ? Object.values(data.purchases) : [];
+                    if (purchases.length === 0) {
+                        boughtContent.innerHTML = '';
+                        if (boughtEmpty) boughtEmpty.style.display = 'flex';
+                    } else {
+                        if (boughtEmpty) boughtEmpty.style.display = 'none';
+                        boughtContent.innerHTML = purchases.map(p => `
+                            <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;">
+                                <div style="width:40px;height:40px;border-radius:10px;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 13l1.5-5h9L14 13H2Z" stroke="#38bdf8" stroke-width="1.2" stroke-linejoin="round"/><path d="M5 8V6a3 3 0 1 1 6 0v2" stroke="#38bdf8" stroke-width="1.2" stroke-linecap="round"/></svg>
+                                </div>
+                                <div style="flex:1;min-width:0;">
+                                    <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.title || p.url || 'Purchased site'}</div>
+                                    <div style="font-size:11px;color:var(--muted);margin-top:1px;">${p.paid ? 'Paid $'+p.paid : 'Acquired'}</div>
+                                </div>
+                                <div style="font-size:10px;font-weight:700;letter-spacing:.05em;padding:3px 8px;border-radius:999px;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.25);color:#38bdf8;flex-shrink:0;">OWNED</div>
+                            </div>`).join('');
+                    }
+                }
+
+                // Auto-fill support form if already on support tab
+                prefillSupportForm();
 
                 // ── Account tab: current plan + billing ──
                 populateAccountTab(data, user);
@@ -4532,15 +5515,9 @@
                 console.error('loadDash error:', e);
             } finally {
                 clearTimeout(safetyDismiss);
-                // Dismiss skeletons and reveal real tab content
-                const ordersSkel  = $('tabOrdersSkeleton');
-                const addressSkel = $('tabAddressSkeleton');
-                const ordersContent2  = $('tabOrdersContent');
-                const addressContent2 = $('tabAddressContent');
-                if(ordersSkel)  ordersSkel.style.display  = 'none';
-                if(addressSkel) addressSkel.style.display = 'none';
-                if(ordersContent2)  ordersContent2.style.display  = '';
-                if(addressContent2) addressContent2.style.display = '';
+                // Hide skeletons for bought panel (listed/support already handled above)
+                const boughtSkel2 = $('msBoughtSkeleton');
+                if (boughtSkel2) boughtSkel2.style.display = 'none';
 
                 // Hide spinner
                 if(spinner) spinner.classList.add('hidden');
@@ -4568,6 +5545,12 @@
 
             const pillEl = $('settingsPlanBadge');
             if (pillEl) pillEl.textContent = plan.toUpperCase();
+
+            // ── Hero card: avatar initial + display name ──
+            const _heroUsername = data.username || user.email?.split('@')[0] || '?';
+            if ($('settingsAvatarHero'))   $('settingsAvatarHero').textContent   = _heroUsername.charAt(0).toUpperCase();
+            if ($('settingsHeroName'))     $('settingsHeroName').textContent     = _heroUsername;
+            if ($('profilePlanBadgeHero')) $('profilePlanBadgeHero').textContent = plan;
 
             // Show upgrade card only on Free plan
             const upgradeCard = $('settingsUpgradeCard');
@@ -4710,6 +5693,108 @@
             setTimeout(()=>{ btn.textContent='Save'; }, 2000);
         };
 
+        // ── My Sites: toggle between Listed / Bought ──
+        window.switchSitesView = function(view) {
+            const isListed = view === 'listed';
+            const listed   = document.getElementById('msListed');
+            const bought   = document.getElementById('msBought');
+            const sellBtn  = document.getElementById('msSellBtn');
+            const buyBtn   = document.getElementById('msBuyBtn');
+            if (listed) listed.style.display = isListed ? 'block' : 'none';
+            if (bought) bought.style.display = isListed ? 'none'  : 'block';
+            if (sellBtn) {
+                sellBtn.style.background = isListed ? 'linear-gradient(135deg,#a855f7,#f472b6)' : 'transparent';
+                sellBtn.style.color      = isListed ? '#fff' : 'var(--muted)';
+                sellBtn.style.boxShadow  = isListed ? '0 2px 10px rgba(168,85,247,0.25)' : 'none';
+            }
+            if (buyBtn) {
+                buyBtn.style.background = isListed ? 'transparent' : 'linear-gradient(135deg,#f87171,#f472b6)';
+                buyBtn.style.color      = isListed ? 'var(--muted)' : '#fff';
+                buyBtn.style.boxShadow  = isListed ? 'none' : '0 2px 10px rgba(248,113,113,0.25)';
+            }
+        };
+
+        // ── FAQ accordion ──
+        window.toggleFaq = function(row) {
+            const answer  = row.querySelector('.faq-answer');
+            const chevron = row.querySelector('.faq-chevron');
+            if (!answer) return;
+            const isOpen = answer.style.display === 'block';
+            answer.style.display = isOpen ? 'none' : 'block';
+            if (chevron) chevron.style.transform = isOpen ? '' : 'rotate(90deg)';
+        };
+
+        // ── Support message: auto-fill name/email ──
+        function prefillSupportForm() {
+            const user = window._fbAuth && window._fbAuth.currentUser;
+            if (!user) return;
+            const nameEl  = document.getElementById('supportName');
+            const emailEl = document.getElementById('supportEmail');
+            if (nameEl  && !nameEl.value)  nameEl.value  = user.displayName || (user.email ? user.email.split('@')[0] : '');
+            if (emailEl && !emailEl.value) emailEl.value = user.email || '';
+        }
+
+        // Auto-fill when support tab is opened
+        const _origSwitchTab = window.switchTab;
+
+        // ── Send support message to Firebase ──
+        window.sendSupportMessage = async function() {
+            const nameEl  = document.getElementById('supportName');
+            const emailEl = document.getElementById('supportEmail');
+            const msgEl   = document.getElementById('supportMsg');
+            const errEl   = document.getElementById('supportErr');
+            const okEl    = document.getElementById('supportOk');
+            const btn     = document.getElementById('supportSendBtn');
+
+            const name  = (nameEl  ? nameEl.value.trim()  : '');
+            const email = (emailEl ? emailEl.value.trim() : '');
+            const msg   = (msgEl   ? msgEl.value.trim()   : '');
+
+            // Hide previous status
+            if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+            if (okEl)  okEl.style.display = 'none';
+
+            // Validate
+            if (!name)  { if (errEl) { errEl.textContent = 'Please enter your name.';    errEl.style.display = 'block'; } return; }
+            if (!email) { if (errEl) { errEl.textContent = 'Please enter your email.';   errEl.style.display = 'block'; } return; }
+            if (!msg)   { if (errEl) { errEl.textContent = 'Please write a message.';    errEl.style.display = 'block'; } return; }
+            if (msg.length > 1000) { if (errEl) { errEl.textContent = 'Message must be 1000 characters or fewer.'; errEl.style.display = 'block'; } return; }
+
+            // Basic email check
+            if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+                if (errEl) { errEl.textContent = 'Please enter a valid email address.'; errEl.style.display = 'block'; }
+                return;
+            }
+
+            if (btn) { btn.textContent = 'Sending…'; btn.disabled = true; }
+
+            try {
+                const { getDatabase, ref: fbRef, push } = await import('https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js');
+                const db2 = getDatabase();
+                const user = window._fbAuth && window._fbAuth.currentUser;
+                await push(fbRef(db2, 'supportmessages'), {
+                    name,
+                    email,
+                    message: msg,
+                    uid:       user ? user.uid : null,
+                    timestamp: Date.now(),
+                    status:    'unread'
+                });
+                // Success
+                if (okEl)  { okEl.style.display  = 'flex'; }
+                if (msgEl) { msgEl.value = ''; document.getElementById('supportCharCount').textContent = '0 / 1000'; }
+                if (btn)   { btn.textContent = '✓ Sent'; }
+                setTimeout(() => {
+                    if (btn) { btn.textContent = 'Send message'; btn.disabled = false; }
+                    if (okEl) okEl.style.display = 'none';
+                }, 4000);
+            } catch(e) {
+                console.error('[support]', e);
+                if (errEl) { errEl.textContent = 'Failed to send — please try again or email support@siterifty.com'; errEl.style.display = 'block'; }
+                if (btn)   { btn.textContent = 'Send message'; btn.disabled = false; }
+            }
+        };
+
         // ── tab switcher ──
         window.switchTab = function(name){
             ['plan','orders','address','account'].forEach(t=>{
@@ -4718,6 +5803,8 @@
                 const nav = $('nav-'+t);
                 if(nav) nav.classList.toggle('active', t===name);
             });
+            // Auto-fill support form when support tab opens
+            if (name === 'address') prefillSupportForm();
             // Scroll dash body to top on tab switch
             const body = document.querySelector('.dash-body');
             if(body) body.scrollTop = 0;
@@ -5631,14 +6718,15 @@ self.addEventListener('notificationclick', e => {
         function dismissLoader(slides) {
             clearTimeout(safetyTimer);
             loadingScreen.classList.add('hidden');
+            // Unlock scroll immediately — class removal is synchronous so the
+            // browser unblocks scroll in the same paint as the fade starts.
+            document.body.classList.remove('loader-lock');
             // Wait for the 0.35s fade, then nuke it from the DOM entirely.
             // Keeping it as visibility:hidden even for a split second can trap scroll
             // on iOS/Safari because the fixed+stacking-context layer still exists.
             setTimeout(() => {
                 loadingScreen.style.display = 'none';
             }, 400);
-            // so the body is already free. Calling forceUnlock would zero out the
-            // lock counter and break any modal that opened during loading.
             // Signal the gate: any queued modal opener can now run safely.
             if (window._signalLoaderReady) window._signalLoaderReady();
             if (slides.length > 0) startSlideshow(slides);
@@ -5711,7 +6799,7 @@ self.addEventListener('notificationclick', e => {
                 style: {
                     layout: 'vertical',
                     color:  'gold',
-                    shape:  'pill',
+                    shape:  'rect',
                     label:  'pay',
                     height: 48
                 },
@@ -6042,7 +7130,7 @@ self.addEventListener('notificationclick', e => {
                     showLoginWall();
                 } else {
                     showGreeting(user);
-                    setTimeout(() => { const inp = $('chatInput'); if (inp && !inp.dataset.locked) inp.focus(); }, 280);
+
                 }
             } else {
                 panel.classList.remove('open');
@@ -6162,6 +7250,25 @@ self.addEventListener('notificationclick', e => {
             if (e.key === 'Escape' && _chatOpen) window.toggleChat();
         });
 
+    })();
+    </script>
+    <!-- ══ SCROLL REVEAL ══ -->
+    <script>
+    (function () {
+        const sections = document.querySelectorAll('.reveal-section');
+        if (!sections.length) return;
+        const io = new IntersectionObserver(
+            (entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                        io.unobserve(entry.target); // fire once
+                    }
+                });
+            },
+            { threshold: 0.12 }
+        );
+        sections.forEach(s => io.observe(s));
     })();
     </script>
 </body>
