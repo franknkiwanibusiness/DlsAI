@@ -8,7 +8,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
     <title>Siterifty.com</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- Tailwind CDN removed: v4 ignores window.tailwind config and always injects
+         preflight setting html,body{height:100%} which locks page to viewport height
+         and kills all main-page scroll. Only 'antialiased' class was used, now inlined. -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
     <style>
@@ -55,21 +57,27 @@
 
         html {
             background: var(--bg);
-            height: 100%;
             width: 100%;
+            /* Explicitly never constrain html height — any height:100% here locks scroll */
+            height: auto !important;
+            min-height: 0 !important;
             overflow-x: hidden;
-            /* Prevent iOS bounce on html itself */
             overscroll-behavior: none;
         }
 
         body {
             background: var(--bg);
-            min-height: 100%;
+            /* Must not be 100% or fixed — page scroll requires body taller than viewport */
+            height: auto !important;
+            min-height: 100svh;
             width: 100%;
             overflow-x: hidden;
             /* Native iOS momentum scrolling */
             -webkit-overflow-scrolling: touch;
             overscroll-behavior-y: none;
+            /* antialiased (was Tailwind class) */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         /* ── Background glows (fixed, behind everything) ── */
@@ -419,7 +427,6 @@
             left: 0;
             right: 0;
             bottom: 0;
-            /* dvh covers full viewport including mobile browser chrome */
             width: 100%;
             height: 100%;
             min-height: 100dvh;
@@ -430,21 +437,21 @@
             align-items: center;
             justify-content: center;
             gap: 20px;
-            /* GPU-composite the layer so scroll can't cause it to lag */
             transform: translateZ(0);
             -webkit-transform: translateZ(0);
             will-change: opacity;
-            /* Prevent any touch events scrolling through it */
-            touch-action: none;
-            overscroll-behavior: none;
-            transition: opacity 0.55s ease, visibility 0.55s ease;
+            transition: opacity 0.45s ease, visibility 0.45s ease;
         }
-        #loadingScreen.hidden { opacity: 0; visibility: hidden; pointer-events: none; touch-action: auto; }
+        #loadingScreen.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
         .loader-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
         .loader-wordmark { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.1rem; letter-spacing: -0.05em; color: var(--text); }
         .loader-wordmark span { background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 400; }
         .loader-bar-wrap { width: 160px; height: 2px; background: var(--surface2); border-radius: 999px; overflow: hidden; }
-        .loader-bar { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 999px; transition: width 0.25s ease; }
+        .loader-bar { height: 100%; width: 10%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 999px; transition: width 0.25s ease; }
         .loader-text { font-size: 11px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
 
         /* ── Hero ── */
@@ -1923,7 +1930,7 @@
         .tr-cta-ghost:hover { border-color: rgba(255,255,255,.2); color: var(--text); }
     </style>
 </head>
-<body class="antialiased">
+<body>
 
     <!-- ══ LOADING SCREEN ══ -->
     <div id="loadingScreen">
@@ -2604,7 +2611,7 @@
             <div class="tr-amount-badge success" id="trBadge"></div>
             <div class="tr-sub" id="trSub">Your wallet has been topped up successfully. Happy browsing!</div>
             <button class="tr-cta success-cta" id="trCta" onclick="closeResult()">Continue Browsing</button>
-            <button class="tr-cta-ghost" id="trCta2" style="display:none" onclick="openTopUpModal();closeResult()">Try Again</button>
+            <button class="tr-cta-ghost" id="trCta2" style="display:none" onclick="closeResult();openTopUpModal()">Try Again</button>
         </div>
     </div>
 
@@ -3347,6 +3354,7 @@
             #dashSpinner.hidden {
                 opacity: 0;
                 pointer-events: none;
+                display: none;
             }
             #dashSpinner .spin-ring {
                 animation: dashSpin 0.85s linear infinite;
@@ -3956,21 +3964,28 @@
         function unlockScroll() {
             _scrollLockCount = Math.max(0, _scrollLockCount - 1);
             if (_scrollLockCount > 0) return; // still locked by another modal
+            _applyUnlock();
+        }
+
+        function _applyUnlock() {
             document.body.style.overflow = '';
             document.body.style.position = '';
             document.body.style.top = '';
             document.body.style.width = '';
             document.body.style.left = '';
             document.body.style.paddingRight = '';
-            // Restore scroll position without any visual glitch
             window.scrollTo({ top: _savedScrollY, behavior: 'instant' });
         }
 
         function forceUnlockScroll() {
             _scrollLockCount = 0;
-            document.body.style.cssText = '';
-            window.scrollTo({ top: _savedScrollY, behavior: 'instant' });
+            _applyUnlock();
         }
+
+        // Expose to window so non-module scripts share the same lock counter
+        window.lockScroll   = lockScroll;
+        window.unlockScroll = unlockScroll;
+        window.forceUnlockScroll = forceUnlockScroll;
 
         // ── panel switcher ──
         window.showPanel = function(name){
@@ -3994,11 +4009,11 @@
             $('authModal').style.display='none';
             $('dashModal').style.display='block';
             lockScroll();
-            // Reset spinner fresh every open
+            // Reset spinner — clear any inline styles so CSS class can control it
             const spinner = $('dashSpinner');
             if(spinner) {
-                spinner.style.opacity = '1';
-                spinner.style.pointerEvents = 'all';
+                spinner.style.opacity = '';
+                spinner.style.pointerEvents = '';
                 spinner.classList.remove('hidden');
             }
             // Always start on plan tab
@@ -4307,6 +4322,11 @@
             const spinner = $('dashSpinner');
             if(spinner) { spinner.classList.remove('hidden'); }
 
+            // Safety: force-hide spinner after 8s no matter what
+            const safetyDismiss = setTimeout(() => {
+                if(spinner) spinner.classList.add('hidden');
+            }, 8000);
+
             // Keep skeleton visible; hide real content containers until loaded
             const ordersContent  = $('tabOrdersContent');
             const addressContent = $('tabAddressContent');
@@ -4346,8 +4366,9 @@
                 // ── Account tab: current plan + billing ──
                 populateAccountTab(data, user);
             } catch(e) {
-                // Still hide spinner on error
+                console.error('loadDash error:', e);
             } finally {
+                clearTimeout(safetyDismiss);
                 // Dismiss skeletons and reveal real tab content
                 const ordersSkel  = $('tabOrdersSkeleton');
                 const addressSkel = $('tabAddressSkeleton');
@@ -4358,10 +4379,8 @@
                 if(ordersContent2)  ordersContent2.style.display  = '';
                 if(addressContent2) addressContent2.style.display = '';
 
-                // Hide spinner with a short delay so content renders first
-                if(spinner) {
-                    setTimeout(() => spinner.classList.add('hidden'), 120);
-                }
+                // Hide spinner
+                if(spinner) spinner.classList.add('hidden');
             }
         }
 
@@ -5114,7 +5133,6 @@
         // Safety: dismiss loader after 6s no matter what
         const safetyTimer = setTimeout(() => dismissLoader([]), 6000);
 
-        // NOTE: scroll is blocked by touch-action:none on #loadingScreen itself.
         // Do NOT set document.body.style.overflow here — it bypasses lockScroll's
         // reference counter and permanently breaks scroll after dismissal.
 
@@ -5219,7 +5237,10 @@
         function dismissLoader(slides) {
             clearTimeout(safetyTimer);
             loadingScreen.classList.add('hidden');
-            setTimeout(() => { loadingScreen.style.display = 'none'; }, 600);
+            // After the opacity/visibility transition (0.45s), remove from layout entirely
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+            }, 500);
             if (slides.length > 0) startSlideshow(slides);
         }
     </script>
@@ -5339,8 +5360,10 @@
                 openAuthModal();
                 return;
             }
-            // Close wallet first
-            document.getElementById('walletOverlay').classList.remove('open');
+            // Close wallet properly — this calls unlockScroll so the counter stays balanced
+            // (was using classList.remove directly, skipping unlockScroll, causing count to
+            //  reach 2 and never return to 0 after closeTopUpModal decremented only once)
+            window.closeWalletModal();
 
             updateFeeDisplay(tuCurrentAmount);
             document.getElementById('topupOverlay').classList.add('open');
