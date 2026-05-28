@@ -1334,6 +1334,15 @@
             transition: background 0.18s, border-color 0.18s, transform 0.15s;
         }
         .chat-bubble:hover { background: var(--surface); border-color: rgba(255,255,255,0.18); transform: scale(1.08); }
+        .chat-bubble.open { background: var(--surface); border-color: rgba(168,85,247,0.4); box-shadow: 0 0 0 3px rgba(168,85,247,0.12); }
+        #chatPanel.open { display: flex !important; transform: translateY(0) scale(1) !important; opacity: 1 !important; }
+        @keyframes typingPulse {
+            0%,100% { opacity: 0.3; transform: scale(0.8); }
+            50%      { opacity: 1;   transform: scale(1.1); }
+        }
+        .chat-msg-user { align-self:flex-end; background:linear-gradient(135deg,rgba(168,85,247,0.22),rgba(244,114,182,0.15)); border:1px solid rgba(168,85,247,0.25); border-radius:16px 16px 4px 16px; padding:9px 13px; font-size:13px; color:#f1f0ff; max-width:82%; line-height:1.5; word-wrap:break-word; }
+        .chat-msg-ai   { align-self:flex-start; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.09); border-radius:16px 16px 16px 4px; padding:9px 13px; font-size:13px; color:#f1f0ff; max-width:88%; line-height:1.5; word-wrap:break-word; white-space:pre-wrap; }
+        #chatMessages::-webkit-scrollbar { display:none; }
 
         /* ══ WALLET MODAL — premium glass sheet ══ */
         #walletOverlay {
@@ -2374,13 +2383,58 @@
     </div>
 
 <!-- ══ CHAT BUBBLE ══ -->
-    <div class="chat-bubble" title="Chat with us">
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M10 2C5.58 2 2 5.24 2 9.2c0 2.08.92 3.95 2.4 5.3L3.5 17.5l3.3-1.4C7.84 16.35 8.9 16.4 10 16.4c4.42 0 8-3.24 8-7.2S14.42 2 10 2Z" fill="#8b8aa8"/>
-            <circle cx="7" cy="9.5" r="1" fill="var(--bg)"/>
-            <circle cx="10" cy="9.5" r="1" fill="var(--bg)"/>
-            <circle cx="13" cy="9.5" r="1" fill="var(--bg)"/>
+    <div class="chat-bubble" id="chatBubble" onclick="toggleChat()" title="Chat with us" aria-label="Open support chat">
+        <!-- chat icon (shown when closed) -->
+        <svg id="chatIconOpen" width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M10 2C5.58 2 2 5.24 2 9.2c0 2.08.92 3.95 2.4 5.3L3.5 17.5l3.3-1.4C7.84 16.35 8.9 16.4 10 16.4c4.42 0 8-3.24 8-7.2S14.42 2 10 2Z" fill="#a855f7"/>
+            <circle cx="7" cy="9.5" r="1" fill="#fff"/>
+            <circle cx="10" cy="9.5" r="1" fill="#fff"/>
+            <circle cx="13" cy="9.5" r="1" fill="#fff"/>
         </svg>
+        <!-- close icon (shown when open) -->
+        <svg id="chatIconClose" width="16" height="16" viewBox="0 0 16 16" fill="none" style="display:none;">
+            <path d="M2 2l12 12M14 2L2 14" stroke="#a855f7" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+    </div>
+
+    <!-- ══ CHAT PANEL ══ -->
+    <div id="chatPanel" style="display:none;position:fixed;bottom:84px;right:16px;width:calc(100vw - 32px);max-width:380px;height:520px;max-height:calc(100svh - 120px);z-index:199;border-radius:20px;background:linear-gradient(160deg,#14142a 0%,#0d0d1c 100%);border:1px solid rgba(255,255,255,0.1);border-top:1px solid rgba(255,255,255,0.15);box-shadow:0 8px 60px rgba(0,0,0,0.7),0 0 0 1px rgba(168,85,247,0.08);display:none;flex-direction:column;overflow:hidden;transform:translateY(12px) scale(0.97);opacity:0;transition:transform 0.22s cubic-bezier(0.32,0.72,0,1),opacity 0.2s ease;">
+
+        <!-- Header -->
+        <div style="flex-shrink:0;height:54px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid rgba(255,255,255,0.07);background:linear-gradient(180deg,rgba(18,18,32,0.98),rgba(14,14,24,0.92));backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);">
+            <div style="width:32px;height:32px;border-radius:999px;background:linear-gradient(135deg,#a855f7,#f472b6);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M10 2C5.58 2 2 5.24 2 9.2c0 2.08.92 3.95 2.4 5.3L3.5 17.5l3.3-1.4C7.84 16.35 8.9 16.4 10 16.4c4.42 0 8-3.24 8-7.2S14.42 2 10 2Z" fill="#fff"/><circle cx="7" cy="9.5" r="1" fill="rgba(168,85,247,1)"/><circle cx="10" cy="9.5" r="1" fill="rgba(168,85,247,1)"/><circle cx="13" cy="9.5" r="1" fill="rgba(168,85,247,1)"/></svg>
+            </div>
+            <div style="flex:1;min-width:0;">
+                <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#f1f0ff;letter-spacing:-.01em;">Siterifty Support</div>
+                <div style="font-size:11px;color:#34d399;display:flex;align-items:center;gap:4px;"><span style="width:6px;height:6px;border-radius:999px;background:#34d399;display:inline-block;"></span>Online · replies instantly</div>
+            </div>
+            <button onclick="toggleChat()" style="width:28px;height:28px;border-radius:999px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.09);display:flex;align-items:center;justify-content:center;cursor:pointer;color:rgba(139,138,168,0.7);flex-shrink:0;transition:background .15s;">
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1 1l8 8M9 1L1 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            </button>
+        </div>
+
+        <!-- Messages -->
+        <div id="chatMessages" style="flex:1;overflow-y:auto;overflow-x:hidden;padding:14px 14px 8px;display:flex;flex-direction:column;gap:10px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;scrollbar-width:none;">
+            <!-- Greeting message injected by JS -->
+        </div>
+
+        <!-- Typing indicator (hidden by default) -->
+        <div id="chatTyping" style="display:none;padding:0 16px 6px;flex-shrink:0;">
+            <div style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.09);border-radius:12px 12px 12px 4px;padding:8px 12px;">
+                <span class="typing-dot" style="width:6px;height:6px;border-radius:999px;background:var(--muted);animation:typingPulse 1.2s ease-in-out infinite;"></span>
+                <span class="typing-dot" style="width:6px;height:6px;border-radius:999px;background:var(--muted);animation:typingPulse 1.2s ease-in-out 0.2s infinite;"></span>
+                <span class="typing-dot" style="width:6px;height:6px;border-radius:999px;background:var(--muted);animation:typingPulse 1.2s ease-in-out 0.4s infinite;"></span>
+            </div>
+        </div>
+
+        <!-- Input -->
+        <div style="flex-shrink:0;padding:10px 12px;padding-bottom:max(10px,env(safe-area-inset-bottom,10px));border-top:1px solid rgba(255,255,255,0.06);display:flex;gap:8px;align-items:flex-end;background:rgba(10,10,16,0.6);">
+            <textarea id="chatInput" placeholder="Ask anything…" rows="1" style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:9px 12px;font-size:14px;color:#f1f0ff;font-family:'DM Sans',sans-serif;resize:none;min-height:38px;max-height:96px;overflow-y:auto;line-height:1.45;outline:none;-webkit-appearance:none;appearance:none;user-select:text;-webkit-user-select:text;" onkeydown="chatInputKeydown(event)" oninput="chatInputGrow(this)"></textarea>
+            <button id="chatSendBtn" onclick="sendChatMessage()" style="width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,#a855f7,#f472b6);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:opacity .15s,transform .1s;touch-action:manipulation;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M2 7.5h11M8.5 3l4.5 4.5L8.5 12" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+        </div>
     </div>
 
     <!-- ══ WALLET MODAL ══ -->
@@ -3317,8 +3371,8 @@
             .settings-row-sub { font-size:11px; color:var(--muted); margin-top:1px; }
             .settings-row-check { flex-shrink:0; }
             .settings-row-check.hidden { display:none; }
-            /* Sub-panels */
-            .settings-sub-panel { display:none; position:absolute; inset:0; background:var(--bg); z-index:20; flex-direction:column; overflow:hidden; transform:translateX(100%); transition:transform 0.28s cubic-bezier(0.32,0.72,0,1); }
+            /* Sub-panels — fixed to dash-wrap, always below header (58px) + nav (54px) */
+            .settings-sub-panel { display:none; position:fixed; left:0; right:0; top:112px; bottom:0; background:var(--bg); z-index:25; flex-direction:column; overflow:hidden; transform:translateX(100%); transition:transform 0.28s cubic-bezier(0.32,0.72,0,1); }
             .settings-sub-panel.open { display:flex; transform:translateX(0); }
             .settings-sub-header { flex-shrink:0; height:52px; display:flex; align-items:center; gap:10px; padding:0 16px; border-bottom:1px solid rgba(255,255,255,0.07); background:linear-gradient(180deg,rgba(16,16,26,0.96),rgba(12,12,20,0.9)); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); }
             .settings-back-btn { width:32px; height:32px; border-radius:999px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.09); display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--muted); flex-shrink:0; transition:background .15s,color .15s; touch-action:manipulation; }
@@ -3771,25 +3825,47 @@
                                 <span class="settings-sub-title">Notifications</span>
                             </div>
                             <div class="settings-sub-body">
-                                <div class="settings-group" style="margin-top:0;">
+
+                                <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Email</div>
+                                <div class="settings-group" style="margin-top:0;margin-bottom:18px;">
                                     <div class="settings-row settings-row-toggle">
                                         <div class="settings-row-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M1 6.5l7 4 7-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></div>
                                         <div style="flex:1;min-width:0;"><div class="settings-row-label">Sale alerts</div><div class="settings-row-sub">Email me when my site sells</div></div>
-                                        <div class="toggle-switch" id="notifSales" onclick="toggleNotif(this)" style="width:36px;height:20px;border-radius:999px;background:var(--accent);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;"><div style="width:16px;height:16px;border-radius:999px;background:#fff;position:absolute;top:2px;right:2px;transition:right .2s;left:auto;"></div></div>
+                                        <div class="notif-toggle" id="notifSales" data-key="sales" onclick="handleNotifToggle(this)" style="width:36px;height:20px;border-radius:999px;background:var(--accent);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;"><div style="width:16px;height:16px;border-radius:999px;background:#fff;position:absolute;top:2px;right:2px;transition:all .2s;"></div></div>
                                     </div>
                                     <div class="settings-row-divider"></div>
                                     <div class="settings-row settings-row-toggle">
                                         <div class="settings-row-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.5 10.5H2.5a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h11a1 1 0 0 1 1 1v6.5a1 1 0 0 1-1 1ZM5 13h6M8 10.5V13" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></div>
                                         <div style="flex:1;min-width:0;"><div class="settings-row-label">Buyer messages</div><div class="settings-row-sub">Email when a buyer contacts me</div></div>
-                                        <div class="toggle-switch" id="notifMessages" onclick="toggleNotif(this)" style="width:36px;height:20px;border-radius:999px;background:var(--accent);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;"><div style="width:16px;height:16px;border-radius:999px;background:#fff;position:absolute;top:2px;right:2px;transition:right .2s;left:auto;"></div></div>
+                                        <div class="notif-toggle" id="notifMessages" data-key="messages" onclick="handleNotifToggle(this)" style="width:36px;height:20px;border-radius:999px;background:var(--accent);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;"><div style="width:16px;height:16px;border-radius:999px;background:#fff;position:absolute;top:2px;right:2px;transition:all .2s;"></div></div>
                                     </div>
                                     <div class="settings-row-divider"></div>
                                     <div class="settings-row settings-row-toggle">
                                         <div class="settings-row-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1l1.5 3 3.5.5-2.5 2.5.5 3.5L8 9l-3 1.5.5-3.5L3 4.5 6.5 4Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg></div>
                                         <div style="flex:1;min-width:0;"><div class="settings-row-label">Platform updates</div><div class="settings-row-sub">Monthly product news and tips</div></div>
-                                        <div class="toggle-switch" id="notifUpdates" onclick="toggleNotif(this)" style="width:36px;height:20px;border-radius:999px;background:rgba(255,255,255,0.15);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;"><div style="width:16px;height:16px;border-radius:999px;background:#fff;position:absolute;top:2px;left:2px;transition:left .2s;right:auto;"></div></div>
+                                        <div class="notif-toggle" id="notifUpdates" data-key="updates" onclick="handleNotifToggle(this)" style="width:36px;height:20px;border-radius:999px;background:rgba(255,255,255,0.15);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;"><div style="width:16px;height:16px;border-radius:999px;background:#fff;position:absolute;top:2px;left:2px;transition:all .2s;"></div></div>
                                     </div>
                                 </div>
+
+                                <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Push</div>
+                                <div class="settings-group" style="margin-top:0;margin-bottom:18px;">
+                                    <div class="settings-row settings-row-toggle">
+                                        <div class="settings-row-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1.5a5 5 0 0 1 5 5v2.5l1 2H2l1-2V6.5a5 5 0 0 1 5-5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M6.5 13.5a1.5 1.5 0 0 0 3 0" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></div>
+                                        <div style="flex:1;min-width:0;">
+                                            <div class="settings-row-label">Push notifications</div>
+                                            <div class="settings-row-sub" id="pushSubLabel">Real-time alerts on this device</div>
+                                        </div>
+                                        <div class="notif-toggle" id="notifPush" data-key="push" onclick="handlePushToggle(this)" style="width:36px;height:20px;border-radius:999px;background:rgba(255,255,255,0.15);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;"><div style="width:16px;height:16px;border-radius:999px;background:#fff;position:absolute;top:2px;left:2px;transition:all .2s;"></div></div>
+                                    </div>
+                                </div>
+
+                                <div id="pushBlockedNote" style="display:none;background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.2);border-radius:12px;padding:12px 14px;font-size:12px;color:#f87171;line-height:1.6;">
+                                    <strong style="display:block;margin-bottom:3px;">Notifications blocked</strong>
+                                    Push notifications are blocked in your browser. To enable them, click the lock icon in your address bar and allow notifications for this site, then try again.
+                                </div>
+
+                                <div id="notifStatusMsg" style="display:none;margin-top:12px;font-size:12px;line-height:1.5;padding:10px 14px;border-radius:10px;"></div>
+
                             </div>
                         </div>
 
@@ -4167,14 +4243,18 @@
                 try {
                     const snap = await get(ref(db, 'users/' + user.uid));
                     const data = snap.val() || {};
+                    // Expose user profile globally for chat widget + notifications
+                    window._fbUserData = { username: data.username || '', plan: data.plan || 'Free', email: user.email || '' };
                     const bal = parseFloat(data.balance || 0);
                     document.getElementById('walletPillAmount').textContent = '$' + bal.toFixed(2);
                     // Show billing banner for logged-in users
                     showBillingBanner(data);
                 } catch(e){
+                    window._fbUserData = null;
                     document.getElementById('walletPillAmount').textContent = '$0.00';
                 }
             } else {
+                window._fbUserData = null;
                 document.getElementById('walletPillAmount').textContent = '$0.00';
                 document.getElementById('billingBanner').classList.remove('visible');
             }
@@ -4381,6 +4461,8 @@
 
                 // Hide spinner
                 if(spinner) spinner.classList.add('hidden');
+                // Load notification prefs in background
+                if(window.loadNotifPrefs) window.loadNotifPrefs();
             }
         }
 
@@ -4910,7 +4992,11 @@
             // Force display:flex then trigger the slide
             el.style.display = 'flex';
             requestAnimationFrame(() => {
-                requestAnimationFrame(() => { el.classList.add('open'); });
+                requestAnimationFrame(() => {
+                    el.classList.add('open');
+                    // Init notifications panel state after slide-in
+                    if (name === 'notifications' && window.initNotifPanel) window.initNotifPanel();
+                });
             });
         };
 
@@ -4936,16 +5022,244 @@
             selectThemeRow(saved);
         });
 
-        window.toggleNotif = function(el) {
+        // ── Notification preferences ──────────────────────────────────────────────
+        // VAPID public key — replace with your actual key from env
+        const VAPID_PUBLIC_KEY = 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBkYIRuLPSmVmaHFCMA';
+
+        // Converts a base64url VAPID key to a Uint8Array for PushManager
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+            const raw = window.atob(base64);
+            return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+        }
+
+        // Read toggle state from DOM
+        function isToggleOn(el) {
             const dot = el.querySelector('div');
-            const isOn = dot.style.right === '2px' || getComputedStyle(dot).right === '2px';
-            if (isOn) {
-                el.style.background = 'rgba(255,255,255,0.15)';
-                dot.style.right = 'auto'; dot.style.left = '2px';
-            } else {
+            return dot.style.right === '2px';
+        }
+
+        // Set toggle visual state
+        function setToggle(el, on) {
+            const dot = el.querySelector('div');
+            if (on) {
                 el.style.background = 'var(--accent)';
                 dot.style.left = 'auto'; dot.style.right = '2px';
+            } else {
+                el.style.background = 'rgba(255,255,255,0.15)';
+                dot.style.right = 'auto'; dot.style.left = '2px';
             }
+        }
+
+        // Show a brief status message in the notifications panel
+        function showNotifStatus(msg, isErr) {
+            const el = document.getElementById('notifStatusMsg');
+            if (!el) return;
+            el.textContent = msg;
+            el.style.display = 'block';
+            el.style.background = isErr ? 'rgba(248,113,113,0.1)' : 'rgba(52,211,153,0.1)';
+            el.style.color = isErr ? '#f87171' : '#34d399';
+            el.style.border = isErr ? '1px solid rgba(248,113,113,0.2)' : '1px solid rgba(52,211,153,0.2)';
+            clearTimeout(el._hideTimer);
+            el._hideTimer = setTimeout(() => { el.style.display = 'none'; }, 3500);
+        }
+
+        // Persist notif prefs to Firebase under users/<uid>/notifPrefs
+        async function saveNotifPref(key, value) {
+            if (!window._fbAuth || !window._fbAuth.currentUser) return;
+            const uid = window._fbAuth.currentUser.uid;
+            try {
+                const { getDatabase, ref, update } = await import('https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js');
+                const db2 = getDatabase();
+                await update(ref(db2, 'users/' + uid + '/notifPrefs'), { [key]: value });
+            } catch(e) { console.warn('saveNotifPref', e); }
+        }
+
+        // Load notif prefs from Firebase and apply to toggles
+        window.loadNotifPrefs = async function() {
+            if (!window._fbAuth || !window._fbAuth.currentUser) return;
+            const uid = window._fbAuth.currentUser.uid;
+            try {
+                const { getDatabase, ref, get } = await import('https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js');
+                const db2 = getDatabase();
+                const snap = await get(ref(db2, 'users/' + uid + '/notifPrefs'));
+                const prefs = snap.val() || {};
+                // Email toggles — default on for sales+messages, off for updates
+                const defaults = { sales: true, messages: true, updates: false };
+                ['sales','messages','updates'].forEach(key => {
+                    const el = document.getElementById('notif' + key.charAt(0).toUpperCase() + key.slice(1));
+                    if (el) setToggle(el, prefs[key] !== undefined ? prefs[key] : defaults[key]);
+                });
+                // Push toggle — reflect actual browser permission + saved pref
+                const pushEl = document.getElementById('notifPush');
+                if (pushEl) {
+                    const hasPerm = 'Notification' in window && Notification.permission === 'granted';
+                    setToggle(pushEl, hasPerm && prefs.push === true);
+                }
+            } catch(e) { console.warn('loadNotifPrefs', e); }
+        };
+
+        // Email toggle handler — persists pref and sends a confirmation email on first enable
+        window.handleNotifToggle = async function(el) {
+            const key = el.dataset.key;
+            const nowOn = !isToggleOn(el);
+            setToggle(el, nowOn);
+            await saveNotifPref(key, nowOn);
+
+            // On enable: fire a welcome/confirmation email via Resend API
+            if (nowOn && window._fbAuth && window._fbAuth.currentUser) {
+                const email = window._fbAuth.currentUser.email;
+                const labels = { sales: 'Sale alerts', messages: 'Buyer messages', updates: 'Platform updates' };
+                const label = labels[key] || key;
+                try {
+                    await fetch('/api/send-email', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            to: email,
+                            subject: `✅ ${label} enabled on Siterifty`,
+                            html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0a0a0f;color:#f1f0ff;border-radius:16px;">
+                                <h2 style="margin:0 0 12px;font-size:20px;">You're subscribed to ${label}</h2>
+                                <p style="color:#8b8aa8;font-size:14px;line-height:1.6;margin:0 0 20px;">You'll now receive ${label.toLowerCase()} at <strong style="color:#f1f0ff;">${email}</strong>.</p>
+                                <p style="color:#8b8aa8;font-size:12px;margin:0;">You can turn this off anytime in Settings → Notifications on Siterifty.com.</p>
+                            </div>`
+                        })
+                    });
+                    showNotifStatus(`${label} enabled`, false);
+                } catch(e) {
+                    showNotifStatus('Saved, but confirmation email failed', true);
+                }
+            } else if (!nowOn) {
+                const labels = { sales: 'Sale alerts', messages: 'Buyer messages', updates: 'Platform updates' };
+                showNotifStatus(`${labels[key] || key} disabled`, false);
+            }
+        };
+
+        // Push toggle handler — requests permission, subscribes via service worker, calls /api/push-subscribe
+        window.handlePushToggle = async function(el) {
+            const blockedNote = document.getElementById('pushBlockedNote');
+            const subLabel = document.getElementById('pushSubLabel');
+
+            // If currently ON, turn off
+            if (isToggleOn(el)) {
+                setToggle(el, false);
+                await saveNotifPref('push', false);
+                if (subLabel) subLabel.textContent = 'Real-time alerts on this device';
+                showNotifStatus('Push notifications disabled', false);
+                return;
+            }
+
+            // Check browser support
+            if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+                showNotifStatus('Push notifications aren\'t supported in this browser', true);
+                return;
+            }
+
+            // Check if blocked
+            if (Notification.permission === 'denied') {
+                if (blockedNote) blockedNote.style.display = 'block';
+                showNotifStatus('Notifications are blocked — see note below', true);
+                return;
+            }
+
+            // Request permission
+            if (subLabel) subLabel.textContent = 'Requesting permission…';
+            let permission;
+            try {
+                permission = await Notification.requestPermission();
+            } catch(e) {
+                permission = 'denied';
+            }
+
+            if (permission !== 'granted') {
+                if (subLabel) subLabel.textContent = 'Real-time alerts on this device';
+                if (permission === 'denied' && blockedNote) blockedNote.style.display = 'block';
+                showNotifStatus('Permission not granted', true);
+                return;
+            }
+
+            // Register service worker if not already registered
+            if (subLabel) subLabel.textContent = 'Subscribing…';
+            try {
+                let reg = await navigator.serviceWorker.getRegistration('/');
+                if (!reg) {
+                    // Inline minimal service worker via blob URL as fallback
+                    const swCode = `
+self.addEventListener('push', e => {
+    const data = e.data ? e.data.json() : {};
+    e.waitUntil(self.registration.showNotification(data.title || 'Siterifty', {
+        body: data.body || '',
+        icon: '/icon-192.png',
+        badge: '/badge-72.png',
+        data: { url: data.url || '/' }
+    }));
+});
+self.addEventListener('notificationclick', e => {
+    e.notification.close();
+    e.waitUntil(clients.openWindow(e.notification.data.url || '/'));
+});`;
+                    const blob = new Blob([swCode], { type: 'application/javascript' });
+                    const swUrl = URL.createObjectURL(blob);
+                    reg = await navigator.serviceWorker.register(swUrl, { scope: '/' }).catch(() => null);
+                }
+                if (!reg) throw new Error('Service worker registration failed');
+
+                await navigator.serviceWorker.ready;
+
+                const subscription = await reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+                });
+
+                // Send subscription to backend
+                const uid = window._fbAuth && window._fbAuth.currentUser ? window._fbAuth.currentUser.uid : 'unknown';
+                const email = window._fbAuth && window._fbAuth.currentUser ? window._fbAuth.currentUser.email : '';
+                const resp = await fetch('/api/push-subscribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        subscription: subscription.toJSON(),
+                        deviceId: uid + '_' + Date.now(),
+                        metadata: { uid, email, ua: navigator.userAgent.slice(0, 120) },
+                        resubscribe: false
+                    })
+                });
+
+                if (!resp.ok) throw new Error('Server returned ' + resp.status);
+
+                setToggle(el, true);
+                await saveNotifPref('push', true);
+                if (subLabel) subLabel.textContent = 'Enabled on this device';
+                if (blockedNote) blockedNote.style.display = 'none';
+                showNotifStatus('Push notifications enabled!', false);
+
+            } catch(e) {
+                console.error('[push]', e);
+                if (subLabel) subLabel.textContent = 'Real-time alerts on this device';
+                showNotifStatus('Could not enable push: ' + (e.message || 'unknown error'), true);
+            }
+        };
+
+        // Check push permission state whenever the notifications panel opens and restore UI
+        window.initNotifPanel = function() {
+            const pushEl = document.getElementById('notifPush');
+            const blockedNote = document.getElementById('pushBlockedNote');
+            const subLabel = document.getElementById('pushSubLabel');
+            if (!pushEl) return;
+            if (!('Notification' in window)) {
+                pushEl.style.opacity = '0.4';
+                pushEl.style.pointerEvents = 'none';
+                if (subLabel) subLabel.textContent = 'Not supported in this browser';
+                return;
+            }
+            if (Notification.permission === 'denied') {
+                setToggle(pushEl, false);
+                if (blockedNote) blockedNote.style.display = 'block';
+            } else if (Notification.permission === 'granted') {
+                if (blockedNote) blockedNote.style.display = 'none';
+            }
+            window.loadNotifPrefs();
         };
 
         // ── Contact form ──
@@ -5500,5 +5814,275 @@
             </div>
         </div>
     </div>
+
+    <!-- ══ CHAT WIDGET JS ══ -->
+    <script>
+    (function() {
+
+        // ── Plan limits ──────────────────────────────────────────────────────
+        // Messages per session (not per day — simple session cap)
+        const PLAN_LIMITS = { Free: 5, Starter: 20, Growth: 50, Pro: Infinity };
+        const PLAN_UPGRADE_MSG = {
+            Free:    "You've used all 5 free messages this session. Upgrade to Starter or higher for more chat support.",
+            Starter: "You've reached your 20-message limit for this session. Upgrade to Growth or Pro for more.",
+            Growth:  "You've reached your 50-message session limit. Upgrade to Pro for unlimited support chat.",
+        };
+
+        // ── State ────────────────────────────────────────────────────────────
+        let _chatOpen    = false;
+        let _chatHistory = [];
+        let _chatBusy    = false;
+        let _greeted     = false;
+        let _msgCount    = 0;   // messages sent this session
+
+        // ── Helpers ──────────────────────────────────────────────────────────
+        function $(id) { return document.getElementById(id); }
+
+        function getUser() {
+            // Returns { uid, username, plan, email } or null
+            const auth = window._fbAuth;
+            if (!auth || !auth.currentUser) return null;
+            const ud = window._fbUserData || {};
+            return {
+                uid:      auth.currentUser.uid,
+                username: ud.username || auth.currentUser.email?.split('@')[0] || 'there',
+                plan:     ud.plan || 'Free',
+                email:    ud.email || auth.currentUser.email || ''
+            };
+        }
+
+        function getMsgLimit(plan) {
+            return PLAN_LIMITS[plan] ?? PLAN_LIMITS.Free;
+        }
+
+        function scrollChat() {
+            const el = $('chatMessages');
+            if (el) requestAnimationFrame(() => { el.scrollTop = el.scrollHeight; });
+        }
+
+        function appendMessage(role, text) {
+            const el = $('chatMessages');
+            if (!el) return;
+            const div = document.createElement('div');
+            div.className = role === 'user' ? 'chat-msg-user' : 'chat-msg-ai';
+            div.textContent = text;
+            el.appendChild(div);
+            scrollChat();
+        }
+
+        function appendSystem(text, color) {
+            // Centred system notice (limit warnings, login prompt, etc.)
+            const el = $('chatMessages');
+            if (!el) return;
+            const div = document.createElement('div');
+            div.style.cssText = 'align-self:center;text-align:center;font-size:11px;color:' + (color||'var(--muted)') + ';padding:6px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:999px;max-width:90%;line-height:1.5;';
+            div.textContent = text;
+            el.appendChild(div);
+            scrollChat();
+        }
+
+        function setTyping(on) {
+            const t = $('chatTyping');
+            if (t) t.style.display = on ? 'block' : 'none';
+            if (on) scrollChat();
+        }
+
+        function setBusy(on) {
+            _chatBusy = on;
+            const btn = $('chatSendBtn');
+            const inp = $('chatInput');
+            if (btn) { btn.style.opacity = on ? '0.4' : '1'; btn.style.pointerEvents = on ? 'none' : ''; }
+            if (inp && !inp.dataset.locked) inp.disabled = on;
+        }
+
+        function lockInput(msg) {
+            // Permanently disables input and shows a message
+            const inp = $('chatInput');
+            const btn = $('chatSendBtn');
+            if (inp) { inp.disabled = true; inp.placeholder = msg; inp.dataset.locked = '1'; }
+            if (btn) { btn.style.opacity = '0.25'; btn.style.pointerEvents = 'none'; }
+        }
+
+        function showLoginWall() {
+            // Replace messages area with a login prompt
+            const el = $('chatMessages');
+            if (!el) return;
+            el.innerHTML = '';
+            const wrap = document.createElement('div');
+            wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:14px;padding:24px;text-align:center;';
+            wrap.innerHTML =
+                '<svg width="40" height="40" viewBox="0 0 40 40" fill="none"><circle cx="20" cy="20" r="19" stroke="rgba(168,85,247,0.3)" stroke-width="1.5"/><path d="M20 8a6 6 0 1 1 0 12 6 6 0 0 1 0-12Z" stroke="#a855f7" stroke-width="1.4"/><path d="M8 34c0-6.627 5.373-10 12-10s12 3.373 12 10" stroke="#a855f7" stroke-width="1.4" stroke-linecap="round"/></svg>' +
+                '<div style="font-family:\'Syne\',sans-serif;font-size:14px;font-weight:700;color:#f1f0ff;">Sign in to chat</div>' +
+                '<div style="font-size:12px;color:var(--muted);line-height:1.6;">Chat support is available to registered users only. Sign in or create a free account to continue.</div>' +
+                '<button onclick="toggleChat();openAuthModal();" style="padding:10px 22px;border-radius:10px;background:linear-gradient(135deg,#a855f7,#f472b6);color:#fff;font-family:\'Syne\',sans-serif;font-size:13px;font-weight:700;border:none;cursor:pointer;touch-action:manipulation;">Sign in / Register</button>';
+            el.appendChild(wrap);
+            lockInput('Sign in to send messages');
+        }
+
+        function showGreeting(user) {
+            if (_greeted) return;
+            _greeted = true;
+            const limit = getMsgLimit(user.plan);
+            const limitNote = isFinite(limit) ? ` You have ${limit} messages available this session on your ${user.plan} plan.` : '';
+            appendMessage('assistant', `Hey ${user.username}! 👋 I'm the Siterifty assistant. Ask me anything — listings, plans, billing, or account help.${limitNote}`);
+        }
+
+        function checkAndShowLimitWarning(user) {
+            const limit = getMsgLimit(user.plan);
+            if (!isFinite(limit)) return false; // Pro = unlimited
+            const remaining = limit - _msgCount;
+            if (remaining <= 0) {
+                appendSystem(PLAN_UPGRADE_MSG[user.plan] || "You've reached your message limit for this session.", '#f87171');
+                lockInput('Message limit reached — upgrade your plan');
+                return true; // blocked
+            }
+            if (remaining === 2) {
+                appendSystem(`${remaining} messages remaining this session on ${user.plan} plan.`, '#f5a623');
+            }
+            return false;
+        }
+
+        // ── Open / close ─────────────────────────────────────────────────────
+        window.toggleChat = function() {
+            _chatOpen = !_chatOpen;
+            const panel  = $('chatPanel');
+            const bubble = $('chatBubble');
+            const iconO  = $('chatIconOpen');
+            const iconC  = $('chatIconClose');
+
+            if (_chatOpen) {
+                panel.style.display = 'flex';
+                requestAnimationFrame(() => requestAnimationFrame(() => panel.classList.add('open')));
+                bubble.classList.add('open');
+                if (iconO) iconO.style.display = 'none';
+                if (iconC) iconC.style.display = '';
+
+                const user = getUser();
+                if (!user) {
+                    showLoginWall();
+                } else {
+                    showGreeting(user);
+                    setTimeout(() => { const inp = $('chatInput'); if (inp && !inp.dataset.locked) inp.focus(); }, 280);
+                }
+            } else {
+                panel.classList.remove('open');
+                bubble.classList.remove('open');
+                if (iconO) iconO.style.display = '';
+                if (iconC) iconC.style.display = 'none';
+                setTimeout(() => { panel.style.display = 'none'; }, 240);
+            }
+        };
+
+        // ── Input auto-grow ───────────────────────────────────────────────────
+        window.chatInputGrow = function(el) {
+            el.style.height = 'auto';
+            el.style.height = Math.min(el.scrollHeight, 96) + 'px';
+        };
+
+        // ── Enter to send (Shift+Enter for newline) ───────────────────────────
+        window.chatInputKeydown = function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendChatMessage();
+            }
+        };
+
+        // ── Send message ──────────────────────────────────────────────────────
+        window.sendChatMessage = async function() {
+            if (_chatBusy) return;
+
+            const user = getUser();
+            if (!user) { showLoginWall(); return; }
+
+            const inp = $('chatInput');
+            if (!inp || inp.dataset.locked) return;
+            const text = inp.value.trim();
+            if (!text) return;
+
+            // Check plan limit before sending
+            if (checkAndShowLimitWarning(user)) return;
+
+            inp.value = '';
+            inp.style.height = 'auto';
+
+            appendMessage('user', text);
+            _chatHistory.push({ role: 'user', content: text });
+            _msgCount++;
+
+            setBusy(true);
+            setTyping(true);
+
+            try {
+                const resp = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        messages: _chatHistory,
+                        deviceId: user.uid,
+                        userPlan: user.plan,
+                        username: user.username
+                    })
+                });
+
+                setTyping(false);
+
+                let reply = 'Sorry, something went wrong. Please try again or email support@siterifty.com.';
+                if (resp.ok) {
+                    const data = await resp.json();
+                    reply = data.reply || reply;
+                } else {
+                    console.error('[chat] API error', resp.status);
+                }
+
+                appendMessage('assistant', reply);
+                _chatHistory.push({ role: 'assistant', content: reply });
+
+                // Cap history to avoid token bloat
+                if (_chatHistory.length > 20) _chatHistory = _chatHistory.slice(-20);
+
+                // Check limit again after response (shows warning with 2 left)
+                checkAndShowLimitWarning(user);
+
+            } catch(e) {
+                setTyping(false);
+                appendMessage('assistant', 'Connection error — please check your network and try again.');
+                console.error('[chat]', e);
+            } finally {
+                setBusy(false);
+                if (window.innerWidth > 600) { const inp2 = $('chatInput'); if (inp2 && !inp2.dataset.locked) inp2.focus(); }
+            }
+        };
+
+        // Reset chat state when user signs out (auth change)
+        // Poll lightly — avoids needing cross-script event bus
+        let _lastAuthState = null;
+        setInterval(() => {
+            const isLoggedIn = !!(window._fbAuth && window._fbAuth.currentUser);
+            if (_lastAuthState !== null && _lastAuthState !== isLoggedIn) {
+                // Auth changed — reset chat
+                _chatHistory = [];
+                _msgCount = 0;
+                _greeted = false;
+                const inp = $('chatInput');
+                if (inp) { delete inp.dataset.locked; inp.disabled = false; inp.placeholder = 'Ask anything\u2026'; inp.style.height = 'auto'; }
+                const btn = $('chatSendBtn');
+                if (btn) { btn.style.opacity = '1'; btn.style.pointerEvents = ''; }
+                const msgs = $('chatMessages');
+                if (msgs) msgs.innerHTML = '';
+                if (_chatOpen) {
+                    if (!isLoggedIn) showLoginWall();
+                    else showGreeting(getUser());
+                }
+            }
+            _lastAuthState = isLoggedIn;
+        }, 1500);
+
+        // Close on Escape
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && _chatOpen) window.toggleChat();
+        });
+
+    })();
+    </script>
 </body>
 </html>
