@@ -1634,48 +1634,41 @@
         .chat-msg-ai   { align-self:flex-start; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.09); border-radius:16px 16px 16px 4px; padding:9px 13px; font-size:13px; color:#f1f0ff; max-width:88%; line-height:1.5; word-wrap:break-word; white-space:pre-wrap; }
         #chatMessages::-webkit-scrollbar { display:none; }
 
-        /* ══ WALLET MODAL — premium glass sheet ══ */
+        /* ══ WALLET MODAL — centered popup ══ */
         #walletOverlay {
             display: none;
             position: fixed;
             inset: 0;
             z-index: 5000;
-            background: rgba(0,0,0,0.65);
-            backdrop-filter: blur(16px) saturate(140%);
-            -webkit-backdrop-filter: blur(16px) saturate(140%);
-            align-items: flex-end;
+            background: rgba(0,0,0,0.72);
+            backdrop-filter: blur(20px) saturate(150%);
+            -webkit-backdrop-filter: blur(20px) saturate(150%);
+            align-items: center;
             justify-content: center;
-            padding: 0;
+            padding: 20px 16px;
             overflow: hidden;
             touch-action: none;
-            /* Smooth entry */
-            transition: background 0.25s;
         }
         #walletOverlay.open { display: flex; }
 
         #walletModal {
             background: linear-gradient(160deg, #16162a 0%, #0f0f1c 100%);
             border: 1px solid rgba(255,255,255,0.1);
-            border-top: 1px solid rgba(255,255,255,0.14);
-            border-radius: 28px 28px 0 0;
+            border-top: 1px solid rgba(255,255,255,0.18);
+            border-radius: 24px;
             width: 100%;
-            max-width: 480px;
-            max-height: 92svh;
+            max-width: 400px;
+            max-height: 88svh;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
             overscroll-behavior: contain;
             box-shadow:
-                0 1px 0 rgba(255,255,255,0.07) inset,
-                0 -4px 60px rgba(0,0,0,0.7),
-                0 0 0 1px rgba(168,85,247,0.08);
-            animation: sheetUp 0.32s cubic-bezier(0.32,0.72,0,1) both;
+                0 1px 0 rgba(255,255,255,0.1) inset,
+                0 0 0 1px rgba(168,85,247,0.1),
+                0 32px 80px rgba(0,0,0,0.8),
+                0 8px 32px rgba(168,85,247,0.08);
+            animation: modalPop 0.28s cubic-bezier(0.34,1.3,0.64,1) both;
             position: relative;
-            /* Safe area bottom */
-            padding-bottom: env(safe-area-inset-bottom, 0px);
-        }
-        @keyframes sheetUp {
-            from { transform: translateY(100%); opacity: 0.6; }
-            to   { transform: translateY(0);    opacity: 1; }
         }
         @keyframes spin {
             from { transform: rotate(0deg); }
@@ -1683,7 +1676,7 @@
         }
 
         .wm-header {
-            padding: 24px 24px 0;
+            padding: 22px 22px 0;
             display: flex;
             align-items: flex-start;
             justify-content: space-between;
@@ -2385,7 +2378,12 @@
                 <div class="credit-divider"></div>
                 <span class="credit-amount" id="walletPillAmount">—</span>
             </div>
-            <div class="avatar" id="avatarBtn" onclick="openAuthModal()">?</div>
+            <div class="avatar" id="avatarBtn" onclick="openAuthModal()" title="Sign in">
+                <svg width="17" height="17" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg" id="avatarGuestIcon">
+                    <circle cx="8.5" cy="5.5" r="3" stroke="rgba(255,255,255,0.7)" stroke-width="1.4"/>
+                    <path d="M2 15c0-3.314 2.91-6 6.5-6s6.5 2.686 6.5 6" stroke="rgba(255,255,255,0.7)" stroke-width="1.4" stroke-linecap="round"/>
+                </svg>
+            </div>
         </div>
     </header>
 
@@ -3457,10 +3455,6 @@
     <!-- ══ WALLET MODAL ══ -->
     <div id="walletOverlay" onclick="if(event.target===this)closeWalletModal()">
         <div id="walletModal">
-            <!-- Drag handle -->
-            <div style="display:flex;justify-content:center;padding:12px 0 4px;">
-                <div style="width:36px;height:4px;border-radius:999px;background:rgba(255,255,255,0.15);"></div>
-            </div>
             <div class="wm-header">
                 <div>
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;">
@@ -3642,7 +3636,7 @@
                         What can my wallet balance be used for?
                         <svg class="tu-faq-arrow" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     </div>
-                    <div class="tu-faq-a">Your balance can be used for premium purchases, plan upgrades (Duo, Max), limited-edition drops, add-ons, and any future credits or promotions we offer. It never expires.</div>
+                    <div class="tu-faq-a">Your balance can be used for site purchases, monthly plan upgrades (Starter, Growth, Pro), managed hosting fees, and any future credits or promotions we offer. It never expires.</div>
                 </div>
 
                 <div class="tu-faq-item" onclick="toggleFaq(this)">
@@ -3700,62 +3694,44 @@
     </div>
 
     <!-- ══ AUTH MODAL ══ -->
-    <div id="authModal" style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,0.7); backdrop-filter:blur(20px) saturate(150%); -webkit-backdrop-filter:blur(20px) saturate(150%); overflow:hidden;">
+    <div id="authModal" style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,0.75); backdrop-filter:blur(22px) saturate(160%); -webkit-backdrop-filter:blur(22px) saturate(160%); overflow:hidden;">
         <style>
             .auth-wrap {
                 height: 100%;
                 display: flex;
-                align-items: flex-end;
+                align-items: center;
                 justify-content: center;
-            }
-            @media (min-width: 600px) {
-                .auth-wrap { align-items: center; padding: 24px 16px; }
+                padding: 20px 16px;
             }
             .auth-box {
                 width: 100%;
-                max-width: 460px;
+                max-width: 420px;
                 background: linear-gradient(160deg, #16162a 0%, #0f0f1e 100%);
                 border: 1px solid rgba(255,255,255,0.1);
-                border-top: 1px solid rgba(255,255,255,0.14);
-                border-radius: 28px 28px 0 0;
-                padding: 8px 28px 36px;
+                border-top: 1px solid rgba(255,255,255,0.18);
+                border-radius: 24px;
+                padding: 32px 28px 32px;
                 position: relative;
                 box-shadow:
-                    0 1px 0 rgba(255,255,255,0.07) inset,
-                    0 -4px 60px rgba(0,0,0,0.7);
-                animation: sheetUp 0.3s cubic-bezier(0.32,0.72,0,1) both;
-                /* Safe area */
-                padding-bottom: max(36px, env(safe-area-inset-bottom, 36px));
+                    0 1px 0 rgba(255,255,255,0.1) inset,
+                    0 0 0 1px rgba(168,85,247,0.08),
+                    0 32px 80px rgba(0,0,0,0.8),
+                    0 8px 32px rgba(168,85,247,0.07);
+                animation: modalPop 0.28s cubic-bezier(0.34,1.3,0.64,1) both;
                 overflow-y: auto;
                 -webkit-overflow-scrolling: touch;
-                max-height: 95svh;
+                max-height: 92svh;
             }
-            /* Drag handle */
-            .auth-box::before {
-                content: '';
-                display: block;
-                width: 36px;
-                height: 4px;
-                border-radius: 999px;
-                background: rgba(255,255,255,0.15);
-                margin: 10px auto 20px;
+            @media(max-width:480px){
+                .auth-box { padding: 26px 20px 28px; border-radius: 20px; }
             }
-            @media (min-width: 600px) {
-                .auth-box {
-                    border-radius: 24px;
-                    padding: 32px 32px 36px;
-                    max-height: calc(100svh - 48px);
-                }
-                .auth-box::before { display: none; }
-            }
-            @media(max-width:480px){ .auth-box { padding-left: 20px; padding-right: 20px; } }
-            .auth-close { position:absolute; top:20px; right:20px; width:32px; height:32px; border-radius:999px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.09); display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--muted); font-size:16px; transition:background .15s, color .15s; }
+            .auth-close { position:absolute; top:16px; right:16px; width:32px; height:32px; border-radius:999px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.09); display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--muted); font-size:16px; transition:background .15s, color .15s; }
             .auth-close:hover { background:rgba(255,255,255,0.1); color:var(--text); }
-            .auth-logo { display:flex; align-items:center; gap:8px; margin-bottom:24px; }
+            .auth-logo { display:flex; align-items:center; gap:8px; margin-bottom:22px; }
             .auth-logo span { font-family:'Syne',sans-serif; font-weight:800; font-size:1rem; letter-spacing:-0.04em; color:var(--text); }
             .auth-logo span em { background:linear-gradient(135deg,var(--accent),var(--accent2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; font-style:normal; font-weight:400; }
-            .auth-title { font-family:'Syne',sans-serif; font-size:1.45rem; font-weight:800; letter-spacing:-0.04em; color:var(--text); margin-bottom:6px; }
-            .auth-sub { font-size:12px; color:var(--muted); margin-bottom:28px; line-height:1.6; }
+            .auth-title { font-family:'Syne',sans-serif; font-size:1.35rem; font-weight:800; letter-spacing:-0.04em; color:var(--text); margin-bottom:5px; }
+            .auth-sub { font-size:12px; color:var(--muted); margin-bottom:22px; line-height:1.6; }
             .auth-label { display:block; font-size:11px; font-weight:500; letter-spacing:0.06em; text-transform:uppercase; color:var(--muted); margin-bottom:7px; }
             .auth-input { width:100%; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:12px 14px; font-size:15px; color:var(--text); outline:none; transition:border-color .2s, background .2s; margin-bottom:14px; font-family:'DM Sans',sans-serif; -webkit-appearance:none; appearance:none; }
             .auth-input:focus { border-color:rgba(168,85,247,0.55); background:rgba(255,255,255,0.08); }
@@ -3764,12 +3740,25 @@
             .auth-btn:hover { opacity:.88; }
             .auth-btn:active { transform:scale(0.97); opacity:.85; }
             .auth-btn:disabled { opacity:.45; cursor:default; transform:none; }
-            .auth-switch { text-align:center; font-size:12px; color:var(--muted); margin-top:20px; }
+            .auth-google-btn {
+                width:100%; padding:12px 16px; border-radius:12px;
+                background:rgba(255,255,255,0.06);
+                border:1px solid rgba(255,255,255,0.12);
+                color:var(--text); font-family:'DM Sans',sans-serif;
+                font-weight:600; font-size:14px; cursor:pointer;
+                display:flex; align-items:center; justify-content:center; gap:10px;
+                transition:background .15s, border-color .15s;
+                margin-bottom:0;
+            }
+            .auth-google-btn:hover { background:rgba(255,255,255,0.1); border-color:rgba(255,255,255,0.2); }
+            .auth-google-btn:active { transform:scale(0.97); }
+            .auth-google-btn:disabled { opacity:.45; cursor:default; transform:none; }
+            .auth-switch { text-align:center; font-size:12px; color:var(--muted); margin-top:18px; }
             .auth-switch a { color:var(--accent); cursor:pointer; text-decoration:none; font-weight:500; }
             .auth-switch a:hover { text-decoration:underline; }
             .auth-err { font-size:12px; color:#f87171; background:rgba(248,113,113,0.1); border:1px solid rgba(248,113,113,0.2); border-radius:8px; padding:9px 12px; margin-bottom:14px; display:none; }
             .auth-ok  { font-size:12px; color:#34d399; background:rgba(52,211,153,0.1); border:1px solid rgba(52,211,153,0.2); border-radius:8px; padding:9px 12px; margin-bottom:14px; display:none; }
-            .auth-divider { display:flex; align-items:center; gap:10px; margin:20px 0; color:var(--muted); font-size:11px; }
+            .auth-divider { display:flex; align-items:center; gap:10px; margin:18px 0; color:var(--muted); font-size:11px; }
             .auth-divider::before,.auth-divider::after { content:''; flex:1; height:1px; background:var(--border); }
             /* ── Dashboard (these are overridden by the dashModal's own style block below) ── */
             #dashModal { display:none; position:fixed; inset:0; z-index:1000; background:rgba(8,8,14,0.97); backdrop-filter:blur(28px) saturate(160%); -webkit-backdrop-filter:blur(28px) saturate(160%); overflow:hidden; }
@@ -3805,15 +3794,19 @@
 
                 <!-- ── SIGN UP PANEL ── -->
                 <div id="panelSignup">
-                    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px;">
-                        <div class="auth-title" style="margin-bottom:0">Create account</div>
-                        <button onclick="closeAuthModal()" title="Close" style="width:30px;height:30px;border-radius:999px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);flex-shrink:0;transition:background .15s,color .15s;" onmouseover="this.style.background='rgba(255,255,255,0.07)';this.style.color='var(--text)'" onmouseout="this.style.background='var(--surface2)';this.style.color='var(--muted)'">
-                            <svg width="11" height="11" viewBox="0 0 11 11" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1l9 9M10 1l-9 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-                        </button>
-                    </div>
+                    <div class="auth-title">Create account</div>
                     <div class="auth-sub">Start listing your websites and digital assets. Free plan to start.</div>
                     <div id="errSignup" class="auth-err"></div>
                     <div id="okSignup" class="auth-ok"></div>
+
+                    <!-- Google sign-up -->
+                    <button class="auth-google-btn" id="btnGoogleSignup" onclick="doGoogleAuth()">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/><path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
+                        Continue with Google
+                    </button>
+
+                    <div class="auth-divider">or sign up with email</div>
+
                     <label class="auth-label">Username</label>
                     <input id="suUsername" class="auth-input" type="text" placeholder="coolperson123" autocomplete="off" spellcheck="false">
                     <label class="auth-label">Email</label>
@@ -3830,14 +3823,22 @@
                     <div class="auth-sub">Sign in to manage your listings and plan.</div>
                     <div id="errLogin" class="auth-err"></div>
                     <div id="okLogin" class="auth-ok"></div>
+
+                    <!-- Google sign-in -->
+                    <button class="auth-google-btn" id="btnGoogleLogin" onclick="doGoogleAuth()">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/><path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
+                        Continue with Google
+                    </button>
+
+                    <div class="auth-divider">or sign in with email</div>
+
                     <label class="auth-label">Email</label>
                     <input id="liEmail" class="auth-input" type="email" placeholder="you@example.com" autocomplete="email">
                     <label class="auth-label">Password</label>
                     <input id="liPassword" class="auth-input" type="password" placeholder="Your password" autocomplete="current-password">
                     <button class="auth-btn" id="btnLogin" onclick="doLogin()">Sign in →</button>
                     <div class="auth-switch"><a onclick="showPanel('forgot')">Forgot password?</a></div>
-                    <div class="auth-divider">or</div>
-                    <div class="auth-switch">No account? <a onclick="showPanel('signup')">Sign up free</a></div>
+                    <div class="auth-switch" style="margin-top:10px;">No account? <a onclick="showPanel('signup')">Sign up free</a></div>
                 </div>
 
                 <!-- ── FORGOT PASSWORD PANEL ── -->
@@ -4084,11 +4085,8 @@
             .dash-panel { display: none; }
             .dash-panel.active { display: block; }
 
-            /* ── Sticky Active Subscription card ── */
+            /* ── Active Subscription card (not sticky) ── */
             .ac-subscription-sticky {
-                position: sticky;
-                top: 0;
-                z-index: 8;
                 backdrop-filter: blur(20px) saturate(160%);
                 -webkit-backdrop-filter: blur(20px) saturate(160%);
                 background: linear-gradient(145deg,
@@ -4540,20 +4538,42 @@
                     <!-- ── ACCOUNT TAB ── -->
                     <div id="tabPlan" class="dash-panel active">
 
-                        <!-- Profile hero (Account tab only) -->
-                        <div class="dash-profile-hero">
-                            <div class="dash-avatar-lg" id="dashAvatarLg">?</div>
-                            <div class="dash-profile-info">
-                                <div class="dash-greeting" id="dashGreeting">Hey there</div>
-                                <div class="dash-email-line" id="dashEmailLine"></div>
-                                <div class="plan-badge-current" id="currentPlanBadge">
+                        <!-- Identity card — avatar + name + plan pill -->
+                        <div style="background:linear-gradient(145deg,rgba(168,85,247,0.09),rgba(244,114,182,0.05));border:1px solid rgba(168,85,247,0.18);border-top:1px solid rgba(168,85,247,0.26);border-radius:18px;padding:18px;margin-bottom:14px;display:flex;align-items:center;gap:14px;">
+                            <div style="position:relative;flex-shrink:0;">
+                                <div id="settingsAvatarHero" style="width:56px;height:56px;border-radius:999px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#fff;border:2px solid rgba(168,85,247,0.35);" id="dashAvatarLg">?</div>
+                                <label for="avatarUploadInput" style="position:absolute;bottom:-2px;right:-2px;width:20px;height:20px;border-radius:999px;background:var(--surface2);border:1.5px solid rgba(255,255,255,0.14);display:flex;align-items:center;justify-content:center;cursor:pointer;">
+                                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1 7.5V9h1.5l4.3-4.3-1.5-1.5L1 7.5ZM8.7 2.8a.4.4 0 0 0 0-.57L7.77 1.3a.4.4 0 0 0-.57 0l-.73.73 1.5 1.5.73-.73Z" fill="var(--muted)"/></svg>
+                                    <input id="avatarUploadInput" type="file" accept="image/*" style="display:none;" onchange="uploadAvatarToImgur(this)">
+                                </label>
+                            </div>
+                            <div style="flex:1;min-width:0;">
+                                <div id="dashGreeting" style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;letter-spacing:-.03em;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Hey there</div>
+                                <div id="dashEmailLine" style="font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+                                <div id="currentPlanBadge" style="display:inline-flex;align-items:center;gap:5px;margin-top:7px;padding:3px 10px;border-radius:999px;background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.25);font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--accent);">
                                     <svg width="9" height="9" viewBox="0 0 10 10" fill="none" style="flex-shrink:0"><path d="M5 1l1.18 2.39L9 3.82 7 5.76l.47 2.74L5 7.23 2.53 8.5 3 5.76 1 3.82l2.82-.43Z" fill="currentColor"/></svg>
                                     FREE PLAN
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Current Plan Card (sticky) -->
+                        <!-- Quick stats row -->
+                        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">
+                            <div style="background:linear-gradient(145deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02));border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:14px 12px;text-align:center;">
+                                <div id="acStatListings" style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;letter-spacing:-.04em;color:var(--text);">0</div>
+                                <div style="font-size:10px;color:var(--muted);margin-top:3px;letter-spacing:.02em;">Listed</div>
+                            </div>
+                            <div style="background:linear-gradient(145deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02));border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:14px 12px;text-align:center;">
+                                <div id="acStatSold" style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;letter-spacing:-.04em;color:var(--text);">0</div>
+                                <div style="font-size:10px;color:var(--muted);margin-top:3px;letter-spacing:.02em;">Sold</div>
+                            </div>
+                            <div style="background:linear-gradient(145deg,rgba(52,211,153,0.06),rgba(52,211,153,0.02));border:1px solid rgba(52,211,153,0.14);border-radius:14px;padding:14px 12px;text-align:center;">
+                                <div id="acStatBalance" style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;letter-spacing:-.04em;color:#34d399;">$0</div>
+                                <div style="font-size:10px;color:var(--muted);margin-top:3px;letter-spacing:.02em;">Balance</div>
+                            </div>
+                        </div>
+
+                        <!-- Current Plan Card -->
                         <div class="glass-card ac-subscription-sticky" style="padding:0;overflow:hidden;margin-bottom:14px;">
                             <div style="padding:16px 20px 14px;border-bottom:1px solid rgba(255,255,255,0.06);">
                                 <div style="font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:6px;">
@@ -4652,6 +4672,65 @@
 <!-- ── MY SITES TAB ── -->
                     <div id="tabOrders" class="dash-panel">
 
+                        <!-- Hero banner -->
+                        <div style="background:linear-gradient(145deg,rgba(52,211,153,0.09),rgba(56,189,248,0.05));border:1px solid rgba(52,211,153,0.18);border-radius:18px;padding:18px;margin-bottom:14px;display:flex;align-items:center;gap:14px;">
+                            <div style="width:48px;height:48px;border-radius:14px;background:rgba(52,211,153,0.12);border:1px solid rgba(52,211,153,0.22);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="2" y="5" width="18" height="13" rx="2.5" stroke="#34d399" stroke-width="1.4"/><path d="M2 9h18" stroke="#34d399" stroke-width="1.3"/><circle cx="6" cy="7" r="1" fill="#34d399"/><circle cx="9" cy="7" r="1" fill="#34d399"/><path d="M6 13h6M6 15.5h4" stroke="#34d399" stroke-width="1.2" stroke-linecap="round"/></svg>
+                            </div>
+                            <div style="flex:1;min-width:0;">
+                                <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#34d399;letter-spacing:-.02em;margin-bottom:3px;">Your Digital Portfolio</div>
+                                <div style="font-size:11px;color:var(--muted);line-height:1.55;">Track every site you've listed or purchased. Manage deals and monitor your income in one place.</div>
+                            </div>
+                        </div>
+
+                        <!-- Fee comparison strip -->
+                        <div style="background:linear-gradient(145deg,rgba(255,255,255,0.045),rgba(255,255,255,0.015));border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:14px 16px;margin-bottom:14px;">
+                            <div style="font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:6px;">
+                                <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M5.5 1l1.03 2.08L9 3.5 7.25 5.22l.41 2.4L5.5 6.47 3.34 7.62l.41-2.4L2 3.5l2.47-.42Z" fill="var(--accent)"/></svg>
+                                Platform Fee Comparison
+                            </div>
+                            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+                                <div style="text-align:center;padding:10px 6px;background:rgba(139,138,168,0.06);border-radius:10px;border:1px solid rgba(255,255,255,0.06);">
+                                    <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--muted);">30%</div>
+                                    <div style="font-size:9px;color:rgba(139,138,168,0.55);margin-top:2px;letter-spacing:.03em;">Free</div>
+                                </div>
+                                <div style="text-align:center;padding:10px 6px;background:rgba(168,85,247,0.07);border-radius:10px;border:1px solid rgba(168,85,247,0.15);">
+                                    <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--accent);">15%</div>
+                                    <div style="font-size:9px;color:rgba(168,85,247,0.7);margin-top:2px;letter-spacing:.03em;">Starter</div>
+                                </div>
+                                <div style="text-align:center;padding:10px 6px;background:rgba(244,114,182,0.07);border-radius:10px;border:1px solid rgba(244,114,182,0.15);">
+                                    <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--accent2);">10%</div>
+                                    <div style="font-size:9px;color:rgba(244,114,182,0.7);margin-top:2px;letter-spacing:.03em;">Growth</div>
+                                </div>
+                                <div style="text-align:center;padding:10px 6px;background:rgba(56,189,248,0.07);border-radius:10px;border:1px solid rgba(56,189,248,0.15);">
+                                    <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--accent3);">5%</div>
+                                    <div style="font-size:9px;color:rgba(56,189,248,0.7);margin-top:2px;letter-spacing:.03em;">Pro</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Seller tips -->
+                        <div style="background:linear-gradient(145deg,rgba(255,255,255,0.045),rgba(255,255,255,0.015));border:1px solid rgba(255,255,255,0.08);border-radius:16px;overflow:hidden;margin-bottom:14px;">
+                            <div style="padding:13px 16px 0;font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:6px;">
+                                <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="#fbbf24" stroke-width="1.2"/><path d="M5.5 3.5v2.5M5.5 7.5v.2" stroke="#fbbf24" stroke-width="1.2" stroke-linecap="round"/></svg>
+                                <span style="color:#fbbf24;">Seller Tips</span>
+                            </div>
+                            <div style="display:flex;flex-direction:column;gap:0;">
+                                <div style="display:flex;align-items:flex-start;gap:10px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.05);">
+                                    <div style="width:22px;height:22px;border-radius:7px;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 5.5h9M6.5 2L10 5.5 6.5 9" stroke="#a855f7" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                                    <div><div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px;">Write a compelling description</div><div style="font-size:11px;color:var(--muted);line-height:1.55;">Listings with detailed revenue proof and traffic stats sell 3× faster.</div></div>
+                                </div>
+                                <div style="display:flex;align-items:flex-start;gap:10px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.05);">
+                                    <div style="width:22px;height:22px;border-radius:7px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M2 9l2.5-2.5m0 0L6 8l3-5.5" stroke="#34d399" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                                    <div><div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px;">Price it right from day one</div><div style="font-size:11px;color:var(--muted);line-height:1.55;">Most buyers expect 18–36× monthly revenue. Use the AI valuator for a fair estimate.</div></div>
+                                </div>
+                                <div style="display:flex;align-items:flex-start;gap:10px;padding:12px 16px;">
+                                    <div style="width:22px;height:22px;border-radius:7px;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="#38bdf8" stroke-width="1.2"/><path d="M3.5 5.5l1.5 1.5 2.5-3" stroke="#38bdf8" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                                    <div><div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px;">Respond quickly to inquiries</div><div style="font-size:11px;color:var(--muted);line-height:1.55;">Buyers who get replies within 2 hours are 60% more likely to complete a purchase.</div></div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Toggle row -->
                         <div style="display:flex;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:4px;gap:4px;margin-bottom:14px;">
                             <button id="msSellBtn" onclick="switchSitesView('listed')" style="flex:1;padding:9px 0;border-radius:10px;border:none;cursor:pointer;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;letter-spacing:.02em;transition:background .15s,color .15s;background:linear-gradient(135deg,#a855f7,#f472b6);color:#fff;box-shadow:0 2px 10px rgba(168,85,247,0.25);">Listed Sites</button>
@@ -4716,10 +4795,31 @@
                     <!-- ── SUPPORT TAB ── -->
                     <div id="tabAddress" class="dash-panel">
 
-                        <!-- Header -->
-                        <div style="margin-bottom:16px;">
-                            <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:var(--text);letter-spacing:-.03em;margin-bottom:4px;">Support</div>
-                            <div style="font-size:12px;color:var(--muted);line-height:1.6;">We typically reply within a few hours. Drop us a message and we'll get back to you.</div>
+                        <!-- Support hero banner -->
+                        <div style="background:linear-gradient(145deg,rgba(56,189,248,0.09),rgba(129,140,248,0.05));border:1px solid rgba(56,189,248,0.18);border-radius:18px;padding:18px;margin-bottom:14px;display:flex;align-items:center;gap:14px;">
+                            <div style="width:48px;height:48px;border-radius:14px;background:rgba(56,189,248,0.12);border:1px solid rgba(56,189,248,0.22);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 2C6.58 2 3 5.37 3 9.56c0 2.3 1.02 4.36 2.62 5.85L4.9 18.5l3.6-1.53c.8.26 1.67.38 2.5.38 4.42 0 8-3.37 8-7.56S15.42 2 11 2Z" stroke="#38bdf8" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 9.5h6M8 12h4" stroke="#38bdf8" stroke-width="1.3" stroke-linecap="round"/></svg>
+                            </div>
+                            <div style="flex:1;min-width:0;">
+                                <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#38bdf8;letter-spacing:-.02em;margin-bottom:3px;">We're here to help</div>
+                                <div style="font-size:11px;color:var(--muted);line-height:1.55;">Our team typically replies within 2–4 hours. For urgent issues, include your account email in your message.</div>
+                            </div>
+                        </div>
+
+                        <!-- Response time indicators -->
+                        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">
+                            <div style="background:linear-gradient(145deg,rgba(52,211,153,0.07),rgba(52,211,153,0.02));border:1px solid rgba(52,211,153,0.14);border-radius:14px;padding:12px;text-align:center;">
+                                <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#34d399;">~2h</div>
+                                <div style="font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.03em;">Avg Reply</div>
+                            </div>
+                            <div style="background:linear-gradient(145deg,rgba(168,85,247,0.07),rgba(168,85,247,0.02));border:1px solid rgba(168,85,247,0.14);border-radius:14px;padding:12px;text-align:center;">
+                                <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--accent);">24/7</div>
+                                <div style="font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.03em;">Available</div>
+                            </div>
+                            <div style="background:linear-gradient(145deg,rgba(56,189,248,0.07),rgba(56,189,248,0.02));border:1px solid rgba(56,189,248,0.14);border-radius:14px;padding:12px;text-align:center;">
+                                <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--accent3);">100%</div>
+                                <div style="font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.03em;">Resolved</div>
+                            </div>
                         </div>
 
                         <!-- Contact form card -->
@@ -4816,7 +4916,7 @@
                                     </div>
                                     <svg class="faq-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none" style="flex-shrink:0;transition:transform .2s;"><path d="M1 1l5 5-5 5" stroke="rgba(139,138,168,0.5)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                                 </div>
-                                <div class="faq-answer" style="display:none;padding:10px 0 0 40px;font-size:12px;color:var(--muted);line-height:1.65;">Free plan: <strong style="color:var(--text);">10% fee</strong> per sale. Starter: <strong style="color:var(--text);">8%</strong>. Growth: <strong style="color:var(--text);">5%</strong>. Pro: <strong style="color:var(--text);">3%</strong> — the lowest on the platform. Upgrade anytime from the Account tab to keep more of what you earn.</div>
+                                <div class="faq-answer" style="display:none;padding:10px 0 0 40px;font-size:12px;color:var(--muted);line-height:1.65;">Free plan: <strong style="color:var(--text);">30% fee</strong> per sale. Starter: <strong style="color:var(--text);">15%</strong>. Growth: <strong style="color:var(--text);">10%</strong>. Pro: <strong style="color:var(--text);">5%</strong> — the lowest on the platform. Upgrade anytime from the Account tab to keep more of what you earn.</div>
                             </div>
 
                             <div class="settings-row-divider"></div>
@@ -5459,7 +5559,9 @@
             sendPasswordResetEmail,
             signOut,
             onAuthStateChanged,
-            updatePassword
+            updatePassword,
+            GoogleAuthProvider,
+            signInWithPopup
         } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
 
         const firebaseConfig = {
@@ -5627,6 +5729,51 @@
             }
         };
 
+        // ── Google auth (sign-in or sign-up) ──
+        window.doGoogleAuth = async function(){
+            const btns = ['btnGoogleLogin','btnGoogleSignup'];
+            btns.forEach(id => { const b=$( id); if(b){b.disabled=true; b.textContent='Connecting…';} });
+            try {
+                const provider = new GoogleAuthProvider();
+                provider.setCustomParameters({ prompt: 'select_account' });
+                const result = await signInWithPopup(auth, provider);
+                const user   = result.user;
+                const uid    = user.uid;
+
+                // Check if user already exists; if not, create profile
+                const snap = await get(ref(db,'users/'+uid));
+                if(!snap.exists()){
+                    // Generate username from Google display name or email
+                    let base = (user.displayName || user.email || 'user').replace(/[^a-zA-Z0-9]/g,'').toLowerCase().slice(0,16) || 'user';
+                    let username = base;
+                    let attempt = 0;
+                    while((await get(ref(db,'usernames/'+username))).exists() && attempt < 10){
+                        username = base + Math.floor(Math.random()*9000+1000);
+                        attempt++;
+                    }
+                    await set(ref(db,'users/'+uid), {
+                        username:   username,
+                        email:      user.email || '',
+                        displayName: user.displayName || username,
+                        photoURL:   user.photoURL || '',
+                        plan:       'Free',
+                        createdAt:  Date.now(),
+                        address:    {},
+                        orders:     []
+                    });
+                    await set(ref(db,'usernames/'+username), uid);
+                    if(user.photoURL && window._applyPhotoURL) window._applyPhotoURL(user.photoURL);
+                }
+                closeAuthModal();
+                openDash();
+            } catch(e){
+                const errEl = $('errLogin') || $('errSignup');
+                if(errEl){ errEl.textContent = e.code === 'auth/popup-closed-by-user' ? 'Sign-in popup was closed.' : (firebaseErrMsg(e.code)||'Google sign-in failed.'); errEl.style.display='block'; }
+            } finally {
+                btns.forEach(id => { const b=$(id); if(b){b.disabled=false; b.innerHTML='<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/><path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z" fill="#EA4335"/></svg> Continue with Google'; } });
+            }
+        };
+
         // ── forgot password ──
         window.doForgot = async function(){
             hideMsg('errForgot','okForgot');
@@ -5781,8 +5928,15 @@
 
         function updateAvatar(user){
             const av = $('avatarBtn');
+            const guestIcon = $('avatarGuestIcon');
             if(user){
-                av.textContent = (user.email||'?').charAt(0).toUpperCase();
+                // Hide guest icon, show initial letter
+                if(guestIcon) guestIcon.style.display = 'none';
+                av.textContent = ''; // clear SVG text
+                // Set initial
+                const initial = document.createElement('span');
+                initial.textContent = (user.displayName || user.email || '?').charAt(0).toUpperCase();
+                av.appendChild(initial);
                 av.style.background = 'linear-gradient(135deg,#a855f7,#f472b6)';
                 // Load photoURL from Firebase if available
                 get(ref(db,'users/'+user.uid+'/photoURL')).then(snap=>{
@@ -5790,9 +5944,18 @@
                     if(url && window._applyPhotoURL) window._applyPhotoURL(url);
                 }).catch(()=>{});
             } else {
-                av.textContent = '?';
+                // Restore guest SVG icon
+                av.textContent = '';
                 av.style.backgroundImage = '';
-                av.style.background = 'linear-gradient(135deg,#3a3a52,#2a2a3a)';
+                av.style.backgroundSize = '';
+                av.style.backgroundPosition = '';
+                av.style.background = 'linear-gradient(135deg,#2a2a3e,#1e1e2e)';
+                // Re-insert SVG if it was removed
+                if(!$('avatarGuestIcon')){
+                    av.innerHTML = '<svg width="17" height="17" viewBox="0 0 17 17" fill="none" id="avatarGuestIcon"><circle cx="8.5" cy="5.5" r="3" stroke="rgba(255,255,255,0.7)" stroke-width="1.4"/><path d="M2 15c0-3.314 2.91-6 6.5-6s6.5 2.686 6.5 6" stroke="rgba(255,255,255,0.7)" stroke-width="1.4" stroke-linecap="round"/></svg>';
+                } else {
+                    $('avatarGuestIcon').style.display = '';
+                }
             }
         }
 
@@ -5981,10 +6144,10 @@
 
         // ── Account tab population ──
         const PLAN_META = {
-            Free:    { price: 0,  color: '#8b8aa8', glow: 'rgba(139,138,168,.25)', desc: 'Get started — list up to 1 site, basic exposure.' },
-            Starter: { price: 20, color: '#a855f7', glow: 'rgba(168,85,247,.3)',   desc: '3 active listings, reduced 8% transaction fee.' },
-            Growth:  { price: 40, color: '#f472b6', glow: 'rgba(244,114,182,.35)', desc: '10 listings, featured placement, 5% fee.' },
-            Pro:     { price: 50, color: '#38bdf8', glow: 'rgba(56,189,248,.35)',  desc: 'Unlimited listings, priority support, 3% fee.' }
+            Free:    { price: 0,  color: '#8b8aa8', glow: 'rgba(139,138,168,.25)', desc: 'Get started — list up to 1 site/day, 30% platform fee on every sale.' },
+            Starter: { price: 20, color: '#a855f7', glow: 'rgba(168,85,247,.3)',   desc: '5 listings/day, 15% platform fee — save 15% vs Free.' },
+            Growth:  { price: 40, color: '#f472b6', glow: 'rgba(244,114,182,.35)', desc: 'Unlimited monthly listings, 10% fee, featured placement.' },
+            Pro:     { price: 50, color: '#38bdf8', glow: 'rgba(56,189,248,.35)',  desc: 'Unlimited everything, only 5% fee — the lowest on the platform.' }
         };
 
         function populateAccountTab(data, user) {
@@ -7236,6 +7399,28 @@ self.addEventListener('notificationclick', e => {
         }
 
         function toggleFaq(el) {
+            // Handle tu-faq-item pattern (top-up modal FAQs)
+            if (el.classList.contains('tu-faq-item')) {
+                const wasOpen = el.classList.contains('open');
+                el.closest('.tu-faq') && el.closest('.tu-faq').querySelectorAll('.tu-faq-item.open').forEach(i => i.classList.remove('open'));
+                if (!wasOpen) el.classList.add('open');
+                return;
+            }
+            // Handle settings-row + faq-answer pattern (support tab FAQs)
+            const answer = el.querySelector('.faq-answer');
+            const chevron = el.querySelector('.faq-chevron');
+            if (answer) {
+                const isOpen = answer.style.display !== 'none' && answer.style.display !== '';
+                if (isOpen) {
+                    answer.style.display = 'none';
+                    if (chevron) chevron.style.transform = '';
+                } else {
+                    answer.style.display = 'block';
+                    if (chevron) chevron.style.transform = 'rotate(90deg)';
+                }
+                return;
+            }
+            // Fallback: simple open toggle
             el.classList.toggle('open');
         }
 
