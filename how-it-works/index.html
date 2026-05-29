@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0a0a0f">
+    <title>How It Works — Siterifty</title>
+    <meta name="description" content="Learn how Siterifty works — how to list a website for sale, how buyers find and purchase sites, how escrow protects every deal, and how payouts hit your wallet.">
+    <link rel="icon" type="image/png" href="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRyMkXwLdBdyG5upeK_BgUeIpOdf1xVEI7sIK6fcEi1YmWxbnw8pE5uF1Gb&s=10">
+    <link rel="canonical" href="https://siterifty.com/how-it-works">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --surface: #12121a;
+            --surface2: #1a1a26;
+            --border: rgba(255,255,255,0.07);
+            --accent: #a855f7;
+            --accent2: #f472b6;
+            --accent3: #38bdf8;
+            --text: #f1f0ff;
+            --muted: #8b8aa8;
+        }
+
+        *, *::before, *::after {
+            font-family: 'DM Sans', sans-serif;
+            box-sizing: border-box;
+            margin: 0; padding: 0;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            -webkit-tap-highlight-color: transparent;
+        }
+        * { scrollbar-width: none; -ms-overflow-style: none; }
+        *::-webkit-scrollbar { display: none; }
+
+        html { background: var(--bg); overflow-x: hidden; }
+        body {
+            background: var(--bg);
+            min-height: 100svh;
+            overflow-x: hidden;
+            padding-top: 62px;
+        }
+
+        /* noise grain */
+        body::after {
+            content: '';
+            position: fixed; inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+            pointer-events: none; z-index: 0; opacity: .5;
+        }
+
+        /* ── SPINNER BLADES ── */
+        @keyframes blade-chase {
+            0%   { opacity: 0.15; }
+            5%   { opacity: 1; }
+            25%  { opacity: 0.2; }
+            100% { opacity: 0.15; }
+        }
+        .blade { animation: blade-chase 1.2s linear infinite; }
+        .b-1  { animation-delay: -1.20s; } .b-2  { animation-delay: -1.08s; }
+        .b-3  { animation-delay: -0.96s; } .b-4  { animation-delay: -0.84s; }
+        .b-5  { animation-delay: -0.72s; } .b-6  { animation-delay: -0.60s; }
+        .b-7  { animation-delay: -0.48s; } .b-8  { animation-delay: -0.36s; }
+        .b-9  { animation-delay: -0.24s; } .b-10 { animation-delay: -0.12s; }
+
+        /* ── HEADER ── */
+        header {
+            position: fixed; top: 0; left: 0; right: 0;
+            height: 62px;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 20px;
+            background: rgba(10,10,15,0.88);
+            backdrop-filter: blur(22px) saturate(160%);
+            -webkit-backdrop-filter: blur(22px) saturate(160%);
+            border-bottom: 1px solid var(--border);
+            z-index: 800;
+        }
+        .wordmark {
+            font-family: 'Syne', sans-serif; font-weight: 800;
+            font-size: 1.05rem; letter-spacing: -.05em;
+            color: var(--text); text-decoration: none;
+        }
+        .wordmark span {
+            background: linear-gradient(135deg,#a855f7,#f472b6);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text; font-weight: 400;
+        }
+        .back-btn {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 12px; font-weight: 600; color: var(--muted);
+            text-decoration: none; padding: 7px 13px;
+            border-radius: 999px; border: 1px solid var(--border);
+            background: var(--surface2);
+            transition: color .15s, border-color .15s;
+        }
+        .back-btn:hover { color: var(--text); border-color: rgba(255,255,255,.15); }
+
+        /* ── SHARED LAYOUT ── */
+        .page-inner {
+            position: relative; z-index: 1;
+            max-width: 780px; margin: 0 auto;
+            padding: 0 20px 100px;
+        }
+
+        /* ── HERO ── */
+        .hero {
+            text-align: center;
+            padding: 64px 0 60px;
+        }
+        .eyebrow {
+            display: inline-flex; align-items: center; gap: 7px;
+            font-family: 'Syne', sans-serif; font-size: 10px;
+            font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+            color: var(--accent);
+            background: rgba(168,85,247,0.1);
+            border: 1px solid rgba(168,85,247,0.22);
+            border-radius: 999px; padding: 5px 12px; margin-bottom: 20px;
+        }
+        .hero h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(2rem, 7vw, 3.2rem);
+            font-weight: 800; letter-spacing: -.05em;
+            color: var(--text); line-height: 1.08; margin-bottom: 16px;
+        }
+        .hero h1 em {
+            font-style: normal;
+            background: linear-gradient(135deg,#a855f7 0%,#f472b6 55%,#38bdf8 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .hero-sub {
+            font-size: 15px; color: var(--muted);
+            line-height: 1.7; max-width: 480px; margin: 0 auto 34px;
+        }
+        .hero-btns {
+            display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+        }
+        .btn-primary {
+            display: inline-flex; align-items: center; gap: 7px;
+            background: linear-gradient(135deg,#a855f7,#f472b6);
+            color: #fff; font-family: 'Syne', sans-serif;
+            font-size: 13px; font-weight: 700;
+            padding: 11px 22px; border-radius: 13px;
+            text-decoration: none; border: none; cursor: pointer;
+            transition: opacity .15s, transform .1s;
+        }
+        .btn-primary:hover { opacity: .88; }
+        .btn-primary:active { transform: scale(.97); }
+        .btn-ghost {
+            display: inline-flex; align-items: center; gap: 7px;
+            background: var(--surface2); color: var(--text);
+            font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700;
+            padding: 11px 22px; border-radius: 13px;
+            text-decoration: none; border: 1px solid var(--border); cursor: pointer;
+            transition: border-color .15s, transform .1s;
+        }
+        .btn-ghost:hover { border-color: rgba(255,255,255,.18); }
+        .btn-ghost:active { transform: scale(.97); }
+
+        /* ── TAB NAV ── */
+        .tab-nav {
+            display: flex; gap: 6px; flex-wrap: wrap;
+            justify-content: center; margin-bottom: 48px;
+        }
+        .tab-btn {
+            padding: 8px 16px; border-radius: 999px;
+            font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700;
+            cursor: pointer; border: 1px solid var(--border);
+            background: var(--surface2); color: var(--muted);
+            transition: all .2s; white-space: nowrap;
+        }
+        .tab-btn.active {
+            background: linear-gradient(135deg,var(--accent),var(--accent2));
+            color: #fff; border-color: transparent;
+        }
+        .tab-btn:hover:not(.active) {
+            border-color: rgba(255,255,255,.15); color: var(--text);
+        }
+
+        /* ── TAB PANELS ── */
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        /* ── SECTION LABEL ── */
+        .section-label {
+            font-size: 10px; font-weight: 700;
+            letter-spacing: .08em; text-transform: uppercase;
+            color: var(--muted); margin-bottom: 14px;
+        }
+
+        /* ── STEP TIMELINE ── */
+        .timeline {
+            display: flex; flex-direction: column; gap: 0;
+            margin-bottom: 48px;
+        }
+        .timeline-step {
+            display: flex; gap: 18px; position: relative;
+        }
+        /* connector line */
+        .timeline-step:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            left: 20px; top: 46px;
+            width: 2px;
+            bottom: 0;
+            background: linear-gradient(to bottom, rgba(168,85,247,0.25), transparent);
+        }
+        .timeline-left {
+            display: flex; flex-direction: column; align-items: center;
+            flex-shrink: 0; width: 42px;
+        }
+        .step-num {
+            width: 42px; height: 42px; border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 800;
+            color: #fff; flex-shrink: 0; position: relative; z-index: 1;
+        }
+        .timeline-right {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 18px; padding: 20px 20px 22px;
+            margin-bottom: 14px; flex: 1;
+            transition: border-color .2s;
+        }
+        .timeline-right:hover { border-color: rgba(255,255,255,.13); }
+        .step-title {
+            font-family: 'Syne', sans-serif; font-size: 15px;
+            font-weight: 800; letter-spacing: -.03em;
+            color: var(--text); margin-bottom: 6px;
+        }
+        .step-desc {
+            font-size: 13px; color: var(--muted);
+            line-height: 1.7; margin-bottom: 14px;
+        }
+        .step-chips {
+            display: flex; flex-wrap: wrap; gap: 6px;
+        }
+        .step-chip {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 11px; font-weight: 600; color: var(--muted);
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: 8px; padding: 4px 9px;
+        }
+        .step-chip svg { flex-shrink: 0; }
+
+        /* ── FEATURE CARDS GRID ── */
+        .feat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px; margin-bottom: 48px;
+        }
+        @media (max-width: 500px) { .feat-grid { grid-template-columns: 1fr; } }
+        .feat-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 18px; padding: 20px;
+            transition: border-color .2s, transform .15s;
+        }
+        .feat-card:hover { border-color: rgba(255,255,255,.13); transform: translateY(-2px); }
+        .feat-icon {
+            width: 40px; height: 40px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 12px;
+        }
+        .feat-title {
+            font-family: 'Syne', sans-serif; font-size: 14px;
+            font-weight: 800; letter-spacing: -.02em;
+            color: var(--text); margin-bottom: 6px;
+        }
+        .feat-desc {
+            font-size: 12.5px; color: var(--muted); line-height: 1.65;
+        }
+
+        /* ── ESCROW VISUAL ── */
+        .escrow-visual {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 20px; padding: 28px 22px; margin-bottom: 48px;
+        }
+        .escrow-flow {
+            display: flex; align-items: center; justify-content: center;
+            gap: 0; flex-wrap: wrap;
+        }
+        .escrow-node {
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: 14px; padding: 14px 16px; text-align: center;
+            min-width: 100px; flex: 1; max-width: 160px;
+        }
+        .escrow-node-icon {
+            width: 36px; height: 36px; border-radius: 11px;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 8px;
+        }
+        .escrow-node-label {
+            font-family: 'Syne', sans-serif; font-size: 12px;
+            font-weight: 800; color: var(--text); margin-bottom: 2px;
+        }
+        .escrow-node-sub {
+            font-size: 10px; color: var(--muted); line-height: 1.4;
+        }
+        .escrow-arrow {
+            display: flex; flex-direction: column; align-items: center;
+            padding: 0 8px; flex-shrink: 0; gap: 2px;
+        }
+        .escrow-arrow-line {
+            width: 30px; height: 2px;
+            background: linear-gradient(90deg,rgba(168,85,247,.4),rgba(244,114,182,.4));
+            border-radius: 2px;
+        }
+        .escrow-arrow-label {
+            font-size: 9px; font-weight: 700; color: var(--muted);
+            letter-spacing: .05em; text-transform: uppercase; white-space: nowrap;
+        }
+        @media (max-width: 520px) {
+            .escrow-flow { flex-direction: column; gap: 4px; }
+            .escrow-arrow { flex-direction: row; padding: 4px 0; }
+            .escrow-arrow-line { width: 2px; height: 28px; background: linear-gradient(to bottom,rgba(168,85,247,.4),rgba(244,114,182,.4)); }
+        }
+
+        /* ── FEE COMPARISON TABLE ── */
+        .fee-table {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 18px; overflow: hidden; margin-bottom: 48px;
+        }
+        .fee-row {
+            display: grid; grid-template-columns: 1fr 80px 80px 80px 80px;
+            align-items: center; padding: 13px 18px;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+            transition: background .15s;
+        }
+        .fee-row:last-child { border-bottom: none; }
+        .fee-row:hover:not(.fee-row-head) { background: rgba(255,255,255,.02); }
+        .fee-row-head {
+            background: var(--surface2);
+            font-family: 'Syne', sans-serif; font-size: 10px;
+            font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+            color: var(--muted);
+        }
+        .fee-row-head .fee-plan { color: var(--text); }
+        .fee-plan { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; }
+        .fee-val { text-align: center; }
+        .fee-highlight { color: var(--accent); font-weight: 600; }
+        .fee-badge {
+            display: inline-block; font-size: 9px; font-weight: 700;
+            letter-spacing: .05em; text-transform: uppercase;
+            padding: 2px 7px; border-radius: 999px; margin-left: 5px;
+        }
+        @media (max-width: 500px) {
+            .fee-row { grid-template-columns: 1fr 60px 60px 60px 60px; padding: 12px 12px; font-size: 12px; }
+        }
+
+        /* ── TRUST CHIPS ROW ── */
+        .trust-row {
+            display: flex; flex-wrap: wrap; gap: 8px;
+            justify-content: center; margin-bottom: 48px;
+        }
+        .trust-chip {
+            display: inline-flex; align-items: center; gap: 7px;
+            font-size: 11.5px; font-weight: 600; color: var(--muted);
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 999px; padding: 7px 14px;
+        }
+        .trust-chip svg { flex-shrink: 0; }
+
+        /* ── CTA BANNER ── */
+        .cta-banner {
+            background: linear-gradient(135deg,rgba(168,85,247,0.09),rgba(244,114,182,0.06));
+            border: 1px solid rgba(168,85,247,0.2); border-radius: 22px;
+            padding: 40px 28px; text-align: center;
+        }
+        .cta-banner h2 {
+            font-family: 'Syne', sans-serif; font-size: 1.4rem;
+            font-weight: 800; letter-spacing: -.04em;
+            color: var(--text); margin-bottom: 10px;
+        }
+        .cta-banner p {
+            font-size: 13px; color: var(--muted);
+            line-height: 1.7; margin-bottom: 24px;
+            max-width: 380px; margin-left: auto; margin-right: auto;
+        }
+
+        /* ── FOOTER ── */
+        .page-footer {
+            border-top: 1px solid var(--border);
+            padding: 24px 20px; text-align: center;
+            position: relative; z-index: 1;
+        }
+        .page-footer a {
+            font-size: 11px; color: var(--muted);
+            text-decoration: none; margin: 0 8px;
+            transition: color .15s;
+        }
+        .page-footer a:hover { color: var(--text); }
+
+        /* ── REVEAL ANIMATIONS ── */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .fu { animation: fadeUp .45s cubic-bezier(.22,1,.36,1) both; }
+        .fu-1 { animation-delay: .04s; }
+        .fu-2 { animation-delay: .09s; }
+        .fu-3 { animation-delay: .14s; }
+        .fu-4 { animation-delay: .19s; }
+        .fu-5 { animation-delay: .24s; }
+        .fu-6 { animation-delay: .29s; }
+
+        /* ── GLOWING AMBIENT ── */
+        .glow-blob {
+            position: fixed; pointer-events: none; z-index: 0;
+            border-radius: 50%; filter: blur(90px); opacity: .045;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ambient glows -->
+    <div class="glow-blob" style="width:500px;height:500px;background:#a855f7;top:-100px;left:-150px;"></div>
+    <div class="glow-blob" style="width:400px;height:400px;background:#f472b6;bottom:200px;right:-120px;"></div>
+
+    <!-- ══ HEADER ══ -->
+    <header>
+        <a href="https://siterifty.com/" style="display:flex;align-items:center;gap:9px;text-decoration:none;">
+            <svg width="26" height="26" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">
+                <rect class="blade b-1"  x="12.5" y="2" width="3" height="10" rx="1.5" fill="url(#hsg)" transform="rotate(0,14,14)"/>
+                <rect class="blade b-2"  x="12.5" y="2" width="3" height="10" rx="1.5" fill="url(#hsg)" transform="rotate(36,14,14)"/>
+                <rect class="blade b-3"  x="12.5" y="2" width="3" height="10" rx="1.5" fill="url(#hsg)" transform="rotate(72,14,14)"/>
+                <rect class="blade b-4"  x="12.5" y="2" width="3" height="10" rx="1.5" fill="url(#hsg)" transform="rotate(108,14,14)"/>
+                <rect class="blade b-5"  x="12.5" y="2" width="3" height="10" rx="1.5" fill="url(#hsg)" transform="rotate(144,14,14)"/>
+                <rect class="blade b-6"  x="12.5" y="2" width="3" height="10" rx="1.5" fill="url(#hsg)" transform="rotate(180,14,14)"/>
+                <rect class="blade b-7"  x="12.5" y="2" width="3" height="10" rx="1.5" fill="url(#hsg)" transform="rotate(216,14,14)"/>
+                <rect class="blade b-8"  x="12.5" y="2" width="3" height="10" rx="1.5" fill="url(#hsg)" transform="rotate(252,14,14)"/>
+                <rect class="blade b-9"  x="12.5" y="2" width="3" height="10" rx="1.5" fill="url(#hsg)" transform="rotate(288,14,14)"/>
+                <rect class="blade b-10" x="12.5" y="2" width="3" height="10" rx="1.5" fill="url(#hsg)" transform="rotate(324,14,14)"/>
+                <circle cx="14" cy="14" r="3" fill="#f472b6"/>
+                <defs><linearGradient id="hsg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#a855f7"/><stop offset="100%" stop-color="#38bdf8"/></linearGradient></defs>
+            </svg>
+            <span class="wordmark">Siterifty<span>.com</span></span>
+        </a>
+        <a href="https://siterifty.com/" class="back-btn">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M8.5 2L4 6.5l4.5 4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Back to marketplace
+        </a>
+    </header>
+
+    <!-- ══ HERO ══ -->
+    <div class="page-inner">
+        <div class="hero fu">
+            <div class="eyebrow">
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 1l1 2.5L9 4 7 6l.5 3L5 7.5 2.5 9 3 6 1 4l3-.5L5 1Z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></svg>
+                Platform overview
+            </div>
+            <h1>The simplest way to<br><em>buy &amp; sell websites</em></h1>
+            <p class="hero-sub">Siterifty connects indie site owners with serious buyers — with secure escrow, zero code transfers, and payouts that hit your wallet the same day.</p>
+            <div class="hero-btns">
+                <a class="btn-primary" href="https://siterifty.com/">
+                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="1" y="2" width="11" height="9" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M4 6h5M4 8.5h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+                    Browse listings
+                </a>
+                <a class="btn-ghost" href="https://siterifty.com/">
+                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1.5v10M2 6.5h9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                    List your site
+                </a>
+            </div>
+        </div>
+
+        <!-- trust chips -->
+        <div class="trust-row fu fu-1">
+            <div class="trust-chip">
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1.5L2 4v3.5c0 2.8 2 4.5 4.5 5 2.5-.5 4.5-2.2 4.5-5V4L6.5 1.5Z" stroke="#34d399" stroke-width="1.2" stroke-linejoin="round"/></svg>
+                <span style="color:#34d399;">256-bit SSL Encrypted</span>
+            </div>
+            <div class="trust-chip">
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="1" y="4.5" width="11" height="7" rx="1.5" stroke="#a855f7" stroke-width="1.2"/><path d="M4 4.5V3a2.5 2.5 0 0 1 5 0v1.5" stroke="#a855f7" stroke-width="1.2" stroke-linecap="round"/></svg>
+                <span style="color:#a855f7;">Secure Escrow</span>
+            </div>
+            <div class="trust-chip">
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="1" y="2" width="11" height="9" rx="1.5" stroke="#38bdf8" stroke-width="1.2"/><path d="M1 5l5.5 3.5L12 5" stroke="#38bdf8" stroke-width="1.2" stroke-linecap="round"/></svg>
+                <span style="color:#38bdf8;">PayPal Payments</span>
+            </div>
+            <div class="trust-chip">
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="5.5" stroke="#fbbf24" stroke-width="1.2"/><path d="M4 6.5l1.5 1.5 3.5-3" stroke="#fbbf24" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <span style="color:#fbbf24;">Same-day payout</span>
+            </div>
+            <div class="trust-chip">
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="5" r="2.5" stroke="#f472b6" stroke-width="1.2"/><path d="M1.5 12c0-2.8 2.2-5 5-5s5 2.2 5 5" stroke="#f472b6" stroke-width="1.2" stroke-linecap="round"/></svg>
+                <span style="color:#f472b6;">10,000+ sellers</span>
+            </div>
+        </div>
+
+        <!-- ── TAB NAV ── -->
+        <div class="tab-nav fu fu-2">
+            <button class="tab-btn active" onclick="switchTab('sellers')">For Sellers</button>
+            <button class="tab-btn" onclick="switchTab('buyers')">For Buyers</button>
+            <button class="tab-btn" onclick="switchTab('escrow')">Escrow &amp; Safety</button>
+            <button class="tab-btn" onclick="switchTab('fees')">Fees &amp; Plans</button>
+        </div>
+
+        <!-- ══════════════════════════════ -->
+        <!-- TAB: FOR SELLERS              -->
+        <!-- ══════════════════════════════ -->
+        <div class="tab-panel active" id="tab-sellers">
+
+            <div class="section-label fu fu-3">Seller journey — step by step</div>
+
+            <div class="timeline fu fu-3">
+
+                <div class="timeline-step">
+                    <div class="timeline-left">
+                        <div class="step-num" style="background:linear-gradient(135deg,#a855f7,#818cf8);">1</div>
+                    </div>
+                    <div class="timeline-right">
+                        <div class="step-title">Create your free account</div>
+                        <div class="step-desc">Sign up with just your email — no credit card needed. You're on the Free plan instantly with access to list 1 site per day and up to 5 per month.</div>
+                        <div class="step-chips">
+                            <span class="step-chip"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="#34d399" stroke-width="1.1"/><path d="M3.5 5.5l1.2 1.2 2.8-2.8" stroke="#34d399" stroke-width="1.1" stroke-linecap="round"/></svg>Free forever</span>
+                            <span class="step-chip"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="#34d399" stroke-width="1.1"/><path d="M3.5 5.5l1.2 1.2 2.8-2.8" stroke="#34d399" stroke-width="1.1" stroke-linecap="round"/></svg>Email only — no card</span>
+                            <span class="step-chip"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="#34d399" stroke-width="1.1"/><path d="M3.5 5.5l1.2 1.2 2.8-2.8" stroke="#34d399" stroke-width="1.1" stroke-linecap="round"/></svg>Live in 60 seconds</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timeline-step">
+                    <div class="timeline-left">
+                        <div class="step-num" style="background:linear-gradient(135deg,#f472b6,#a855f7);">2</div>
+                    </div>
+                    <div class="timeline-right">
+                        <div class="step-title">List your site</div>
+                        <div class="step-desc">Tap <strong style="color:var(--text);">+ List a Site</strong> from the marketplace. Fill in your URL, monthly revenue, traffic stats, tech stack, and asking price. Your listing goes live immediately to thousands of buyers.</div>
+                        <div class="step-chips">
+                            <span class="step-chip"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="#34d399" stroke-width="1.1"/><path d="M3.5 5.5l1.2 1.2 2.8-2.8" stroke="#34d399" stroke-width="1.1" stroke-linecap="round"/></svg>Goes live instantly</span>
+                            <span class="step-chip"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="#34d399" stroke-width="1.1"/><path d="M3.5 5.5l1.2 1.2 2.8-2.8" stroke="#34d399" stroke-width="1.1" stroke-linecap="round"/></svg>Edit anytime</span>
+                            <span class="step-chip"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="#34d399" stroke-width="1.1"/><path d="M3.5 5.5l1.2 1.2 2.8-2.8" stroke="#34d399" stroke-width="1.1" stroke-linecap="round"/></svg>Attach traffic & revenue proof</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timeline-step">
+                    <div class="timeline-left">
+                        <div class="step-num" style="background:linear-gradient(135deg,#38bdf8,#f472b6);">3</div>
+                    </div>
+                    <div class="timeline-right">
+                        <div class="step-title">Receive and accept offers</div>
+                        <div class="step-desc">Interested buyers place offers directly on your listing. You're notified instantly. Accept, counter, or decline — everything happens on-platform. Accepted offer funds go straight into escrow.</div>
+                        <div class="step-chips">
+                            <span class="step-chip"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="#34d399" stroke-width="1.1"/><path d="M3.5 5.5l1.2 1.2 2.8-2.8" stroke="#34d399" stroke-width="1.1" stroke-linecap="round"/></svg>Accept, counter, or decline</span>
+                            <span class="step-chip"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="#34d399" stroke-width="1.1"/><path d="M3.5 5.5l1.2 1.2 2.8-2.8" stroke="#34d399" stroke-width="1.1" stroke-linecap="round"/></svg>Funds locked in escrow on accept</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timeline-step">
+                    <div class="timeline-left">
+                        <div class="step-num" style="background:linear-gradient(135deg,#34d399,#38bdf8);">4</div>
+                    </div>
+                    <div class="timeline-right">
+                        <div class="step-title">Transfer your assets</div>
+                        <div class="step-desc">Transfer the domain, codebase, database, and any associated accounts to the buyer. Both parties confirm the handoff on-platform. The whole process usually takes 24–72 hours.</div>
+                        <div class="step-chips">
+                            <span class="step-chip"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="#34d399" stroke-width="1.1"/><path d="M3.5 5.5l1.2 1.2 2.8-2.8" stroke="#34d399" stroke-width="1.1" stroke-linecap="round"/></svg>Domain transfer guided</span>
+                            <span class="step-chip"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="#34d399" stroke-width="1.1"/><path d="M3.5 5.5l1.2 1.2 2.8-2.8" stroke="#34d399" stroke-width="1.1" stroke-linecap="round"/></svg>Both confirm delivery</span>
+                            <span class="step-chip"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="#34d399" stroke-width="1.1"/><path d="M3.5 5.5l1.2 1.2 2.8-2.8" stroke="#34d399" stroke-width="1.1" stroke-linecap="round"/></svg>Dispute protection if needed</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timeline-step">
+                    <div class="timeline-left">
+                        <div class="step-num" style="background:linear-gradient(135deg,#fbbf24,#34d399);">5</div>
+                    </div>
+                    <div class="timeline-right">
+                        <div class="step-title">Get paid — same day</div>
+                        <div class="step-desc">Once the buyer confirms delivery, escrow releases instantly to your Siterifty wallet. Use it to reinvest in your next deal, upgrade your plan, or withdraw — your call.</div>
+                        <div class="step-chips">
+                            <span class="step-chip"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="#34d399" stroke-width="1.1"/><path d="M3.5 5.5l1.2 1.2 2.8-2.8" stroke="#34d399" stroke-width="1.1" stroke-linecap="round"/></svg>Instant wallet release</span>
+                            <span class="step-chip"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="#34d399" stroke-width="1.1"/><path d="M3.5 5.5l1.2 1.2 2.8-2.8" stroke="#34d399" stroke-width="1.1" stroke-linecap="round"/></svg>Reinvest or withdraw</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="section-label">Why sellers choose Siterifty</div>
+            <div class="feat-grid fu fu-4">
+                <div class="feat-card">
+                    <div class="feat-icon" style="background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.22);">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7.5" stroke="#a855f7" stroke-width="1.3"/><path d="M6 9.5C6 8.1 7.1 7 8.5 7H10a2 2 0 0 1 0 4H8a2 2 0 0 0 0 4h1.5a2 2 0 0 0 2-2" stroke="#a855f7" stroke-width="1.2" stroke-linecap="round"/><path d="M9 5v1.5M9 14.5V16" stroke="#a855f7" stroke-width="1.2" stroke-linecap="round"/></svg>
+                    </div>
+                    <div class="feat-title">Low fees</div>
+                    <div class="feat-desc">Start free at 30% or upgrade to keep up to 95% of every sale. Pro plan at $50/mo pays for itself on a single $200 deal.</div>
+                </div>
+                <div class="feat-card">
+                    <div class="feat-icon" style="background:rgba(244,114,182,0.12);border:1px solid rgba(244,114,182,0.22);">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 4C2 2.9 2.9 2 4 2h10c1.1 0 2 .9 2 2v10c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V4Z" stroke="#f472b6" stroke-width="1.3"/><path d="M6 9h6M9 6v6" stroke="#f472b6" stroke-width="1.2" stroke-linecap="round"/></svg>
+                    </div>
+                    <div class="feat-title">Instant listing</div>
+                    <div class="feat-desc">No waiting for approval. Fill in your details and your site is live to thousands of buyers within seconds of submitting.</div>
+                </div>
+                <div class="feat-card">
+                    <div class="feat-icon" style="background:rgba(56,189,248,0.12);border:1px solid rgba(56,189,248,0.22);">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="3" width="14" height="10" rx="2" stroke="#38bdf8" stroke-width="1.3"/><path d="M5 8h8M5 11h4" stroke="#38bdf8" stroke-width="1.2" stroke-linecap="round"/><path d="M9 13v2.5M6.5 15.5h5" stroke="#38bdf8" stroke-width="1.2" stroke-linecap="round"/></svg>
+                    </div>
+                    <div class="feat-title">Recurring revenue</div>
+                    <div class="feat-desc">Pro sellers earn from the $49.99/mo hosting plan their buyers activate — a passive income stream that outlasts the sale.</div>
+                </div>
+                <div class="feat-card">
+                    <div class="feat-icon" style="background:rgba(52,211,153,0.12);border:1px solid rgba(52,211,153,0.22);">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2L3 5.5v5C3 14 5.8 16.5 9 17.5c3.2-1 6-3.5 6-7v-5L9 2Z" stroke="#34d399" stroke-width="1.3" stroke-linejoin="round"/><path d="M6 9l1.5 1.5 3.5-3" stroke="#34d399" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </div>
+                    <div class="feat-title">Protected transfers</div>
+                    <div class="feat-desc">Escrow holds buyer funds until you transfer everything. No chargebacks, no surprises. Both sides are protected from day one.</div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ══════════════════════════════ -->
+        <!-- TAB: FOR BUYERS               -->
+        <!-- ══════════════════════════════ -->
+        <div class="tab-panel" id="tab-buyers">
+
+            <div class="section-label">Buyer journey — step by step</div>
+            <div class="timeline">
+
+                <div class="timeline-step">
+                    <div class="timeline-left">
+                        <div class="step-num" style="background:linear-gradient(135deg,#38bdf8,#818cf8);">1</div>
+                    </div>
+                    <div class="timeline-right">
+                        <div class="step-title">Browse listings</div>
+                        <div class="step-desc">Explore hundreds of vetted sites — SaaS, content, e-commerce, tools, newsletters. Filter by niche, revenue range, asking price, or monthly traffic to find the right fit fast.</div>
+                        <div class="step-chips">
+                            <span class="step-chip"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="#34d399" stroke-width="1.1"/><path d="M3.5 5.5l1.2 1.2 2.8-2.8" stroke="#34d399" stroke-width="1.1" stroke-linecap="round"/></svg>Filter by niche &amp; revenue</span>
+                            <span class="step-chip"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="#34d399" stroke-width="1.1"/><path d="M3.5 5.5l1.2 1.2 2.8-2.8" stroke="#34d399" stroke-width="1.1" stroke-linecap="round"/></svg>No account needed to browse</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timeline-step">
+                    <div class="timeline-left">
+                        <div class="step-num" style="background:linear-gradient(135deg,#a855f7,#38bdf8);">2</div>
+                    </div>
+                    <div class="timeline-right">
+                        <div class="step-title">Do your due diligence</div>
+                        <div class="step-desc">Request revenue exports, analytics screenshots, and a walkthrough from the seller before committing. Ask everything — sellers on Siterifty expect serious buyers who verify.</div>
+                        <div class="step-chips">
+                            <span class="step-chip"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="#34d399" stroke-width="1.1"/><path d="M3.5 5.5l1.2 1.2 2.8-2.8" stroke="#34d399" stroke-width="1.1" stroke-linecap="round"/></svg>Ask for analytics proof</span>
+                            <span class="step-chip"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="#34d399" stroke-width="1.1"/><path d="M3.5 5.5l1.2 1.2 2.8-2.8" stroke="#34d399" stroke-width="1.1" stroke-linecap="round"/></svg>Request Stripe / PayPal exports</span>
+                            <span class="step-chip"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="#34d399" stroke-width="1.1"/><path d="M3.5 5.5l1.2 1.2 2.8-2.8" stroke="#34d399" stroke-width="1.1" stroke-linecap="round"/></svg>Admin dashboard walkthrough</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timeline-step">
+                    <div class="timeline-left">
+                        <div class="step-num" style="background:linear-gradient(135deg,#f472b6,#fbbf24);">3</div>
+                    </div>
+                    <div class="timeline-right">
+                        <div class="step-title">Top up your wallet &amp; place an offer</div>
+                        <div class="step-desc">Top up your Siterifty wallet via PayPal — any amount, no recurring charges. Hit <strong style="color:var(--text);">Make Offer</strong> on any listing. Your offer amount locks into escrow immediately. The seller has 48 hours to respond.</div>
+                        <div class="step-chips">
+                            <span class="step-chip"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="#34d399" stroke-width="1.1"/><path d="M3.5 5.5l1.2 1.2 2.8-2.8" stroke="#34d399" stroke-width="1.1" stroke-linecap="round"/></svg>Funds held in escrow</span>
+                            <span class="step-chip"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="#34d399" stroke-width="1.1"/><path d="M3.5 5.5l1.2 1.2 2.8-2.8" stroke="#34d399" stroke-width="1.1" stroke-linecap="round"/></svg>Seller can counter-offer</span>
+                            <span class="step-chip"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="#34d399" stroke-width="1.1"/><path d="M3.5 5.5l1.2 1.2 2.8-2.8" stroke="#34d399" stroke-width="1.1" stroke-linecap="round"/></svg>Returned if declined</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timeline-step">
+                    <div class="timeline-left">
+                        <div class="step-num" style="background:linear-gradient(135deg,#34d399,#38bdf8);">4</div>
+                    </div>
+                    <div class="timeline-right">
+                        <div class="step-title">Receive &amp; verify the transfer</div>
+                        <div class="step-desc">The seller transfers domain, code, and accounts. You verify everything is correct — check DNS, codebase, database access — then confirm delivery on-platform. Only then does escrow release.</div>
+                        <div class="step-chips">
+                            <span class="step-chip"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="#34d399" stroke-width="1.1"/><path d="M3.5 5.5l1.2 1.2 2.8-2.8" stroke="#34d399" stroke-width="1.1" stroke-linecap="round"/></svg>You confirm before funds release</span>
+                            <span class="step-chip"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="#34d399" stroke-width="1.1"/><path d="M3.5 5.5l1.2 1.2 2.8-2.8" stroke="#34d399" stroke-width="1.1" stroke-linecap="round"/></svg>Dispute if anything's wrong</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timeline-step">
+                    <div class="timeline-left">
+                        <div class="step-num" style="background:linear-gradient(135deg,#818cf8,#a855f7);">5</div>
+                    </div>
+                    <div class="timeline-right">
+                        <div class="step-title">Launch — with or without hosting</div>
+                        <div class="step-desc">Your new site is yours. Run it yourself or activate <strong style="color:var(--text);">Managed Hosting at $49.99/mo</strong> for a fully managed stack — database, serverless functions, and admin dashboard. Zero DevOps required.</div>
+                        <div class="step-chips">
+                            <span class="step-chip"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="#34d399" stroke-width="1.1"/><path d="M3.5 5.5l1.2 1.2 2.8-2.8" stroke="#34d399" stroke-width="1.1" stroke-linecap="round"/></svg>Self-host or managed</span>
+                            <span class="step-chip"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="#34d399" stroke-width="1.1"/><path d="M3.5 5.5l1.2 1.2 2.8-2.8" stroke="#34d399" stroke-width="1.1" stroke-linecap="round"/></svg>$49.99/mo managed hosting</span>
+                            <span class="step-chip"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="#34d399" stroke-width="1.1"/><path d="M3.5 5.5l1.2 1.2 2.8-2.8" stroke="#34d399" stroke-width="1.1" stroke-linecap="round"/></svg>Pay from wallet balance</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="section-label">Types of sites you can buy</div>
+            <div class="feat-grid">
+                <div class="feat-card">
+                    <div class="feat-icon" style="background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.22);">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="14" height="14" rx="3" stroke="#a855f7" stroke-width="1.3"/><path d="M6 9h6M6 12h3M8 6h5" stroke="#a855f7" stroke-width="1.2" stroke-linecap="round"/></svg>
+                    </div>
+                    <div class="feat-title">SaaS &amp; Tools</div>
+                    <div class="feat-desc">Micro-SaaS products, browser extensions, dev tools, and productivity apps with recurring MRR.</div>
+                </div>
+                <div class="feat-card">
+                    <div class="feat-icon" style="background:rgba(244,114,182,0.12);border:1px solid rgba(244,114,182,0.22);">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="3" width="14" height="12" rx="2.5" stroke="#f472b6" stroke-width="1.3"/><path d="M2 8h14M6 13l2-2 2 2 2-3" stroke="#f472b6" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </div>
+                    <div class="feat-title">Content &amp; Blogs</div>
+                    <div class="feat-desc">SEO-driven content sites, niche blogs, and media properties monetized via ads, affiliates, or info products.</div>
+                </div>
+                <div class="feat-card">
+                    <div class="feat-icon" style="background:rgba(56,189,248,0.12);border:1px solid rgba(56,189,248,0.22);">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 4C2 2.9 2.9 2 4 2h10c1.1 0 2 .9 2 2v10c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V4Z" stroke="#38bdf8" stroke-width="1.3"/><path d="M5 9l2 2 4-4" stroke="#38bdf8" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </div>
+                    <div class="feat-title">E-commerce</div>
+                    <div class="feat-desc">Shopify stores, digital product shops, dropshipping operations, and physical goods businesses ready to scale.</div>
+                </div>
+                <div class="feat-card">
+                    <div class="feat-icon" style="background:rgba(52,211,153,0.12);border:1px solid rgba(52,211,153,0.22);">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="1" y="2.5" width="16" height="13" rx="2.5" stroke="#34d399" stroke-width="1.3"/><path d="M1 6.5l8 5 8-5" stroke="#34d399" stroke-width="1.2" stroke-linecap="round"/></svg>
+                    </div>
+                    <div class="feat-title">Newsletters</div>
+                    <div class="feat-desc">Email lists with engaged subscribers, proven open rates, and existing sponsorship or product revenue streams.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════ -->
+        <!-- TAB: ESCROW & SAFETY          -->
+        <!-- ══════════════════════════════ -->
+        <div class="tab-panel" id="tab-escrow">
+
+            <div class="section-label">How escrow works</div>
+
+            <!-- escrow flow visual -->
+            <div class="escrow-visual fu fu-3">
+                <div style="text-align:center;margin-bottom:24px;">
+                    <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;letter-spacing:-.03em;color:var(--text);margin-bottom:6px;">Money never moves until both sides confirm</div>
+                    <div style="font-size:12.5px;color:var(--muted);max-width:420px;margin:0 auto;line-height:1.6;">Funds go into a locked escrow vault the moment an offer is accepted — neither party can access them until the transfer is confirmed complete.</div>
+                </div>
+                <div class="escrow-flow">
+                    <div class="escrow-node">
+                        <div class="escrow-node-icon" style="background:rgba(56,189,248,0.12);border:1px solid rgba(56,189,248,0.2);">
+                            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="7" r="3" stroke="#38bdf8" stroke-width="1.3"/><path d="M3 16c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="#38bdf8" stroke-width="1.3" stroke-linecap="round"/></svg>
+                        </div>
+                        <div class="escrow-node-label">Buyer</div>
+                        <div class="escrow-node-sub">Places offer from wallet</div>
+                    </div>
+                    <div class="escrow-arrow">
+                        <div class="escrow-arrow-label">funds lock</div>
+                        <div class="escrow-arrow-line"></div>
+                        <svg width="7" height="12" viewBox="0 0 7 12" fill="none" style="color:rgba(168,85,247,.5);"><path d="M1 1l5 5-5 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </div>
+                    <div class="escrow-node" style="border-color:rgba(168,85,247,0.3);background:rgba(168,85,247,0.06);">
+                        <div class="escrow-node-icon" style="background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.3);">
+                            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2.5L3 6v5.5c0 3.2 2.5 5.5 6 6 3.5-.5 6-2.8 6-6V6L9 2.5Z" stroke="#a855f7" stroke-width="1.3" stroke-linejoin="round"/></svg>
+                        </div>
+                        <div class="escrow-node-label" style="color:#a855f7;">Escrow</div>
+                        <div class="escrow-node-sub">Siterifty holds funds securely</div>
+                    </div>
+                    <div class="escrow-arrow">
+                        <div class="escrow-arrow-label">on confirm</div>
+                        <div class="escrow-arrow-line"></div>
+                        <svg width="7" height="12" viewBox="0 0 7 12" fill="none" style="color:rgba(168,85,247,.5);"><path d="M1 1l5 5-5 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </div>
+                    <div class="escrow-node">
+                        <div class="escrow-node-icon" style="background:rgba(244,114,182,0.12);border:1px solid rgba(244,114,182,0.2);">
+                            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="7" r="3" stroke="#f472b6" stroke-width="1.3"/><path d="M3 16c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="#f472b6" stroke-width="1.3" stroke-linecap="round"/></svg>
+                        </div>
+                        <div class="escrow-node-label">Seller</div>
+                        <div class="escrow-node-sub">Receives payout to wallet</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- escrow steps -->
+            <div class="timeline">
+                <div class="timeline-step">
+                    <div class="timeline-left">
+                        <div class="step-num" style="background:rgba(168,85,247,0.2);border:1px solid rgba(168,85,247,0.3);color:#a855f7;font-size:13px;">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="4.5" width="14" height="9.5" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 4.5V3.5a3.5 3.5 0 0 1 7 0v1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="8" cy="9.5" r="1.5" fill="currentColor"/></svg>
+                        </div>
+                    </div>
+                    <div class="timeline-right">
+                        <div class="step-title">Offer accepted → funds lock</div>
+                        <div class="step-desc">The moment a seller accepts an offer, the exact offer amount is moved from the buyer's wallet into Siterifty escrow. Neither party can access it. The clock starts on asset transfer.</div>
+                    </div>
+                </div>
+                <div class="timeline-step">
+                    <div class="timeline-left">
+                        <div class="step-num" style="background:rgba(56,189,248,0.2);border:1px solid rgba(56,189,248,0.3);color:#38bdf8;font-size:13px;">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 8h12M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                    </div>
+                    <div class="timeline-right">
+                        <div class="step-title">Seller transfers all assets</div>
+                        <div class="step-desc">Domain, codebase, databases, credentials — the seller transfers everything agreed in the listing. This typically takes 24–72 hours. Communication happens on-platform for a full record.</div>
+                    </div>
+                </div>
+                <div class="timeline-step">
+                    <div class="timeline-left">
+                        <div class="step-num" style="background:rgba(52,211,153,0.2);border:1px solid rgba(52,211,153,0.3);color:#34d399;font-size:13px;">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 8l2 2 5-5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                    </div>
+                    <div class="timeline-right">
+                        <div class="step-title">Buyer confirms delivery</div>
+                        <div class="step-desc">The buyer verifies everything arrived correctly — DNS, code access, database credentials, associated accounts. Only when the buyer taps Confirm does escrow release. If something's missing, raise a dispute first.</div>
+                    </div>
+                </div>
+                <div class="timeline-step">
+                    <div class="timeline-left">
+                        <div class="step-num" style="background:rgba(251,191,36,0.2);border:1px solid rgba(251,191,36,0.3);color:#fbbf24;font-size:13px;">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3"/><path d="M8 5v5M5.5 7c0-1.4 1.1-2 2.5-2h.5a2 2 0 0 1 0 4H7a2 2 0 0 0 0 4H8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+                        </div>
+                    </div>
+                    <div class="timeline-right">
+                        <div class="step-title">Payout released instantly</div>
+                        <div class="step-desc">Escrow releases to the seller's Siterifty wallet immediately after buyer confirmation. The seller can withdraw, reinvest in new listings, or put it toward their next plan payment — all in one place.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- dispute section -->
+            <div class="section-label">Dispute protection</div>
+            <div style="background:rgba(248,113,113,0.05);border:1px solid rgba(248,113,113,0.15);border-radius:18px;padding:22px 20px;margin-bottom:48px;">
+                <div style="display:flex;align-items:flex-start;gap:14px;">
+                    <div style="width:40px;height:40px;border-radius:12px;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 3v8" stroke="#f87171" stroke-width="1.4" stroke-linecap="round"/><circle cx="9" cy="14.5" r="1.2" fill="#f87171"/><path d="M3.5 16.5l5.5-14 5.5 14" stroke="#f87171" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </div>
+                    <div>
+                        <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#f87171;margin-bottom:7px;">Something went wrong?</div>
+                        <div style="font-size:13px;color:var(--muted);line-height:1.7;">If the seller fails to deliver assets — or the assets don't match the listing — open a <strong style="color:var(--text);">dispute</strong> from your dashboard before confirming delivery. Our team reviews all on-platform evidence and can release escrow back to the buyer. Keep all communication on-platform so there's a documented record.</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ══════════════════════════════ -->
+        <!-- TAB: FEES & PLANS             -->
+        <!-- ══════════════════════════════ -->
+        <div class="tab-panel" id="tab-fees">
+
+            <div class="section-label">Platform fee comparison</div>
+
+            <div class="fee-table fu fu-3">
+                <div class="fee-row fee-row-head">
+                    <span>Plan</span>
+                    <span class="fee-val">Price</span>
+                    <span class="fee-val">Fee</span>
+                    <span class="fee-val">Daily slots</span>
+                    <span class="fee-val">Support</span>
+                </div>
+                <div class="fee-row">
+                    <span class="fee-plan" style="color:var(--muted);">Free</span>
+                    <span class="fee-val" style="color:var(--muted);">$0</span>
+                    <span class="fee-val fee-highlight" style="color:var(--muted);">30%</span>
+                    <span class="fee-val" style="color:var(--muted);">1 / day</span>
+                    <span class="fee-val" style="color:var(--muted);font-size:11px;">Community</span>
+                </div>
+                <div class="fee-row">
+                    <span class="fee-plan" style="color:#a855f7;">Starter</span>
+                    <span class="fee-val">$20/mo</span>
+                    <span class="fee-val fee-highlight">15%</span>
+                    <span class="fee-val">5 / day</span>
+                    <span class="fee-val" style="font-size:11px;">Email 24h</span>
+                </div>
+                <div class="fee-row" style="background:rgba(244,114,182,0.04);border-left:2px solid #f472b6;">
+                    <span class="fee-plan" style="color:#f472b6;">Growth <span class="fee-badge" style="background:rgba(244,114,182,0.15);color:#f472b6;border:1px solid rgba(244,114,182,0.3);">Popular</span></span>
+                    <span class="fee-val">$40/mo</span>
+                    <span class="fee-val fee-highlight" style="color:#f472b6;">10%</span>
+                    <span class="fee-val">15 / day</span>
+                    <span class="fee-val" style="font-size:11px;">Priority 4h</span>
+                </div>
+                <div class="fee-row" style="background:rgba(56,189,248,0.03);border-left:2px solid rgba(56,189,248,0.5);">
+                    <span class="fee-plan" style="color:#38bdf8;">Pro <span class="fee-badge" style="background:rgba(56,189,248,0.12);color:#38bdf8;border:1px solid rgba(56,189,248,0.25);">Best value</span></span>
+                    <span class="fee-val">$50/mo</span>
+                    <span class="fee-val fee-highlight" style="color:#38bdf8;">5%</span>
+                    <span class="fee-val">Unlimited</span>
+                    <span class="fee-val" style="font-size:11px;">Live 24/7</span>
+                </div>
+            </div>
+
+            <!-- savings callout -->
+            <div style="background:linear-gradient(135deg,rgba(56,189,248,0.07),rgba(168,85,247,0.05));border:1px solid rgba(56,189,248,0.18);border-radius:18px;padding:22px 20px;margin-bottom:48px;">
+                <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--text);margin-bottom:10px;letter-spacing:-.02em;">💡 Pro pays for itself fast</div>
+                <div style="font-size:13px;color:var(--muted);line-height:1.7;">On a single <strong style="color:var(--text);">$500 sale</strong>, Free plan takes $150 (30%). Pro plan takes $25 (5%). That's <strong style="color:#38bdf8;">$125 saved</strong> — more than 2× the $50/mo subscription. Sell two sites a month and Pro is essentially free money.</div>
+            </div>
+
+            <div class="section-label">What's included in each plan</div>
+            <div class="feat-grid fu fu-4">
+                <div class="feat-card" style="border-color:rgba(168,85,247,0.2);">
+                    <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:#a855f7;margin-bottom:6px;">Starter — $20/mo</div>
+                    <div class="feat-desc">5 listings/day · 150/month · 15% fee · Priority search ranking · Email support (24h) · Basic analytics · Weekly newsletter feature</div>
+                </div>
+                <div class="feat-card" style="border-color:rgba(244,114,182,0.3);">
+                    <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:#f472b6;margin-bottom:6px;">Growth — $40/mo ⭐</div>
+                    <div class="feat-desc">15 listings/day · Unlimited/month · 10% fee · Featured listing highlights · Priority support (4h) · Advanced analytics · Bulk listing management · Monthly insights</div>
+                </div>
+                <div class="feat-card" style="border-color:rgba(56,189,248,0.25);grid-column:span 2;">
+                    <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:#38bdf8;margin-bottom:6px;">Pro — $50/mo 🏆</div>
+                    <div class="feat-desc">Unlimited listings · 5% fee · DB + serverless hosting for buyers · Admin dashboard buyers use to run their site · $49.99/mo hosting plan you earn recurring from · Top search placement guaranteed · Dedicated account manager · Custom storefront page · Live chat support 24/7</div>
+                </div>
+            </div>
+
+            <!-- hosting add-on -->
+            <div class="section-label">Managed hosting add-on</div>
+            <div style="background:var(--surface);border:1px solid rgba(129,140,248,0.25);border-radius:18px;padding:22px 20px;margin-bottom:48px;display:flex;gap:16px;align-items:flex-start;">
+                <div style="width:44px;height:44px;border-radius:14px;background:rgba(129,140,248,0.12);border:1px solid rgba(129,140,248,0.25);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="3" width="16" height="6" rx="2.5" stroke="#818cf8" stroke-width="1.3"/><rect x="2" y="11" width="16" height="6" rx="2.5" stroke="#818cf8" stroke-width="1.3"/><circle cx="16.5" cy="6" r="1.2" fill="#818cf8"/><circle cx="16.5" cy="14" r="1.2" fill="#818cf8"/></svg>
+                </div>
+                <div>
+                    <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:#818cf8;margin-bottom:6px;">$49.99/mo · Managed Hosting</div>
+                    <div style="font-size:13px;color:var(--muted);line-height:1.7;">Available to buyers after any purchase. Includes a fully managed stack — database, serverless functions, CDN, and an admin dashboard — with zero DevOps. Pay directly from your wallet. Pro-plan sellers earn this recurring revenue from every buyer who activates hosting.</div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ── CTA ── -->
+        <div class="cta-banner fu fu-5">
+            <div style="width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,rgba(168,85,247,0.18),rgba(244,114,182,0.12));border:1px solid rgba(168,85,247,0.28);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;">
+                <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 2l2 5h5.5l-4.5 3.5 1.5 5.5L11 13l-4.5 3 1.5-5.5L3.5 7H9L11 2Z" stroke="url(#ctaGrad)" stroke-width="1.4" stroke-linejoin="round"/><defs><linearGradient id="ctaGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#a855f7"/><stop offset="100%" stop-color="#f472b6"/></linearGradient></defs></svg>
+            </div>
+            <h2>Ready to make your first deal?</h2>
+            <p>Join thousands of indie hackers, entrepreneurs, and investors already trading on Siterifty. Free to start, takes 60 seconds.</p>
+            <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+                <a class="btn-primary" href="https://siterifty.com/">
+                    List a site free →
+                </a>
+                <a class="btn-ghost" href="https://siterifty.com/">
+                    Browse listings
+                </a>
+            </div>
+        </div>
+
+    </div><!-- /page-inner -->
+
+    <!-- ── FOOTER ── -->
+    <div class="page-footer">
+        <a href="https://siterifty.com/">← Marketplace</a>
+        <a href="https://siterifty.com/help">Help Center</a>
+        <a href="https://siterifty.com/escrow">Escrow Process</a>
+        <a href="https://siterifty.com/privacy" target="_blank" rel="noopener">Privacy</a>
+        <a href="https://siterifty.com/terms" target="_blank" rel="noopener">Terms</a>
+        <div style="margin-top:14px;font-size:11px;color:rgba(139,138,168,0.4);">© 2025 Siterifty. All rights reserved.</div>
+    </div>
+
+    <script>
+        function switchTab(name) {
+            // nav buttons
+            document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+                const names = ['sellers','buyers','escrow','fees'];
+                btn.classList.toggle('active', names[i] === name);
+            });
+            // panels
+            document.querySelectorAll('.tab-panel').forEach(p => {
+                p.classList.toggle('active', p.id === 'tab-' + name);
+            });
+            // scroll to tab nav
+            document.querySelector('.tab-nav').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    </script>
+</body>
+</html>
