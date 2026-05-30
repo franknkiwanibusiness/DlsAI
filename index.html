@@ -218,6 +218,9 @@
         /* Invisible scrollbars everywhere — native momentum */
         * { scrollbar-width: none; -ms-overflow-style: none; }
         *::-webkit-scrollbar { display: none; }
+        /* ── Responsive viewport guards ── */
+        img, video, canvas, iframe { max-width: 100%; height: auto; }
+        img { display: block; }
 
         html {
             background: var(--bg);
@@ -545,6 +548,7 @@
             color: #fff;
             flex-shrink: 0;
             cursor: pointer;
+            overflow: hidden;
             transition: opacity 0.15s, transform 0.15s;
         }
         .avatar:hover { opacity: 0.85; transform: scale(1.05); }
@@ -1265,7 +1269,7 @@
             .plans-grid { min-width: 780px; }
         }
         @media (max-width: 520px) {
-            .plans-grid { min-width: 720px; }
+            .plans-grid { min-width: 600px; }
         }
         .plan-card {
             background: var(--surface);
@@ -1445,6 +1449,13 @@
             animation: scroll-left 28s linear infinite;
         }
         .reviews-track:hover { animation-play-state: paused; }
+        /* ── Orbit/Pulse ring responsive scaling ── */
+        @media (max-width: 360px) {
+            .orbit-ring-1, .orbit-arm-1 { width: 140px; height: 140px; }
+            .orbit-ring-2, .orbit-arm-2 { width: 240px; height: 240px; }
+            .pulse-ring-1,.pulse-ring-2,.pulse-ring-3 { width: 280px; height: 280px; }
+            .pulse-guide-2 { width: 220px; height: 220px; }
+        }
         .review-card {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -1504,6 +1515,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            overflow: hidden;
         }
         .orbit-label {
             text-align: center;
@@ -1525,8 +1537,8 @@
         }
         .orbit-wrap {
             position: relative;
-            width: 340px;
-            height: 340px;
+            width: min(340px, calc(100vw - 40px));
+            height: min(340px, calc(100vw - 40px));
         }
         /* Centre hub */
         .orbit-hub {
@@ -1655,8 +1667,8 @@
         }
         .pulse-wrap {
             position: relative;
-            width: 340px;
-            height: 340px;
+            width: min(340px, calc(100vw - 40px));
+            height: min(340px, calc(100vw - 40px));
             flex-shrink: 0;
         }
         /* Pulsing rings */
@@ -2679,14 +2691,45 @@
         .tu-notice strong { color: rgba(200,180,255,0.7); }
 
         /* PayPal */
-        .tu-paypal-wrap { margin-bottom: 16px; }
+        .tu-paypal-wrap {
+            margin-bottom: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
         #paypal-button-container {
             background: #fff;
-            border-radius: 12px;
-            padding: 6px 0;
+            border-radius: 14px;
+            padding: 8px 10px;
             overflow: hidden;
             width: 100%;
+            max-width: 340px;
+            box-shadow: 0 2px 16px rgba(0,0,0,0.18);
         }
+        /* Skeleton placeholder shown before PayPal SDK loads */
+        .pp-loading-placeholder {
+            width: 100%;
+            max-width: 340px;
+            height: 48px;
+            background: linear-gradient(135deg, #f5c518 0%, #f0a500 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-family: 'Syne', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            color: #000;
+            letter-spacing: 0.01em;
+            animation: ppPulse 1.4s ease-in-out infinite;
+            cursor: default;
+        }
+        @keyframes ppPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .pp-loading-placeholder svg { flex-shrink: 0; }
 
         /* Section label */
         .tu-header {
@@ -4939,7 +4982,12 @@
 
             <!-- PayPal button container -->
             <div class="tu-paypal-wrap">
-                <div id="paypal-button-container"></div>
+                <div id="paypal-button-container">
+                    <div class="pp-loading-placeholder" id="ppLoadingPlaceholder">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="8" stroke="rgba(0,0,0,0.25)" stroke-width="1.5"/><path d="M9 3v4.5l2.5 2.5" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        Loading PayPal…
+                    </div>
+                </div>
             </div>
 
             <!-- FAQ -->
@@ -6533,7 +6581,7 @@
                                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="1.5" width="11" height="11" rx="3" stroke="rgba(139,138,168,0.3)" stroke-width="1.1"/><path d="M4.5 7l2 2 3-3" stroke="rgba(139,138,168,0.4)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                                 <span style="font-size:11px;color:rgba(139,138,168,0.4);">Siterifty · v1.0.0</span>
                             </div>
-                            <span style="font-size:10px;color:rgba(139,138,168,0.25);">© 2025 Siterifty. All rights reserved.</span>
+                            <span style="font-size:10px;color:rgba(139,138,168,0.25);">© <span id="footerYear">2025</span> Siterifty. All rights reserved.</span>
                         </div>
 
                         <!-- ══ SUB-PANELS (slide in over settings list) ══ -->
@@ -7148,6 +7196,14 @@
                     });
                     await set(ref(db,'usernames/'+username), uid);
                     if(user.photoURL && window._applyPhotoURL) window._applyPhotoURL(user.photoURL);
+                    // Apply unique gradient to profileAvatarCircle
+                    const _pac = document.getElementById('profileAvatarCircle');
+                    if (_pac && !_pac.querySelector('img')) {
+                        const _uid = user.uid || '';
+                        const [_pc1,_pc2] = (window._avatarGradientForUser || function(){ return ['#a855f7','#f472b6']; })(_uid);
+                        _pac.style.background = `linear-gradient(135deg,${_pc1},${_pc2})`;
+                        _pac.textContent = (user.displayName || user.email || '?').charAt(0).toUpperCase();
+                    }
                 }
                 closeAuthModal();
                 openDash();
@@ -7433,6 +7489,34 @@
             }
         };
 
+        // ── Per-user deterministic avatar color ──
+        const AVATAR_GRADIENTS = [
+            ['#a855f7','#f472b6'], // purple→pink (default)
+            ['#38bdf8','#818cf8'], // sky→indigo
+            ['#34d399','#38bdf8'], // emerald→sky
+            ['#fbbf24','#f97316'], // amber→orange
+            ['#f472b6','#fb7185'], // pink→rose
+            ['#818cf8','#a855f7'], // indigo→purple
+            ['#34d399','#a855f7'], // emerald→purple
+            ['#38bdf8','#34d399'], // sky→emerald
+            ['#fb923c','#f472b6'], // orange→pink
+            ['#a3e635','#38bdf8'], // lime→sky
+            ['#e879f9','#818cf8'], // fuchsia→indigo
+            ['#2dd4bf','#38bdf8'], // teal→sky
+        ];
+        function avatarGradientForUser(uid) {
+            if (!uid) return AVATAR_GRADIENTS[0];
+            let hash = 0;
+            for (let i = 0; i < uid.length; i++) hash = (hash * 31 + uid.charCodeAt(i)) >>> 0;
+            return AVATAR_GRADIENTS[hash % AVATAR_GRADIENTS.length];
+        }
+        function applyAvatarColor(el, uid) {
+            const [c1, c2] = avatarGradientForUser(uid);
+            el.style.background = `linear-gradient(135deg,${c1},${c2})`;
+        }
+        // Expose early so Imgur block can use it even if loaded before auth script runs
+        if (!window._avatarGradientForUser) window._avatarGradientForUser = avatarGradientForUser;
+
         function updateAvatar(user){
             const av = $('avatarBtn');
             const guestIcon = $('avatarGuestIcon');
@@ -7442,11 +7526,12 @@
                 // Hide guest icon, show initial letter
                 if(guestIcon) guestIcon.style.display = 'none';
                 av.textContent = ''; // clear SVG text
+                // Unique gradient per user
+                applyAvatarColor(av, user.uid);
                 // Set initial
                 const initial = document.createElement('span');
                 initial.textContent = (user.displayName || user.email || '?').charAt(0).toUpperCase();
                 av.appendChild(initial);
-                av.style.background = 'linear-gradient(135deg,#a855f7,#f472b6)';
                 // Load photoURL from Firebase if available
                 get(ref(db,'users/'+user.uid+'/photoURL')).then(snap=>{
                     const url = snap && snap.val();
@@ -7759,7 +7844,16 @@
 
             // ── Hero card: avatar initial + display name ──
             const _heroUsername = data.username || user.email?.split('@')[0] || '?';
-            if ($('settingsAvatarHero'))   $('settingsAvatarHero').textContent   = _heroUsername.charAt(0).toUpperCase();
+            if ($('settingsAvatarHero')) {
+                const _heroEl = $('settingsAvatarHero');
+                const _heroUid = (window._fbAuth && window._fbAuth.currentUser && window._fbAuth.currentUser.uid) || '';
+                const [_hc1, _hc2] = (window._avatarGradientForUser || function(){ return ['#a855f7','#f472b6']; })(_heroUid);
+                _heroEl.style.background = `linear-gradient(135deg,${_hc1},${_hc2})`;
+                _heroEl.textContent = _heroUsername.charAt(0).toUpperCase();
+                // If they have a photo, applyPhotoURL will override
+                const _snap = window._cachedPhotoURL;
+                if (_snap && window._applyPhotoURL) window._applyPhotoURL(_snap);
+            }
             if ($('settingsHeroName'))     $('settingsHeroName').textContent     = _heroUsername;
             if ($('profilePlanBadgeHero')) $('profilePlanBadgeHero').textContent = plan;
             // Apply stored profile photo if present
@@ -8024,6 +8118,15 @@
 
         // ── FAQ accordion ──
         window.toggleFaq = function(row) {
+            // Handle tu-faq-item pattern (top-up modal FAQs with CSS max-height)
+            if (row.classList.contains('tu-faq-item')) {
+                const wasOpen = row.classList.contains('open');
+                const parent = row.closest('.tu-faq');
+                if (parent) parent.querySelectorAll('.tu-faq-item.open').forEach(i => i.classList.remove('open'));
+                if (!wasOpen) row.classList.add('open');
+                return;
+            }
+            // Handle settings-row / faq-answer pattern
             const answer  = row.querySelector('.faq-answer');
             const chevron = row.querySelector('.faq-chevron');
             if (!answer) return;
@@ -9293,31 +9396,7 @@ self.addEventListener('notificationclick', e => {
             document.getElementById('tuFeeTotal').textContent = '$' + total.toFixed(2);
         }
 
-        function toggleFaq(el) {
-            // Handle tu-faq-item pattern (top-up modal FAQs)
-            if (el.classList.contains('tu-faq-item')) {
-                const wasOpen = el.classList.contains('open');
-                el.closest('.tu-faq') && el.closest('.tu-faq').querySelectorAll('.tu-faq-item.open').forEach(i => i.classList.remove('open'));
-                if (!wasOpen) el.classList.add('open');
-                return;
-            }
-            // Handle settings-row + faq-answer pattern (support tab FAQs)
-            const answer = el.querySelector('.faq-answer');
-            const chevron = el.querySelector('.faq-chevron');
-            if (answer) {
-                const isOpen = answer.style.display !== 'none' && answer.style.display !== '';
-                if (isOpen) {
-                    answer.style.display = 'none';
-                    if (chevron) chevron.style.transform = '';
-                } else {
-                    answer.style.display = 'block';
-                    if (chevron) chevron.style.transform = 'rotate(90deg)';
-                }
-                return;
-            }
-            // Fallback: simple open toggle
-            el.classList.toggle('open');
-        }
+        // toggleFaq is handled by window.toggleFaq (defined globally)
 
         let ppRenderTimeout;
         function rerenderPayPal(amount) {
@@ -9331,12 +9410,14 @@ self.addEventListener('notificationclick', e => {
 
         function renderPayPalButton(amount) {
             if (typeof paypalCapture === 'undefined') return;
+            const container = document.getElementById('paypal-button-container');
+            container.innerHTML = ''; // clear placeholder
             const { total } = calcFee(amount);
             paypalCapture.Buttons({
                 style: {
                     layout: 'vertical',
                     color:  'gold',
-                    shape:  'rect',
+                    shape:  'pill',
                     label:  'pay',
                     height: 48
                 },
@@ -9345,7 +9426,7 @@ self.addEventListener('notificationclick', e => {
                         purchase_units: [{
                             description: 'Siterifty Wallet Top-Up',
                             amount: {
-                                value: total.toFixed(2),
+                                value: calcFee(tuCurrentAmount).total.toFixed(2),
                                 currency_code: 'USD'
                             }
                         }]
@@ -9354,8 +9435,8 @@ self.addEventListener('notificationclick', e => {
                 onApprove: async function(data, actions) {
                     try {
                         await actions.order.capture();
-                        await creditUserWallet(amount);
-                        showSuccessResult(amount);
+                        await creditUserWallet(tuCurrentAmount);
+                        showSuccessResult(tuCurrentAmount);
                     } catch(e) {
                         showFailResult('Payment capture failed. Please contact support.');
                     }
@@ -9369,6 +9450,34 @@ self.addEventListener('notificationclick', e => {
                 }
             }).render('#paypal-button-container');
         }
+
+        // Pre-render as soon as the PayPal SDK script fires onload
+        (function waitForPayPal() {
+            if (typeof paypalCapture !== 'undefined') {
+                renderPayPalButton(tuCurrentAmount);
+                ppButtonsRendered = true;
+            } else {
+                const sdkScript = document.getElementById('paypalCaptureSDK');
+                if (sdkScript) {
+                    sdkScript.addEventListener('load', function() {
+                        // Give SDK a tick to initialise
+                        setTimeout(function() {
+                            renderPayPalButton(tuCurrentAmount);
+                            ppButtonsRendered = true;
+                        }, 80);
+                    });
+                } else {
+                    // fallback poll
+                    const iv = setInterval(function() {
+                        if (typeof paypalCapture !== 'undefined') {
+                            clearInterval(iv);
+                            renderPayPalButton(tuCurrentAmount);
+                            ppButtonsRendered = true;
+                        }
+                    }, 200);
+                }
+            }
+        })();
 
         // Credit wallet via Firebase
         async function creditUserWallet(amount) {
@@ -9391,8 +9500,8 @@ self.addEventListener('notificationclick', e => {
             document.getElementById('topupOverlay').classList.add('open');
             lockBodyScroll();
 
-            // Render PayPal once on first open
-            if (!ppButtonsRendered) {
+            // Only render if SDK loaded but buttons haven't been rendered yet
+            if (!ppButtonsRendered && typeof paypalCapture !== 'undefined') {
                 renderPayPalButton(tuCurrentAmount);
                 ppButtonsRendered = true;
             }
@@ -10202,6 +10311,21 @@ self.addEventListener('notificationclick', e => {
     (function(){
         const IMGUR_CLIENT_ID = "891e5bb4aa94282";
 
+        // ── Per-user avatar gradient (mirrors auth block definition) ──
+        const _AVATAR_GRADIENTS = [
+            ['#a855f7','#f472b6'],['#38bdf8','#818cf8'],['#34d399','#38bdf8'],
+            ['#fbbf24','#f97316'],['#f472b6','#fb7185'],['#818cf8','#a855f7'],
+            ['#34d399','#a855f7'],['#38bdf8','#34d399'],['#fb923c','#f472b6'],
+            ['#a3e635','#38bdf8'],['#e879f9','#818cf8'],['#2dd4bf','#38bdf8'],
+        ];
+        function avatarGradientForUser(uid) {
+            if (!uid) return _AVATAR_GRADIENTS[0];
+            let hash = 0;
+            for (let i = 0; i < uid.length; i++) hash = (hash * 31 + uid.charCodeAt(i)) >>> 0;
+            return _AVATAR_GRADIENTS[hash % _AVATAR_GRADIENTS.length];
+        }
+        window._avatarGradientForUser = avatarGradientForUser;
+
         // ── Apply a stored photoURL to all avatar elements ──
         function applyPhotoURL(url) {
             if (!url) return;
@@ -10212,16 +10336,25 @@ self.addEventListener('notificationclick', e => {
             ];
             els.forEach(el => {
                 if (!el) return;
-                if (el.id === 'avatarBtn' || el.id === 'settingsAvatarHero') {
-                    // Make it show image instead of initial letter
-                    el.style.backgroundImage = `url(${url})`;
-                    el.style.backgroundSize = 'cover';
-                    el.style.backgroundPosition = 'center';
-                    el.textContent = '';
-                } else {
-                    // profileAvatarCircle — swap to <img>
-                    el.innerHTML = `<img src="${url}" alt="Profile" style="width:100%;height:100%;object-fit:cover;border-radius:999px;display:block;">`;
-                }
+                // Use <img> inside for all — hides initials cleanly
+                el.textContent = '';
+                const img = document.createElement('img');
+                img.src = url;
+                img.alt = 'Profile';
+                img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:999px;display:block;';
+                img.onerror = function() {
+                    // Photo failed — fall back to initial + unique gradient
+                    el.removeChild(img);
+                    const user = window._fbAuth && window._fbAuth.currentUser;
+                    const name = (user && (user.displayName || user.email)) || '?';
+                    const uid  = (user && user.uid) || '';
+                    const [c1, c2] = (window._avatarGradientForUser || function(){ return ['#a855f7','#f472b6']; })(uid);
+                    el.style.background = `linear-gradient(135deg,${c1},${c2})`;
+                    el.style.backgroundImage = '';
+                    el.textContent = name.charAt(0).toUpperCase();
+                };
+                el.style.backgroundImage = '';
+                el.appendChild(img);
             });
         }
 
@@ -10236,7 +10369,11 @@ self.addEventListener('notificationclick', e => {
                         const { ref: dbRef, get, onValue } = window._fbDbFns || {};
                         if (dbRef && get) {
                             get(dbRef(window._fbDb, 'users/' + user.uid + '/photoURL')).then(snap => {
-                                if (snap && snap.val()) applyPhotoURL(snap.val());
+                                const url = snap && snap.val();
+                                if (url) {
+                                    window._cachedPhotoURL = url;
+                                    applyPhotoURL(url);
+                                }
                             }).catch(() => {});
                         }
                     });
@@ -10281,6 +10418,7 @@ self.addEventListener('notificationclick', e => {
                 const imgurURL = data.data.link;
 
                 // Apply the permanent Imgur URL
+                window._cachedPhotoURL = imgurURL;
                 applyPhotoURL(imgurURL);
 
                 // Save to Firebase Realtime DB
@@ -10397,5 +10535,6 @@ self.addEventListener('notificationclick', e => {
     })();
     </script>
 
+<script>document.querySelectorAll("#footerYear").forEach(function(el){el.textContent=new Date().getFullYear();});</script>
 </body>
 </html>
