@@ -3090,23 +3090,8 @@ async function _apiCall(body) {
     return res.json();
 }
 
-// Cache the client ID after first fetch so we only hit the API once
-let _imgurClientId = null;
-
-async function _getImgurClientId() {
-    if (_imgurClientId) return _imgurClientId;
-    try {
-        const res  = await fetch(API + '?action=imgur_token');
-        if (!res.ok) throw new Error('status ' + res.status);
-        const data = await res.json();
-        if (!data.clientId) throw new Error('empty response');
-        _imgurClientId = data.clientId;
-        return _imgurClientId;
-    } catch (e) {
-        console.error('[API] Could not fetch Imgur token:', e);
-        throw new Error('Image service unavailable. Please try again.');
-    }
-}
+// Imgur client ID — used directly from the browser
+const _imgurClientId = '891e5bb4aa94282';
 
 function triggerFileInput(idx) {
     document.getElementById('imgInput' + idx).click();
@@ -3132,8 +3117,7 @@ async function handleImageUpload(idx, input) {
     updateChecklist();
 
     try {
-        // Convert file to base64 then send through our secure API route
-        // (keeps the Imgur client ID server-side, never exposed in the browser)
+        // Upload directly to Imgur from the browser
         const base64 = await new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload  = () => resolve(reader.result.split(',')[1]);
@@ -3141,18 +3125,22 @@ async function handleImageUpload(idx, input) {
             reader.readAsDataURL(file);
         });
 
-        const res = await fetch(API, {
+        const formData = new FormData();
+        formData.append('image', base64);
+        formData.append('type', 'base64');
+
+        const res = await fetch('https://api.imgur.com/3/image', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'upload_image', image: base64, type: file.type })
+            headers: { 'Authorization': 'Client-ID ' + _imgurClientId },
+            body: formData
         });
 
-        if (!res.ok) throw new Error('Upload API ' + res.status);
+        if (!res.ok) throw new Error('Imgur ' + res.status);
         const data = await res.json();
-        if (data.error) throw new Error(data.error);
-        if (!data.url)  throw new Error('No image URL returned');
+        if (!data.success) throw new Error(data.data?.error || 'Imgur upload failed');
+        if (!data.data?.link) throw new Error('No image URL returned');
 
-        const imgurURL = data.url;
+        const imgurURL = data.data.link;
 
         // Replace blob URL with permanent Imgur URL
         state.images[idx] = imgurURL;
