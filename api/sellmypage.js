@@ -4,7 +4,6 @@
  * Unified Vercel serverless API for Siterifty's "Sell My Site" page.
  *
  * Required environment variables (set in Vercel dashboard → Settings → Env):
- *   IMGUR_CLIENT_ID     – Imgur OAuth2 client ID (no secret needed for uploads)
  *   GROQ_API_KEY        – Groq Cloud API key  (https://console.groq.com)
  *
  * ─── ACTIONS ──────────────────────────────────────────────────────────────────
@@ -17,15 +16,9 @@
  *
  *  POST /api/sellmypage   body: { action: "fetch_site_meta", url: "…" }
  *       → { title, description, fetchedAt }
- *       Fetches the live page at the given URL and extracts <title> + meta description.
- *       Used by the frontend to cross-check the seller's entered title/description
- *       against what is actually published — required for AI auto-approval.
  *
  *  POST /api/sellmypage   body: { action: "review_listing", listing: { … }, codeFiles: […], liveSiteMeta: {…}, reviewInstructions: "…" }
  *       → { status, reason, aiReviewStatus, aiReviewReason, suggestedPrice, priceReason }
- *       Full AI review: cross-checks uploaded code + live site meta against the
- *       seller's entered title/description, screens for prohibited content, and
- *       calculates a fair asking-price range.
  *
  *  POST /api/sellmypage   body: { action: "review_ad", listing: { … } }
  *       → { review_status, review_reason, admin_note, cpm, cpm_reason }
@@ -37,6 +30,10 @@
  * Allows requests from any origin (tighten to your domain in production).
  * ─────────────────────────────────────────────────────────────────────────────
  */
+
+// ─── Imgur credentials (hardcoded) ───────────────────────────────────────────
+const IMGUR_CLIENT_ID     = "891e5bb4aa94282";
+const IMGUR_CLIENT_SECRET = "6d052dffa6fa44db03230e593a576e325f31351e";
 
 // ─── Helper: CORS headers ────────────────────────────────────────────────────
 const CORS = {
@@ -107,9 +104,7 @@ async function callGroq(systemPrompt, userContent, maxTokens = 400) {
 
 // ─── ACTION: imgur_token ─────────────────────────────────────────────────────
 function handleImgurToken() {
-  const clientId = process.env.IMGUR_CLIENT_ID;
-  if (!clientId) return err("IMGUR_CLIENT_ID not configured", 500);
-  return json({ clientId });
+  return json({ clientId: IMGUR_CLIENT_ID });
 }
 
 
@@ -117,9 +112,6 @@ function handleImgurToken() {
 async function handleUploadImage(body) {
   const { image, type } = body;
   if (!image || typeof image !== "string") return err("image (base64) is required");
-
-  const clientId = process.env.IMGUR_CLIENT_ID;
-  if (!clientId) return err("IMGUR_CLIENT_ID not configured", 500);
 
   const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
   if (type && !allowedTypes.includes(type.toLowerCase())) {
@@ -135,7 +127,7 @@ async function handleUploadImage(body) {
 
   const res = await fetch("https://api.imgur.com/3/image", {
     method:  "POST",
-    headers: { Authorization: "Client-ID " + clientId },
+    headers: { Authorization: "Client-ID " + IMGUR_CLIENT_ID },
     body:    formData,
   });
 
@@ -152,10 +144,6 @@ async function handleUploadImage(body) {
 
 
 // ─── ACTION: fetch_site_meta ──────────────────────────────────────────────────
-// Fetches the live page at the given URL and extracts <title> + meta description.
-// The frontend uses this to cross-check the seller's entered title/description
-// against what is actually published at the URL before sending to AI review.
-// If the fetch fails, returns nulls — the AI will then refuse to auto-approve.
 async function handleFetchSiteMeta(body) {
   const { url } = body;
   if (!url || typeof url !== "string") return err("url is required");
@@ -184,8 +172,6 @@ async function handleFetchSiteMeta(body) {
       });
     }
 
-    // Read only the first 20KB — enough to capture <head> without downloading
-    // full pages. We use a reader so we don't buffer the entire response.
     const reader   = res.body.getReader();
     const decoder  = new TextDecoder("utf-8");
     let   html     = "";
@@ -198,15 +184,12 @@ async function handleFetchSiteMeta(body) {
     }
     reader.cancel();
 
-    // Extract <title>
     const titleMatch = html.match(/<title[^>]*>([^<]{1,200})<\/title>/i);
 
-    // Extract meta description — handles both attribute orders
     const descMatch =
       html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']{1,400})["']/i) ||
       html.match(/<meta[^>]+content=["']([^"']{1,400})["'][^>]+name=["']description["']/i);
 
-    // Also grab og:title and og:description as fallbacks
     const ogTitleMatch =
       html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']{1,200})["']/i) ||
       html.match(/<meta[^>]+content=["']([^"']{1,200})["'][^>]+property=["']og:title["']/i);
@@ -221,8 +204,6 @@ async function handleFetchSiteMeta(body) {
     return json({ title, description, fetchedAt: Date.now() });
 
   } catch (e) {
-    // Non-fatal — frontend treats null title/description as "fetch failed"
-    // and the AI will refuse to auto-approve without live verification.
     return json({ title: null, description: null, fetchedAt: null, error: e.message });
   }
 }
@@ -283,9 +264,9 @@ async function handleValidateUrl(body) {
 async function handleReviewListing(body) {
   const {
     listing,
-    codeFiles        = [],   // [{ filename, content }] — uploaded source files
-    liveSiteMeta     = null, // { title, description } — fetched from the live URL
-    reviewInstructions = "", // override instructions from the frontend
+    codeFiles        = [],
+    liveSiteMeta     = null,
+    reviewInstructions = "",
   } = body;
 
   if (!listing || typeof listing !== "object") return err("listing object is required");
@@ -295,7 +276,6 @@ async function handleReviewListing(body) {
     category = "", age = "", revenue, traffic, expenses,
   } = listing;
 
-  // ── Fast heuristic checks before the AI call ──
   if (quickAdultCheck(url) || quickAdultCheck(title) || quickAdultCheck(description)) {
     return json({
       status: "rejected",
@@ -307,7 +287,6 @@ async function handleReviewListing(body) {
     });
   }
 
-  // ── Build code file context (capped at 3000 chars per file, max 3 files) ──
   const codeContext = codeFiles.length
     ? codeFiles
         .slice(0, 3)
@@ -315,14 +294,12 @@ async function handleReviewListing(body) {
         .join("")
     : "No code files provided.";
 
-  // ── Build live site meta context ──
   const liveContext = liveSiteMeta?.title || liveSiteMeta?.description
     ? `Live site <title>: "${liveSiteMeta.title || "not found"}"\nLive meta description: "${liveSiteMeta.description || "not found"}"`
     : "Live site meta could not be fetched.";
 
   const liveFetched = !!(liveSiteMeta?.title || liveSiteMeta?.description);
 
-  // ── System prompt ──
   const systemPrompt = `You are the listing-review AI for Siterifty, a legitimate website marketplace.
 
 Your job is to:
@@ -367,7 +344,6 @@ Price guidance (standard multiples used by website brokers):
 - Always return suggestedPriceMin and suggestedPriceMax as a realistic range.
 - If rejected, return null for all price fields.`;
 
-  // ── User content — everything the AI needs ──
   const userContent = JSON.stringify({
     listingEnteredBySeller: {
       title,
@@ -520,8 +496,6 @@ export default async function handler(req) {
           return err(`Unknown action "${action}". Valid: review_listing | review_ad | validate_url | upload_image | fetch_site_meta`);
       }
     } catch (e) {
-      // Catch any unhandled throws from handlers so the API never returns a 500
-      // with an empty body — always returns structured JSON.
       console.error("[sellmypage] Unhandled error:", e);
       return json({ error: "Internal server error: " + e.message }, 500);
     }
