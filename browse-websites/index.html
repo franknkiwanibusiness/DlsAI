@@ -1651,25 +1651,25 @@ function getListingImage(listing) {
 }
 function thumbH(listing) {
     const img0 = getListingImage(listing);
-    const ini  = domainInitials(listing.url);
+    
     const id   = listing.listingId || '';
     const sv   = (window._savedListings||[]).includes(id);
     const saveBtn = `<button class="save-btn-card${sv?' saved':''}" data-id="${id}" title="${sv?'Remove from saved':'Save listing'}" onclick="event.preventDefault();event.stopPropagation();window._toggleSave('${id}',this);">${_saveIcon(sv)}</button>`;
     if (img0) {
-        return `<div class="card-thumb" style="position:relative;"><img src="${img0}" alt="" loading="lazy" onerror="this.remove();this.parentElement.classList.add('card-thumb-fallback');this.parentElement.innerHTML='<span class=\\"card-thumb-initials\\">${ini}</span>';">${saveBtn}</div>`;
+        return `<div class="card-thumb" style="position:relative;"><img src="${img0}" alt="" loading="lazy" onerror="this.remove();this.parentElement.classList.add('card-thumb-fallback');">${saveBtn}</div>`;
     }
-    return `<div class="card-thumb card-thumb-fallback" style="position:relative;"><span class="card-thumb-initials">${ini}</span>${saveBtn}</div>`;
+    return `<div class="card-thumb card-thumb-fallback" style="position:relative;">${saveBtn}</div>`;
 }
 function thumbG(listing) {
     const img0 = getListingImage(listing);
-    const ini  = domainInitials(listing.url);
+    
     const id   = listing.listingId || '';
     const sv   = (window._savedListings||[]).includes(id);
     const saveBtn = `<button class="save-btn-card${sv?' saved':''}" data-id="${id}" title="${sv?'Remove from saved':'Save listing'}" onclick="event.preventDefault();event.stopPropagation();window._toggleSave('${id}',this);">${_saveIcon(sv)}</button>`;
     if (img0) {
-        return `<div class="card-g-thumb" style="position:relative;"><img src="${img0}" alt="" loading="lazy" onerror="this.remove();this.parentElement.classList.add('card-g-thumb-fallback');this.parentElement.innerHTML='<span class=\\"card-g-initials\\">${ini}</span>';">${saveBtn}</div>`;
+        return `<div class="card-g-thumb" style="position:relative;"><img src="${img0}" alt="" loading="lazy" onerror="this.remove();this.parentElement.classList.add('card-g-thumb-fallback');">${saveBtn}</div>`;
     }
-    return `<div class="card-g-thumb card-g-thumb-fallback" style="position:relative;"><span class="card-g-initials">${ini}</span>${saveBtn}</div>`;
+    return `<div class="card-g-thumb card-g-thumb-fallback" style="position:relative;">${saveBtn}</div>`;
 }
 
 const _userPhotoCache = {};
@@ -1757,8 +1757,7 @@ function renderCardH(d, type) {
             <div class="card-tag-overlay ${tagCls}">${tagText}</div>
         </div>
         <div class="card-body">
-            <div class="card-domain">${d.title || d.url || '—'}</div>
-            <div class="card-url">${d.url || ''}</div>
+            <div class="card-domain">${d.title || '—'}</div>
             <div class="card-desc">${d.description || ''}</div>
             <div class="card-stats" style="justify-content:space-between;align-items:center;">
                 <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;">
@@ -1844,8 +1843,7 @@ function renderCardG(d) {
         </div>
         <div class="card-g-body">
             <div>
-                <div class="card-g-domain">${d.title || d.url || '—'}</div>
-                <div class="card-g-url">${d.url || ''}</div>
+                <div class="card-g-domain">${d.title || '—'}</div>
             </div>
             <div class="card-g-desc">${d.description || ''}</div>
             ${financialsHtml}
@@ -1940,6 +1938,7 @@ function renderAll() {
     }
 
     loadedCount = 0;
+    _batchLoading = false;
     filteredListings = applyFilterSort(all);
     document.getElementById('totalCount').textContent = all.length.toLocaleString();
     document.getElementById('gridMeta').textContent = filteredListings.length.toLocaleString() + ' results';
@@ -1982,6 +1981,7 @@ function applyFilterSort(pool) {
 
 function resetGrid() {
     loadedCount = 0;
+    _batchLoading = false;
     filteredListings = applyFilterSort(window._allListings||[]);
     document.getElementById('gridMeta').textContent = filteredListings.length.toLocaleString() + ' results';
     const grid = document.getElementById('listingsGrid');
@@ -1995,12 +1995,15 @@ function resetGrid() {
     }
 }
 
+let _batchLoading = false;
 function loadNextBatch() {
+    if (_batchLoading) return;
     const grid = document.getElementById('listingsGrid');
     const spinner = document.getElementById('loadSpinner');
     const slice = filteredListings.slice(loadedCount, loadedCount + BATCH);
     if (!slice.length) { spinner.classList.remove('show'); return; }
 
+    _batchLoading = true;
     const skels = slice.map(() => {
         const el = document.createElement('div');
         el.innerHTML = renderSkeleton();
@@ -2021,6 +2024,7 @@ function loadNextBatch() {
         });
         loadedCount += slice.length;
         spinner.classList.remove('show');
+        _batchLoading = false;
     }, 260);
 }
 
