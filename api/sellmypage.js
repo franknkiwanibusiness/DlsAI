@@ -103,6 +103,48 @@ async function callGroq(systemPrompt, userContent, maxTokens = 400) {
   return JSON.parse(clean);
 }
 
+
+// ─── ACTION: upload_image ─────────────────────────────────────────────────────
+// Receives a base64-encoded image from the browser, uploads to Imgur server-side,
+// and returns the public URL. Keeps IMGUR_CLIENT_ID out of the browser entirely.
+async function handleUploadImage(body) {
+  const { image, type } = body;
+  if (!image || typeof image !== "string") return err("image (base64) is required");
+
+  const clientId = process.env.IMGUR_CLIENT_ID;
+  if (!clientId) return err("IMGUR_CLIENT_ID not configured", 500);
+
+  // Validate it's actually an image type
+  const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
+  if (type && !allowedTypes.includes(type.toLowerCase())) {
+    return err("Only JPEG, PNG, GIF, and WebP images are accepted.");
+  }
+
+  // Size guard — base64 is ~133% of original; 10MB original ≈ 13.3MB base64
+  if (image.length > 14_000_000) return err("Image exceeds 10MB limit.");
+
+  const formData = new FormData();
+  // Imgur accepts raw base64 directly in the 'image' field
+  formData.append("image", image);
+  formData.append("type",  "base64");
+
+  const res = await fetch("https://api.imgur.com/3/image", {
+    method:  "POST",
+    headers: { Authorization: "Client-ID " + clientId },
+    body:    formData,
+  });
+
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error("Imgur " + res.status + ": " + txt.slice(0, 100));
+  }
+
+  const data = await res.json();
+  if (!data.success) throw new Error(data.data?.error || "Imgur upload failed");
+
+  return json({ url: data.data.link, deleteHash: data.data.deletehash });
+}
+
 // ─── ACTION: imgur_token ─────────────────────────────────────────────────────
 function handleImgurToken() {
   const clientId = process.env.IMGUR_CLIENT_ID;
