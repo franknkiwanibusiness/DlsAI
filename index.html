@@ -10328,5 +10328,35 @@ self.addEventListener('notificationclick', e => {
     })();
     </script>
 
+    <!-- ══ AUTO-OPEN PLANS PICKER — triggered by ?upgrade=plans from sell page ══ -->
+    <script>
+    (function() {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('upgrade') === 'plans') {
+            // Wait for auth + modal to be ready, then open
+            function tryOpen() {
+                if (typeof window.openPlansPickerModal === 'function') {
+                    // If not logged in, open auth modal first
+                    if (window._fbAuth && !window._fbAuth.currentUser) {
+                        if (typeof window.openAuthModal === 'function') window.openAuthModal();
+                    } else {
+                        window.openPlansPickerModal();
+                    }
+                    // Clean the URL so refreshing doesn't re-open it
+                    history.replaceState(null, '', window.location.pathname);
+                } else {
+                    setTimeout(tryOpen, 150);
+                }
+            }
+            // Give the page a moment to finish rendering
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => setTimeout(tryOpen, 400));
+            } else {
+                setTimeout(tryOpen, 400);
+            }
+        }
+    })();
+    </script>
+
 </body>
 </html>
