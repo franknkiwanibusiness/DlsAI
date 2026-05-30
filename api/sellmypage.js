@@ -11,22 +11,27 @@
  *
  *  GET  /api/sellmypage?action=imgur_token
  *       → { clientId: "…" }
- *       Exposes the Imgur client ID to the browser so it can upload directly.
- *       Never exposes the Groq key.
  *
- *  POST /api/sellmypage   body: { action: "review_listing", listing: { … } }
+ *  POST /api/sellmypage   body: { action: "upload_image", image: "<base64>", type: "image/jpeg" }
+ *       → { url, deleteHash }
+ *
+ *  POST /api/sellmypage   body: { action: "fetch_site_meta", url: "…" }
+ *       → { title, description, fetchedAt }
+ *       Fetches the live page at the given URL and extracts <title> + meta description.
+ *       Used by the frontend to cross-check the seller's entered title/description
+ *       against what is actually published — required for AI auto-approval.
+ *
+ *  POST /api/sellmypage   body: { action: "review_listing", listing: { … }, codeFiles: […], liveSiteMeta: {…}, reviewInstructions: "…" }
  *       → { status, reason, aiReviewStatus, aiReviewReason, suggestedPrice, priceReason }
- *       Full AI review: validates URL reachability, flags adult/illegal content,
- *       calculates a fair asking-price range, and returns a structured decision.
+ *       Full AI review: cross-checks uploaded code + live site meta against the
+ *       seller's entered title/description, screens for prohibited content, and
+ *       calculates a fair asking-price range.
  *
  *  POST /api/sellmypage   body: { action: "review_ad", listing: { … } }
  *       → { review_status, review_reason, admin_note, cpm, cpm_reason }
- *       CPM pricing + ad eligibility check for the Promote modal.
  *
  *  POST /api/sellmypage   body: { action: "validate_url", url: "…" }
- *       → { ok: bool, reachable: bool, isAdult: bool, reason: "…" }
- *       Attempts a HEAD request to the URL and returns reachability + a quick
- *       heuristic adult-content check (keyword scan on the final URL path/domain).
+ *       → { ok, reachable, isAdult, reason }
  *
  * ─── CORS ─────────────────────────────────────────────────────────────────────
  * Allows requests from any origin (tighten to your domain in production).
@@ -54,8 +59,6 @@ function err(msg, status = 400) {
 }
 
 // ─── Adult-content keyword heuristic ─────────────────────────────────────────
-// A lightweight domain/path scan. This is NOT a substitute for a full content
-// classifier — it is a fast first gate before the AI call.
 const ADULT_KEYWORDS = [
   "porn", "xxx", "adult", "sex", "nude", "nsfw", "escort",
   "onlyfans", "hentai", "erotic", "fetish", "milf", "cam4",
@@ -79,10 +82,10 @@ async function callGroq(systemPrompt, userContent, maxTokens = 400) {
       Authorization: `Bearer ${groqKey}`,
     },
     body: JSON.stringify({
-      model: "llama3-70b-8192",          // fast + cheap; swap to mixtral-8x7b if preferred
-      temperature: 0.15,                 // low temp → more deterministic JSON
+      model: "llama3-70b-8192",
+      temperature: 0.15,
       max_tokens: maxTokens,
-      response_format: { type: "json_object" }, // Groq enforces valid JSON output
+      response_format: { type: "json_object" },
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user",   content: userContent  },
@@ -97,16 +100,20 @@ async function callGroq(systemPrompt, userContent, maxTokens = 400) {
 
   const data = await res.json();
   const raw  = data?.choices?.[0]?.message?.content || "{}";
-
-  // Strip any accidental markdown fences (model occasionally adds them)
   const clean = raw.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
   return JSON.parse(clean);
 }
 
 
+// ─── ACTION: imgur_token ─────────────────────────────────────────────────────
+function handleImgurToken() {
+  const clientId = process.env.IMGUR_CLIENT_ID;
+  if (!clientId) return err("IMGUR_CLIENT_ID not configured", 500);
+  return json({ clientId });
+}
+
+
 // ─── ACTION: upload_image ─────────────────────────────────────────────────────
-// Receives a base64-encoded image from the browser, uploads to Imgur server-side,
-// and returns the public URL. Keeps IMGUR_CLIENT_ID out of the browser entirely.
 async function handleUploadImage(body) {
   const { image, type } = body;
   if (!image || typeof image !== "string") return err("image (base64) is required");
@@ -114,17 +121,15 @@ async function handleUploadImage(body) {
   const clientId = process.env.IMGUR_CLIENT_ID;
   if (!clientId) return err("IMGUR_CLIENT_ID not configured", 500);
 
-  // Validate it's actually an image type
   const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
   if (type && !allowedTypes.includes(type.toLowerCase())) {
     return err("Only JPEG, PNG, GIF, and WebP images are accepted.");
   }
 
-  // Size guard — base64 is ~133% of original; 10MB original ≈ 13.3MB base64
+  // base64 is ~133% of original; 10MB original ≈ 13.3MB base64
   if (image.length > 14_000_000) return err("Image exceeds 10MB limit.");
 
   const formData = new FormData();
-  // Imgur accepts raw base64 directly in the 'image' field
   formData.append("image", image);
   formData.append("type",  "base64");
 
@@ -145,23 +150,92 @@ async function handleUploadImage(body) {
   return json({ url: data.data.link, deleteHash: data.data.deletehash });
 }
 
-// ─── ACTION: imgur_token ─────────────────────────────────────────────────────
-function handleImgurToken() {
-  const clientId = process.env.IMGUR_CLIENT_ID;
-  if (!clientId) return err("IMGUR_CLIENT_ID not configured", 500);
-  return json({ clientId });
+
+// ─── ACTION: fetch_site_meta ──────────────────────────────────────────────────
+// Fetches the live page at the given URL and extracts <title> + meta description.
+// The frontend uses this to cross-check the seller's entered title/description
+// against what is actually published at the URL before sending to AI review.
+// If the fetch fails, returns nulls — the AI will then refuse to auto-approve.
+async function handleFetchSiteMeta(body) {
+  const { url } = body;
+  if (!url || typeof url !== "string") return err("url is required");
+
+  let href = url.trim();
+  if (!/^https?:\/\//i.test(href)) href = "https://" + href;
+
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 6000);
+
+    const res = await fetch(href, {
+      redirect: "follow",
+      signal:   controller.signal,
+      headers: {
+        "User-Agent": "Siterifty-Bot/1.0 (+https://siterifty.com)",
+        "Accept":     "text/html",
+      },
+    });
+    clearTimeout(timer);
+
+    if (!res.ok) {
+      return json({
+        title: null, description: null, fetchedAt: null,
+        error: `Site returned HTTP ${res.status}`,
+      });
+    }
+
+    // Read only the first 20KB — enough to capture <head> without downloading
+    // full pages. We use a reader so we don't buffer the entire response.
+    const reader   = res.body.getReader();
+    const decoder  = new TextDecoder("utf-8");
+    let   html     = "";
+    const MAX_BYTES = 20_000;
+
+    while (html.length < MAX_BYTES) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      html += decoder.decode(value, { stream: true });
+    }
+    reader.cancel();
+
+    // Extract <title>
+    const titleMatch = html.match(/<title[^>]*>([^<]{1,200})<\/title>/i);
+
+    // Extract meta description — handles both attribute orders
+    const descMatch =
+      html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']{1,400})["']/i) ||
+      html.match(/<meta[^>]+content=["']([^"']{1,400})["'][^>]+name=["']description["']/i);
+
+    // Also grab og:title and og:description as fallbacks
+    const ogTitleMatch =
+      html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']{1,200})["']/i) ||
+      html.match(/<meta[^>]+content=["']([^"']{1,200})["'][^>]+property=["']og:title["']/i);
+
+    const ogDescMatch =
+      html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']{1,400})["']/i) ||
+      html.match(/<meta[^>]+content=["']([^"']{1,400})["'][^>]+property=["']og:description["']/i);
+
+    const title       = titleMatch?.[1]?.trim()   || ogTitleMatch?.[1]?.trim() || null;
+    const description = descMatch?.[1]?.trim()    || ogDescMatch?.[1]?.trim()  || null;
+
+    return json({ title, description, fetchedAt: Date.now() });
+
+  } catch (e) {
+    // Non-fatal — frontend treats null title/description as "fetch failed"
+    // and the AI will refuse to auto-approve without live verification.
+    return json({ title: null, description: null, fetchedAt: null, error: e.message });
+  }
 }
+
 
 // ─── ACTION: validate_url ────────────────────────────────────────────────────
 async function handleValidateUrl(body) {
   const { url } = body;
   if (!url || typeof url !== "string") return err("url is required");
 
-  // Normalise
   let href = url.trim();
   if (!/^https?:\/\//i.test(href)) href = "https://" + href;
 
-  // Quick heuristic adult check before any network call
   if (quickAdultCheck(href)) {
     return json({
       ok: false, reachable: false, isAdult: true,
@@ -169,17 +243,16 @@ async function handleValidateUrl(body) {
     });
   }
 
-  // Attempt HEAD request (5-second timeout)
   let reachable = false;
   let finalUrl  = href;
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 5000);
     const headRes = await fetch(href, {
-      method: "HEAD",
+      method:   "HEAD",
       redirect: "follow",
-      signal: controller.signal,
-      headers: { "User-Agent": "Siterifty-Bot/1.0 (+https://siterifty.com)" },
+      signal:   controller.signal,
+      headers:  { "User-Agent": "Siterifty-Bot/1.0 (+https://siterifty.com)" },
     });
     clearTimeout(timer);
     reachable = headRes.ok || headRes.status < 400;
@@ -188,7 +261,6 @@ async function handleValidateUrl(body) {
     reachable = false;
   }
 
-  // Second adult check on resolved URL (handles redirect chains)
   if (quickAdultCheck(finalUrl)) {
     return json({
       ok: false, reachable, isAdult: true,
@@ -206,9 +278,16 @@ async function handleValidateUrl(body) {
   return json({ ok: true, reachable: true, isAdult: false, reason: "URL is live and accessible." });
 }
 
+
 // ─── ACTION: review_listing ───────────────────────────────────────────────────
 async function handleReviewListing(body) {
-  const { listing } = body;
+  const {
+    listing,
+    codeFiles        = [],   // [{ filename, content }] — uploaded source files
+    liveSiteMeta     = null, // { title, description } — fetched from the live URL
+    reviewInstructions = "", // override instructions from the frontend
+  } = body;
+
   if (!listing || typeof listing !== "object") return err("listing object is required");
 
   const {
@@ -216,7 +295,7 @@ async function handleReviewListing(body) {
     category = "", age = "", revenue, traffic, expenses,
   } = listing;
 
-  // Fast heuristic checks before the AI call
+  // ── Fast heuristic checks before the AI call ──
   if (quickAdultCheck(url) || quickAdultCheck(title) || quickAdultCheck(description)) {
     return json({
       status: "rejected",
@@ -228,11 +307,31 @@ async function handleReviewListing(body) {
     });
   }
 
+  // ── Build code file context (capped at 3000 chars per file, max 3 files) ──
+  const codeContext = codeFiles.length
+    ? codeFiles
+        .slice(0, 3)
+        .map(f => `\n\n--- ${f.filename} ---\n${String(f.content).slice(0, 3000)}`)
+        .join("")
+    : "No code files provided.";
+
+  // ── Build live site meta context ──
+  const liveContext = liveSiteMeta?.title || liveSiteMeta?.description
+    ? `Live site <title>: "${liveSiteMeta.title || "not found"}"\nLive meta description: "${liveSiteMeta.description || "not found"}"`
+    : "Live site meta could not be fetched.";
+
+  const liveFetched = !!(liveSiteMeta?.title || liveSiteMeta?.description);
+
+  // ── System prompt ──
   const systemPrompt = `You are the listing-review AI for Siterifty, a legitimate website marketplace.
+
 Your job is to:
-1. Screen listings for prohibited content.
-2. Calculate a fair market price range.
-3. Return ONLY a valid JSON object — no markdown, no commentary.
+1. Verify the seller actually owns the site they are listing, by cross-checking:
+   - The uploaded source code files (do they match the declared URL / site identity?)
+   - The live site's <title> and meta description (do they match what the seller entered?)
+2. Screen for prohibited content.
+3. Calculate a fair market price range.
+4. Return ONLY a valid JSON object — no markdown, no commentary.
 
 Output schema (all fields required):
 {
@@ -244,32 +343,55 @@ Output schema (all fields required):
   "priceReason": "<one sentence explaining price logic>"
 }
 
+Ownership verification rules:
+- You may only return "approved" when ALL of the following are true:
+    (a) Live site meta was successfully fetched (not null).
+    (b) The seller's entered title is reasonably consistent with the live site <title>.
+    (c) The seller's entered description is reasonably consistent with the live meta description OR the uploaded code clearly belongs to the declared site.
+- If live site meta is null/missing → return "pending_admin". Never auto-approve without live verification.
+- If the entered title/description clearly does not match the live site → return "pending_admin" or "rejected" depending on severity.
+- If the uploaded code files are present but belong to a different site → return "pending_admin".
+
 Content rules:
-- rejected: adult/explicit/porn, gambling, illegal drugs/weapons/services, obvious scams, hate speech, dark-web services.
-- pending_admin: suspiciously vague description, price is more than 20x annual revenue, brand new site with very high valuation, anything borderline.
-- approved: everything else that is a legitimate website or online business.
+- rejected:       adult/explicit/porn, gambling, illegal drugs/weapons/services, obvious scams, hate speech, dark-web services.
+- pending_admin:  live site meta unavailable, title/description mismatch, suspiciously vague description, price >20x annual revenue, brand-new site with very high valuation, borderline content.
+- approved:       legitimate website/online business where ownership is verified and content is clean.
 
 Price guidance (standard multiples used by website brokers):
-- Revenue-generating sites: 2-4x annual net profit (revenue minus expenses).
-- Traffic-based (no revenue): $0.50-$3 per monthly unique visitor depending on niche.
-- SaaS tools: 3-5x ARR.
-- Newsletters: 24-36x monthly revenue.
-- Blogs/content: 30-40x monthly revenue.
+- Revenue-generating sites: 2–4× annual net profit (revenue minus expenses).
+- Traffic-based (no revenue): $0.50–$3 per monthly unique visitor depending on niche.
+- SaaS tools: 3–5× ARR.
+- Newsletters: 24–36× monthly revenue.
+- Blogs/content: 30–40× monthly revenue.
 - If no financials given, estimate conservatively based on category and site age.
 - Always return suggestedPriceMin and suggestedPriceMax as a realistic range.
-- If you cannot price it (e.g. rejected), return null for all price fields.`;
+- If rejected, return null for all price fields.`;
 
+  // ── User content — everything the AI needs ──
   const userContent = JSON.stringify({
-    title, url, description, category, age,
-    askingPrice:     price    ?? null,
-    monthlyRevenue:  revenue  ?? null,
-    monthlyTraffic:  traffic  ?? null,
-    monthlyExpenses: expenses ?? null,
+    listingEnteredBySeller: {
+      title,
+      url,
+      description,
+      category,
+      age,
+      askingPrice:     price    ?? null,
+      monthlyRevenue:  revenue  ?? null,
+      monthlyTraffic:  traffic  ?? null,
+      monthlyExpenses: expenses ?? null,
+    },
+    liveSiteMetaFetched:   liveContext,
+    uploadedCodeSnippets:  codeContext,
+    reviewInstructions:    reviewInstructions || (
+      liveFetched
+        ? "Auto-approve ONLY if the entered title/description match the live site AND the uploaded code clearly belongs to this site. Otherwise return pending_admin."
+        : "Live site meta could not be fetched. You MUST return pending_admin — do not auto-approve without live site verification."
+    ),
   });
 
   let parsed;
   try {
-    parsed = await callGroq(systemPrompt, userContent, 400);
+    parsed = await callGroq(systemPrompt, userContent, 500);
   } catch (aiErr) {
     return json({
       status: "pending_admin",
@@ -293,6 +415,7 @@ Price guidance (standard multiples used by website brokers):
   });
 }
 
+
 // ─── ACTION: review_ad ───────────────────────────────────────────────────────
 async function handleReviewAd(body) {
   const { listing } = body;
@@ -300,7 +423,6 @@ async function handleReviewAd(body) {
 
   const { title = "", url = "", category = "", price = "" } = listing;
 
-  // Fast heuristic
   if (quickAdultCheck(url) || quickAdultCheck(title)) {
     return json({
       review_status: "rejected",
@@ -360,6 +482,7 @@ Increase CPM toward the upper end for higher asking price and well-known categor
   });
 }
 
+
 // ─── MAIN HANDLER (Vercel Edge / Node.js) ────────────────────────────────────
 export default async function handler(req) {
   // Preflight
@@ -386,12 +509,21 @@ export default async function handler(req) {
 
     const { action } = body;
 
-    switch (action) {
-      case "review_listing": return handleReviewListing(body);
-      case "review_ad":      return handleReviewAd(body);
-      case "validate_url":   return handleValidateUrl(body);
-      default:
-        return err(`Unknown action "${action}". Valid: review_listing | review_ad | validate_url`);
+    try {
+      switch (action) {
+        case "review_listing":  return await handleReviewListing(body);
+        case "review_ad":       return await handleReviewAd(body);
+        case "validate_url":    return await handleValidateUrl(body);
+        case "upload_image":    return await handleUploadImage(body);
+        case "fetch_site_meta": return await handleFetchSiteMeta(body);
+        default:
+          return err(`Unknown action "${action}". Valid: review_listing | review_ad | validate_url | upload_image | fetch_site_meta`);
+      }
+    } catch (e) {
+      // Catch any unhandled throws from handlers so the API never returns a 500
+      // with an empty body — always returns structured JSON.
+      console.error("[sellmypage] Unhandled error:", e);
+      return json({ error: "Internal server error: " + e.message }, 500);
     }
   }
 
@@ -400,5 +532,5 @@ export default async function handler(req) {
 
 // ─── Vercel config ────────────────────────────────────────────────────────────
 export const config = {
-  runtime: "edge", // Vercel Edge Runtime — fast cold starts, global CDN
+  runtime: "edge",
 };
