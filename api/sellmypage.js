@@ -8,12 +8,6 @@
  *
  * ─── ACTIONS ──────────────────────────────────────────────────────────────────
  *
- *  GET  /api/sellmypage?action=imgur_token
- *       → { clientId: "…" }
- *
- *  POST /api/sellmypage   body: { action: "upload_image", image: "<base64>", type: "image/jpeg" }
- *       → { url, deleteHash }
- *
  *  POST /api/sellmypage   body: { action: "fetch_site_meta", url: "…" }
  *       → { title, description, fetchedAt }
  *
@@ -30,10 +24,6 @@
  * Allows requests from any origin (tighten to your domain in production).
  * ─────────────────────────────────────────────────────────────────────────────
  */
-
-// ─── Imgur credentials (hardcoded) ───────────────────────────────────────────
-const IMGUR_CLIENT_ID     = "891e5bb4aa94282";
-const IMGUR_CLIENT_SECRET = "6d052dffa6fa44db03230e593a576e325f31351e";
 
 // ─── Helper: CORS headers ────────────────────────────────────────────────────
 const CORS = {
@@ -99,47 +89,6 @@ async function callGroq(systemPrompt, userContent, maxTokens = 400) {
   const raw  = data?.choices?.[0]?.message?.content || "{}";
   const clean = raw.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
   return JSON.parse(clean);
-}
-
-
-// ─── ACTION: imgur_token ─────────────────────────────────────────────────────
-function handleImgurToken() {
-  return json({ clientId: IMGUR_CLIENT_ID });
-}
-
-
-// ─── ACTION: upload_image ─────────────────────────────────────────────────────
-async function handleUploadImage(body) {
-  const { image, type } = body;
-  if (!image || typeof image !== "string") return err("image (base64) is required");
-
-  const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
-  if (type && !allowedTypes.includes(type.toLowerCase())) {
-    return err("Only JPEG, PNG, GIF, and WebP images are accepted.");
-  }
-
-  // base64 is ~133% of original; 10MB original ≈ 13.3MB base64
-  if (image.length > 14_000_000) return err("Image exceeds 10MB limit.");
-
-  const formData = new FormData();
-  formData.append("image", image);
-  formData.append("type",  "base64");
-
-  const res = await fetch("https://api.imgur.com/3/image", {
-    method:  "POST",
-    headers: { Authorization: "Client-ID " + IMGUR_CLIENT_ID },
-    body:    formData,
-  });
-
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error("Imgur " + res.status + ": " + txt.slice(0, 100));
-  }
-
-  const data = await res.json();
-  if (!data.success) throw new Error(data.data?.error || "Imgur upload failed");
-
-  return json({ url: data.data.link, deleteHash: data.data.deletehash });
 }
 
 
@@ -466,14 +415,6 @@ export default async function handler(req) {
     return new Response(null, { status: 204, headers: CORS });
   }
 
-  // ── GET requests ──
-  if (req.method === "GET") {
-    const { searchParams } = new URL(req.url, "http://localhost");
-    const action = searchParams.get("action");
-    if (action === "imgur_token") return handleImgurToken();
-    return err("Unknown GET action. Use ?action=imgur_token", 400);
-  }
-
   // ── POST requests ──
   if (req.method === "POST") {
     let body;
@@ -490,10 +431,9 @@ export default async function handler(req) {
         case "review_listing":  return await handleReviewListing(body);
         case "review_ad":       return await handleReviewAd(body);
         case "validate_url":    return await handleValidateUrl(body);
-        case "upload_image":    return await handleUploadImage(body);
         case "fetch_site_meta": return await handleFetchSiteMeta(body);
         default:
-          return err(`Unknown action "${action}". Valid: review_listing | review_ad | validate_url | upload_image | fetch_site_meta`);
+          return err(`Unknown action "${action}". Valid: review_listing | review_ad | validate_url | fetch_site_meta`);
       }
     } catch (e) {
       console.error("[sellmypage] Unhandled error:", e);
