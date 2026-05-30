@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#070710">
+    <link rel="icon" type="image/jpeg" href="https://i.imgur.com/8EEl86u.jpeg">
+    <link rel="shortcut icon" type="image/jpeg" href="https://i.imgur.com/8EEl86u.jpeg">
+    <link rel="apple-touch-icon" href="https://i.imgur.com/8EEl86u.jpeg">
+    <title>Listing — Siterifty</title>
+    <meta name="robots" content="noindex">
+    <link rel="dns-prefetch" href="//fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #070710;
+            --surface: #0e0e1c;
+            --surface2: #141426;
+            --surface3: #1a1a30;
+            --border: rgba(255,255,255,0.06);
+            --border-hover: rgba(255,255,255,0.14);
+            --accent: #9b5de5;
+            --accent2: #e879a0;
+            --accent3: #38bdf8;
+            --accent-glow: rgba(155,93,229,0.15);
+            --green: #2dd4a0;
+            --yellow: #f5c842;
+            --red: #f87171;
+            --text: #ede9ff;
+            --text2: #b8b3d8;
+            --muted: #6b6890;
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 18px;
+            --radius-xl: 24px;
+        }
+        *, *::before, *::after {
+            font-family: 'DM Sans', sans-serif;
+            box-sizing: border-box;
+            margin: 0; padding: 0;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        input, textarea, select { user-select: text; -webkit-user-select: text; }
+        * { scrollbar-width: none; -ms-overflow-style: none; }
+        *::-webkit-scrollbar { display: none; }
+        html { background: var(--bg); overflow-x: hidden; }
+        body {
+            background: var(--bg);
+            min-height: 100svh;
+            padding-top: 64px;
+            -webkit-overflow-scrolling: touch;
+        }
+        body.modal-open {
+            position: fixed; top: var(--scroll-y, 0); left: 0; right: 0; overflow: hidden;
+        }
+
+        /* ── LOGO ANIMATION ── */
+        @keyframes blade-chase {
+            0%   { opacity: .12 } 5%  { opacity: 1 }
+            25%  { opacity: .18 } 100%{ opacity: .12 }
+        }
+        .blade { animation: blade-chase 1.4s linear infinite; }
+        .b-1  { animation-delay: -1.40s } .b-2  { animation-delay: -1.26s }
+        .b-3  { animation-delay: -1.12s } .b-4  { animation-delay: -0.98s }
+        .b-5  { animation-delay: -0.84s } .b-6  { animation-delay: -0.70s }
+        .b-7  { animation-delay: -0.56s } .b-8  { animation-delay: -0.42s }
+        .b-9  { animation-delay: -0.28s } .b-10 { animation-delay: -0.14s }
+
+        @keyframes line-slide { 0%{transform:translateX(-100%)} 100%{transform:translateX(500%)} }
+        @keyframes modalPop { 0%{opacity:0;transform:scale(.94) translateY(8px)} 100%{opacity:1;transform:scale(1) translateY(0)} }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:none} }
+        @keyframes shimmer {
+            0%   { background-position: 200% 0 }
+            100% { background-position: -200% 0 }
+        }
+
+        /* ── HEADER ── */
+        header {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            height: 64px; padding: 0 20px;
+            padding-left: max(20px, env(safe-area-inset-left));
+            padding-right: max(20px, env(safe-area-inset-right));
+            display: flex; align-items: center; justify-content: space-between; gap: 12px;
+            background: rgba(7,7,16,0.85);
+            backdrop-filter: blur(32px) saturate(180%);
+            -webkit-backdrop-filter: blur(32px) saturate(180%);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        header::after {
+            content: ''; position: absolute; bottom: -1px; left: 0;
+            width: 22%; height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent), var(--accent2), transparent);
+            animation: line-slide 4s ease-in-out infinite;
+        }
+        .wordmark {
+            font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.05rem;
+            letter-spacing: -0.05em; color: var(--text); white-space: nowrap; text-decoration: none;
+        }
+        .wordmark span {
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+            font-weight: 500;
+        }
+        .header-right { display: flex; align-items: center; gap: 10px; }
+        .avatar {
+            width: 34px; height: 34px; border-radius: 999px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            border: 1.5px solid rgba(255,255,255,0.1);
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: #fff;
+            flex-shrink: 0; cursor: pointer; overflow: hidden;
+            transition: opacity .15s, transform .15s;
+        }
+        .avatar:hover { opacity: .85; transform: scale(1.05); }
+        .avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 999px; display: block; }
+        .back-btn {
+            display: inline-flex; align-items: center; gap: 5px;
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: 999px; padding: 6px 13px;
+            font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 600;
+            color: var(--muted); cursor: pointer; text-decoration: none;
+            transition: background .15s, color .15s, border-color .15s;
+            white-space: nowrap;
+        }
+        .back-btn:hover { background: var(--surface3); color: var(--text); border-color: var(--border-hover); }
+
+        /* ── PAGE LAYOUT ── */
+        .page-wrap {
+            max-width: 680px; margin: 0 auto;
+            padding: 24px 16px 80px;
+            padding-bottom: max(80px, calc(80px + env(safe-area-inset-bottom)));
+            animation: fadeUp .35s ease both;
+        }
+        .breadcrumb {
+            display: flex; align-items: center; gap: 8px; margin-bottom: 20px;
+        }
+        .breadcrumb-sep { color: rgba(255,255,255,0.2); font-size: 11px; }
+        .breadcrumb-current { font-size: 11px; color: var(--text2); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+
+        /* ── IMAGE GALLERY ── */
+        .gallery-wrap {
+            position: relative;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            background: var(--surface);
+            aspect-ratio: 16/9;
+            margin-bottom: 20px;
+        }
+        .gallery-img {
+            width: 100%; height: 100%; object-fit: cover;
+            display: none; animation: fadeUp .2s ease;
+        }
+        .gallery-img.active { display: block; }
+        .gallery-fallback {
+            width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, rgba(155,93,229,.09), rgba(56,189,248,.06));
+            font-family: 'Syne', sans-serif; font-size: 36px; font-weight: 800;
+            color: rgba(255,255,255,.1); letter-spacing: -0.03em;
+        }
+        .gallery-dots {
+            position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 5px; z-index: 2;
+        }
+        .gallery-dot {
+            width: 6px; height: 6px; border-radius: 999px;
+            background: rgba(255,255,255,.3); cursor: pointer;
+            transition: background .15s, transform .15s;
+        }
+        .gallery-dot.active { background: #fff; transform: scale(1.2); }
+        .gallery-arrow {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            width: 32px; height: 32px; border-radius: 999px;
+            background: rgba(7,7,16,.65); backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,.14);
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; cursor: pointer; z-index: 2;
+            transition: background .15s; font-size: 14px;
+        }
+        .gallery-arrow:hover { background: rgba(155,93,229,.4); }
+        .gallery-arrow.prev { left: 10px; }
+        .gallery-arrow.next { right: 10px; }
+        .gallery-count {
+            position: absolute; top: 10px; right: 10px;
+            background: rgba(7,7,16,.7); backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,.1);
+            border-radius: 999px; padding: 3px 9px;
+            font-size: 10px; font-weight: 600; color: rgba(255,255,255,.7);
+        }
+
+        /* ── SKELETON ── */
+        .skel {
+            border-radius: 8px;
+            background: linear-gradient(90deg, var(--surface2) 25%, #1c1c2e 50%, var(--surface2) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.8s infinite;
+        }
+
+        /* ── TITLE AREA ── */
+        .listing-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.4rem; font-weight: 800;
+            letter-spacing: -0.04em; color: var(--text);
+            margin-bottom: 6px; line-height: 1.2;
+        }
+        .listing-url {
+            font-size: 12px; color: var(--accent3);
+            opacity: .8; margin-bottom: 12px;
+            display: flex; align-items: center; gap: 5px;
+        }
+        .listing-url a { color: inherit; text-decoration: none; }
+        .listing-url a:hover { text-decoration: underline; }
+        .tag-row {
+            display: flex; align-items: center; gap: 6px;
+            flex-wrap: wrap; margin-bottom: 16px;
+        }
+        .tag-pill {
+            background: rgba(255,255,255,.04); border: 1px solid var(--border);
+            border-radius: 6px; padding: 3px 9px;
+            font-size: 9.5px; font-weight: 600; color: var(--muted);
+            letter-spacing: .05em; text-transform: uppercase; white-space: nowrap;
+        }
+        .tag-pill.cat { border-color: rgba(155,93,229,.3); color: var(--accent); background: rgba(155,93,229,.07); }
+        .tag-pill.featured { border-color: rgba(155,93,229,.3); color: var(--accent); background: rgba(155,93,229,.07); }
+        .tag-pill.sponsored { border-color: rgba(245,200,66,.3); color: var(--yellow); background: rgba(245,200,66,.07); }
+        .time-pill {
+            font-size: 9.5px; color: var(--muted);
+            display: flex; align-items: center; gap: 4px;
+        }
+
+        /* ── PRICE BLOCK ── */
+        .price-block {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 10px; flex-wrap: wrap; margin-bottom: 20px;
+        }
+        .price-big {
+            font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800;
+            letter-spacing: -0.05em; color: var(--text);
+        }
+        .price-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+        /* ── ACTION BUTTONS ── */
+        .action-row {
+            display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: wrap;
+        }
+        .btn-primary {
+            flex: 1; min-width: 140px;
+            display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+            padding: 13px 20px; border-radius: var(--radius-md);
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            border: none; color: #fff;
+            font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700;
+            cursor: pointer; text-decoration: none;
+            transition: opacity .15s, transform .12s;
+            white-space: nowrap; letter-spacing: .01em;
+        }
+        .btn-primary:hover { opacity: .88; }
+        .btn-primary:active { transform: scale(.97); }
+        .btn-primary:disabled { opacity: .45; cursor: default; transform: none; }
+        .btn-secondary {
+            display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+            padding: 13px 18px; border-radius: var(--radius-md);
+            background: var(--surface2); border: 1px solid var(--border);
+            color: var(--text2); font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 600;
+            cursor: pointer; text-decoration: none;
+            transition: background .15s, border-color .15s, color .15s;
+            white-space: nowrap;
+        }
+        .btn-secondary:hover { background: var(--surface3); border-color: var(--border-hover); color: var(--text); }
+        .btn-save {
+            width: 46px; height: 46px; border-radius: var(--radius-md);
+            background: var(--surface2); border: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--muted); cursor: pointer;
+            transition: background .15s, border-color .15s, color .15s;
+            flex-shrink: 0;
+        }
+        .btn-save:hover { background: rgba(168,85,247,.12); border-color: rgba(168,85,247,.3); color: var(--accent); }
+        .btn-save.saved { background: rgba(168,85,247,.85); border-color: rgba(168,85,247,.6); color: #fff; }
+
+        /* ── REVEAL BUTTON STATE ── */
+        .btn-reveal-done {
+            background: rgba(45,212,160,.08);
+            border: 1px solid rgba(45,212,160,.25);
+            border-radius: var(--radius-md);
+            padding: 13px 18px;
+            display: inline-flex; align-items: center; gap: 7px;
+            color: var(--green); font-family: 'Syne', sans-serif;
+            font-size: 13px; font-weight: 700;
+            white-space: nowrap; flex: 1; min-width: 140px;
+            justify-content: center;
+        }
+
+        /* ── SECTION CARD ── */
+        .section-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 18px;
+            margin-bottom: 14px;
+        }
+        .section-title {
+            font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 700;
+            letter-spacing: .1em; text-transform: uppercase;
+            color: var(--muted); margin-bottom: 14px;
+        }
+
+        /* ── FINANCIALS GRID ── */
+        .fin-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr);
+            gap: 1px; background: var(--border);
+            border-radius: var(--radius-md); overflow: hidden;
+        }
+        .fin-cell {
+            background: var(--surface2);
+            padding: 12px 14px;
+            display: flex; flex-direction: column; gap: 3px;
+        }
+        .fin-label {
+            font-size: 8.5px; font-weight: 600; letter-spacing: .08em;
+            text-transform: uppercase; color: rgba(107,104,144,.6);
+        }
+        .fin-val {
+            font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+        .fin-val.income  { color: var(--green); }
+        .fin-val.expense { color: var(--red); }
+        .fin-val.profit-pos  { color: var(--green); }
+        .fin-val.profit-neg  { color: var(--red); }
+        .fin-val.neutral { color: var(--muted); }
+        .fin-val.price-val { color: var(--text); }
+        .fin-sub { font-size: 9px; color: var(--muted); margin-top: 1px; }
+
+        /* ── METRICS ROW ── */
+        .metrics-row {
+            display: grid; grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        .metric-cell {
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: var(--radius-md); padding: 12px 14px;
+        }
+        .metric-label { font-size: 8.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 5px; }
+        .metric-val { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 800; color: var(--text); letter-spacing: -0.02em; }
+        .metric-sub { font-size: 9px; color: var(--muted); margin-top: 2px; }
+
+        /* ── DESCRIPTION ── */
+        .desc-text {
+            font-size: 13px; color: var(--text2); line-height: 1.7;
+            white-space: pre-wrap;
+        }
+
+        /* ── SELLER CARD ── */
+        .seller-wrap {
+            display: flex; align-items: center; gap: 14px;
+        }
+        .seller-avatar {
+            width: 48px; height: 48px; border-radius: 999px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800;
+            color: #fff; flex-shrink: 0; overflow: hidden;
+        }
+        .seller-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 999px; display: block; }
+        .seller-info { flex: 1; min-width: 0; }
+        .seller-name {
+            font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700;
+            color: var(--text); letter-spacing: -0.02em; margin-bottom: 3px;
+        }
+        .seller-meta { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .seller-plan-badge {
+            display: inline-flex; align-items: center; gap: 4px;
+            border-radius: 999px; padding: 2px 8px;
+            font-size: 8.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+            border: 1px solid transparent; white-space: nowrap;
+        }
+        .plan-free    { background: rgba(120,80,40,.14); border-color: rgba(160,100,50,.3) !important; color: #b87840; }
+        .plan-starter { background: rgba(155,93,229,.1);  border-color: rgba(155,93,229,.28) !important; color: var(--accent); }
+        .plan-growth  { background: rgba(232,121,160,.1); border-color: rgba(232,121,160,.28) !important; color: var(--accent2); }
+        .plan-pro     { background: rgba(56,189,248,.1);  border-color: rgba(56,189,248,.28) !important; color: var(--accent3); }
+
+        /* ── STARS ── */
+        .stars-row { display: flex; align-items: center; gap: 3px; margin-top: 4px; }
+        .stars-row svg { display: block; }
+        .stars-count { font-size: 11px; color: var(--muted); margin-left: 4px; }
+        .stars-count.has-ratings { color: var(--yellow); font-weight: 600; }
+
+        /* ── RATE SECTION ── */
+        .rate-wrap { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+        .rate-label { font-size: 11px; color: var(--muted); }
+        .rate-stars-input { display: flex; gap: 6px; }
+        .rate-star {
+            width: 32px; height: 32px; cursor: pointer;
+            color: rgba(107,104,144,.35);
+            transition: color .12s, transform .1s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .rate-star:hover, .rate-star.active { color: var(--yellow); transform: scale(1.15); }
+        .rate-submit {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 9px 16px; border-radius: var(--radius-md);
+            background: rgba(245,200,66,.08); border: 1px solid rgba(245,200,66,.2);
+            color: var(--yellow); font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700;
+            cursor: pointer; transition: background .15s;
+            align-self: flex-start;
+        }
+        .rate-submit:hover { background: rgba(245,200,66,.14); }
+        .rate-submit:disabled { opacity: .45; cursor: default; }
+        .rate-ok { font-size: 11px; color: var(--green); display: none; }
+        .rate-own-notice { font-size: 11px; color: var(--muted); font-style: italic; }
+
+        /* ── TECH TAG ── */
+        .tech-tag {
+            display: inline-block;
+            background: rgba(255,255,255,.04); border: 1px solid var(--border);
+            border-radius: 6px; padding: 4px 10px;
+            font-size: 10px; color: var(--muted); margin: 3px 2px;
+        }
+
+        /* ── DIVIDER ── */
+        .divider { height: 1px; background: var(--border); margin: 14px 0; }
+
+        /* ── NOT FOUND ── */
+        #notFound {
+            display: none; text-align: center; padding: 80px 20px;
+        }
+        #notFound h2 { font-family: 'Syne', sans-serif; font-size: 1.4rem; font-weight: 800; color: var(--text); margin-bottom: 8px; }
+        #notFound p { font-size: 13px; color: var(--muted); }
+
+        /* ── AUTH MODAL ── */
+        #authModal {
+            display: none; position: fixed; inset: 0; z-index: 1000;
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(22px) saturate(160%);
+            -webkit-backdrop-filter: blur(22px) saturate(160%);
+            overflow: hidden;
+        }
+        .auth-wrap {
+            height: 100%; display: flex; align-items: center; justify-content: center;
+            padding: 20px 16px;
+        }
+        .auth-box {
+            width: 100%; max-width: 420px;
+            background: linear-gradient(160deg, #16162a 0%, #0f0f1e 100%);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-top: 1px solid rgba(255,255,255,0.18);
+            border-radius: 24px; padding: 32px 28px 32px;
+            position: relative;
+            box-shadow:
+                0 1px 0 rgba(255,255,255,0.1) inset,
+                0 0 0 1px rgba(168,85,247,0.08),
+                0 32px 80px rgba(0,0,0,0.8),
+                0 8px 32px rgba(168,85,247,0.07);
+            animation: modalPop 0.28s cubic-bezier(0.34,1.3,0.64,1) both;
+            overflow-y: auto; -webkit-overflow-scrolling: touch;
+            max-height: 92svh;
+        }
+        @media(max-width:480px){ .auth-box { padding: 26px 20px 28px; border-radius: 20px; } }
+        .auth-close {
+            position: absolute; top: 16px; right: 16px;
+            width: 32px; height: 32px; border-radius: 999px;
+            background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.09);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; color: var(--muted); transition: background .15s, color .15s;
+        }
+        .auth-close:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+        .auth-logo { display: flex; align-items: center; gap: 8px; margin-bottom: 22px; }
+        .auth-logo span { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1rem; letter-spacing: -0.04em; color: var(--text); }
+        .auth-logo span em { background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-style: normal; font-weight: 400; }
+        .auth-title { font-family: 'Syne', sans-serif; font-size: 1.35rem; font-weight: 800; letter-spacing: -0.04em; color: var(--text); margin-bottom: 5px; }
+        .auth-sub { font-size: 12px; color: var(--muted); margin-bottom: 22px; line-height: 1.6; }
+        .auth-label { display: block; font-size: 11px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 7px; }
+        .auth-input { width: 100%; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px 14px; font-size: 15px; color: var(--text); outline: none; transition: border-color .2s, background .2s; margin-bottom: 14px; font-family: 'DM Sans', sans-serif; -webkit-appearance: none; appearance: none; }
+        .auth-input:focus { border-color: rgba(168,85,247,0.55); background: rgba(255,255,255,0.08); }
+        .auth-input::placeholder { color: rgba(139,138,168,0.5); }
+        .auth-btn { width: 100%; padding: 13px; border-radius: 12px; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; border: none; cursor: pointer; transition: opacity .15s, transform .1s; margin-top: 4px; letter-spacing: 0.01em; }
+        .auth-btn:hover { opacity: .88; } .auth-btn:active { transform: scale(0.97); } .auth-btn:disabled { opacity: .45; cursor: default; transform: none; }
+        .auth-google-btn { width: 100%; padding: 12px 16px; border-radius: 12px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: var(--text); font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: background .15s, border-color .15s; margin-bottom: 0; }
+        .auth-google-btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
+        .auth-google-btn:disabled { opacity: .45; cursor: default; }
+        .auth-switch { text-align: center; font-size: 12px; color: var(--muted); margin-top: 18px; }
+        .auth-switch a { color: var(--accent); cursor: pointer; text-decoration: none; font-weight: 500; }
+        .auth-switch a:hover { text-decoration: underline; }
+        .auth-err { font-size: 12px; color: #f87171; background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.2); border-radius: 8px; padding: 9px 12px; margin-bottom: 14px; display: none; }
+        .auth-ok  { font-size: 12px; color: #34d399; background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.2); border-radius: 8px; padding: 9px 12px; margin-bottom: 14px; display: none; }
+        .auth-divider { display: flex; align-items: center; gap: 10px; margin: 18px 0; color: var(--muted); font-size: 11px; }
+        .auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+        /* Auth modal note */
+        .auth-gate-note { text-align: center; padding: 8px 0 0; font-size: 11.5px; color: var(--muted); line-height: 1.6; }
+
+        /* ── TOAST ── */
+        #toast {
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+            background: var(--surface3); border: 1px solid var(--border);
+            border-radius: 999px; padding: 9px 18px;
+            font-size: 12px; font-weight: 500; color: var(--text2);
+            z-index: 2000; opacity: 0; pointer-events: none;
+            transition: opacity .2s, transform .2s;
+            white-space: nowrap;
+        }
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        @media (max-width: 480px) {
+            .listing-title { font-size: 1.2rem; }
+            .price-big { font-size: 1.6rem; }
+            .fin-grid { grid-template-columns: 1fr 1fr; }
+            .fin-grid .fin-cell:last-child { grid-column: 1 / -1; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ══ HEADER ══ -->
+<header>
+    <a href="/" class="wordmark">Siterifty<span>.com</span></a>
+    <div class="header-right">
+        <a href="/browse" class="back-btn">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M7.5 2L3.5 6l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Browse
+        </a>
+        <div class="avatar" id="avatarBtn" onclick="openAuthModal()" title="Account">
+            <svg id="avatarGuestIcon" width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="6" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M2 13c0-3 2.686-5 6-5s6 2 6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+    </div>
+</header>
+
+<!-- ══ PAGE ══ -->
+<div class="page-wrap" id="pageWrap" style="display:none;">
+
+    <!-- Breadcrumb -->
+    <div class="breadcrumb">
+        <a href="/browse" class="back-btn" style="padding:4px 10px;font-size:10px;">← Browse</a>
+        <span class="breadcrumb-sep">/</span>
+        <span class="breadcrumb-current" id="breadTitle">…</span>
+    </div>
+
+    <!-- Gallery -->
+    <div class="gallery-wrap" id="galleryWrap">
+        <div class="gallery-fallback" id="galleryFallback" style="display:none;"></div>
+        <div class="gallery-dots" id="galleryDots"></div>
+        <button class="gallery-arrow prev" id="galleryPrev" onclick="galleryMove(-1)" style="display:none;">‹</button>
+        <button class="gallery-arrow next" id="galleryNext" onclick="galleryMove(1)" style="display:none;">›</button>
+        <div class="gallery-count" id="galleryCount" style="display:none;"></div>
+    </div>
+
+    <!-- Title + tags -->
+    <div class="listing-title" id="listingTitle"></div>
+    <div class="listing-url" id="listingUrl"></div>
+    <div class="tag-row" id="tagRow"></div>
+
+    <!-- Price + actions -->
+    <div class="price-block">
+        <div>
+            <div class="price-big" id="listingPrice"></div>
+            <div class="price-sub">Asking price</div>
+        </div>
+    </div>
+    <div class="action-row" id="actionRow">
+        <!-- filled by JS -->
+    </div>
+
+    <!-- Financials -->
+    <div class="section-card" id="finCard" style="display:none;">
+        <div class="section-title">Financials / Month</div>
+        <div class="fin-grid" id="finGrid"></div>
+    </div>
+
+    <!-- Metrics -->
+    <div class="section-card" id="metricsCard" style="display:none;">
+        <div class="section-title">Site Metrics</div>
+        <div class="metrics-row" id="metricsGrid"></div>
+    </div>
+
+    <!-- Description -->
+    <div class="section-card" id="descCard" style="display:none;">
+        <div class="section-title">About this listing</div>
+        <div class="desc-text" id="descText"></div>
+    </div>
+
+    <!-- Tech / Stack -->
+    <div class="section-card" id="techCard" style="display:none;">
+        <div class="section-title">Tech Stack</div>
+        <div id="techTags"></div>
+    </div>
+
+    <!-- Seller -->
+    <div class="section-card" id="sellerCard">
+        <div class="section-title">Seller</div>
+        <div class="seller-wrap">
+            <div class="seller-avatar" id="sellerAvatar"></div>
+            <div class="seller-info">
+                <div class="seller-name" id="sellerName">—</div>
+                <div class="seller-meta" id="sellerMeta"></div>
+                <div class="stars-row" id="sellerStars"></div>
+            </div>
+        </div>
+
+        <!-- Rate seller (only shown to non-sellers who have revealed) -->
+        <div id="rateWrap" style="display:none;">
+            <div class="divider"></div>
+            <div class="section-title">Rate this seller</div>
+            <div class="rate-wrap">
+                <div class="rate-label">How was your experience with this seller?</div>
+                <div class="rate-stars-input" id="rateStarsInput">
+                    <div class="rate-star" data-val="1" onclick="setRating(1)"><svg width="22" height="22" viewBox="0 0 22 22"><polygon points="11,2 13.39,7.76 19.8,8.27 15.1,12.34 16.56,18.6 11,15.27 5.44,18.6 6.9,12.34 2.2,8.27 8.61,7.76" fill="currentColor"/></svg></div>
+                    <div class="rate-star" data-val="2" onclick="setRating(2)"><svg width="22" height="22" viewBox="0 0 22 22"><polygon points="11,2 13.39,7.76 19.8,8.27 15.1,12.34 16.56,18.6 11,15.27 5.44,18.6 6.9,12.34 2.2,8.27 8.61,7.76" fill="currentColor"/></svg></div>
+                    <div class="rate-star" data-val="3" onclick="setRating(3)"><svg width="22" height="22" viewBox="0 0 22 22"><polygon points="11,2 13.39,7.76 19.8,8.27 15.1,12.34 16.56,18.6 11,15.27 5.44,18.6 6.9,12.34 2.2,8.27 8.61,7.76" fill="currentColor"/></svg></div>
+                    <div class="rate-star" data-val="4" onclick="setRating(4)"><svg width="22" height="22" viewBox="0 0 22 22"><polygon points="11,2 13.39,7.76 19.8,8.27 15.1,12.34 16.56,18.6 11,15.27 5.44,18.6 6.9,12.34 2.2,8.27 8.61,7.76" fill="currentColor"/></svg></div>
+                    <div class="rate-star" data-val="5" onclick="setRating(5)"><svg width="22" height="22" viewBox="0 0 22 22"><polygon points="11,2 13.39,7.76 19.8,8.27 15.1,12.34 16.56,18.6 11,15.27 5.44,18.6 6.9,12.34 2.2,8.27 8.61,7.76" fill="currentColor"/></svg></div>
+                </div>
+                <button class="rate-submit" id="rateSubmitBtn" onclick="submitRating()" disabled>Submit rating</button>
+                <div class="rate-ok" id="rateOk">✓ Rating saved!</div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Not found -->
+<div id="notFound">
+    <h2>Listing not found</h2>
+    <p id="notFoundMsg">This link isn't valid or the listing may have been removed.</p>
+    <br>
+    <a href="/browse" class="btn-primary" style="max-width:180px;margin:0 auto;display:flex;">Browse listings</a>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- ══ AUTH MODAL (exact copy from main) ══ -->
+<div id="authModal">
+    <div class="auth-wrap">
+        <div class="auth-box">
+            <div class="auth-close" onclick="closeAuthModal()">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            </div>
+            <div class="auth-logo">
+                <svg width="22" height="22" viewBox="0 0 28 28"><rect class="blade b-1" x="12.5" y="2" width="3" height="10" rx="1.5" fill="url(#sg2)" transform="rotate(0,14,14)"/><rect class="blade b-3" x="12.5" y="2" width="3" height="10" rx="1.5" fill="url(#sg2)" transform="rotate(72,14,14)"/><rect class="blade b-5" x="12.5" y="2" width="3" height="10" rx="1.5" fill="url(#sg2)" transform="rotate(144,14,14)"/><rect class="blade b-7" x="12.5" y="2" width="3" height="10" rx="1.5" fill="url(#sg2)" transform="rotate(216,14,14)"/><rect class="blade b-9" x="12.5" y="2" width="3" height="10" rx="1.5" fill="url(#sg2)" transform="rotate(288,14,14)"/><circle cx="14" cy="14" r="3" fill="#f472b6"/><defs><linearGradient id="sg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#a855f7"/><stop offset="100%" stop-color="#38bdf8"/></linearGradient></defs></svg>
+                <span>Siterifty<em>.com</em></span>
+            </div>
+
+            <!-- SIGNUP PANEL -->
+            <div id="panelSignup" style="display:none;">
+                <div class="auth-title">Create account</div>
+                <div class="auth-sub">Start listing your websites and digital assets. Free plan to start.</div>
+                <div id="errSignup" class="auth-err"></div>
+                <div id="okSignup" class="auth-ok"></div>
+                <button class="auth-google-btn" id="btnGoogleSignup" onclick="doGoogleAuth()">
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/><path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
+                    Continue with Google
+                </button>
+                <div class="auth-divider">or sign up with email</div>
+                <label class="auth-label">Username</label>
+                <input id="suUsername" class="auth-input" type="text" placeholder="coolperson123" autocomplete="off" spellcheck="false">
+                <label class="auth-label">Email</label>
+                <input id="suEmail" class="auth-input" type="email" placeholder="you@example.com" autocomplete="email">
+                <label class="auth-label">Password</label>
+                <input id="suPassword" class="auth-input" type="password" placeholder="Min. 6 characters" autocomplete="new-password">
+                <button class="auth-btn" id="btnSignup" onclick="doSignup()">Create account →</button>
+                <div class="auth-switch">Already have an account? <a onclick="showPanel('login')">Sign in</a></div>
+            </div>
+
+            <!-- LOGIN PANEL -->
+            <div id="panelLogin" style="display:none;">
+                <div class="auth-title">Welcome back</div>
+                <div class="auth-sub">Sign in to view listing details and contact sellers.</div>
+                <div class="auth-gate-note" style="margin-bottom:16px;">🔒 Sign in to access this listing</div>
+                <div id="errLogin" class="auth-err"></div>
+                <div id="okLogin" class="auth-ok"></div>
+                <button class="auth-google-btn" id="btnGoogleLogin" onclick="doGoogleAuth()">
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/><path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
+                    Continue with Google
+                </button>
+                <div class="auth-divider">or sign in with email</div>
+                <label class="auth-label">Email</label>
+                <input id="liEmail" class="auth-input" type="email" placeholder="you@example.com" autocomplete="email">
+                <label class="auth-label">Password</label>
+                <input id="liPassword" class="auth-input" type="password" placeholder="Your password" autocomplete="current-password">
+                <button class="auth-btn" id="btnLogin" onclick="doLogin()">Sign in →</button>
+                <div class="auth-switch"><a onclick="showPanel('forgot')">Forgot password?</a></div>
+                <div class="auth-switch" style="margin-top:10px;">No account? <a onclick="showPanel('signup')">Sign up free</a></div>
+            </div>
+
+            <!-- FORGOT PANEL -->
+            <div id="panelForgot" style="display:none;">
+                <div class="auth-title">Reset password</div>
+                <div class="auth-sub">Enter your email and we'll send a reset link right away.</div>
+                <div id="errForgot" class="auth-err"></div>
+                <div id="okForgot" class="auth-ok"></div>
+                <label class="auth-label">Email</label>
+                <input id="fpEmail" class="auth-input" type="email" placeholder="you@example.com" autocomplete="email">
+                <button class="auth-btn" id="btnForgot" onclick="doForgot()">Send reset link →</button>
+                <div class="auth-switch"><a onclick="showPanel('login')">← Back to sign in</a></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══ FIREBASE ══ -->
+<script type="module">
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+import {
+    getDatabase, ref, get, set, update, onValue
+} from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+import {
+    getAuth,
+    onAuthStateChanged,
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    sendPasswordResetEmail,
+    GoogleAuthProvider,
+    signInWithPopup
+} from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
+    authDomain: "itzhoyoo-f9f7e.firebaseapp.com",
+    databaseURL: "https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com",
+    projectId: "itzhoyoo-f9f7e",
+    storageBucket: "itzhoyoo-f9f7e.filestorage.app",
+    messagingSenderId: "1094792075584",
+    appId: "1:1094792075584:web:d49e9c3f899d3cd31082a5"
+};
+
+const app  = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+const db   = getDatabase(app);
+const auth = getAuth(app);
+
+window._fbDb   = db;
+window._fbAuth = auth;
+window._fbDbFns = { ref, get, set, update, onValue };
+
+// ── Helpers ──────────────────────────────────────────────
+function $(id){ return document.getElementById(id); }
+function showErr(id, msg){ const el=$(id); if(el){ el.textContent=msg; el.style.display='block'; } }
+function showOk(id, msg) { const el=$(id); if(el){ el.textContent=msg; el.style.display='block'; } }
+function hideMsg(...ids){ ids.forEach(id=>{ const el=$(id); if(el){el.style.display='none'; el.textContent='';} }); }
+function setBtn(id, text, disabled){ const b=$(id); if(b){ b.textContent=text; b.disabled=disabled; } }
+
+// ── Scroll lock ───────────────────────────────────────────
+let _scrollY = 0, _lockCount = 0;
+function lockScroll(){
+    if(_lockCount===0){
+        _scrollY = window.scrollY||0;
+        document.body.style.cssText += `;position:fixed;top:-${_scrollY}px;left:0;right:0;overflow:hidden`;
+    }
+    _lockCount++;
+}
+function unlockScroll(){
+    _lockCount = Math.max(0,_lockCount-1);
+    if(_lockCount===0){
+        document.body.style.position='';document.body.style.top='';
+        document.body.style.left='';document.body.style.right='';document.body.style.overflow='';
+        window.scrollTo({top:_scrollY,behavior:'instant'});
+    }
+}
+window._lockScroll   = lockScroll;
+window._unlockScroll = unlockScroll;
+
+// ── Listing ID from URL  /listing/:id  ───────────────────
+const listingId = (location.pathname.match(/\/listing\/([^/?#]+)/)||[])[1]
+    || new URLSearchParams(location.search).get('id')
+    || null;
+
+// If there's no listing ID at all, show not-found immediately — no point waiting for auth
+if(!listingId) showNotFound();
+
+// ── Auth state gate ───────────────────────────────────────
+// Page requires login. Show modal until signed in, then load listing.
+let _authReady = false;
+let _currentUser = null;
+let _listingData = null;
+let _sellerData  = null;
+
+onAuthStateChanged(auth, async user => {
+    _currentUser = user;
+    updateAvatarUI(user);
+
+    if(!user){
+        // Not logged in — show auth modal (non-dismissible), but only if there's a listing to load
+        if(!listingId){ showNotFound(); return; }
+        $('pageWrap').style.display = 'none';
+        $('notFound').style.display  = 'none';
+        showAuthGate();
+        return;
+    }
+
+    // Logged in — close modal if open
+    closeAuthModal();
+    if(!listingId){ showNotFound(); return; }
+
+    if(!_authReady){
+        _authReady = true;
+        await loadListing(user);
+    }
+});
+
+function showAuthGate(){
+    $('authModal').style.display = 'block';
+    lockScroll();
+    showPanel('login');
+    // Prevent closing by clicking backdrop
+    $('authModal').onclick = null;
+}
+
+// ── Avatar UI ─────────────────────────────────────────────
+const AVATAR_GRADS = [['#9b5de5','#e879a0'],['#38bdf8','#818cf8'],['#2dd4a0','#38bdf8'],['#f5c842','#f97316'],['#e879a0','#fb7185'],['#818cf8','#9b5de5']];
+function gradFor(uid){ if(!uid) return AVATAR_GRADS[0]; let h=0; for(let i=0;i<uid.length;i++) h=(h*31+uid.charCodeAt(i))>>>0; return AVATAR_GRADS[h%AVATAR_GRADS.length]; }
+function gradCSS(uid){ const [c1,c2]=gradFor(uid); return `linear-gradient(135deg,${c1},${c2})`; }
+
+function updateAvatarUI(user){
+    const av = $('avatarBtn');
+    const gi = $('avatarGuestIcon');
+    if(!user){ if(gi) gi.style.display=''; return; }
+    if(gi) gi.style.display='none';
+    av.textContent = '';
+    const [c1,c2] = gradFor(user.uid);
+    av.style.background = `linear-gradient(135deg,${c1},${c2})`;
+    const sp = document.createElement('span');
+    sp.textContent = (user.displayName||user.email||'?').charAt(0).toUpperCase();
+    av.appendChild(sp);
+    // Try photo
+    get(ref(db,'users/'+user.uid+'/photoURL')).then(s=>{
+        const url = s&&s.val();
+        if(url&&av){ av.innerHTML=''; av.style.background='none'; const img=document.createElement('img'); img.src=url; img.alt=''; img.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:999px;display:block;'; av.appendChild(img); }
+    }).catch(()=>{});
+}
+
+// ── Load listing ──────────────────────────────────────────
+async function loadListing(user){
+    try {
+        const snap = await get(ref(db, 'websites/'+listingId));
+        if(!snap.exists()){ showNotFound(); return; }
+        _listingData = { ...snap.val(), listingId };
+        const d = _listingData;
+
+        if((d.status||'').toLowerCase() !== 'live'){ showNotFound(); return; }
+
+        // Load seller profile
+        const sellerUid = d.uid || '';
+        if(sellerUid){
+            const sSnap = await get(ref(db,'users/'+sellerUid));
+            _sellerData = sSnap.val() || {};
+        }
+
+        // Check if current user has already revealed
+        let hasRevealed = false;
+        if(sellerUid && user.uid !== sellerUid){
+            const revSnap = await get(ref(db, `websites/${listingId}/reveals/${user.uid}`));
+            hasRevealed = revSnap.exists();
+        }
+
+        renderListing(d, user, hasRevealed);
+        $('pageWrap').style.display = '';
+
+    } catch(e){
+        console.error('[listing]', e);
+        showNotFound();
+    }
+}
+
+function showNotFound(){
+    $('pageWrap').style.display = 'none';
+    $('authModal').style.display = 'none';
+    unlockScroll();
+    $('notFound').style.display = '';
+}
+
+// ── Render listing ────────────────────────────────────────
+function renderListing(d, user, hasRevealed){
+    const isOwner = (d.uid && user.uid === d.uid);
+
+    // Title
+    document.title = (d.title || d.url || 'Listing') + ' — Siterifty';
+    $('breadTitle').textContent = d.title || d.url || 'Listing';
+    $('listingTitle').textContent = d.title || d.url || '—';
+
+    // URL
+    if(d.url){
+        $('listingUrl').innerHTML = `
+            <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1.4"/><path d="M4 7h6M7 4v6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            <a href="${d.url}" target="_blank" rel="noopener noreferrer">${d.url}</a>`;
+    }
+
+    // Tags
+    const tr = $('tagRow');
+    tr.innerHTML = '';
+    if(d.sponsored||d.isSponsored) tr.innerHTML += `<span class="tag-pill sponsored">★ Sponsored</span>`;
+    else if(d.featured||d.isFeatured) tr.innerHTML += `<span class="tag-pill featured">✦ Featured</span>`;
+    if(d.category) tr.innerHTML += `<span class="tag-pill cat">${d.category}</span>`;
+    if(d.age) tr.innerHTML += `<span class="tag-pill">${d.age} old</span>`;
+    const ago = timeAgo(d.createdAt);
+    if(ago) tr.innerHTML += `<span class="time-pill"><svg width="10" height="10" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.2"/><path d="M6 3.5V6l1.5 1.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>${ago}</span>`;
+
+    // Price
+    $('listingPrice').textContent = fmtPrice(d.price);
+
+    // Action buttons
+    renderActions(d, user, hasRevealed, isOwner);
+
+    // Financials
+    const rev = d.revenue  != null ? parseFloat(d.revenue)  : null;
+    const exp = d.expenses != null ? parseFloat(d.expenses) : null;
+    const profit = (rev!==null&&exp!==null) ? rev-exp : null;
+    if(rev!==null || exp!==null || profit!==null){
+        const fg = $('finGrid');
+        fg.innerHTML = '';
+        fg.innerHTML += finCell('Income',  rev!==null  ? '$'+rev.toLocaleString()+'/mo'  : '—', 'income');
+        fg.innerHTML += finCell('Expenses',exp!==null  ? '$'+exp.toLocaleString()+'/mo'  : '—', 'expense');
+        fg.innerHTML += finCell('Profit',  profit!==null ? (profit>=0?'+':'-')+'$'+Math.abs(profit).toLocaleString()+'/mo' : '—', profit===null?'neutral':profit>0?'profit-pos':'profit-neg');
+        $('finCard').style.display = '';
+    }
+
+    // Metrics
+    const metrics = [];
+    if(d.traffic) metrics.push({ label:'Monthly Traffic', val: fmtTraffic(d.traffic), sub:'Visitors/mo' });
+    if(d.pageviews) metrics.push({ label:'Pageviews', val: fmtTraffic(d.pageviews), sub:'/mo' });
+    if(d.subscribers) metrics.push({ label:'Subscribers', val: d.subscribers.toLocaleString(), sub:'Total' });
+    if(d.da) metrics.push({ label:'Domain Authority', val: d.da, sub:'DA score' });
+    if(d.dr) metrics.push({ label:'Domain Rating', val: d.dr, sub:'DR score' });
+    if(d.age) metrics.push({ label:'Site Age', val: d.age, sub:'Since founding' });
+    if(metrics.length){
+        const mg = $('metricsGrid');
+        mg.innerHTML = metrics.map(m=>`<div class="metric-cell"><div class="metric-label">${m.label}</div><div class="metric-val">${m.val}</div><div class="metric-sub">${m.sub}</div></div>`).join('');
+        $('metricsCard').style.display = '';
+    }
+
+    // Description
+    if(d.description){
+        $('descText').textContent = d.description;
+        $('descCard').style.display = '';
+    }
+
+    // Tech
+    if(d.tech){
+        const parts = d.tech.split(/[,|\/]/).map(t=>t.trim()).filter(Boolean);
+        $('techTags').innerHTML = parts.map(t=>`<span class="tech-tag">${t}</span>`).join('');
+        $('techCard').style.display = '';
+    }
+
+    // Seller
+    renderSeller(d, user, isOwner, hasRevealed);
+
+    // Gallery
+    renderGallery(d);
+}
+
+function finCell(label, val, cls){
+    return `<div class="fin-cell"><div class="fin-label">${label}</div><div class="fin-val ${cls}">${val}</div></div>`;
+}
+
+function renderActions(d, user, hasRevealed, isOwner){
+    const ar = $('actionRow');
+    ar.innerHTML = '';
+
+    if(isOwner){
+        // Owner sees a note instead of buy/reveal buttons
+        ar.innerHTML = `
+            <div style="flex:1;padding:12px 16px;background:rgba(155,93,229,.07);border:1px solid rgba(155,93,229,.2);border-radius:var(--radius-md);font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px;">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="var(--accent)" stroke-width="1.3"/><path d="M7 4.5v3l2 1.5" stroke="var(--accent)" stroke-width="1.3" stroke-linecap="round"/></svg>
+                This is your listing
+            </div>`;
+        return;
+    }
+
+    // Save button
+    const isSaved = (window._savedListings||[]).includes(d.listingId);
+    ar.innerHTML += `<button class="btn-save${isSaved?' saved':''}" id="btnSave" title="${isSaved?'Unsave':'Save'}" onclick="toggleSave()">
+        ${isSaved
+            ? `<svg width="15" height="15" viewBox="0 0 13 13" fill="currentColor"><path d="M2 2h9a1 1 0 0 1 1 1v9.5l-4.5-2.5L3 12.5V3a1 1 0 0 1 1-1z"/></svg>`
+            : `<svg width="15" height="15" viewBox="0 0 13 13" fill="none"><path d="M2 2h9a1 1 0 0 1 1 1v9.5l-4.5-2.5L3 12.5V3a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>`}
+    </button>`;
+
+    // Message button — passes both UIDs so message page can isolate the chat
+    const sellerUid = d.uid || '';
+    const buyerUid  = user.uid;
+    const msgHref   = `/message?seller=${sellerUid}&buyer=${buyerUid}&listing=${d.listingId}`;
+    ar.innerHTML += `<a href="${msgHref}" class="btn-secondary">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M12.5 2.5h-11a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1H10l3 2V3.5a1 1 0 0 0-1-1z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+        Message
+    </a>`;
+
+    // Reveal / Already revealed
+    if(!hasRevealed){
+        ar.innerHTML += `<button class="btn-primary" id="btnReveal" onclick="doReveal()">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 7s2.5-5 6-5 6 5 6 5-2.5 5-6 5-6-5-6-5z" stroke="currentColor" stroke-width="1.4"/><circle cx="7" cy="7" r="2" stroke="currentColor" stroke-width="1.4"/></svg>
+            Reveal Contact
+        </button>`;
+    } else {
+        ar.innerHTML += `<div class="btn-reveal-done">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5l3 3 6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Contact Revealed
+        </div>`;
+        // Show rate section since they've revealed
+        $('rateWrap').style.display = '';
+        loadExistingRating(user.uid);
+    }
+}
+
+// ── REVEAL ────────────────────────────────────────────────
+window.doReveal = async function(){
+    const user = _currentUser;
+    if(!user || !_listingData) return;
+    const d = _listingData;
+    const btn = $('btnReveal');
+    if(btn){ btn.disabled=true; btn.textContent='Revealing…'; }
+    try {
+        await set(ref(db, `websites/${d.listingId}/reveals/${user.uid}`), {
+            uid: user.uid,
+            revealedAt: Date.now()
+        });
+        // Replace reveal button with done state + show rating
+        renderActions(d, user, true, false);
+        $('rateWrap').style.display = '';
+        showToast('Contact revealed!');
+    } catch(e){
+        console.error('[reveal]', e);
+        if(btn){ btn.disabled=false; btn.innerHTML='<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 7s2.5-5 6-5 6 5 6 5-2.5 5-6 5-6-5-6-5z" stroke="currentColor" stroke-width="1.4"/><circle cx="7" cy="7" r="2" stroke="currentColor" stroke-width="1.4"/></svg> Reveal Contact'; }
+        showToast('Something went wrong, try again.');
+    }
+};
+
+// ── SAVE ──────────────────────────────────────────────────
+window._savedListings = [];
+window.toggleSave = async function(){
+    const user = _currentUser;
+    if(!user || !_listingData){ openAuthModal(); return; }
+    const id = _listingData.listingId;
+    const isSaved = (window._savedListings||[]).includes(id);
+    try {
+        if(isSaved){
+            const { remove } = await import('https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js');
+            await remove(ref(db,'users/'+user.uid+'/saved/'+id));
+            window._savedListings = window._savedListings.filter(x=>x!==id);
+        } else {
+            await set(ref(db,'users/'+user.uid+'/saved/'+id),{savedAt:Date.now()});
+            window._savedListings = [...window._savedListings, id];
+        }
+        const nowSaved = !isSaved;
+        const btn = $('btnSave');
+        if(btn){
+            btn.classList.toggle('saved', nowSaved);
+            btn.title = nowSaved?'Unsave':'Save';
+            btn.innerHTML = nowSaved
+                ? `<svg width="15" height="15" viewBox="0 0 13 13" fill="currentColor"><path d="M2 2h9a1 1 0 0 1 1 1v9.5l-4.5-2.5L3 12.5V3a1 1 0 0 1 1-1z"/></svg>`
+                : `<svg width="15" height="15" viewBox="0 0 13 13" fill="none"><path d="M2 2h9a1 1 0 0 1 1 1v9.5l-4.5-2.5L3 12.5V3a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>`;
+        }
+        showToast(nowSaved?'Saved!':'Removed from saved');
+    } catch(e){ showToast('Error saving listing'); }
+};
+
+// Load saved state
+onAuthStateChanged(auth, user=>{
+    if(user){
+        onValue(ref(db,'users/'+user.uid+'/saved'), snap=>{
+            window._savedListings = snap.val() ? Object.keys(snap.val()) : [];
+        });
+    }
+});
+
+// ── SELLER CARD ───────────────────────────────────────────
+function renderSeller(d, user, isOwner, hasRevealed){
+    const sel = _sellerData || {};
+    const uid  = d.uid || '';
+    const name = sel.username || d.username || d.sellerName || '—';
+    const plan = (sel.plan||'Free').toLowerCase();
+    const initial = name.charAt(0).toUpperCase();
+
+    // Avatar
+    const av = $('sellerAvatar');
+    av.style.background = gradCSS(uid);
+    av.textContent = initial;
+    if(uid){
+        get(ref(db,'users/'+uid+'/photoURL')).then(s=>{
+            const url = s&&s.val();
+            if(url){ av.innerHTML=''; av.style.background='none'; const img=document.createElement('img'); img.src=url; img.alt=''; av.appendChild(img); }
+        }).catch(()=>{});
+    }
+
+    $('sellerName').textContent = '@' + name;
+
+    // Meta
+    const meta = $('sellerMeta');
+    meta.innerHTML = `<span class="seller-plan-badge plan-${plan}">${sel.plan||'Free'}</span>`;
+    if(sel.createdAt){
+        const memberSince = new Date(sel.createdAt).toLocaleDateString('en-US',{year:'numeric',month:'short'});
+        meta.innerHTML += `<span>Member since ${memberSince}</span>`;
+    }
+
+    // Stars
+    renderSellerStars(d.ratings);
+
+    // Hide rate section if owner
+    if(isOwner){
+        $('rateWrap').style.display = 'none';
+    }
+}
+
+function renderSellerStars(ratings){
+    let avg=0, count=0;
+    if(ratings && typeof ratings==='object'){
+        const vals = Object.values(ratings).map(Number).filter(n=>!isNaN(n)&&n>=1&&n<=5);
+        count = vals.length;
+        avg = count ? vals.reduce((a,b)=>a+b,0)/count : 0;
+    }
+    const sc = '#f5c842', ec = 'rgba(107,104,144,0.3)';
+    let html = '<div class="stars-row">';
+    for(let i=1;i<=5;i++){
+        const filled = avg>=i-0.25, half=!filled&&avg>=i-0.75;
+        if(filled)      html+=`<svg width="13" height="13" viewBox="0 0 10 10"><polygon points="5,1 6.18,3.76 9.51,4.09 7.25,6.04 7.94,9.31 5,7.6 2.06,9.31 2.75,6.04 0.49,4.09 3.82,3.76" fill="${sc}"/></svg>`;
+        else if(half)   html+=`<svg width="13" height="13" viewBox="0 0 10 10"><defs><linearGradient id="hg${i}"><stop offset="50%" stop-color="${sc}"/><stop offset="50%" stop-color="${ec}"/></linearGradient></defs><polygon points="5,1 6.18,3.76 9.51,4.09 7.25,6.04 7.94,9.31 5,7.6 2.06,9.31 2.75,6.04 0.49,4.09 3.82,3.76" fill="url(#hg${i})"/></svg>`;
+        else            html+=`<svg width="13" height="13" viewBox="0 0 10 10"><polygon points="5,1 6.18,3.76 9.51,4.09 7.25,6.04 7.94,9.31 5,7.6 2.06,9.31 2.75,6.04 0.49,4.09 3.82,3.76" fill="${ec}"/></svg>`;
+    }
+    if(count>0) html+=`<span class="stars-count has-ratings">${avg.toFixed(1)} (${count} review${count!==1?'s':''})</span>`;
+    else html+=`<span class="stars-count">No reviews yet</span>`;
+    html+='</div>';
+    $('sellerStars').innerHTML = html;
+}
+
+// ── RATING ────────────────────────────────────────────────
+let _selectedRating = 0;
+
+async function loadExistingRating(uid){
+    if(!_listingData) return;
+    try {
+        const snap = await get(ref(db, `websites/${_listingData.listingId}/ratings/${uid}`));
+        if(snap.exists()){
+            const val = parseInt(snap.val());
+            _selectedRating = val;
+            highlightStars(val);
+            const btn = $('rateSubmitBtn');
+            if(btn){ btn.disabled=false; }
+            const ok = $('rateOk');
+            if(ok){ ok.textContent = '✓ You rated this seller '+val+' star'+(val!==1?'s':''); ok.style.display='block'; }
+        }
+    } catch(e){}
+}
+
+window.setRating = function(val){
+    _selectedRating = val;
+    highlightStars(val);
+    const btn = $('rateSubmitBtn');
+    if(btn) btn.disabled = false;
+};
+
+function highlightStars(val){
+    document.querySelectorAll('.rate-star').forEach(s=>{
+        s.classList.toggle('active', parseInt(s.dataset.val)<=val);
+    });
+}
+
+window.submitRating = async function(){
+    const user = _currentUser;
+    if(!user || !_listingData || !_selectedRating) return;
+    const d = _listingData;
+    const btn = $('rateSubmitBtn');
+    if(btn){ btn.disabled=true; btn.textContent='Saving…'; }
+    try {
+        // Write rating under listing: websites/{id}/ratings/{buyerUid} = score
+        await set(ref(db, `websites/${d.listingId}/ratings/${user.uid}`), _selectedRating);
+        const ok = $('rateOk');
+        if(ok){ ok.textContent='✓ Rating saved! Thank you.'; ok.style.display='block'; }
+        if(btn){ btn.textContent='Submit rating'; btn.disabled=false; }
+        // Re-read and refresh stars display
+        const snap = await get(ref(db, `websites/${d.listingId}/ratings`));
+        renderSellerStars(snap.val());
+        showToast('Rating saved!');
+    } catch(e){
+        if(btn){ btn.disabled=false; btn.textContent='Submit rating'; }
+        showToast('Error saving rating');
+    }
+};
+
+// ── GALLERY ───────────────────────────────────────────────
+let _galleryIdx = 0;
+let _galleryImgs = [];
+
+function renderGallery(d){
+    const raw = d.images;
+    if(raw){
+        if(Array.isArray(raw)) _galleryImgs = raw.filter(Boolean);
+        else if(typeof raw==='object') _galleryImgs = Object.values(raw).filter(Boolean);
+        else if(typeof raw==='string' && raw) _galleryImgs = [raw];
+    }
+
+    const wrap = $('galleryWrap');
+    const fall = $('galleryFallback');
+    const dots = $('galleryDots');
+    const prev = $('galleryPrev');
+    const next = $('galleryNext');
+    const cnt  = $('galleryCount');
+
+    // Remove any previous imgs
+    wrap.querySelectorAll('img.gallery-img').forEach(el=>el.remove());
+
+    if(!_galleryImgs.length){
+        fall.textContent = domainInitials(d.url);
+        fall.style.display = 'flex';
+        return;
+    }
+
+    // Build images
+    _galleryImgs.forEach((src, i)=>{
+        const img = document.createElement('img');
+        img.className = 'gallery-img' + (i===0?' active':'');
+        img.src = src; img.alt = ''; img.loading = 'lazy';
+        img.onerror = function(){ this.remove(); };
+        wrap.insertBefore(img, dots);
+    });
+
+    if(_galleryImgs.length > 1){
+        _galleryImgs.forEach((_,i)=>{
+            const d2 = document.createElement('div');
+            d2.className = 'gallery-dot'+(i===0?' active':'');
+            d2.onclick = ()=>galleryGo(i);
+            dots.appendChild(d2);
+        });
+        prev.style.display = next.style.display = 'flex';
+        cnt.style.display = '';
+        cnt.textContent = `1 / ${_galleryImgs.length}`;
+    }
+}
+
+window.galleryMove = function(dir){
+    const imgs = document.querySelectorAll('img.gallery-img');
+    if(!imgs.length) return;
+    galleryGo((_galleryIdx + dir + imgs.length) % imgs.length);
+};
+function galleryGo(i){
+    const imgs = document.querySelectorAll('img.gallery-img');
+    if(!imgs.length) return;
+    imgs[_galleryIdx].classList.remove('active');
+    document.querySelectorAll('.gallery-dot')[_galleryIdx]?.classList.remove('active');
+    _galleryIdx = i;
+    imgs[_galleryIdx].classList.add('active');
+    document.querySelectorAll('.gallery-dot')[_galleryIdx]?.classList.add('active');
+    const cnt = $('galleryCount');
+    if(cnt) cnt.textContent = `${_galleryIdx+1} / ${imgs.length}`;
+}
+
+// ── FORMATTERS ────────────────────────────────────────────
+function fmtPrice(n){ n=parseFloat(n); if(isNaN(n)) return '—'; if(n>=1000) return '$'+(n/1000).toFixed(n%1000===0?0:1)+'k'; return '$'+n; }
+function fmtTraffic(n){ if(!n) return '—'; return n>=1000 ? (n/1000).toFixed(1)+'k/mo' : n+'/mo'; }
+function domainInitials(d){ if(!d) return '??'; return d.replace(/^https?:\/\//,'').split('.')[0].slice(0,2).toUpperCase(); }
+function timeAgo(ts){
+    if(!ts) return '';
+    const sec = Math.floor((Date.now()-ts)/1000);
+    if(sec<60) return 'just now';
+    if(sec<3600) return Math.floor(sec/60)+'m ago';
+    if(sec<86400) return Math.floor(sec/3600)+'h ago';
+    if(sec<86400*7) return Math.floor(sec/86400)+'d ago';
+    if(sec<86400*30) return Math.floor(sec/(86400*7))+'w ago';
+    if(sec<86400*365) return Math.floor(sec/(86400*30))+'mo ago';
+    return Math.floor(sec/(86400*365))+'y ago';
+}
+
+// ── TOAST ─────────────────────────────────────────────────
+let _toastTimer;
+window.showToast = function(msg){
+    const t = $('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(()=>t.classList.remove('show'), 2400);
+};
+
+// ── AUTH MODAL FUNCTIONS ──────────────────────────────────
+window.showPanel = function(name){
+    ['signup','login','forgot'].forEach(p=>{
+        const el = $('panel'+p.charAt(0).toUpperCase()+p.slice(1));
+        if(el) el.style.display = p===name?'block':'none';
+    });
+};
+
+window.openAuthModal = function(){
+    if(auth.currentUser) return;
+    $('authModal').style.display='block';
+    lockScroll();
+    showPanel('login');
+};
+window.closeAuthModal = function(){
+    // Only allow closing if user is signed in (gate mode keeps it open)
+    if(!auth.currentUser) return;
+    $('authModal').style.display='none';
+    unlockScroll();
+};
+
+window.doSignup = async function(){
+    hideMsg('errSignup','okSignup');
+    const username = $('suUsername').value.trim();
+    const email    = $('suEmail').value.trim();
+    const password = $('suPassword').value;
+    if(!username||username.length<3) return showErr('errSignup','Username must be at least 3 characters.');
+    if(!/^[a-zA-Z0-9_]+$/.test(username)) return showErr('errSignup','Username can only contain letters, numbers and underscores.');
+    if(!email) return showErr('errSignup','Please enter your email.');
+    if(password.length<6) return showErr('errSignup','Password must be at least 6 characters.');
+    setBtn('btnSignup','Creating account…',true);
+    try {
+        const snap = await get(ref(db,'usernames/'+username.toLowerCase()));
+        if(snap.exists()){ setBtn('btnSignup','Create account →',false); return showErr('errSignup','That username is already taken.'); }
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        const uid = cred.user.uid;
+        await set(ref(db,'users/'+uid),{ username, email, plan:'Free', createdAt:Date.now(), address:{}, orders:[] });
+        await set(ref(db,'usernames/'+username.toLowerCase()), uid);
+        showOk('okSignup','Account created! Loading listing…');
+        setBtn('btnSignup','Create account →',false);
+        // onAuthStateChanged fires and loads listing
+    } catch(e){
+        setBtn('btnSignup','Create account →',false);
+        showErr('errSignup', firebaseErrMsg(e.code));
+    }
+};
+
+window.doLogin = async function(){
+    hideMsg('errLogin','okLogin');
+    const email    = $('liEmail').value.trim();
+    const password = $('liPassword').value;
+    if(!email) return showErr('errLogin','Please enter your email.');
+    if(!password) return showErr('errLogin','Please enter your password.');
+    setBtn('btnLogin','Signing in…',true);
+    try {
+        await signInWithEmailAndPassword(auth, email, password);
+        setBtn('btnLogin','Sign in →',false);
+        // onAuthStateChanged fires → closeAuthModal + loadListing
+    } catch(e){
+        setBtn('btnLogin','Sign in →',false);
+        showErr('errLogin', firebaseErrMsg(e.code));
+    }
+};
+
+window.doGoogleAuth = async function(){
+    const btns = ['btnGoogleLogin','btnGoogleSignup'];
+    btns.forEach(id=>{ const b=$(id); if(b){b.disabled=true; b.textContent='Connecting…';} });
+    try {
+        const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({ prompt:'select_account' });
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+        const snap = await get(ref(db,'users/'+user.uid));
+        if(!snap.exists()){
+            let base = (user.displayName||user.email||'user').replace(/[^a-zA-Z0-9]/g,'').toLowerCase().slice(0,16)||'user';
+            let username = base, attempt=0;
+            while((await get(ref(db,'usernames/'+username))).exists()&&attempt<10){ username=base+Math.floor(Math.random()*9000+1000); attempt++; }
+            await set(ref(db,'users/'+user.uid),{ username, email:user.email||'', displayName:user.displayName||username, photoURL:user.photoURL||'', plan:'Free', createdAt:Date.now(), address:{}, orders:[] });
+            await set(ref(db,'usernames/'+username), user.uid);
+        }
+        // onAuthStateChanged fires
+    } catch(e){
+        const errEl=$('errLogin')||$('errSignup');
+        if(errEl){ errEl.textContent=e.code==='auth/popup-closed-by-user'?'Sign-in popup was closed.':(firebaseErrMsg(e.code)||'Google sign-in failed.'); errEl.style.display='block'; }
+    } finally {
+        const gSvg = `<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/><path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z" fill="#EA4335"/></svg> Continue with Google`;
+        btns.forEach(id=>{ const b=$(id); if(b){b.disabled=false; b.innerHTML=gSvg;} });
+    }
+};
+
+window.doForgot = async function(){
+    hideMsg('errForgot','okForgot');
+    const email = $('fpEmail').value.trim();
+    if(!email) return showErr('errForgot','Please enter your email address.');
+    setBtn('btnForgot','Sending…',true);
+    try {
+        await sendPasswordResetEmail(auth, email);
+        showOk('okForgot','Reset link sent! Check your inbox.');
+        setBtn('btnForgot','Send reset link →',false);
+    } catch(e){
+        setBtn('btnForgot','Send reset link →',false);
+        showErr('errForgot', firebaseErrMsg(e.code));
+    }
+};
+
+function firebaseErrMsg(code){
+    const map = {
+        'auth/email-already-in-use':    'That email is already registered.',
+        'auth/invalid-email':           'Please enter a valid email address.',
+        'auth/weak-password':           'Password must be at least 6 characters.',
+        'auth/user-not-found':          'No account found with that email.',
+        'auth/wrong-password':          'Incorrect password. Try again.',
+        'auth/too-many-requests':       'Too many attempts. Please try again later.',
+        'auth/network-request-failed':  'Network error. Check your connection.',
+        'auth/popup-closed-by-user':    'Sign-in popup was closed.',
+        'auth/invalid-credential':      'Invalid email or password.',
+    };
+    return map[code] || 'Something went wrong. Please try again.';
+}
+</script>
+
+</body>
+</html>
