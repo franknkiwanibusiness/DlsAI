@@ -1211,6 +1211,7 @@
             padding: 20px;
         }
         .modal-overlay.open { display: flex; }
+        body.modal-open { overflow: hidden; touch-action: none; -webkit-overflow-scrolling: none; }
         .modal-card {
             background: linear-gradient(160deg, #16162a 0%, #0f0f1c 100%);
             border: 1px solid rgba(255,255,255,0.09);
@@ -2994,10 +2995,10 @@ window._sellerBarIncrement = function() {
                     Our AI automatically screens all listings for adult content, scams, illegal services, and policy violations. If you believe this is an error, please contact support.
                 </div>
                 <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
-                    <button class="btn-submit" style="flex:0 0 auto;padding:12px 22px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);box-shadow:none;" onclick="document.getElementById('aiRejectModal').classList.remove('open');">
+                    <button class="btn-submit" style="flex:0 0 auto;padding:12px 22px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);box-shadow:none;" onclick="document.getElementById('aiRejectModal').classList.remove('open');document.body.classList.remove('modal-open');">
                         Edit Listing
                     </button>
-                    <button style="padding:12px 22px;border-radius:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);color:var(--muted);font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer;" onclick="document.getElementById('aiRejectModal').classList.remove('open');window.location.href='mailto:support@siterifty.com';">
+                    <button style="padding:12px 22px;border-radius:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);color:var(--muted);font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer;" onclick="document.getElementById('aiRejectModal').classList.remove('open');document.body.classList.remove('modal-open');window.location.href='mailto:support@siterifty.com';">
                         Contact Support
                     </button>
                 </div>
@@ -3020,11 +3021,12 @@ window._sellerBarIncrement = function() {
                     <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="#fbbf24" stroke-width="1"/><path d="M5 3v2.5M5 6.5v.5" stroke="#fbbf24" stroke-width="1.1" stroke-linecap="round"/></svg>
                     Pending Admin Review
                 </div>
+                <div id="successPendingReason" style="display:none;background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.2);border-radius:12px;padding:11px 14px;font-size:11px;color:rgba(251,191,36,0.85);line-height:1.6;margin-bottom:16px;text-align:left;"></div>
                 <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
-                    <button class="btn-submit" style="flex:0 0 auto;padding:12px 22px;" onclick="document.getElementById('successModal').classList.remove('open');switchTab('listings');">
+                    <button class="btn-submit" style="flex:0 0 auto;padding:12px 22px;" onclick="document.getElementById('successModal').classList.remove('open');document.body.classList.remove('modal-open');switchTab('listings');">
                         View My Listings
                     </button>
-                    <button style="padding:12px 22px;border-radius:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);color:var(--muted);font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer;" onclick="document.getElementById('successModal').classList.remove('open');resetForm();">
+                    <button style="padding:12px 22px;border-radius:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);color:var(--muted);font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer;" onclick="document.getElementById('successModal').classList.remove('open');document.body.classList.remove('modal-open');resetForm();">
                         List Another
                     </button>
                 </div>
@@ -3038,7 +3040,7 @@ window._sellerBarIncrement = function() {
     <div class="modal-card">
         <div class="modal-header">
             <div class="modal-title">Remove Listing?</div>
-            <button class="modal-close" onclick="document.getElementById('deleteModal').classList.remove('open')">
+            <button class="modal-close" onclick="document.getElementById('deleteModal').classList.remove('open');document.body.classList.remove('modal-open')">
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
             </button>
         </div>
@@ -3067,6 +3069,15 @@ const state = {
 
 // ══ TABS ══
 function switchTab(tab) {
+    // Gate: if switching to "list" and user is at their limit, show upgrade modal instead
+    if (tab === 'list') {
+        const used  = window._sellerBarUsed  ?? 0;
+        const limit = window._sellerBarLimit ?? 1;
+        if (isFinite(limit) && used >= limit) {
+            openListingLimitModal();
+            return;
+        }
+    }
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.page-tab').forEach(b => b.classList.remove('active'));
     document.getElementById('panel-' + tab).classList.add('active');
@@ -3662,8 +3673,10 @@ async function submitListing() {
     // ── 12. Quota ──
     if (typeof window._sellerBarLimit !== 'undefined' &&
         typeof window._sellerBarUsed  !== 'undefined' &&
-        window._sellerBarUsed >= window._sellerBarLimit)
-        return showErr('You have reached your daily listing limit. Upgrade your plan to list more sites.');
+        window._sellerBarUsed >= window._sellerBarLimit) {
+        openListingLimitModal();
+        return;
+    }
 
     // ── 13. Auth ──
     if (!window._fbAuth || !window._fbAuth.currentUser)
@@ -3794,6 +3807,7 @@ async function submitListing() {
                     submitBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2l6 6-6 6M2 8h12" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Submit Listing`;
                 }
                 document.getElementById('aiRejectedReason').textContent = aiReason || 'Your listing does not meet our content policy.';
+                document.body.classList.add('modal-open');
                 document.getElementById('aiRejectModal').classList.add('open');
                 return;
             }
@@ -3839,11 +3853,21 @@ async function submitListing() {
                 document.getElementById('successTitle').textContent   = 'Listing Under Review';
                 document.getElementById('successSubtitle').textContent = 'Our team will review your listing shortly. You\'ll be emailed once it\'s approved and goes live.';
                 document.getElementById('successStatusChip').style.display = 'inline-flex';
+                const reasonEl = document.getElementById('successPendingReason');
+                const reasonText = listingPayload.aiReviewReason || '';
+                if (reasonText) {
+                    reasonEl.textContent = '⚠ ' + reasonText;
+                    reasonEl.style.display = 'block';
+                } else {
+                    reasonEl.style.display = 'none';
+                }
             } else {
                 document.getElementById('successTitle').textContent   = 'Listing Submitted!';
                 document.getElementById('successSubtitle').textContent = 'Your listing passed AI review and is now live on the marketplace.';
                 document.getElementById('successStatusChip').style.display = 'none';
+                document.getElementById('successPendingReason').style.display = 'none';
             }
+            document.body.classList.add('modal-open');
             document.getElementById('successModal').classList.add('open');
         })
         .catch(err => {
@@ -4014,6 +4038,7 @@ window._renderMyListings = function(data) {
                         <span class="status-pill ${statusLabel}"><span class="status-dot"></span>${statusText}</span>
                         ${category ? `<span class="meta-chip purple">${category}</span>` : ''}
                     </div>
+                    ${statusLabel === 'pending' && l.aiReviewReason ? `<div style="margin-top:6px;font-size:10.5px;color:rgba(251,191,36,0.8);line-height:1.5;"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" style="vertical-align:-1px;margin-right:3px;"><circle cx="5" cy="5" r="4" stroke="#fbbf24" stroke-width="1"/><path d="M5 3v2M5 6.5v.5" stroke="#fbbf24" stroke-width="1.1" stroke-linecap="round"/></svg>${l.aiReviewReason}</div>` : ''}
                 </div>
                 <div class="listing-price-col">
                     <div class="listing-price">${price}</div>
@@ -4049,6 +4074,7 @@ window._renderMyListings = function(data) {
 let deleteTargetEl = null;
 function confirmDelete(btn) {
     deleteTargetEl = btn.closest('.listing-row');
+    document.body.classList.add('modal-open');
     document.getElementById('deleteModal').classList.add('open');
 }
 function executeDelete() {
@@ -4059,9 +4085,7 @@ function executeDelete() {
         setTimeout(() => { deleteTargetEl.remove(); }, 250);
     }
     document.getElementById('deleteModal').classList.remove('open');
-}
-
-function editListing(btn) {
+    document.body.classList.remove('modal-open');
     const row = btn.closest('.listing-row');
     const title = row.dataset.title;
     document.getElementById('siteTitle').value = title;
@@ -4090,7 +4114,7 @@ function hideOk() { document.getElementById('formOk').style.display = 'none'; }
 // Close modals on backdrop click
 document.querySelectorAll('.modal-overlay').forEach(overlay => {
     overlay.addEventListener('click', function(e) {
-        if (e.target === this) this.classList.remove('open');
+        if (e.target === this) { this.classList.remove('open'); document.body.classList.remove('modal-open'); }
     });
 });
 
@@ -5099,6 +5123,848 @@ document.head.appendChild(spinStyle);
         window.location.href = '/?upgrade=plans';
     };
 
+})();
+</script>
+
+<!-- ══ LISTING LIMIT UPGRADE MODAL ══ -->
+<style>
+#listingLimitModal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9500;
+    background: rgba(0,0,0,0.82);
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+#listingLimitModal.open { display: flex; }
+#listingLimitModal .llm-card {
+    background: linear-gradient(160deg, #16162a 0%, #0f0f1c 100%);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-top: 1px solid rgba(255,255,255,0.16);
+    border-radius: 24px;
+    width: 100%;
+    max-width: 520px;
+    max-height: calc(100svh - 40px);
+    overflow-y: auto;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.08) inset, 0 0 0 1px rgba(168,85,247,0.1), 0 32px 80px rgba(0,0,0,0.9);
+    animation: modalPop .26s cubic-bezier(0.34,1.2,0.64,1) both;
+    padding: 28px 24px 24px;
+    position: relative;
+}
+#listingLimitModal .llm-close {
+    position: absolute;
+    top: 16px; right: 16px;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.09);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    color: var(--muted);
+    transition: background .15s, color .15s;
+}
+#listingLimitModal .llm-close:hover { background: rgba(255,255,255,0.12); color: var(--text); }
+#listingLimitModal .llm-icon {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    background: rgba(168,85,247,0.1);
+    border: 1px solid rgba(168,85,247,0.3);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 16px;
+}
+#listingLimitModal .llm-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px; font-weight: 800;
+    color: var(--text);
+    text-align: center;
+    margin-bottom: 6px;
+    letter-spacing: -0.03em;
+}
+#listingLimitModal .llm-sub {
+    font-size: 13px; color: var(--muted);
+    text-align: center; line-height: 1.6;
+    margin-bottom: 22px;
+}
+#listingLimitModal .llm-sub strong { color: var(--text); }
+#listingLimitModal .llm-plans {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+}
+@media (max-width: 460px) {
+    #listingLimitModal .llm-plans { grid-template-columns: 1fr; }
+}
+#listingLimitModal .llm-plan {
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.08);
+    padding: 14px 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s, background .2s, transform .15s;
+    background: rgba(255,255,255,0.02);
+}
+#listingLimitModal .llm-plan:hover { transform: translateY(-2px); }
+#listingLimitModal .llm-plan.featured {
+    border-color: rgba(244,114,182,0.4);
+    background: rgba(244,114,182,0.05);
+    position: relative;
+}
+#listingLimitModal .llm-plan-badge {
+    position: absolute;
+    top: -9px; left: 50%; transform: translateX(-50%);
+    background: linear-gradient(135deg,#a855f7,#f472b6);
+    color: #fff;
+    font-family: 'Syne', sans-serif;
+    font-size: 9px; font-weight: 800;
+    letter-spacing: 0.07em; text-transform: uppercase;
+    padding: 2px 8px; border-radius: 999px;
+    white-space: nowrap;
+}
+#listingLimitModal .llm-plan-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px; font-weight: 800;
+    margin-bottom: 4px;
+}
+#listingLimitModal .llm-plan-price {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px; font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    margin-bottom: 2px;
+}
+#listingLimitModal .llm-plan-price sup { font-size: 12px; vertical-align: super; }
+#listingLimitModal .llm-plan-per {
+    font-size: 10px; color: var(--muted);
+    margin-bottom: 10px;
+}
+#listingLimitModal .llm-plan-feature {
+    font-size: 11px; color: var(--muted);
+    line-height: 1.55;
+    display: flex; flex-direction: column; gap: 3px;
+}
+#listingLimitModal .llm-plan-feature span { display: block; }
+#listingLimitModal .llm-plan-feature strong { color: var(--text); }
+#listingLimitModal .llm-actions {
+    display: flex; gap: 10px; flex-wrap: wrap;
+}
+#listingLimitModal .llm-btn-primary {
+    flex: 1;
+    padding: 13px 20px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #a855f7, #f472b6);
+    color: #fff;
+    font-family: 'Syne', sans-serif;
+    font-size: 13px; font-weight: 800;
+    border: none; cursor: pointer;
+    box-shadow: 0 4px 18px rgba(168,85,247,0.35);
+    transition: opacity .15s, transform .15s;
+    letter-spacing: -0.01em;
+}
+#listingLimitModal .llm-btn-primary:hover { opacity: .88; transform: translateY(-1px); }
+#listingLimitModal .llm-btn-secondary {
+    padding: 13px 18px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.09);
+    color: var(--muted);
+    font-family: 'Syne', sans-serif;
+    font-size: 12px; font-weight: 700;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+}
+#listingLimitModal .llm-btn-secondary:hover { background: rgba(255,255,255,0.09); color: var(--text); }
+</style>
+
+<div id="listingLimitModal">
+    <div class="llm-card">
+        <button class="llm-close" onclick="closeListingLimitModal()">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 2l6 6M8 2L2 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </button>
+
+        <div class="llm-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2l2.4 4.8L20 8.18l-4 3.89.94 5.49L12 14.77l-4.94 2.79.94-5.49L4 8.18l5.6-.82z" stroke="#a855f7" stroke-width="1.5" stroke-linejoin="round" fill="rgba(168,85,247,0.15)"/>
+            </svg>
+        </div>
+
+        <div class="llm-title">Daily limit reached</div>
+        <div class="llm-sub">
+            You've used all <strong id="llmLimitText">1 listing</strong> on your
+            <strong id="llmPlanText">Free</strong> plan today.
+            Upgrade to list more sites and keep more of every sale.
+        </div>
+
+        <!-- Plan comparison -->
+        <div class="llm-plans">
+            <!-- Starter -->
+            <div class="llm-plan" style="border-color:rgba(168,85,247,0.25);" onclick="closeLimitGoUpgrade('starter')">
+                <div class="llm-plan-name" style="color:#a855f7;">Starter</div>
+                <div class="llm-plan-price" style="color:#a855f7;"><sup>$</sup>20</div>
+                <div class="llm-plan-per">/ month</div>
+                <div class="llm-plan-feature">
+                    <strong>5 listings / day</strong>
+                    <span>150 / month cap</span>
+                    <span>15% platform fee</span>
+                    <span>Priority ranking</span>
+                </div>
+            </div>
+            <!-- Growth (featured) -->
+            <div class="llm-plan featured" onclick="closeLimitGoUpgrade('growth')">
+                <div class="llm-plan-badge">Most popular</div>
+                <div class="llm-plan-name" style="color:#f472b6;">Growth</div>
+                <div class="llm-plan-price" style="color:#f472b6;"><sup>$</sup>40</div>
+                <div class="llm-plan-per">/ month</div>
+                <div class="llm-plan-feature">
+                    <strong>15 listings / day</strong>
+                    <span>Unlimited / month</span>
+                    <span>10% platform fee</span>
+                    <span>Featured highlights</span>
+                </div>
+            </div>
+            <!-- Pro -->
+            <div class="llm-plan" style="border-color:rgba(56,189,248,0.25);" onclick="closeLimitGoUpgrade('pro')">
+                <div class="llm-plan-name" style="color:#38bdf8;">Pro</div>
+                <div class="llm-plan-price" style="color:#38bdf8;"><sup>$</sup>50</div>
+                <div class="llm-plan-per">/ month</div>
+                <div class="llm-plan-feature">
+                    <strong>Unlimited / day</strong>
+                    <span>Unlimited / month</span>
+                    <span>Only 5% fee</span>
+                    <span>Dedicated manager</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="llm-actions">
+            <button class="llm-btn-primary" onclick="closeLimitGoUpgrade('starter')">
+                ✦ Upgrade Plan
+            </button>
+            <button class="llm-btn-secondary" onclick="closeListingLimitModal()">
+                Maybe later
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+function openListingLimitModal() {
+    // Populate current plan + limit text
+    const used  = window._sellerBarUsed  ?? 0;
+    const limit = window._sellerBarLimit ?? 1;
+    const plan  = (window._fbUserData?.plan || 'Free');
+    const limitWord = limit === 1 ? '1 listing' : limit + ' listings';
+    const el = document.getElementById('llmLimitText');
+    const pl = document.getElementById('llmPlanText');
+    if (el) el.textContent = limitWord;
+    if (pl) pl.textContent = plan;
+    document.getElementById('listingLimitModal').classList.add('open');
+    document.body.classList.add('modal-open');
+}
+function closeListingLimitModal() {
+    document.getElementById('listingLimitModal').classList.remove('open');
+    document.body.classList.remove('modal-open');
+}
+function closeLimitGoUpgrade(plan) {
+    closeListingLimitModal();
+    // If main page upgrade modal is available (embedded), use it; otherwise redirect
+    if (typeof window.openUpgradeModal === 'function') {
+        window.openUpgradeModal(plan);
+    } else {
+        window.location.href = '/?upgrade=' + plan;
+    }
+}
+// Backdrop click closes
+document.getElementById('listingLimitModal').addEventListener('click', function(e) {
+    if (e.target === this) closeListingLimitModal();
+});
+</script>
+
+<!-- ══ WELCOME POPUP ══ -->
+<style>
+#welcomePopup {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s ease;
+}
+#welcomePopup.open {
+    opacity: 1;
+    pointer-events: all;
+}
+#welcomePopup .wp-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(5,5,12,0.82);
+    backdrop-filter: blur(18px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+}
+#welcomePopup .wp-card {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 480px;
+    background: linear-gradient(160deg, #18182e 0%, #0f0f1e 100%);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-top: 1px solid rgba(255,255,255,0.18);
+    border-radius: 26px;
+    padding: 32px 28px 28px;
+    box-shadow:
+        0 0 0 1px rgba(168,85,247,0.06),
+        0 4px 60px rgba(0,0,0,0.7),
+        0 0 80px rgba(168,85,247,0.08);
+    transform: translateY(16px) scale(0.97);
+    transition: transform 0.4s cubic-bezier(0.34,1.5,0.64,1), opacity 0.35s ease;
+    opacity: 0;
+}
+#welcomePopup.open .wp-card {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+}
+
+/* Glowing orb behind */
+#welcomePopup .wp-card::before {
+    content: '';
+    position: absolute;
+    top: -60px; left: 50%; transform: translateX(-50%);
+    width: 220px; height: 120px;
+    background: radial-gradient(ellipse, rgba(168,85,247,0.22) 0%, transparent 70%);
+    pointer-events: none;
+    border-radius: 50%;
+}
+
+.wp-close {
+    position: absolute;
+    top: 16px; right: 16px;
+    width: 28px; height: 28px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    color: var(--muted);
+    transition: background 0.2s, color 0.2s;
+}
+.wp-close:hover { background: rgba(255,255,255,0.12); color: var(--text); }
+
+/* Header */
+.wp-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-bottom: 24px;
+}
+.wp-avatar-ring {
+    width: 54px; height: 54px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-size: 20px; font-weight: 800;
+    color: #fff;
+    margin-bottom: 14px;
+    box-shadow: 0 0 0 6px rgba(168,85,247,0.12), 0 0 0 12px rgba(168,85,247,0.05);
+}
+.wp-greeting {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.04em;
+    line-height: 1.15;
+    margin-bottom: 6px;
+}
+.wp-greeting .wp-name-grad {
+    background: linear-gradient(90deg, #a855f7, #f472b6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.wp-sub {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+}
+
+/* Plan badge row */
+.wp-plan-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 22px;
+}
+.wp-plan-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border-radius: 999px;
+    padding: 5px 13px;
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border: 1px solid transparent;
+}
+.wp-plan-chip.free    { background:rgba(120,80,40,0.18);border-color:rgba(160,100,50,0.35);color:#b87840; }
+.wp-plan-chip.starter { background:rgba(168,85,247,0.12);border-color:rgba(168,85,247,0.3);color:#a855f7; }
+.wp-plan-chip.growth  { background:rgba(244,114,182,0.12);border-color:rgba(244,114,182,0.32);color:#f472b6; }
+.wp-plan-chip.pro     { background:rgba(56,189,248,0.12);border-color:rgba(56,189,248,0.32);color:#38bdf8; }
+
+/* Progress section */
+.wp-progress-section {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px;
+    padding: 18px;
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.wp-prog-block {}
+.wp-prog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+.wp-prog-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.wp-prog-label-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+}
+.wp-prog-counts {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+.wp-prog-counts .used { color: var(--text); }
+.wp-prog-counts .sep { color: rgba(255,255,255,0.18); margin: 0 2px; }
+.wp-prog-counts .cap { color: var(--muted); font-weight: 500; }
+.wp-prog-counts .cap.unlimited {
+    background: linear-gradient(90deg, #a855f7, #f472b6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700;
+}
+
+.wp-bar-track {
+    width: 100%;
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.06);
+    overflow: hidden;
+    position: relative;
+}
+.wp-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.9s cubic-bezier(0.34,1.2,0.64,1);
+    width: 0%;
+    position: relative;
+}
+.wp-bar-fill::after {
+    content: '';
+    position: absolute;
+    right: 0; top: 0; bottom: 0;
+    width: 20px;
+    background: inherit;
+    filter: blur(4px);
+    opacity: 0.7;
+}
+.wp-bar-fill.day-bar  { background: linear-gradient(90deg, #a855f7, #f472b6); }
+.wp-bar-fill.month-bar { background: linear-gradient(90deg, #6366f1, #38bdf8); }
+.wp-bar-fill.warn { background: linear-gradient(90deg, #f59e0b, #f87171); }
+.wp-bar-fill.maxed { background: linear-gradient(90deg, #f87171, #ef4444); }
+
+.wp-prog-compare {
+    font-size: 10px;
+    color: rgba(139,138,168,0.55);
+    margin-top: 5px;
+    line-height: 1.5;
+}
+.wp-prog-compare strong { color: rgba(139,138,168,0.8); }
+
+/* Upgrade nudge */
+.wp-upgrade-nudge {
+    background: linear-gradient(135deg, rgba(168,85,247,0.08), rgba(244,114,182,0.06));
+    border: 1px solid rgba(168,85,247,0.2);
+    border-radius: 13px;
+    padding: 13px 15px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+}
+.wp-upgrade-nudge:hover { border-color: rgba(168,85,247,0.4); background: rgba(168,85,247,0.1); }
+.wp-upgrade-nudge-icon {
+    width: 32px; height: 32px;
+    border-radius: 10px;
+    background: rgba(168,85,247,0.12);
+    border: 1px solid rgba(168,85,247,0.2);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+.wp-upgrade-nudge-text { flex: 1; min-width: 0; }
+.wp-upgrade-nudge-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 2px;
+}
+.wp-upgrade-nudge-sub {
+    font-size: 10px;
+    color: var(--muted);
+    line-height: 1.5;
+}
+.wp-upgrade-arrow {
+    color: var(--accent);
+    flex-shrink: 0;
+    opacity: 0.6;
+}
+
+/* Actions */
+.wp-actions {
+    display: flex;
+    gap: 10px;
+}
+.wp-btn-primary {
+    flex: 1;
+    padding: 13px 20px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #a855f7, #f472b6);
+    color: #fff;
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(168,85,247,0.3);
+    transition: opacity 0.15s, transform 0.15s;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+}
+.wp-btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+.wp-btn-secondary {
+    padding: 13px 18px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.09);
+    color: var(--muted);
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+}
+.wp-btn-secondary:hover { background: rgba(255,255,255,0.09); color: var(--text); }
+
+/* Hide upgrade nudge for paid plans */
+.wp-upgrade-nudge[data-hide="true"] { display: none; }
+</style>
+
+<div id="welcomePopup">
+    <div class="wp-backdrop" id="wpBackdrop"></div>
+    <div class="wp-card">
+        <button class="wp-close" onclick="closeWelcomePopup()" aria-label="Close">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                <path d="M2 2l6 6M8 2L2 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+        </button>
+
+        <!-- Header -->
+        <div class="wp-header">
+            <div class="wp-avatar-ring" id="wpAvatar">S</div>
+            <div class="wp-greeting">Welcome back, <span class="wp-name-grad" id="wpName">Seller</span> 👋</div>
+            <div class="wp-sub" id="wpSubLine">Here's a quick look at your listing activity today.</div>
+        </div>
+
+        <!-- Plan chip -->
+        <div class="wp-plan-row">
+            <div class="wp-plan-chip free" id="wpPlanChip">
+                <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                    <circle cx="4" cy="4" r="3" fill="currentColor" opacity="0.5"/>
+                    <circle cx="4" cy="4" r="1.5" fill="currentColor"/>
+                </svg>
+                <span id="wpPlanName">Free Plan</span>
+            </div>
+        </div>
+
+        <!-- Progress bars -->
+        <div class="wp-progress-section">
+
+            <!-- Daily -->
+            <div class="wp-prog-block">
+                <div class="wp-prog-header">
+                    <div class="wp-prog-label">
+                        <span class="wp-prog-label-dot" style="background:#a855f7;"></span>
+                        Today's Listings
+                    </div>
+                    <div class="wp-prog-counts">
+                        <span class="used" id="wpDayUsed">0</span>
+                        <span class="sep">/</span>
+                        <span class="cap" id="wpDayCap">1</span>
+                    </div>
+                </div>
+                <div class="wp-bar-track">
+                    <div class="wp-bar-fill day-bar" id="wpDayBar"></div>
+                </div>
+                <div class="wp-prog-compare" id="wpDayCompare"></div>
+            </div>
+
+            <!-- Monthly -->
+            <div class="wp-prog-block">
+                <div class="wp-prog-header">
+                    <div class="wp-prog-label">
+                        <span class="wp-prog-label-dot" style="background:#38bdf8;"></span>
+                        This Month
+                    </div>
+                    <div class="wp-prog-counts">
+                        <span class="used" id="wpMonthUsed">0</span>
+                        <span class="sep">/</span>
+                        <span class="cap" id="wpMonthCap">5</span>
+                    </div>
+                </div>
+                <div class="wp-bar-track">
+                    <div class="wp-bar-fill month-bar" id="wpMonthBar"></div>
+                </div>
+                <div class="wp-prog-compare" id="wpMonthCompare"></div>
+            </div>
+
+        </div>
+
+        <!-- Upgrade nudge (hidden for paid plans) -->
+        <div class="wp-upgrade-nudge" id="wpUpgradeNudge" onclick="closeWelcomeAndUpgrade()">
+            <div class="wp-upgrade-nudge-icon">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M8 1l1.8 3.6L14 5.6l-3 2.9.7 4.1L8 10.9l-3.7 1.8.7-4.1-3-2.9 4.2-.6z" stroke="#a855f7" stroke-width="1.2" stroke-linejoin="round" fill="rgba(168,85,247,0.15)"/>
+                </svg>
+            </div>
+            <div class="wp-upgrade-nudge-text">
+                <div class="wp-upgrade-nudge-title" id="wpNudgeTitle">Unlock more listings</div>
+                <div class="wp-upgrade-nudge-sub" id="wpNudgeSub">Upgrade to list up to 150/month and save more on fees.</div>
+            </div>
+            <svg class="wp-upgrade-arrow" width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M3 7h8M8 4l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+
+        <!-- Actions -->
+        <div class="wp-actions">
+            <button class="wp-btn-primary" onclick="closeWelcomePopup()" id="wpPrimaryBtn">
+                ✦ Start Listing
+            </button>
+            <button class="wp-btn-secondary" onclick="closeWelcomeAndUpgrade()" id="wpSecondaryBtn">
+                View Plans
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    // ── Plan config ──────────────────────────────────────────────
+    const PLAN_CONFIG = {
+        free:    { label: 'Free Plan',    chipClass: 'free',    dayLimit: 1,   monthLimit: 5,         nudge: true,  nudgeTitle: 'Unlock more listings',         nudgeSub:  'Starter gives you 5 listings/day & 150/month.' },
+        starter: { label: 'Starter Plan', chipClass: 'starter', dayLimit: 5,   monthLimit: 150,       nudge: true,  nudgeTitle: 'Go unlimited this month',      nudgeSub:  'Growth removes the monthly cap entirely.' },
+        growth:  { label: 'Growth Plan',  chipClass: 'growth',  dayLimit: 15,  monthLimit: Infinity,  nudge: true,  nudgeTitle: 'Want even lower fees?',        nudgeSub:  'Pro cuts your platform fee to just 5%.' },
+        pro:     { label: 'Pro Plan',     chipClass: 'pro',     dayLimit: Infinity, monthLimit: Infinity, nudge: false, nudgeTitle: '', nudgeSub: '' },
+    };
+
+    function getPlan() {
+        const raw = (window._fbUserData?.plan || 'free').toLowerCase();
+        return PLAN_CONFIG[raw] || PLAN_CONFIG.free;
+    }
+
+    function getUsername() {
+        return window._fbUserData?.username || window._fbUserData?.name || 'Seller';
+    }
+
+    function getDayUsed()   { return window._sellerBarUsed   ?? 0; }
+    function getMonthUsed() { return window._sellerBarMonthUsed ?? 0; }
+
+    function fmtCap(n) {
+        return n === Infinity ? '∞' : String(n);
+    }
+
+    function barPct(used, limit) {
+        if (limit === Infinity || limit === 0) return used > 0 ? 100 : 0;
+        return Math.min(100, Math.round((used / limit) * 100));
+    }
+
+    function barClass(pct, isUnlimited) {
+        if (isUnlimited) return 'month-bar';
+        if (pct >= 100) return 'maxed';
+        if (pct >= 80)  return 'warn';
+        return null; // keep default
+    }
+
+    function compareText(used, limit, period, planName, upgradePlan) {
+        if (limit === Infinity) {
+            return `<strong>Unlimited</strong> ${period} listings on your plan.`;
+        }
+        const remaining = Math.max(0, limit - used);
+        if (remaining === 0) return `You've hit your ${period} cap. <strong>Upgrade to keep listing.</strong>`;
+        if (remaining === 1) return `<strong>1 listing</strong> remaining ${period === 'daily' ? 'today' : 'this month'}.`;
+        return `<strong>${remaining} remaining</strong> of your ${limit} ${period} cap.`;
+    }
+
+    function renderWelcome() {
+        const plan    = getPlan();
+        const name    = getUsername();
+        const dayUsed = getDayUsed();
+        const monUsed = getMonthUsed();
+
+        // Avatar
+        const avatarEl = document.getElementById('wpAvatar');
+        if (avatarEl) avatarEl.textContent = name.charAt(0).toUpperCase();
+
+        // Name
+        const nameEl = document.getElementById('wpName');
+        if (nameEl) nameEl.textContent = name;
+
+        // Sub line
+        const subEl = document.getElementById('wpSubLine');
+        if (subEl) {
+            const hour = new Date().getHours();
+            const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+            subEl.textContent = `${greeting}! Here's a quick look at your listing activity.`;
+        }
+
+        // Plan chip
+        const chipEl = document.getElementById('wpPlanChip');
+        if (chipEl) {
+            chipEl.className = 'wp-plan-chip ' + plan.chipClass;
+            const nameSpan = document.getElementById('wpPlanName');
+            if (nameSpan) nameSpan.textContent = plan.label;
+        }
+
+        // ── Daily bar ────────────────────────────────────────────
+        const dayCapEl    = document.getElementById('wpDayCap');
+        const dayUsedEl   = document.getElementById('wpDayUsed');
+        const dayBarEl    = document.getElementById('wpDayBar');
+        const dayCompEl   = document.getElementById('wpDayCompare');
+        const dayIsUnlim  = plan.dayLimit === Infinity;
+        const dayPct      = barPct(dayUsed, plan.dayLimit);
+        const dayExtra    = barClass(dayPct, dayIsUnlim);
+
+        if (dayCapEl)  dayCapEl.textContent   = fmtCap(plan.dayLimit);
+        if (dayCapEl)  { dayCapEl.className = 'cap' + (dayIsUnlim ? ' unlimited' : ''); }
+        if (dayUsedEl) dayUsedEl.textContent  = dayUsed;
+        if (dayBarEl) {
+            if (dayExtra) { dayBarEl.classList.remove('day-bar'); dayBarEl.classList.add(dayExtra); }
+            setTimeout(() => { dayBarEl.style.width = (dayIsUnlim ? Math.min(100, (dayUsed / 5) * 100) : dayPct) + '%'; }, 120);
+        }
+        if (dayCompEl) dayCompEl.innerHTML = compareText(dayUsed, plan.dayLimit, 'daily', plan.label);
+
+        // ── Monthly bar ──────────────────────────────────────────
+        const monCapEl   = document.getElementById('wpMonthCap');
+        const monUsedEl  = document.getElementById('wpMonthUsed');
+        const monBarEl   = document.getElementById('wpMonthBar');
+        const monCompEl  = document.getElementById('wpMonthCompare');
+        const monIsUnlim = plan.monthLimit === Infinity;
+        const monPct     = barPct(monUsed, plan.monthLimit);
+        const monExtra   = barClass(monPct, monIsUnlim);
+
+        if (monCapEl)  monCapEl.textContent   = fmtCap(plan.monthLimit);
+        if (monCapEl)  { monCapEl.className = 'cap' + (monIsUnlim ? ' unlimited' : ''); }
+        if (monUsedEl) monUsedEl.textContent  = monUsed;
+        if (monBarEl) {
+            if (monExtra) { monBarEl.classList.remove('month-bar'); monBarEl.classList.add(monExtra); }
+            setTimeout(() => { monBarEl.style.width = (monIsUnlim ? Math.min(100, (monUsed / 10) * 100) : monPct) + '%'; }, 220);
+        }
+        if (monCompEl) monCompEl.innerHTML = compareText(monUsed, plan.monthLimit, 'monthly', plan.label);
+
+        // ── Upgrade nudge ────────────────────────────────────────
+        const nudgeEl = document.getElementById('wpUpgradeNudge');
+        if (nudgeEl) {
+            if (!plan.nudge) {
+                nudgeEl.style.display = 'none';
+                // Hide secondary "View Plans" for pro users
+                const secBtn = document.getElementById('wpSecondaryBtn');
+                if (secBtn) secBtn.style.display = 'none';
+            } else {
+                nudgeEl.style.display = 'flex';
+                const nudgeTitle = document.getElementById('wpNudgeTitle');
+                const nudgeSub   = document.getElementById('wpNudgeSub');
+                if (nudgeTitle) nudgeTitle.textContent = plan.nudgeTitle;
+                if (nudgeSub)   nudgeSub.textContent   = plan.nudgeSub;
+            }
+        }
+
+        // Primary button label
+        const primBtn = document.getElementById('wpPrimaryBtn');
+        if (primBtn) {
+            if (dayUsed >= plan.dayLimit && plan.dayLimit !== Infinity) {
+                primBtn.textContent = '✦ View Upgrade Options';
+            } else {
+                primBtn.textContent = '✦ Start Listing';
+            }
+        }
+    }
+
+    function openWelcomePopup() {
+        renderWelcome();
+        const popup = document.getElementById('welcomePopup');
+        if (popup) {
+            popup.classList.add('open');
+            document.body.classList.add('modal-open');
+        }
+    }
+
+    window.closeWelcomePopup = function() {
+        const popup = document.getElementById('welcomePopup');
+        if (popup) {
+            popup.classList.remove('open');
+            document.body.classList.remove('modal-open');
+        }
+    };
+
+    window.closeWelcomeAndUpgrade = function() {
+        closeWelcomePopup();
+        if (typeof window.openUpgradeModal === 'function') {
+            window.openUpgradeModal();
+        } else {
+            window.location.href = '/?upgrade=starter';
+        }
+    };
+
+    // Backdrop click
+    document.getElementById('wpBackdrop').addEventListener('click', closeWelcomePopup);
+
+    // Show on every page load/refresh — slight delay so page can settle
+    window.addEventListener('load', function() {
+        setTimeout(openWelcomePopup, 400);
+    });
 })();
 </script>
 
