@@ -493,8 +493,222 @@ async function callGroq(systemPrompt, userContent, maxTokens = 500) {
 
 
 // ══════════════════════════════════════════════════════════════════════════════
+//  WHOIS LOOKUP — multi-source fallback
+//  Sources tried in order:
+//    1. rdap.org  (free, no key, JSON)
+//    2. who-dat.as93.net (free, no key, JSON)
+//    3. Graceful degradation — returns what we know from DNS
+//
+//  Returns: { registered, registrar, registrarUrl, createdDate, expiryDate,
+//             domainAgeDays, updatedDate, nameservers, raw }
+// ══════════════════════════════════════════════════════════════════════════════
+
+async function lookupWhois(domain) {
+  // Strip any path / port, just bare hostname
+  const bare = domain.split("/")[0].split(":")[0].toLowerCase().replace(/^www\./, "");
+
+  // ── Source 1: rdap.org ───────────────────────────────────────────────────
+  try {
+    const res = await fetchWithTimeout(
+      `https://rdap.org/domain/${encodeURIComponent(bare)}`,
+      { headers: { "Accept": "application/json", "User-Agent": "Siterifty-Verify/2.0" } },
+      6000
+    );
+    if (res.ok) {
+      const data = await res.json();
+
+      // Extract registrar from entities
+      let registrar = null, registrarUrl = null;
+      if (Array.isArray(data.entities)) {
+        for (const e of data.entities) {
+          if (Array.isArray(e.roles) && e.roles.includes("registrar")) {
+            // publicIds often has the registrar name
+            if (Array.isArray(e.publicIds) && e.publicIds[0]?.identifier) {
+              registrar = e.publicIds[0].identifier;
+            }
+            // vcardArray has fn (full name)
+            const vcard = e.vcardArray?.[1];
+            if (Array.isArray(vcard)) {
+              for (const field of vcard) {
+                if (field[0] === "fn") { registrar = registrar || field[3]; }
+                if (field[0] === "url") { registrarUrl = field[3]; }
+              }
+            }
+            if (!registrar && e.handle) registrar = e.handle;
+            break;
+          }
+        }
+      }
+
+      // Extract dates from events
+      let createdDate = null, expiryDate = null, updatedDate = null;
+      if (Array.isArray(data.events)) {
+        for (const ev of data.events) {
+          if (ev.eventAction === "registration")  createdDate  = ev.eventDate;
+          if (ev.eventAction === "expiration")    expiryDate   = ev.eventDate;
+          if (ev.eventAction === "last changed")  updatedDate  = ev.eventDate;
+        }
+      }
+
+      // Nameservers
+      const nameservers = Array.isArray(data.nameservers)
+        ? data.nameservers.map(ns => (ns.ldhName || "").toLowerCase()).filter(Boolean)
+        : [];
+
+      // Domain age in days
+      let domainAgeDays = null;
+      if (createdDate) {
+        domainAgeDays = Math.floor((Date.now() - new Date(createdDate).getTime()) / 86_400_000);
+      }
+
+      return {
+        registered:   true,
+        registrar:    _cleanRegistrar(registrar),
+        registrarUrl: registrarUrl || null,
+        createdDate:  createdDate  || null,
+        expiryDate:   expiryDate   || null,
+        updatedDate:  updatedDate  || null,
+        domainAgeDays,
+        nameservers,
+        source:       "rdap.org",
+      };
+    }
+  } catch (_) { /* fall through */ }
+
+  // ── Source 2: who-dat (plain JSON WHOIS fallback) ─────────────────────────
+  try {
+    const res = await fetchWithTimeout(
+      `https://who-dat.as93.net/${encodeURIComponent(bare)}`,
+      { headers: { "Accept": "application/json", "User-Agent": "Siterifty-Verify/2.0" } },
+      6000
+    );
+    if (res.ok) {
+      const data = await res.json();
+      const w = data?.WhoisRecord || data?.whois_record || data || {};
+
+      const registrar   = _cleanRegistrar(w.registrarName || w.Registrar || w.registrar || null);
+      const createdDate = w.createdDate || w.CreatedDate || w.creation_date || null;
+      const expiryDate  = w.expiresDate || w.ExpiresDate || w.expiration_date || null;
+      const updatedDate = w.updatedDate || w.UpdatedDate || null;
+
+      let domainAgeDays = null;
+      if (createdDate) {
+        domainAgeDays = Math.floor((Date.now() - new Date(createdDate).getTime()) / 86_400_000);
+      }
+
+      return {
+        registered:   true,
+        registrar,
+        registrarUrl: null,
+        createdDate,
+        expiryDate,
+        updatedDate,
+        domainAgeDays,
+        nameservers:  [],
+        source:       "who-dat",
+      };
+    }
+  } catch (_) { /* fall through */ }
+
+  // ── Graceful degradation — domain exists (caller already validated URL) ────
+  return {
+    registered:   null, // unknown
+    registrar:    null,
+    registrarUrl: null,
+    createdDate:  null,
+    expiryDate:   null,
+    updatedDate:  null,
+    domainAgeDays: null,
+    nameservers:  [],
+    source:       "unavailable",
+  };
+}
+
+/** Normalise messy registrar strings from RDAP/WHOIS */
+function _cleanRegistrar(raw) {
+  if (!raw) return null;
+  let s = String(raw).trim();
+  // Some RDAP sources give IANA IDs like "1068" — not useful
+  if (/^\d+$/.test(s)) return null;
+  // Trim trailing ", LLC" duplicates, etc.
+  s = s.replace(/,?\s*(LLC|Inc\.?|Ltd\.?|Corp\.?)$/i, "").trim();
+  // Known display names
+  const MAP = {
+    "namecheap":      "Namecheap",
+    "godaddy":        "GoDaddy",
+    "go daddy":       "GoDaddy",
+    "cloudflare":     "Cloudflare",
+    "google":         "Google Domains",
+    "porkbun":        "Porkbun",
+    "hover":          "Hover",
+    "name.com":       "Name.com",
+    "namesilo":       "NameSilo",
+    "dynadot":        "Dynadot",
+    "ionos":          "IONOS",
+    "1&1":            "IONOS",
+    "network solutions": "Network Solutions",
+    "tucows":         "Tucows / Hover",
+    "enom":           "eNom",
+    "fastly":         "Fastly",
+    "squarespace":    "Squarespace",
+    "wix":            "Wix",
+  };
+  const lower = s.toLowerCase();
+  for (const [key, display] of Object.entries(MAP)) {
+    if (lower.includes(key)) return display;
+  }
+  // Title-case fallback (max 40 chars)
+  return s.slice(0, 40).replace(/\b\w/g, c => c.toUpperCase());
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════════
 //  ACTION HANDLERS
 // ══════════════════════════════════════════════════════════════════════════════
+
+// ─── whois_check ─────────────────────────────────────────────────────────────
+async function handleWhoisCheck(body, cors) {
+  const rawDomain = typeof body.domain === "string" ? body.domain.trim() : "";
+  if (!rawDomain) return err("Missing domain", 400, cors);
+
+  // Normalise — strip protocol, www, path
+  const domain = rawDomain
+    .replace(/^https?:\/\//i, "")
+    .replace(/^www\./i, "")
+    .split("/")[0]
+    .split(":")[0]
+    .toLowerCase();
+
+  if (!domain.includes(".") || domain.length < 4)
+    return err("Invalid domain", 400, cors);
+
+  // Block private IPs
+  if (PRIVATE_IP_RE.test(domain))
+    return json({ registered: false, reason: "Private/loopback address." }, 200, cors);
+
+  // Domain risk check first
+  const risk = domainRiskLevel(domain);
+  if (risk.level === "blocked")
+    return json({ registered: false, reason: risk.reason }, 200, cors);
+
+  const result = await lookupWhois(domain);
+
+  // Attach risk level for frontend
+  result.riskLevel = risk.level;      // "ok" | "high_risk"
+  result.riskReason = risk.reason || null;
+
+  // Flag too-new domains (< 90 days)
+  if (result.domainAgeDays !== null && result.domainAgeDays < 90) {
+    result.tooNew = true;
+    result.tooNewReason = `Domain registered only ${result.domainAgeDays} days ago — listings require domains at least 90 days old.`;
+  } else {
+    result.tooNew = false;
+    result.tooNewReason = null;
+  }
+
+  return json(result, 200, cors);
+}
+
 
 // ─── fetch_site_meta ─────────────────────────────────────────────────────────
 async function handleFetchSiteMeta(body, cors) {
@@ -1020,8 +1234,9 @@ export default async function handler(req) {
       case "review_ad":       return await handleReviewAd(body, cors);
       case "validate_url":    return await handleValidateUrl(body, cors);
       case "fetch_site_meta": return await handleFetchSiteMeta(body, cors);
+      case "whois_check":     return await handleWhoisCheck(body, cors);
       default:
-        return err(`Unknown action "${action}". Valid: review_listing | review_ad | validate_url | fetch_site_meta`, 400, cors);
+        return err(`Unknown action "${action}". Valid: review_listing | review_ad | validate_url | fetch_site_meta | whois_check`, 400, cors);
     }
   } catch (e) {
     console.error("[sellmypage] Unhandled error:", e);
