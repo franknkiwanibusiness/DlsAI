@@ -2281,7 +2281,7 @@
     </a>
     <!-- RIGHT: wallet + user chip + avatar -->
     <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
-        <div class="credit-pill" id="walletPill" onclick="location.href='/?wallet=topup'" style="cursor:pointer;">
+        <div class="credit-pill" id="walletPill" onclick="location.href = window.location.origin + '/#topup'" style="cursor:pointer;">
             <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="5.75" stroke="#a855f7" stroke-width="1.2"/><text x="6.5" y="9.5" text-anchor="middle" font-size="7" font-family="Syne,sans-serif" font-weight="700" fill="#a855f7">$</text></svg>
             <span class="credit-label">Wallet</span>
             <div class="credit-divider"></div>
@@ -3738,6 +3738,441 @@ window._sellerBarIncrement = function() {
     </div>
 </div>
 
+
+<!-- ══ SECURITY MODULE v2.0 ══ -->
+<script>
+/**
+ * ═══════════════════════════════════════════════════════════════
+ *  SITERIFTY — PRODUCTION SECURITY MODULE  v2.0
+ * ═══════════════════════════════════════════════════════════════
+ */
+if (!window._srSec) {
+window._srSec = true;
+
+const SEC = {
+    JUNK_TLDS: ['tk','ml','cf','ga','gq','top','click','loan','work','date','racing','review',
+                'accountant','download','trade','webcam','win','bid','faith','stream'],
+    BRAND_GUARDS: ['shopify','wordpress','woocommerce','github','gitlab','stripe','paypal',
+                   'amazon','google','facebook','instagram','tiktok','youtube','netflix',
+                   'airbnb','uber','doordash','fiverr','upwork','clickbank'],
+    SCAM_PHRASES: [
+        'guaranteed income','guaranteed profit','risk free','risk-free',
+        'make money fast','make money online guaranteed','passive income guaranteed',
+        'never lose','100% profit','no work required','autopilot income',
+        'crypto pump','forex signal','binary option','get rich quick',
+    ],
+    SESSION_LIMIT: 3,
+    MIN_DOMAIN_AGE_DAYS: 90,
+};
+
+function _secSessionCount() {
+    try { const r = sessionStorage.getItem('_sr_sub_times'); return r ? JSON.parse(r) : []; } catch { return []; }
+}
+function _secSessionIncrement() {
+    try { const t = _secSessionCount(); t.push(Date.now()); sessionStorage.setItem('_sr_sub_times', JSON.stringify(t)); } catch {}
+}
+function _secSessionLimitHit() { return _secSessionCount().length >= SEC.SESSION_LIMIT; }
+
+function _secIsValidUrl(raw) {
+    try {
+        const url = new URL('https://' + raw.replace(/^https?:\/\//i, ''));
+        const host = url.hostname;
+        if (!host.includes('.')) return false;
+        if (/^\d+\.\d+\.\d+\.\d+$/.test(host)) return false;
+        if (host.length < 4) return false;
+        return true;
+    } catch { return false; }
+}
+function _secGetTld(d) { const p = d.split('.'); return p[p.length - 1].toLowerCase(); }
+function _secIsJunkTld(d) { return SEC.JUNK_TLDS.includes(_secGetTld(d)); }
+
+function _secClientSideCheck(payload) {
+    const { title, url: cleanUrl, description, price, revenue } = payload;
+    if (title === title.toUpperCase() && title.length > 12)
+        return 'Listing title must use normal mixed-case text, not all capitals.';
+    if (/(\+\d{7,}|@\w{4,}|t\.me\/|telegram)/i.test(title))
+        return 'Contact info or messaging handles are not allowed in the listing title.';
+    const descLower = description.toLowerCase();
+    for (const phrase of SEC.SCAM_PHRASES)
+        if (descLower.includes(phrase))
+            return `Your description contains a phrase that violates our listing policy: "${phrase}". Please rewrite your description.`;
+    const combined = (title + ' ' + description).toLowerCase();
+    for (const brand of SEC.BRAND_GUARDS)
+        if (combined.includes(brand) && !cleanUrl.includes(brand))
+            return `Your listing mentions "${brand}" but your domain doesn't match. Listings that misrepresent well-known brands are not allowed.`;
+    if (revenue && revenue > 0 && price > 0 && price / revenue < 3)
+        return `Your asking price ($${price.toLocaleString()}) is less than 3× your stated monthly revenue ($${revenue.toLocaleString()}). This combination is implausible. Please verify your figures.`;
+    if (_secIsJunkTld(cleanUrl)) payload.__junkTld = true;
+    return null;
+}
+
+function _secExtractFingerprint(snippets) {
+    let fp = { title: null, cssVars: [], metaDescription: null };
+    for (const { filename, content } of snippets) {
+        const ext = filename.split('.').pop().toLowerCase();
+        if (['html','htm'].includes(ext)) {
+            const tm = content.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+            if (tm) fp.title = tm[1].replace(/\s+/g,' ').trim().slice(0,120);
+            const dm = content.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']{10,300})/i)
+                    || content.match(/<meta[^>]+content=["']([^"']{10,300})["'][^>]+name=["']description["']/i);
+            if (dm) fp.metaDescription = dm[1].trim().slice(0,200);
+        }
+        if (ext === 'css') {
+            const vars = content.match(/--[a-zA-Z][a-zA-Z0-9-]+/g) || [];
+            fp.cssVars.push(...vars.slice(0,20));
+        }
+    }
+    fp.cssVars = [...new Set(fp.cssVars)];
+    return fp;
+}
+
+function _secCompareFingerprintToLive(uploadedFp, liveMeta) {
+    if (!liveMeta) return { match: false, confidence: 'low', reason: 'Live site could not be fetched.' };
+    if (!uploadedFp.title && uploadedFp.cssVars.length === 0)
+        return { match: false, confidence: 'low', reason: 'No extractable fingerprint from uploaded files.' };
+    let score = 0; let reasons = [];
+    if (uploadedFp.title && liveMeta.title) {
+        const uN = uploadedFp.title.toLowerCase().replace(/[^a-z0-9 ]/g,'');
+        const lN = liveMeta.title.toLowerCase().replace(/[^a-z0-9 ]/g,'');
+        if (uN === lN || lN.includes(uN) || uN.includes(lN)) { score += 3; reasons.push('title match'); }
+        else reasons.push(`title mismatch: file="${uploadedFp.title}" vs live="${liveMeta.title}"`);
+    }
+    if (uploadedFp.metaDescription && liveMeta.description) {
+        const uW = new Set(uploadedFp.metaDescription.toLowerCase().slice(0,80).split(/\s+/));
+        const lW = liveMeta.description.toLowerCase().slice(0,80).split(/\s+/);
+        const overlap = lW.filter(w => uW.has(w)).length / (lW.length || 1);
+        if (overlap >= 0.5) { score += 2; reasons.push('meta-description overlap'); }
+        else reasons.push('meta-description differs');
+    }
+    if (uploadedFp.cssVars.length > 0 && liveMeta.cssVars && liveMeta.cssVars.length > 0) {
+        const shared = uploadedFp.cssVars.filter(v => liveMeta.cssVars.includes(v));
+        if (shared.length >= 2) { score += 2; reasons.push(`${shared.length} shared CSS vars`); }
+    }
+    const confidence = score >= 4 ? 'high' : score >= 2 ? 'medium' : 'low';
+    return { match: score >= 2, confidence, score, reason: reasons.join('; ') };
+}
+
+async function _secSignPayload(uid, payload) {
+    const canonical = JSON.stringify({ url: payload.url, title: payload.title, price: payload.price, ts: payload.__signedAt, uid });
+    if (window.crypto && window.crypto.subtle) {
+        try {
+            const key = await window.crypto.subtle.importKey('raw', new TextEncoder().encode(uid + '_siterifty_v2'), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+            const sig = await window.crypto.subtle.sign('HMAC', key, new TextEncoder().encode(canonical));
+            return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2,'0')).join('');
+        } catch (_) {}
+    }
+    let h = 5381;
+    for (let i = 0; i < canonical.length; i++) h = ((h << 5) + h) ^ canonical.charCodeAt(i);
+    return (h >>> 0).toString(16);
+}
+
+function _secSanitizeAiReason(reason, siteUrl) {
+    if (!reason) return reason;
+    return reason
+        .replace(/https?:\/\/[^\s,;)>"']+/gi, '[URL]')
+        .replace(/\b[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\.[a-zA-Z]{2,})?\b/g, '[domain]')
+        .replace(/`[^`]{0,200}`/g, '[code]')
+        .replace(/<[a-zA-Z][^>]{0,100}>/g, '[tag]')
+        .replace(new RegExp(siteUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '[your site]')
+        .trim();
+}
+
+window.submitListing = async function submitListing_secure() {
+
+    if (_secSessionLimitHit())
+        return showErr('Security check: too many submission attempts this session. Please refresh the page and try again.');
+
+    const titleRaw    = document.getElementById('siteTitle').value.trim();
+    const urlRaw      = document.getElementById('siteUrl').value.trim();
+    const descRaw     = document.getElementById('siteDesc').value.trim();
+    const priceRaw    = document.getElementById('sitePrice').value.trim();
+    const cat         = document.getElementById('siteCategory').value;
+    const age         = document.getElementById('siteAge').value;
+    const revenueRaw  = document.getElementById('siteRevenue').value.trim();
+    const trafficRaw  = document.getElementById('siteTraffic').value.trim();
+    const expensesRaw = document.getElementById('siteExpenses').value.trim();
+    const reason      = document.getElementById('siteReason').value;
+    const chk1        = document.getElementById('chk1').checked;
+    const chk2        = document.getElementById('chk2').checked;
+    const chk3        = document.getElementById('chk3').checked;
+    const imgCount    = state.images.filter(Boolean).length;
+
+    if (!titleRaw)              return _fieldErr('siteTitle', 'Please enter a listing title.');
+    if (titleRaw.length < 10)   return _fieldErr('siteTitle', 'Title must be at least 10 characters — be specific so buyers can find your listing.');
+    if (titleRaw.length > 80)   return _fieldErr('siteTitle', 'Title must be 80 characters or fewer.');
+    if (/^[^a-zA-Z0-9]+$/.test(titleRaw)) return _fieldErr('siteTitle', 'Title must contain real words, not just symbols.');
+
+    if (!urlRaw)                return _fieldErr('siteUrl', 'Please enter your website URL.');
+    if (!_secIsValidUrl(urlRaw)) return _fieldErr('siteUrl', 'Please enter a valid URL (e.g. mysite.com or app.mysite.com).');
+    const cleanUrl = (typeof _normalizeUrl === 'function') ? _normalizeUrl(urlRaw) : urlRaw.toLowerCase().replace(/^https?:\/\//,'').replace(/^www\./,'').replace(/\/+$/,'');
+    if (/^(localhost|127\.|192\.168\.|10\.|0\.0\.0\.0)/.test(cleanUrl))
+        return _fieldErr('siteUrl', 'URL must be a publicly accessible website, not a local address.');
+
+    if (!cat)   return _fieldErr('siteCategory', 'Please select a category for your listing.');
+    if (!age)   return _fieldErr('siteAge', 'Please select the age of your site.');
+    if (!descRaw)               return _fieldErr('siteDesc', 'Please add a short description of your site.');
+    if (descRaw.length < 30)    return _fieldErr('siteDesc', 'Description is too short — write at least 30 characters.');
+    if (descRaw.length > 500)   return _fieldErr('siteDesc', 'Description must be 500 characters or fewer.');
+    if (!priceRaw)              return _fieldErr('sitePrice', 'Please enter an asking price.');
+
+    const price = parseFloat(priceRaw);
+    if (isNaN(price) || price < 1)               return _fieldErr('sitePrice', 'Asking price must be at least $1.');
+    if (price > 100_000_000)                      return _fieldErr('sitePrice', 'Asking price seems unrealistically high. Please double-check.');
+    if (!/^\d+(\.\d{1,2})?$/.test(priceRaw))     return _fieldErr('sitePrice', 'Price can have at most 2 decimal places (e.g. 499 or 499.99).');
+
+    let revenue = null, traffic = null, expenses = null;
+    if (revenueRaw !== '') {
+        revenue = parseFloat(revenueRaw);
+        if (isNaN(revenue) || revenue < 0)  return _fieldErr('siteRevenue', 'Monthly revenue must be 0 or a positive number.');
+        if (revenue > 100_000_000)           return _fieldErr('siteRevenue', 'Monthly revenue value seems unrealistically high.');
+    }
+    if (trafficRaw !== '') {
+        traffic = parseInt(trafficRaw, 10);
+        if (isNaN(traffic) || traffic < 0)  return _fieldErr('siteTraffic', 'Monthly traffic must be 0 or a positive number.');
+        if (traffic > 1_000_000_000)         return _fieldErr('siteTraffic', 'Monthly traffic value seems unrealistically high.');
+    }
+    if (expensesRaw !== '') {
+        expenses = parseFloat(expensesRaw);
+        if (isNaN(expenses) || expenses < 0) return _fieldErr('siteExpenses', 'Monthly expenses must be 0 or a positive number.');
+        if (expenses > 100_000_000)           return _fieldErr('siteExpenses', 'Monthly expenses value seems unrealistically high.');
+    }
+
+    if (imgCount < 4) {
+        const remaining = 4 - imgCount;
+        document.getElementById('formStep2').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return showErr(`All 4 images are required. You still need ${remaining} more image${remaining > 1 ? 's' : ''} (2 landscape + 2 portrait).`);
+    }
+    if (state.imgUploading && Object.values(state.imgUploading).some(Boolean))
+        return showErr('Please wait — images are still uploading to Imgur.');
+
+    const codeFiles      = state.proofFiles.code;
+    const domainDocs     = Object.values(state.domainDocs).filter(Boolean);
+    const hostingDoc     = state.proofFiles.hosting;
+    const hasCodeProof   = codeFiles.length > 0;
+    const hasDomainProof = domainDocs.length >= 2;
+    const hasHostingProof = !!hostingDoc;
+    const hasProofFinal  = hasCodeProof || hasDomainProof || hasHostingProof;
+
+    if (!hasProofFinal) {
+        document.getElementById('formStep3').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return showErr('Proof of ownership is required. Upload source code files, domain documents, or a hosting dashboard screenshot.');
+    }
+
+    if (!chk1 || !chk2 || !chk3)
+        return showErr('Please agree to all three terms before submitting.');
+
+    if (typeof window._sellerBarLimit !== 'undefined' &&
+        typeof window._sellerBarUsed  !== 'undefined' &&
+        window._sellerBarUsed >= window._sellerBarLimit) {
+        if (typeof openListingLimitModal === 'function') openListingLimitModal();
+        return;
+    }
+
+    if (!window._fbAuth || !window._fbAuth.currentUser)
+        return showErr('Please sign in to submit your listing.');
+
+    const uid = window._fbAuth.currentUser.uid;
+    hideErr();
+
+    const listingPayload = {
+        title:       _sanitize(titleRaw),
+        url:         cleanUrl,
+        description: _sanitize(descRaw),
+        price,
+        category:    cat,
+        age,
+        ...(revenue  !== null && { revenue }),
+        ...(traffic  !== null && { traffic }),
+        ...(expenses !== null && { expenses }),
+        ...(reason   && { reason }),
+        tech: _sanitize(document.getElementById('siteTech')?.value?.trim() || ''),
+        images: state.images.filter(Boolean),
+    };
+
+    const patternErr = _secClientSideCheck({ ...listingPayload });
+    if (patternErr) return showErr(patternErr);
+
+    const submitBtn = document.querySelector('[onclick="submitListing()"]');
+    const _setBtn = (html) => { if (submitBtn) submitBtn.innerHTML = html; };
+    const _spinner = (label) => _setBtn(`<svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="animation:spin .7s linear infinite;flex-shrink:0;"><circle cx="7" cy="7" r="5.5" stroke="rgba(255,255,255,0.25)" stroke-width="1.4"/><path d="M7 1.5a5.5 5.5 0 0 1 5.5 5.5" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/></svg> ${label}`);
+    const _resetBtn = () => _setBtn(`<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2l6 6-6 6M2 8h12" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Submit Listing`);
+
+    if (submitBtn) submitBtn.disabled = true;
+    _spinner('Checking domain…');
+
+    // ── Duplicate URL check ──
+    try {
+        const dupCheck = await _apiCall({ action: 'check_duplicate', url: cleanUrl });
+        if (dupCheck && dupCheck.isDuplicate) {
+            submitBtn && (submitBtn.disabled = false); _resetBtn();
+            return showErr(`This domain (${cleanUrl}) already has an active or pending listing on Siterifty. Duplicate listings are not allowed. If you own the existing listing, please edit it instead.`);
+        }
+    } catch (e) { console.warn('[SecMod] Duplicate check unavailable:', e); }
+
+    // ── WHOIS / registrar check ──
+    _spinner('Verifying domain registration…');
+    let whoisData = null, whoisFlag = null;
+    try {
+        const whoisRes = await _apiCall({ action: 'whois_check', domain: cleanUrl });
+        if (whoisRes) {
+            whoisData = whoisRes;
+            if (whoisRes.registered === false) {
+                submitBtn && (submitBtn.disabled = false); _resetBtn();
+                return showErr(`The domain "${cleanUrl}" does not appear to be a registered domain. Please enter the correct URL for your website.`);
+            }
+            if (whoisRes.domainAgeDays !== undefined && whoisRes.domainAgeDays < SEC.MIN_DOMAIN_AGE_DAYS) whoisFlag = 'too_new';
+            if (_secIsJunkTld(cleanUrl)) { whoisFlag = whoisFlag || 'junk_tld'; listingPayload.__junkTld = true; }
+        }
+    } catch (e) { console.warn('[SecMod] WHOIS check unavailable:', e); }
+
+    // ── Read uploaded code files + fingerprint ──
+    let codeSnippets = [], uploadedFingerprint = null;
+    if (hasCodeProof) {
+        _spinner('Reading code files…');
+        const readableExts = ['html','htm','css','js','jsx','ts','tsx','php','py','rb','txt','md'];
+        for (const file of codeFiles.slice(0, 3)) {
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (!readableExts.includes(ext)) continue;
+            try {
+                const text = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsText(file, 'utf-8'); });
+                codeSnippets.push({ filename: file.name, content: text.slice(0, 3000) });
+            } catch (_) {}
+        }
+        uploadedFingerprint = _secExtractFingerprint(codeSnippets);
+    }
+
+    // ── Fetch live site meta ──
+    _spinner('Fetching live site…');
+    let liveSiteMeta = null;
+    try {
+        const metaRes = await _apiCall({ action: 'fetch_site_meta', url: listingPayload.url });
+        if (metaRes && (metaRes.title || metaRes.description)) liveSiteMeta = metaRes;
+    } catch (e) { console.warn('[SecMod] Live meta fetch failed:', e); }
+
+    // ── Fingerprint comparison ──
+    let fingerprintResult = null;
+    if (hasCodeProof && uploadedFingerprint) {
+        fingerprintResult = _secCompareFingerprintToLive(uploadedFingerprint, liveSiteMeta);
+        if (liveSiteMeta && fingerprintResult.confidence === 'low' && !fingerprintResult.match && uploadedFingerprint.title && liveSiteMeta.title) {
+            submitBtn && (submitBtn.disabled = false); _resetBtn();
+            return showErr('The uploaded code files do not appear to match the live website at your URL. Please upload files that belong to the site you are selling. If you believe this is an error, use domain documents or hosting proof instead.');
+        }
+    }
+
+    // ── Sign payload ──
+    listingPayload.__signedAt  = Date.now();
+    listingPayload.__signature = await _secSignPayload(uid, listingPayload);
+
+    // ── AI Review ──
+    _spinner('AI reviewing…');
+    const reviewInstructions = [
+        liveSiteMeta
+            ? 'Live site meta was successfully fetched. Cross-check the seller\'s title and description against the live site <title> and meta description.'
+            : 'IMPORTANT: Live site meta could NOT be fetched. You MUST return status=pending_admin — never auto-approve without live site verification.',
+        hasCodeProof && fingerprintResult
+            ? `Fingerprint match: confidence=${fingerprintResult.confidence}, match=${fingerprintResult.match}. ${fingerprintResult.reason}. ${fingerprintResult.confidence === 'high' ? 'Fingerprint strongly supports ownership.' : fingerprintResult.confidence === 'medium' ? 'Treat as soft ownership signal only.' : 'Do NOT use as an ownership signal.'}`
+            : '',
+        whoisData
+            ? `WHOIS: registrar="${whoisData.registrar || 'unknown'}", domainAgeDays=${whoisData.domainAgeDays ?? 'unknown'}, expiry="${whoisData.expiryDate || 'unknown'}". ${whoisFlag === 'too_new' ? `Domain is less than ${SEC.MIN_DOMAIN_AGE_DAYS} days old — you MUST return status=pending_admin.` : 'Domain age acceptable.'}`
+            : 'WHOIS data unavailable — treat domain age as unknown.',
+        listingPayload.__junkTld ? 'WARNING: Free/junk TLD detected. Return status=pending_admin unless there is overwhelming evidence of legitimacy.' : '',
+        'AUTO-APPROVE only when ALL are true: (A) liveSiteMeta present, (B) fingerprint confidence=high (if code uploaded), (C) domain age >= 90 days, (D) title/desc matches live site, (E) no policy violations, (F) TLD is not junk.',
+        'REJECT if: adult content, illegal services, brand impersonation, or AI-generated spam with no real product.',
+        'PRIVACY RULE — CRITICAL: Your reason MUST NOT include the site URL, domain name, or any code snippet. Write only a general policy explanation.',
+    ].filter(Boolean).join('\n');
+
+    try {
+        const reviewed = await _apiCall({
+            action: 'review_listing',
+            listing: { title: listingPayload.title, url: listingPayload.url, description: listingPayload.description, price: listingPayload.price, category: listingPayload.category, age: listingPayload.age, revenue: listingPayload.revenue ?? null, traffic: listingPayload.traffic ?? null, expenses: listingPayload.expenses ?? null },
+            codeFiles: codeSnippets, liveSiteMeta, fingerprint: fingerprintResult, whoisData, reviewInstructions,
+        });
+
+        const aiStatus = reviewed.status || 'pending_admin';
+        const aiReason = _secSanitizeAiReason(reviewed.reason || '', cleanUrl);
+
+        if (reviewed.suggestedPriceMin) listingPayload.suggestedPriceMin = reviewed.suggestedPriceMin;
+        if (reviewed.suggestedPriceMax) listingPayload.suggestedPriceMax = reviewed.suggestedPriceMax;
+        if (reviewed.priceReason)       listingPayload.priceReason       = reviewed.priceReason;
+
+        listingPayload.aiReviewStatus  = aiStatus;
+        listingPayload.aiReviewReason  = aiReason;
+        listingPayload.status          = aiStatus;
+        listingPayload.reviewedAt      = Date.now();
+        listingPayload.proofMethod     = hasCodeProof ? 'code' : hasDomainProof ? 'domain' : 'hosting';
+        listingPayload.liveSiteChecked = !!liveSiteMeta;
+        listingPayload.whoisRegistrar  = whoisData?.registrar || null;
+        listingPayload.domainAgeDays   = whoisData?.domainAgeDays ?? null;
+        listingPayload.fpConfidence    = fingerprintResult?.confidence || null;
+
+        if (aiStatus === 'rejected') {
+            submitBtn && (submitBtn.disabled = false); _resetBtn();
+            document.getElementById('aiRejectedReason').textContent = aiReason || 'Your listing does not meet our content policy.';
+            lockScroll();
+            document.getElementById('aiRejectModal').classList.add('open');
+            _notifyEvent('listing-event', 'listing_rejected', { title: listingPayload.title, reason: aiReason });
+            return;
+        }
+        if (aiStatus === 'pending_admin') _spinner('Saving…');
+
+    } catch (aiErr) {
+        console.warn('[SecMod] AI Review failed, defaulting to pending_admin:', aiErr);
+        listingPayload.aiReviewStatus  = 'pending_admin';
+        listingPayload.aiReviewReason  = 'Automated review unavailable — sent to admin.';
+        listingPayload.status          = 'pending_admin';
+        listingPayload.reviewedAt      = Date.now();
+        listingPayload.proofMethod     = hasCodeProof ? 'code' : hasDomainProof ? 'domain' : 'hosting';
+        listingPayload.liveSiteChecked = !!liveSiteMeta;
+        _spinner('Saving…');
+    }
+
+    _secSessionIncrement();
+
+    const _editId = window._editingListingId || null;
+    const _doSave = () => {
+        const savePromise = _editId && typeof window._fbUpdateListing === 'function'
+            ? window._fbUpdateListing(_editId, { ...listingPayload, listingId: _editId })
+            : window._fbSaveListing(listingPayload);
+        return savePromise.then(() => {
+            window._editingListingId = null;
+            submitBtn && (submitBtn.disabled = false); _resetBtn();
+            if (listingPayload.status === 'pending_admin') {
+                document.getElementById('successTitle').textContent    = _editId ? 'Listing Updated' : 'Listing Under Review';
+                document.getElementById('successSubtitle').textContent = 'Our team will review your listing shortly. You\'ll be emailed once it\'s approved and goes live.';
+                document.getElementById('successStatusChip').style.display = 'inline-flex';
+                const reasonEl = document.getElementById('successPendingReason');
+                if (listingPayload.aiReviewReason) { reasonEl.textContent = '⚠ ' + listingPayload.aiReviewReason; reasonEl.style.display = 'block'; }
+                else reasonEl.style.display = 'none';
+                _notifyEvent('listing-event', 'listing_pending', { title: listingPayload.title });
+            } else {
+                document.getElementById('successTitle').textContent    = _editId ? 'Listing Updated!' : 'Listing Live!';
+                document.getElementById('successSubtitle').textContent = 'Your listing passed all checks and is now live on the marketplace.';
+                document.getElementById('successStatusChip').style.display = 'none';
+                document.getElementById('successPendingReason').style.display = 'none';
+                _notifyEvent('listing-event', 'listing_approved', { title: listingPayload.title, price: listingPayload.price });
+            }
+            lockScroll();
+            document.getElementById('successModal').classList.add('open');
+        }).catch(err => {
+            submitBtn && (submitBtn.disabled = false); _resetBtn();
+            showErr('Failed to submit: ' + (err.message || 'Unknown error. Please try again.'));
+        });
+    };
+
+    if (typeof window._fbSaveListing === 'function') {
+        _doSave();
+    } else {
+        let waited = 0;
+        const wi = setInterval(() => {
+            waited += 200;
+            if (typeof window._fbSaveListing === 'function') { clearInterval(wi); _doSave(); }
+            else if (waited >= 6000) { clearInterval(wi); submitBtn && (submitBtn.disabled = false); _resetBtn(); showErr('Connection error — Firebase did not load. Please refresh and try again.'); }
+        }, 200);
+    }
+};
+
+} // end window._srSec guard
+</script>
 
 <script>
 // ══ STATE ══
@@ -5502,7 +5937,7 @@ updateChecklist();
                 </div>
                 <div style="display:flex;align-items:center;gap:10px;">
                     <span class="wallet-row-val" id="pmWalletBal">—</span>
-                    <span class="topup-link" onclick="closePromoteModal(); window.location.href='/'">Top Up</span>
+                    <span class="topup-link" onclick="closePromoteModal(); location.href = window.location.origin + '/#topup'">Top Up</span>
                 </div>
             </div>
 
@@ -5934,10 +6369,9 @@ document.head.appendChild(spinStyle);
         }
     };
 
-    // ── Open upgrade modal — redirects to main page which has the full PayPal modal ──
+    // ── Open upgrade modal — uses main page hash route ──
     window.openSellPageUpgrade = function() {
-        // Pass ?upgrade=plans back to homepage so it auto-opens the plans picker
-        window.location.href = '/?upgrade=plans';
+        window.location.href = window.location.origin + '/#plans';
     };
 
 })();
@@ -6224,11 +6658,11 @@ function closeListingLimitModal() {
 }
 function closeLimitGoUpgrade(plan) {
     closeListingLimitModal();
-    // If main page upgrade modal is available (embedded), use it; otherwise redirect
+    // If main page upgrade modal is available (embedded), use it; otherwise use hash route
     if (typeof window.openUpgradeModal === 'function') {
         window.openUpgradeModal(plan);
     } else {
-        window.location.href = '/?upgrade=' + plan;
+        window.location.href = window.location.origin + '/#upgrade';
     }
 }
 // Backdrop click closes
@@ -6788,7 +7222,7 @@ document.getElementById('listingLimitModal').addEventListener('click', function(
         if (typeof window.openUpgradeModal === 'function') {
             window.openUpgradeModal();
         } else {
-            window.location.href = '/?upgrade=starter';
+            window.location.href = window.location.origin + '/#plans';
         }
     };
 
