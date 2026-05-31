@@ -937,7 +937,7 @@ async function handleReviewListing(body, cors) {
     try {
       const aiResult = await callGroq(AI_REVIEW_SYSTEM_PROMPT, buildAiUserContent({
         title, url: hostname, description, category, age, price, revenue, traffic, expenses,
-        codeFiles, liveMeta: meta, ownershipFlags: allFlags,
+        liveMeta: meta, ownershipFlags: allFlags,
       }), 500);
       // AI can only confirm pending_admin or upgrade to rejected — NEVER to approved
       if (aiResult.status === "rejected") {
@@ -968,21 +968,62 @@ async function handleReviewListing(body, cors) {
     }, 200, cors);
   }
 
-  // ── LAYER 8: AI review — only reached when deterministic layers pass ──────
+  // ── LAYER 8: Meta tag check (always deterministic, no AI, no tokens) ────────
+  // Run this first regardless of AI availability. Find the first HTML file in
+  // codeFiles and compare its <title> / meta description against the live site.
+  // This is the primary ownership signal for the code-files proof path.
+  const htmlFile = Array.isArray(codeFiles)
+    ? codeFiles.find(f => {
+        const name = (f.filename || "").toLowerCase();
+        const snippet = String(f.content || "").slice(0, 500);
+        return name.endsWith(".html") || name.endsWith(".htm")
+            || /<html[\s>]/i.test(snippet)
+            || /<title[\s>]/i.test(snippet);
+      })
+    : null;
+
+  const metaCheck = htmlFile && meta
+    ? metaTagOwnershipCheck(String(htmlFile.content || ""), meta)
+    : null;
+
+  // If meta tags match strongly enough, approve without any AI call.
+  if (metaCheck?.approved && ownership.score >= 60) {
+    return json({
+      status:            "approved",
+      reason:            `Ownership verified via meta tag match: ${metaCheck.reason}`,
+      aiReviewStatus:    "approved",
+      aiReviewReason:    metaCheck.reason,
+      ownershipScore:    ownership.score,
+      ownershipFlags:    allFlags,
+      suggestedPrice:    priceEstimate.mid,
+      suggestedPriceMin: priceEstimate.min,
+      suggestedPriceMax: priceEstimate.max,
+      priceReason:       priceEstimate.reason,
+    }, 200, cors);
+  }
+
+  // ── LAYER 9: AI review — only called when meta tags couldn't decide ─────────
+  // AI gets only lean listing metadata (title, url, description, category, price,
+  // live site meta, ownership flags). Code files are NEVER sent to AI — they are
+  // too large and will exhaust free-tier token budgets.
   let aiStatus = "pending_admin";
-  let aiReason = "AI review unavailable — sent to admin.";
+  let aiReason = metaCheck
+    ? (metaCheck.approved
+        ? `Meta tags matched but ownership score (${ownership.score}) too low for auto-approval — manual review required.`
+        : `Meta tag mismatch: ${metaCheck.reason}`)
+    : "No HTML file uploaded — AI review required for ownership verification.";
   let aiPriceMin = priceEstimate.min, aiPriceMax = priceEstimate.max, aiPriceReason = priceEstimate.reason;
 
   try {
     const aiResult = await callGroq(AI_REVIEW_SYSTEM_PROMPT, buildAiUserContent({
       title, url: hostname, description, category, age, price, revenue, traffic, expenses,
-      codeFiles, liveMeta: meta, ownershipFlags: allFlags,
+      liveMeta: meta, ownershipFlags: allFlags,
     }), 500);
 
     aiStatus = aiResult.status || "pending_admin";
     aiReason = aiResult.reason || "";
 
-    // AI is NOT allowed to auto-approve when ownership score < 60
+    // AI cannot auto-approve when ownership score < 60
     if (aiStatus === "approved" && ownership.score < 60) {
       aiStatus = "pending_admin";
       aiReason = "Ownership match score too low for auto-approval.";
@@ -992,7 +1033,9 @@ async function handleReviewListing(body, cors) {
     if (aiResult.suggestedPriceMax) aiPriceMax = aiResult.suggestedPriceMax;
     if (aiResult.priceReason)       aiPriceReason = aiResult.priceReason;
   } catch (_) {
-    // AI down → fall back to pending_admin (already set above)
+    // AI is down — stay with pending_admin (meta tags didn't match, nothing else to try)
+    aiStatus = "pending_admin";
+    aiReason = aiReason || "AI reviewer unavailable — sent to manual review (2–24 hrs).";
   }
 
   return json({
@@ -1151,6 +1194,79 @@ function parseAgeYears(ageStr) {
 
 
 // ══════════════════════════════════════════════════════════════════════════════
+//  META TAG EXTRACTOR — parse <title> and <meta name="description"> from HTML string
+//  Used as the AI-free fallback for code-file ownership verification.
+//  Only HTML files are useful here; CSS/JS have no meta tags.
+// ══════════════════════════════════════════════════════════════════════════════
+
+function extractMetaFromHtml(html) {
+  if (typeof html !== "string" || !html.trim()) return { title: null, description: null };
+
+  const get = (re) => {
+    const m = html.match(re);
+    return m?.[1]?.trim() || null;
+  };
+
+  const title =
+       get(/<title[^>]*>([^<]{1,250})<\/title>/i)
+    || get(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']{1,250})["']/i)
+    || get(/<meta[^>]+content=["']([^"']{1,250})["'][^>]+property=["']og:title["']/i);
+
+  const description =
+       get(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']{1,500})["']/i)
+    || get(/<meta[^>]+content=["']([^"']{1,500})["'][^>]+name=["']description["']/i)
+    || get(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']{1,500})["']/i)
+    || get(/<meta[^>]+content=["']([^"']{1,500})["'][^>]+property=["']og:description["']/i);
+
+  return { title, description };
+}
+
+/**
+ * AI-free ownership check via meta tag comparison.
+ * Extracts <title> + <meta description> from the uploaded HTML file and
+ * compares them to the scraped live site using Jaccard similarity.
+ *
+ * Returns { approved: bool, reason: string }
+ */
+function metaTagOwnershipCheck(uploadedHtml, liveMeta) {
+  if (!liveMeta || (!liveMeta.title && !liveMeta.description)) {
+    return { approved: false, reason: "Could not fetch live site meta tags for comparison." };
+  }
+
+  const fileMeta = extractMetaFromHtml(uploadedHtml);
+
+  if (!fileMeta.title && !fileMeta.description) {
+    return { approved: false, reason: "Uploaded HTML file contains no <title> or meta description tags — cannot verify ownership without AI." };
+  }
+
+  const titleSim = fileMeta.title && liveMeta.title
+    ? jaccardSimilarity(fileMeta.title, liveMeta.title)
+    : null;
+  const descSim  = fileMeta.description && liveMeta.description
+    ? jaccardSimilarity(fileMeta.description, liveMeta.description)
+    : null;
+
+  // Need at least one strong match (≥ 0.35 title OR ≥ 0.25 description)
+  const titleMatch = titleSim !== null && titleSim >= 0.35;
+  const descMatch  = descSim  !== null && descSim  >= 0.25;
+
+  if (titleMatch || descMatch) {
+    return {
+      approved: true,
+      reason: titleMatch
+        ? `HTML title tag matches live site (similarity ${(titleSim * 100).toFixed(0)}%).`
+        : `HTML meta description matches live site (similarity ${(descSim * 100).toFixed(0)}%).`,
+    };
+  }
+
+  return {
+    approved: false,
+    reason: "Meta tags in uploaded HTML do not closely match the live site. Manual review required.",
+  };
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════════
 //  AI PROMPT CONSTANTS
 // ══════════════════════════════════════════════════════════════════════════════
 
@@ -1182,11 +1298,10 @@ Price guidance:
 - Blogs/content: 30–40× monthly revenue.
 - If rejected, return null for all price fields.`;
 
-function buildAiUserContent({ title, url, description, category, age, price, revenue, traffic, expenses, codeFiles, liveMeta, ownershipFlags }) {
-  const codeContext = Array.isArray(codeFiles) && codeFiles.length
-    ? codeFiles.slice(0, 3).map(f => `\n--- ${sanitize(f.filename || "", 80)} ---\n${sanitize(String(f.content || ""), 2000)}`).join("")
-    : "No code files provided.";
-
+// codeFiles intentionally excluded — code files are huge and blow token budgets
+// on free-tier Groq. Meta tag matching runs deterministically before AI is called,
+// so AI never needs to see the uploaded files at all.
+function buildAiUserContent({ title, url, description, category, age, price, revenue, traffic, expenses, liveMeta, ownershipFlags }) {
   const metaContext = liveMeta?.title || liveMeta?.description
     ? `Live title: "${liveMeta.title || "n/a"}"\nLive description: "${liveMeta.description || "n/a"}"`
     : "Live site meta unavailable.";
@@ -1194,7 +1309,6 @@ function buildAiUserContent({ title, url, description, category, age, price, rev
   return JSON.stringify({
     listing:        { title, url, description, category, age, askingPrice: price, monthlyRevenue: revenue, monthlyTraffic: traffic, monthlyExpenses: expenses },
     liveSiteMeta:   metaContext,
-    uploadedCode:   codeContext,
     ownershipFlags,
   });
 }
