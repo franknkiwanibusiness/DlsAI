@@ -382,6 +382,22 @@
             from { opacity: 0; transform: scale(0.94) translateY(12px); }
             to   { opacity: 1; transform: scale(1)    translateY(0); }
         }
+        @keyframes modalDismiss {
+            from { opacity: 1; transform: scale(1) translateY(0); }
+            to   { opacity: 0; transform: scale(0.94) translateY(10px); }
+        }
+        @keyframes overlayFadeOut {
+            from { opacity: 1; }
+            to   { opacity: 0; }
+        }
+        /* Closing state — plays exit animation before display:none */
+        .popup-overlay.closing {
+            pointer-events: none;
+            animation: overlayFadeOut 0.22s ease forwards;
+        }
+        .popup-overlay.closing .popup-card {
+            animation: modalDismiss 0.22s cubic-bezier(0.4,0,0.6,1) forwards !important;
+        }
         @keyframes fadeIn {
             from { opacity: 0; }
             to   { opacity: 1; }
@@ -2447,6 +2463,10 @@
             z-index: 0;
         }
         #topupOverlay.open { display: flex; }
+        #topupOverlay.closing {
+            pointer-events: none;
+            animation: overlayFadeOut 0.22s ease forwards;
+        }
 
         #topupModal {
             background: transparent;
@@ -6179,6 +6199,134 @@
                                         <div style="font-size:11px;color:var(--muted);line-height:1.55;">Use your balance for monthly subscription, site purchases, and managed hosting fees — one place, no friction.</div>
                                     </div>
                                 </div>
+                                <div style="display:flex;align-items:flex-start;gap:10px;">
+                                    <div style="width:26px;height:26px;border-radius:8px;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">
+                                        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1.5L2 4v4a5 5 0 0 0 4.5 4.5A5 5 0 0 0 11 8V4L6.5 1.5Z" stroke="#34d399" stroke-width="1.1" stroke-linejoin="round"/><path d="M4.5 6.5l1.5 1.5 2.5-2.5" stroke="#34d399" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    </div>
+                                    <div>
+                                        <div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px;">Escrow Protection</div>
+                                        <div style="font-size:11px;color:var(--muted);line-height:1.55;">Every deal is secured. Funds are held safely until both parties confirm transfer.</div>
+                                    </div>
+                                </div>
+                                <div style="display:flex;align-items:flex-start;gap:10px;">
+                                    <div style="width:26px;height:26px;border-radius:8px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">
+                                        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2.5 3.5a1.5 1.5 0 0 1 1.5-1.5h5A1.5 1.5 0 0 1 10.5 3.5v4A1.5 1.5 0 0 1 9 9H6L3 11V3.5Z" stroke="#fbbf24" stroke-width="1.1" stroke-linejoin="round"/></svg>
+                                    </div>
+                                    <div>
+                                        <div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px;">Priority Support</div>
+                                        <div style="font-size:11px;color:var(--muted);line-height:1.55;">Paid plans get access to live chat support and faster response times from our team.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Referral card -->
+                        <div style="background:linear-gradient(135deg,rgba(168,85,247,0.1),rgba(244,114,182,0.06));border:1px solid rgba(168,85,247,0.2);border-radius:16px;padding:16px;margin-bottom:14px;">
+                            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+                                <div style="width:34px;height:34px;border-radius:10px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.25);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 7a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" stroke="#a855f7" stroke-width="1.2"/><path d="M2 13.5c0-2 1.8-3.5 5-3.5" stroke="#a855f7" stroke-width="1.2" stroke-linecap="round"/><path d="M13 10l-3 3 1.5 1.5 4-4-1.5-1.5Z" stroke="#f472b6" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                </div>
+                                <div>
+                                    <div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:800;color:var(--text);letter-spacing:-.01em;">Refer &amp; Earn</div>
+                                    <div style="font-size:10.5px;color:var(--muted);margin-top:1px;">Share your link · Earn $1 per signup</div>
+                                </div>
+                            </div>
+                            <div id="acReferralLinkWrap" style="display:flex;align-items:center;gap:6px;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:8px 10px;margin-bottom:10px;">
+                                <div id="acReferralLink" style="flex:1;font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:monospace;">Loading your link…</div>
+                                <button onclick="(function(){var l=document.getElementById('acReferralLink');if(l&&l.dataset.url){navigator.clipboard.writeText(l.dataset.url);l.textContent='Copied!';setTimeout(function(){l.textContent=l.dataset.url;},1500);}})()" style="flex-shrink:0;padding:4px 10px;border-radius:7px;background:rgba(168,85,247,0.18);border:1px solid rgba(168,85,247,0.3);font-family:'Syne',sans-serif;font-size:10px;font-weight:700;color:var(--accent);cursor:pointer;white-space:nowrap;">Copy</button>
+                            </div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                                <div style="background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:10px;text-align:center;">
+                                    <div id="acRefCount" style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;letter-spacing:-.03em;color:var(--text);">0</div>
+                                    <div style="font-size:9.5px;color:var(--muted);margin-top:2px;">Referrals</div>
+                                </div>
+                                <div style="background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:10px;text-align:center;">
+                                    <div id="acRefEarned" style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;letter-spacing:-.03em;color:#34d399;">$0</div>
+                                    <div style="font-size:9.5px;color:var(--muted);margin-top:2px;">Earned</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent activity feed -->
+                        <div class="glass-card" style="margin-bottom:14px;">
+                            <div class="glass-card-title">
+                                <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="opacity:.55"><path d="M6.5 2v4l2.5 1.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.2"/></svg>
+                                Recent Activity
+                            </div>
+                            <div id="acActivityFeed" style="display:flex;flex-direction:column;gap:0;">
+                                <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+                                    <div style="width:28px;height:28px;border-radius:8px;background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="#a855f7" stroke-width="1.2"/><path d="M6 3.5v2.5l1.5 1" stroke="#a855f7" stroke-width="1.1" stroke-linecap="round"/></svg>
+                                    </div>
+                                    <div style="flex:1;min-width:0;">
+                                        <div style="font-size:11px;font-weight:600;color:var(--text);">Account created</div>
+                                        <div style="font-size:10px;color:var(--muted);">Welcome to Siterifty!</div>
+                                    </div>
+                                    <div style="font-size:9px;color:var(--muted);flex-shrink:0;" id="acJoinDate">—</div>
+                                </div>
+                                <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+                                    <div style="width:28px;height:28px;border-radius:8px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6a4 4 0 0 1 8 0" stroke="#34d399" stroke-width="1.2" stroke-linecap="round"/><path d="M2 6l2 2M10 6l-2 2" stroke="#34d399" stroke-width="1.2" stroke-linecap="round"/></svg>
+                                    </div>
+                                    <div style="flex:1;min-width:0;">
+                                        <div style="font-size:11px;font-weight:600;color:var(--text);" id="acActivityPlan">Free plan active</div>
+                                        <div style="font-size:10px;color:var(--muted);">Current subscription</div>
+                                    </div>
+                                    <div style="font-size:9px;padding:2px 7px;border-radius:999px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.2);color:#34d399;font-weight:700;flex-shrink:0;">Active</div>
+                                </div>
+                                <div style="display:flex;align-items:center;gap:10px;padding:8px 0;">
+                                    <div style="width:28px;height:28px;border-radius:8px;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1l1.1 2.2L9.5 3.5l-1.8 1.8.4 2.5L6 6.7 3.9 7.8l.4-2.5L2.5 3.5l2.4-.3Z" stroke="#38bdf8" stroke-width="1.1" stroke-linejoin="round"/></svg>
+                                    </div>
+                                    <div style="flex:1;min-width:0;">
+                                        <div style="font-size:11px;font-weight:600;color:var(--text);">0 listings published</div>
+                                        <div style="font-size:10px;color:var(--muted);">List a site to start selling</div>
+                                    </div>
+                                    <a href="/sell-my-site" style="font-size:9px;padding:2px 7px;border-radius:999px;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.22);color:var(--accent);font-weight:700;text-decoration:none;flex-shrink:0;">List now</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick actions grid -->
+                        <div style="margin-bottom:14px;">
+                            <div style="font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Quick Actions</div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                                <a href="/sell-my-site" style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:12px;border-radius:14px;background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.18);text-decoration:none;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1v14M1 8h14" stroke="#a855f7" stroke-width="1.4" stroke-linecap="round"/></svg>
+                                    <div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--text);">List a Site</div>
+                                    <div style="font-size:9.5px;color:var(--muted);line-height:1.4;">Sell your site to 10k+ buyers</div>
+                                </a>
+                                <a href="/browse" style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:12px;border-radius:14px;background:rgba(52,211,153,0.07);border:1px solid rgba(52,211,153,0.18);text-decoration:none;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="#34d399" stroke-width="1.4"/><path d="M11 11l3.5 3.5" stroke="#34d399" stroke-width="1.4" stroke-linecap="round"/></svg>
+                                    <div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--text);">Browse Sites</div>
+                                    <div style="font-size:9.5px;color:var(--muted);line-height:1.4;">Find sites to buy</div>
+                                </a>
+                                <button onclick="switchAccountSub('dashboard')" style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:12px;border-radius:14px;background:rgba(56,189,248,0.07);border:1px solid rgba(56,189,248,0.18);cursor:pointer;transition:opacity .15s;text-align:left;width:100%;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1.5" y="1.5" width="5.5" height="5.5" rx="1.5" stroke="#38bdf8" stroke-width="1.3"/><rect x="9" y="1.5" width="5.5" height="5.5" rx="1.5" stroke="#38bdf8" stroke-width="1.3"/><rect x="1.5" y="9" width="5.5" height="5.5" rx="1.5" stroke="#38bdf8" stroke-width="1.3"/><rect x="9" y="9" width="5.5" height="5.5" rx="1.5" stroke="#38bdf8" stroke-width="1.3"/></svg>
+                                    <div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--text);">Dashboard</div>
+                                    <div style="font-size:9.5px;color:var(--muted);line-height:1.4;">Analytics &amp; insights</div>
+                                </button>
+                                <button onclick="switchAccountSub('messages')" style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:12px;border-radius:14px;background:rgba(244,114,182,0.07);border:1px solid rgba(244,114,182,0.18);cursor:pointer;transition:opacity .15s;text-align:left;width:100%;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 3a1.5 1.5 0 0 1 1.5-1.5h9A1.5 1.5 0 0 1 14 3v7a1.5 1.5 0 0 1-1.5 1.5H7L2 14V3Z" stroke="#f472b6" stroke-width="1.3" stroke-linejoin="round"/></svg>
+                                    <div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--text);">Messages</div>
+                                    <div style="font-size:9.5px;color:var(--muted);line-height:1.4;">Chat with buyers &amp; sellers</div>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Trust / security badges -->
+                        <div style="display:flex;gap:6px;margin-bottom:4px;flex-wrap:wrap;">
+                            <div style="display:flex;align-items:center;gap:4px;padding:5px 10px;border-radius:999px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);">
+                                <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 1L1.5 2.5v3C1.5 7.5 3 9 5 9.5 7 9 8.5 7.5 8.5 5.5v-3L5 1Z" stroke="#34d399" stroke-width="1.1" stroke-linejoin="round"/></svg>
+                                <span style="font-size:9.5px;color:var(--muted);">Secured account</span>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:4px;padding:5px 10px;border-radius:999px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);">
+                                <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><rect x="1" y="4" width="8" height="5.5" rx="1.2" stroke="#38bdf8" stroke-width="1.1"/><path d="M3 4V2.8a2 2 0 1 1 4 0V4" stroke="#38bdf8" stroke-width="1.1" stroke-linecap="round"/></svg>
+                                <span style="font-size:9.5px;color:var(--muted);">Encrypted data</span>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:4px;padding:5px 10px;border-radius:999px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);">
+                                <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 1l1 2.1 2.3.34-1.67 1.63.4 2.3L5 6.23 2.97 7.37l.4-2.3L1.7 3.44 4 3.1Z" stroke="#fbbf24" stroke-width="1.1" stroke-linejoin="round"/></svg>
+                                <span style="font-size:9.5px;color:var(--muted);">Verified marketplace</span>
                             </div>
                         </div>
 
@@ -6212,7 +6360,7 @@
                                 </div>
                                 <!-- CTA row -->
                                 <div style="display:flex;gap:8px;">
-                                    <a href="/sell-my-site" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:11px 10px;border-radius:12px;background:linear-gradient(135deg,#a855f7,#f472b6);border:none;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:#fff;text-decoration:none;letter-spacing:.02em;transition:opacity .15s;box-shadow:0 4px 16px rgba(168,85,247,0.28);" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+                                    <a href="/sell-my-site" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:11px 10px;border-radius:12px;background:linear-gradient(135deg,#a855f7,#f472b6);border:none;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:#fff;text-decoration:none;letter-spacing:.02em;transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
                                         <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
                                         List a Site
                                     </a>
@@ -6226,7 +6374,7 @@
 
                         <!-- ── Toggle row ── -->
                         <div style="display:flex;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:4px;gap:4px;margin-bottom:14px;">
-                            <button id="msSellBtn" onclick="switchSitesView('listed')" style="flex:1;padding:9px 0;border-radius:10px;border:none;cursor:pointer;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;letter-spacing:.02em;transition:background .2s,color .2s,box-shadow .2s;background:linear-gradient(135deg,#a855f7,#f472b6);color:#fff;box-shadow:0 2px 10px rgba(168,85,247,0.25);">
+                            <button id="msSellBtn" onclick="switchSitesView('listed')" style="flex:1;padding:9px 0;border-radius:10px;border:none;cursor:pointer;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;letter-spacing:.02em;transition:background .2s,color .2s,box-shadow .2s;background:linear-gradient(135deg,#a855f7,#f472b6);color:#fff;">
                                 <span style="display:flex;align-items:center;justify-content:center;gap:5px;">
                                     <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M2 3h7M2 5.5h7M2 8h5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
                                     Listed Sites
@@ -6266,7 +6414,7 @@
                                         <div style="font-size:12px;color:var(--muted);line-height:1.65;max-width:210px;">List a site you own and reach thousands of qualified buyers on Siterifty.</div>
                                     </div>
                                     <!-- CTA -->
-                                    <a href="/sell-my-site" style="display:inline-flex;align-items:center;gap:7px;padding:11px 22px;border-radius:12px;background:linear-gradient(135deg,#a855f7,#f472b6);font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:#fff;text-decoration:none;letter-spacing:.02em;box-shadow:0 4px 18px rgba(168,85,247,0.3);transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+                                    <a href="/sell-my-site" style="display:inline-flex;align-items:center;gap:7px;padding:11px 22px;border-radius:12px;background:linear-gradient(135deg,#a855f7,#f472b6);font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:#fff;text-decoration:none;letter-spacing:.02em;transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
                                         <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
                                         List Your First Site
                                     </a>
@@ -7410,7 +7558,7 @@
                             </div>
                             <div class="settings-sub-body" style="padding:20px 16px 40px;">
                                 <div style="background:linear-gradient(135deg,rgba(168,85,247,0.1),rgba(244,114,182,0.07));border:1px solid rgba(168,85,247,0.2);border-radius:16px;padding:20px;margin-bottom:20px;text-align:center;">
-                                    <div style="font-size:28px;margin-bottom:8px;">🎁</div>
+                                    <div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;"><svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect x="4" y="14" width="24" height="14" rx="3" stroke="#a855f7" stroke-width="1.6"/><rect x="7" y="10" width="18" height="4" rx="2" stroke="#a855f7" stroke-width="1.6"/><path d="M16 10V28" stroke="#a855f7" stroke-width="1.6" stroke-linecap="round"/><path d="M16 10c0 0-4-6 0-6s0 6 0 6" stroke="#f472b6" stroke-width="1.4" stroke-linecap="round"/><path d="M16 10c0 0 4-6 0-6s0 6 0 6" stroke="#f472b6" stroke-width="1.4" stroke-linecap="round"/></svg></div>
                                     <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--text);margin-bottom:6px;">Earn when your referrals upgrade</div>
                                     <div style="font-size:11px;color:var(--muted);line-height:1.65;">Share your referral link. When a friend signs up, <strong style="color:var(--text);">they get $1 welcome credit</strong>. You earn when they upgrade to a plan (10–30% commission) or post a listing (+$0.10 each).</div>
                                 </div>
@@ -7476,7 +7624,7 @@
                                             <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="3" y="8" width="12" height="8" rx="1.5" stroke="#fbbf24" stroke-width="1.3"/><path d="M6 8V6a3 3 0 0 1 6 0v2" stroke="#fbbf24" stroke-width="1.3" stroke-linecap="round"/><circle cx="9" cy="12" r="1" fill="#fbbf24"/></svg>
                                         </div>
                                         <div>
-                                            <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:#fbbf24;letter-spacing:-.01em;margin-bottom:4px;">⚠ THIS CANNOT BE REVERSED</div>
+                                            <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:#fbbf24;letter-spacing:-.01em;margin-bottom:4px;"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="display:inline;vertical-align:middle;margin-right:5px;"><path d="M7 2L13 12H1L7 2Z" stroke="#fbbf24" stroke-width="1.3" stroke-linejoin="round"/><path d="M7 6v3" stroke="#fbbf24" stroke-width="1.3" stroke-linecap="round"/><circle cx="7" cy="10.5" r=".8" fill="#fbbf24"/></svg>THIS CANNOT BE REVERSED</div>
                                             <div style="font-size:11px;color:rgba(251,191,36,0.8);line-height:1.7;">Transferring your account permanently hands full ownership — including all listings, wallet balance, purchase history, and plan — to the recipient. <strong style="color:#fbbf24;">You will lose all access immediately.</strong> This action is encrypted, logged, and irreversible.</div>
                                         </div>
                                     </div>
@@ -7722,7 +7870,16 @@
             showPanel('login');
         };
         window.closeAuthModal = function(){
-            $('authModal').style.display='none';
+            const am = $('authModal');
+            if (am) {
+                am.style.transition = 'opacity 0.18s ease';
+                am.style.opacity = '0';
+                setTimeout(function() {
+                    am.style.display = 'none';
+                    am.style.opacity = '';
+                    am.style.transition = '';
+                }, 200);
+            }
             unlockBodyScroll();
         };
         function openDash(){
@@ -7760,11 +7917,28 @@
         };
         window.cancelSignOut = function(){
             const modal = document.getElementById('signOutConfirmModal');
-            if (modal) modal.style.display = 'none';
+            if (modal) {
+                modal.style.transition = 'opacity 0.18s ease';
+                modal.style.opacity = '0';
+                setTimeout(function() {
+                    modal.style.display = 'none';
+                    modal.style.opacity = '';
+                    modal.style.transition = '';
+                }, 200);
+            }
             unlockBodyScroll && unlockBodyScroll();
         };
         window.closeDash = function(){
-            $('dashModal').style.display='none';
+            const dm = $('dashModal');
+            if (dm) {
+                dm.style.transition = 'opacity 0.2s ease';
+                dm.style.opacity = '0';
+                setTimeout(function() {
+                    dm.style.display = 'none';
+                    dm.style.opacity = '';
+                    dm.style.transition = '';
+                }, 210);
+            }
             unlockBodyScroll();
             // Reset all settings sub-panels so re-opening always shows the main settings list
             ['subProfile','subBilling','subAppearance','subNotifications','subContact','subAbout','subSecurity','subSessions','subPrivacy','subActivity','subSaved','subOffers','subReferral','subTransferAccount','subDeleteAccount'].forEach(function(id) {
@@ -7808,8 +7982,8 @@
 
                 // Send welcome email
                 try {
-                    const welcomeHtml = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0a0a0f;font-family:'Helvetica Neue',Arial,sans-serif;"><div style="max-width:520px;margin:0 auto;padding:40px 20px;"><div style="text-align:center;margin-bottom:28px;"><img src="https://i.imgur.com/8EEl86u.jpeg" alt="Siterifty" style="width:52px;height:52px;border-radius:14px;"><div style="font-size:24px;font-weight:800;color:#f1f0ff;margin-top:14px;letter-spacing:-0.03em;">Welcome to Siterifty 🎉</div><div style="font-size:13px;color:#8b8aa8;margin-top:6px;">Your account is ready. Start buying and selling.</div></div><div style="background:#12121a;border:1px solid rgba(168,85,247,0.2);border-radius:16px;padding:24px;margin-bottom:20px;"><div style="font-size:14px;font-weight:700;color:#f1f0ff;margin-bottom:8px;">Hey @${username}! 👋</div><div style="font-size:12px;color:#8b8aa8;line-height:1.7;">You're now part of the #1 marketplace for buying and selling websites, SaaS, and online businesses. Here's how to get started:</div><div style="margin-top:16px;display:flex;flex-direction:column;gap:10px;"><div style="display:flex;gap:10px;align-items:flex-start;"><div style="width:20px;height:20px;border-radius:6px;background:rgba(168,85,247,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-weight:800;color:#a855f7;">1</div><div style="font-size:12px;color:#f1f0ff;">Browse listings and find your next digital asset</div></div><div style="display:flex;gap:10px;align-items:flex-start;"><div style="width:20px;height:20px;border-radius:6px;background:rgba(244,114,182,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-weight:800;color:#f472b6;">2</div><div style="font-size:12px;color:#f1f0ff;">List your own site for free — takes 2 minutes</div></div><div style="display:flex;gap:10px;align-items:flex-start;"><div style="width:20px;height:20px;border-radius:6px;background:rgba(56,189,248,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-weight:800;color:#38bdf8;">3</div><div style="font-size:12px;color:#f1f0ff;">Upgrade to reduce platform fees and get more listings</div></div></div></div><div style="text-align:center;margin-bottom:20px;"><a href="https://siterifty.com" style="display:inline-block;padding:13px 32px;border-radius:12px;background:linear-gradient(135deg,#a855f7,#f472b6);font-size:13px;font-weight:800;color:#fff;text-decoration:none;letter-spacing:0.02em;">Open Siterifty →</a></div><div style="text-align:center;font-size:11px;color:rgba(139,138,168,0.4);">© 2026 Siterifty.com · You're receiving this because you created an account</div></div></body></html>`;
-                    window._sendEmail && window._sendEmail(email, 'Welcome to Siterifty, @' + username + '! 🎉', welcomeHtml).catch(()=>{});
+                    const welcomeHtml = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0a0a0f;font-family:'Helvetica Neue',Arial,sans-serif;"><div style="max-width:520px;margin:0 auto;padding:40px 20px;"><div style="text-align:center;margin-bottom:28px;"><img src="https://i.imgur.com/8EEl86u.jpeg" alt="Siterifty" style="width:52px;height:52px;border-radius:14px;"><div style="font-size:24px;font-weight:800;color:#f1f0ff;margin-top:14px;letter-spacing:-0.03em;">Welcome to Siterifty</div><div style="font-size:13px;color:#8b8aa8;margin-top:6px;">Your account is ready. Start buying and selling.</div></div><div style="background:#12121a;border:1px solid rgba(168,85,247,0.2);border-radius:16px;padding:24px;margin-bottom:20px;"><div style="font-size:14px;font-weight:700;color:#f1f0ff;margin-bottom:8px;">Hey @${username}!</div><div style="font-size:12px;color:#8b8aa8;line-height:1.7;">You're now part of the #1 marketplace for buying and selling websites, SaaS, and online businesses. Here's how to get started:</div><div style="margin-top:16px;display:flex;flex-direction:column;gap:10px;"><div style="display:flex;gap:10px;align-items:flex-start;"><div style="width:20px;height:20px;border-radius:6px;background:rgba(168,85,247,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-weight:800;color:#a855f7;">1</div><div style="font-size:12px;color:#f1f0ff;">Browse listings and find your next digital asset</div></div><div style="display:flex;gap:10px;align-items:flex-start;"><div style="width:20px;height:20px;border-radius:6px;background:rgba(244,114,182,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-weight:800;color:#f472b6;">2</div><div style="font-size:12px;color:#f1f0ff;">List your own site for free — takes 2 minutes</div></div><div style="display:flex;gap:10px;align-items:flex-start;"><div style="width:20px;height:20px;border-radius:6px;background:rgba(56,189,248,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-weight:800;color:#38bdf8;">3</div><div style="font-size:12px;color:#f1f0ff;">Upgrade to reduce platform fees and get more listings</div></div></div></div><div style="text-align:center;margin-bottom:20px;"><a href="https://siterifty.com" style="display:inline-block;padding:13px 32px;border-radius:12px;background:linear-gradient(135deg,#a855f7,#f472b6);font-size:13px;font-weight:800;color:#fff;text-decoration:none;letter-spacing:0.02em;">Open Siterifty →</a></div><div style="text-align:center;font-size:11px;color:rgba(139,138,168,0.4);">© 2026 Siterifty.com · You're receiving this because you created an account</div></div></body></html>`;
+                    window._sendEmail && window._sendEmail(email, 'Welcome to Siterifty, @' + username + '!', welcomeHtml).catch(()=>{});
                 } catch(_) {}
 
                 showOk('okSignup','Account created! Welcome aboard.');
@@ -7978,9 +8152,7 @@
         };
 
         window.closeWalletModal = function(){
-            const overlay = document.getElementById('walletOverlay');
-            overlay.classList.remove('open');
-            unlockBodyScroll();
+            window._animatedClose ? window._animatedClose('walletOverlay', function(){ unlockBodyScroll(); }) : (function(){ const o=document.getElementById('walletOverlay'); if(o)o.classList.remove('open'); unlockBodyScroll(); })();
         };
 
         // ── Expose DB + helpers globally (used by Imgur upload script) ──
@@ -8148,8 +8320,7 @@
         };
 
         window.closeCancelPlanModal = function() {
-            const overlay = document.getElementById('cancelPlanOverlay');
-            if (overlay) { overlay.classList.remove('open'); unlockBodyScroll(); }
+            window._animatedClose ? window._animatedClose('cancelPlanOverlay', function(){ unlockBodyScroll(); }) : (function(){ const o=document.getElementById('cancelPlanOverlay'); if(o){o.classList.remove('open');unlockBodyScroll();}})();
         };
 
         window.confirmCancelPlan = async function() {
@@ -8835,12 +9006,12 @@
             if (sellBtn) {
                 sellBtn.style.background = isListed ? 'linear-gradient(135deg,#a855f7,#f472b6)' : 'transparent';
                 sellBtn.style.color      = isListed ? '#fff' : 'var(--muted)';
-                sellBtn.style.boxShadow  = isListed ? '0 2px 10px rgba(168,85,247,0.25)' : 'none';
+                sellBtn.style.boxShadow  = 'none';
             }
             if (buyBtn) {
                 buyBtn.style.background = isListed ? 'transparent' : 'linear-gradient(135deg,#f87171,#f472b6)';
                 buyBtn.style.color      = isListed ? 'var(--muted)' : '#fff';
-                buyBtn.style.boxShadow  = isListed ? 'none' : '0 2px 10px rgba(248,113,113,0.25)';
+                buyBtn.style.boxShadow  = 'none';
             }
         };
 
@@ -8974,34 +9145,28 @@
             if (sub === 'messages')  { openMessagesModal();  return; }
             // 'account' — just show the account sub-panel (already in tabPlan)
             const acPanel = $('acSubAccount');
-            if (acPanel) acPanel.style.display = 'block';
+            if (acPanel) acPanel.style.display = '';
         };
 
         // ── Seller/Buyer sub-dashboard switcher ──
         window.switchSdSub = function(which) {
-            const sellerPanel = document.getElementById('sdPanelSeller');
-            const buyerPanel  = document.getElementById('sdPanelBuyer');
-            const sellerBtn   = document.getElementById('sdSubBtn-seller');
-            const buyerBtn    = document.getElementById('sdSubBtn-buyer');
+            // Delegate to new unified switcher
+            if (window.switchDmSub) { switchDmSub(which); return; }
+            const sellerPanel = document.getElementById('dmSellerPanel');
+            const buyerPanel  = document.getElementById('dmBuyerPanel');
+            const sellerBtn   = document.getElementById('dmSubSeller');
+            const buyerBtn    = document.getElementById('dmSubBuyer');
             if (!sellerPanel || !buyerPanel) return;
             if (which === 'seller') {
                 sellerPanel.style.display = 'block';
                 buyerPanel.style.display  = 'none';
-                sellerBtn.style.background    = 'rgba(168,85,247,0.15)';
-                sellerBtn.style.borderColor   = 'rgba(168,85,247,0.3)';
-                sellerBtn.style.color         = 'var(--text)';
-                buyerBtn.style.background     = 'transparent';
-                buyerBtn.style.borderColor    = 'transparent';
-                buyerBtn.style.color          = 'var(--muted)';
+                if (sellerBtn) { sellerBtn.classList.add('active'); }
+                if (buyerBtn)  { buyerBtn.classList.remove('active'); }
             } else {
                 sellerPanel.style.display = 'none';
                 buyerPanel.style.display  = 'block';
-                buyerBtn.style.background     = 'rgba(56,189,248,0.12)';
-                buyerBtn.style.borderColor    = 'rgba(56,189,248,0.28)';
-                buyerBtn.style.color          = 'var(--text)';
-                sellerBtn.style.background    = 'transparent';
-                sellerBtn.style.borderColor   = 'transparent';
-                sellerBtn.style.color         = 'var(--muted)';
+                if (buyerBtn)  { buyerBtn.classList.add('active'); }
+                if (sellerBtn) { sellerBtn.classList.remove('active'); }
                 // Init buyer charts on first show
                 if (!window._buyerChartsInit) {
                     window._buyerChartsInit = true;
@@ -9077,8 +9242,8 @@
                 // Always show the welcome messages pinned at top
                 const welcomeHtml =
                     '<div class="msg-date-divider">Welcome</div>'
-                  + '<div class="msg-bubble-wrap theirs"><div class="msg-bubble theirs">👋 Welcome to Siterifty! This is the official community channel. Ask questions, share feedback, or just say hi.</div><div class="msg-bubble-meta">SITERIFTY · Admin</div></div>'
-                  + '<div class="msg-bubble-wrap theirs"><div class="msg-bubble theirs">📢 New: Seller &amp; Buyer Dashboards are now live!</div><div class="msg-bubble-meta">SITERIFTY · Admin</div></div>';
+                  + '<div class="msg-bubble-wrap theirs"><div class="msg-bubble theirs">Welcome to Siterifty! This is the official community channel. Ask questions, share feedback, or just say hi.</div><div class="msg-bubble-meta">SITERIFTY · Admin</div></div>'
+                  + '<div class="msg-bubble-wrap theirs"><div class="msg-bubble theirs">New: Seller &amp; Buyer Dashboards are now live!</div><div class="msg-bubble-meta">SITERIFTY · Admin</div></div>';
 
                 if (!snap || !snap.exists()) {
                     wrap.innerHTML = welcomeHtml;
@@ -9330,8 +9495,7 @@
         };
 
         window.closePlansPickerModal = function() {
-            const overlay = $('plansPickerOverlay');
-            if (overlay) { overlay.classList.remove('open'); unlockBodyScroll(); }
+            window._animatedClose ? window._animatedClose('plansPickerOverlay', function(){ unlockBodyScroll(); }) : (function(){ const overlay=$('plansPickerOverlay'); if(overlay){overlay.classList.remove('open');unlockBodyScroll();}})();
         };
 
         window.showPlanTab = function(key) {
@@ -9406,7 +9570,7 @@
                         createSubscription: (data, actions) => actions.subscription.create({ plan_id: planId }),
                         onApprove: (data) => {
                             closePlansPickerModal();
-                            alert('🎉 Subscription activated! Your plan will update shortly.');
+                            alert('Subscription activated! Your plan will update shortly.');
                         },
                         onError: (err) => {
                             console.error('[PP plans picker]', err);
@@ -9574,9 +9738,9 @@
                             closeUpgradeModal();
                             // Show success toast
                             _showUpgradeSuccess(planName);
-                            // 🔔 Push: plan upgraded
+                            // Push: plan upgraded
                             _notifyEvent('listing-event', 'listing_approved', { title: `${planName} plan activated` });
-                            // 💸 Credit referrer commission on plan purchase
+                            // Credit referrer commission on plan purchase
                             if (window._creditReferrerOnPlan) window._creditReferrerOnPlan(user.uid, key);
                         } catch(e) {
                             console.error('[upgrade onApprove]', e);
@@ -9605,11 +9769,31 @@
             toast.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#34d399" stroke-width="1.3"/><path d="M5 8l2 2 4-4" stroke="#34d399" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg> Now on <span style="color:#f1f0ff;margin-left:4px;">' + planName + '</span>';
             document.body.appendChild(toast);
             setTimeout(() => { toast.style.transition = 'opacity .4s'; toast.style.opacity = '0'; setTimeout(() => toast.remove(), 400); }, 3500);
+
+        // ── Animated close helper ──────────────────────────────────────────────
+        // Plays exit animation on a .popup-overlay, then hides it and runs callback.
+        window._animatedClose = function(overlayId, cb) {
+            const el = typeof overlayId === 'string' ? document.getElementById(overlayId) : overlayId;
+            if (!el) { if (cb) cb(); return; }
+            if (!el.classList.contains('open') && el.style.display === 'none') { if (cb) cb(); return; }
+            el.classList.add('closing');
+            const done = function() {
+                el.classList.remove('open','closing');
+                el.style.display = 'none';
+                if (cb) cb();
+            };
+            // Use animationend if available; always fall back after 260ms
+            const timer = setTimeout(done, 260);
+            el.addEventListener('animationend', function h() {
+                el.removeEventListener('animationend', h);
+                clearTimeout(timer);
+                done();
+            }, { once: true });
+        };
         }
 
         window.closeUpgradeModal = function() {
-            $('upgradeOverlay').classList.remove('open');
-            unlockBodyScroll();
+            window._animatedClose ? window._animatedClose('upgradeOverlay', function(){ unlockBodyScroll(); }) : (function(){ $('upgradeOverlay').classList.remove('open'); unlockBodyScroll(); })();
         };
         window.handlePlanClick = function(planKey) {
             if (!auth.currentUser) { openAuthModal(); return; }
@@ -9896,7 +10080,7 @@
                     </div>
                     <div style="background:#12121a;border:1px solid rgba(251,191,36,0.2);border-radius:16px;padding:28px;margin-bottom:24px;">
                         <div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:10px;padding:14px;margin-bottom:20px;">
-                            <div style="font-size:13px;font-weight:700;color:#fbbf24;margin-bottom:4px;">⚠ Account Transfer Initiated</div>
+                            <div style="font-size:13px;font-weight:700;color:#fbbf24;margin-bottom:4px;"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="display:inline;vertical-align:middle;margin-right:5px;"><path d="M7 2L13 12H1L7 2Z" stroke="#fbbf24" stroke-width="1.3" stroke-linejoin="round"/><path d="M7 6v3" stroke="#fbbf24" stroke-width="1.3" stroke-linecap="round"/><circle cx="7" cy="10.5" r=".8" fill="#fbbf24"/></svg>Account Transfer Initiated</div>
                             <div style="font-size:12px;color:rgba(251,191,36,0.7);line-height:1.6;">The Siterifty account <strong style="color:#fbbf24;">@${username}</strong> has been transferred to your email address.</div>
                         </div>
                         <table style="width:100%;border-collapse:collapse;font-size:12px;">
@@ -9980,10 +10164,10 @@
                 ]);
 
                 if (okEl) {
-                    okEl.textContent = '✓ Transfer complete! Confirmation emails sent to both parties. You will be signed out now.';
+                    okEl.textContent = 'Transfer complete! Confirmation emails sent to both parties. You will be signed out now.';
                     okEl.style.display = 'block';
                 }
-                if (btn) { btn.disabled = true; btn.innerHTML = '✓ Transfer sent'; btn.style.background = 'rgba(52,211,153,0.1)'; btn.style.color = '#34d399'; btn.style.borderColor = 'rgba(52,211,153,0.25)'; }
+                if (btn) { btn.disabled = true; btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg> Transfer sent'; btn.style.background = 'rgba(52,211,153,0.1)'; btn.style.color = '#34d399'; btn.style.borderColor = 'rgba(52,211,153,0.25)'; }
 
                 // Sign out after 3s
                 setTimeout(() => {
@@ -10215,7 +10399,7 @@
                 <div style="background:linear-gradient(160deg,#1a0f0f 0%,#0f0a0a 100%);border:1px solid rgba(248,113,113,0.3);border-top:1px solid rgba(248,113,113,0.5);border-radius:24px;width:100%;max-width:340px;padding:0;box-shadow:0 32px 80px rgba(0,0,0,0.9),0 0 60px rgba(248,113,113,0.1);overflow:hidden;animation:modalPop 0.28s cubic-bezier(0.34,1.2,0.64,1) both;">
                     <div style="position:relative;overflow:hidden;background:linear-gradient(135deg,rgba(248,113,113,0.15),rgba(239,68,68,0.08));padding:28px 24px 20px;text-align:center;border-bottom:1px solid rgba(248,113,113,0.12);">
                         <div style="position:absolute;top:-20px;left:50%;transform:translateX(-50%);width:160px;height:80px;background:radial-gradient(ellipse,rgba(248,113,113,0.25),transparent 70%);pointer-events:none;"></div>
-                        <div style="font-size:44px;line-height:1;margin-bottom:10px;">⚠️</div>
+                        <div style="display:flex;align-items:center;justify-content:center;margin-bottom:10px;"><svg width="44" height="44" viewBox="0 0 44 44" fill="none"><path d="M22 5L40 38H4L22 5Z" stroke="#f87171" stroke-width="2" stroke-linejoin="round"/><path d="M22 18v8" stroke="#f87171" stroke-width="2" stroke-linecap="round"/><circle cx="22" cy="31" r="1.5" fill="#f87171"/></svg></div>
                         <div style="font-family:'Syne',sans-serif;font-size:19px;font-weight:800;color:#f1f0ff;letter-spacing:-0.03em;margin-bottom:6px;">Invalid referral link</div>
                         <div style="font-size:12px;color:rgba(248,113,113,0.75);line-height:1.6;">That referral link doesn't match any account. No bonus has been applied.</div>
                     </div>
@@ -10910,8 +11094,20 @@ self.addEventListener('notificationclick', e => {
         };
 
         window.closeTopUpModal = function() {
-            document.getElementById('topupOverlay').classList.remove('open');
-            unlockBodyScroll();
+            const el = document.getElementById('topupOverlay');
+            if (!el) return;
+            el.classList.add('closing');
+            const done = function() {
+                el.classList.remove('open', 'closing');
+                el.style.display = 'none';
+                unlockBodyScroll();
+            };
+            const timer = setTimeout(done, 260);
+            el.addEventListener('animationend', function h() {
+                el.removeEventListener('animationend', h);
+                clearTimeout(timer);
+                done();
+            }, { once: true });
         };
 
         function showSuccessResult(amount) {
@@ -11928,20 +12124,36 @@ self.addEventListener('notificationclick', e => {
         window.openDashboardModal = function() {
             const modal = document.getElementById('dashboardModal');
             if (!modal) return;
+            modal.style.opacity = '0';
             modal.style.display = 'flex';
+            modal.style.transition = 'opacity 0.2s ease';
+            requestAnimationFrame(function() {
+                requestAnimationFrame(function() { modal.style.opacity = '1'; });
+            });
             lockBodyScroll && lockBodyScroll();
             initSellerDash();
         };
+        function _resetSubNav() {
+            // Reset sub-nav: Account = active, Dashboard + Messages = inactive
+            var acBtn = document.getElementById('acSubBtn-account');
+            var dbBtn = document.getElementById('acSubBtn-dashboard');
+            var msBtn = document.getElementById('acSubBtn-messages');
+            if (acBtn) { acBtn.style.background='rgba(255,255,255,0.09)'; acBtn.style.borderColor='rgba(255,255,255,0.12)'; acBtn.style.color='var(--text)'; }
+            if (dbBtn) { dbBtn.style.background='transparent'; dbBtn.style.borderColor='transparent'; dbBtn.style.color='var(--muted)'; }
+            if (msBtn) { msBtn.style.background='transparent'; msBtn.style.borderColor='transparent'; msBtn.style.color='var(--muted)'; }
+        }
         window.closeDashboardModal = function() {
             const modal = document.getElementById('dashboardModal');
             if (!modal) return;
-            modal.style.display = 'none';
-            unlockBodyScroll && unlockBodyScroll();
-            // Reset sub-nav highlight back to account
-            const btn = document.getElementById('acSubBtn-account');
-            if (btn) { btn.style.background='rgba(255,255,255,0.09)'; btn.style.borderColor='rgba(255,255,255,0.12)'; btn.style.color='var(--text)'; }
-            const dbtn = document.getElementById('acSubBtn-dashboard');
-            if (dbtn) { dbtn.style.background='transparent'; dbtn.style.borderColor='transparent'; dbtn.style.color='var(--muted)'; }
+            modal.style.transition = 'opacity 0.18s ease';
+            modal.style.opacity = '0';
+            setTimeout(function() {
+                modal.style.display = 'none';
+                modal.style.opacity = '';
+                modal.style.transition = '';
+                _resetSubNav();
+                unlockBodyScroll && unlockBodyScroll();
+            }, 200);
         };
 
         // ── Messages modal ──
@@ -11956,20 +12168,22 @@ self.addEventListener('notificationclick', e => {
         window.closeMessagesModal = function() {
             const modal = document.getElementById('messagesModal');
             if (!modal) return;
-            modal.style.display = 'none';
-            unlockBodyScroll && unlockBodyScroll();
-            if (_threadUnsub) { _threadUnsub(); _threadUnsub = null; }
-            _activeConvId = null; _activeOtherUid = null;
-            // Reset sub-nav highlight back to account
-            const btn = document.getElementById('acSubBtn-account');
-            if (btn) { btn.style.background='rgba(255,255,255,0.09)'; btn.style.borderColor='rgba(255,255,255,0.12)'; btn.style.color='var(--text)'; }
-            const mbtn = document.getElementById('acSubBtn-messages');
-            if (mbtn) { mbtn.style.background='transparent'; mbtn.style.borderColor='transparent'; mbtn.style.color='var(--muted)'; }
-            // Show inbox when modal is re-opened
-            const inboxView = document.getElementById('msgInboxView');
-            const threadView = document.getElementById('msgThreadView');
-            if (inboxView)  inboxView.style.display  = 'flex';
-            if (threadView) threadView.style.display = 'none';
+            modal.style.transition = 'opacity 0.18s ease';
+            modal.style.opacity = '0';
+            setTimeout(function() {
+                modal.style.display = 'none';
+                modal.style.opacity = '';
+                modal.style.transition = '';
+                if (_threadUnsub) { _threadUnsub(); _threadUnsub = null; }
+                _activeConvId = null; _activeOtherUid = null;
+                _resetSubNav();
+                unlockBodyScroll && unlockBodyScroll();
+                // Show inbox when modal is re-opened
+                const inboxView = document.getElementById('msgInboxView');
+                const threadView = document.getElementById('msgThreadView');
+                if (inboxView)  inboxView.style.display  = 'flex';
+                if (threadView) threadView.style.display = 'none';
+            }, 200);
         };
 
         // ── Patch startConversation to use the messages modal ──
@@ -12132,7 +12346,7 @@ self.addEventListener('notificationclick', e => {
                     + '</div>'
                     + '<span class="msg-conv-time" style="color:var(--accent);font-weight:600;font-size:8.5px;">Pinned</span>'
                     + '</div>'
-                    + '<div class="msg-conv-preview" style="color:var(--muted);">👋 Welcome to Siterifty! Ask us anything or chat with the community.</div>'
+                    + '<div class="msg-conv-preview" style="color:var(--muted);">Welcome to Siterifty! Ask us anything or chat with the community.</div>'
                     + '</div>';
             }
 
@@ -12419,21 +12633,49 @@ self.addEventListener('notificationclick', e => {
         window.openPremiumPopup = function(feature) {
             const popup = document.getElementById('sdPremiumPopup');
             if (!popup) return;
-            popup.classList.add('open');
+            const desc = document.getElementById('sdppDesc');
+            if (desc) {
+                const msgs = {
+                    'Revenue Analytics': 'Revenue Analytics is available on the Growth or Pro plan.',
+                    'Listing Boost': 'Listing Boost is available on the Starter plan and above.',
+                    'Agency Consultation': 'Agency consultation calls are a Pro-only feature.',
+                    'Spend Analytics': 'Spend Analytics is available on Growth and Pro plans.'
+                };
+                desc.textContent = msgs[feature] || 'This feature requires a paid plan.';
+            }
+            popup.style.display = 'flex';
         };
         window.closePremiumPopup = function() {
             const popup = document.getElementById('sdPremiumPopup');
-            if (popup) popup.classList.remove('open');
+            if (popup) popup.style.display = 'none';
+        };
+
+        window.switchDmSub = function(which) {
+            const sellerPanel = document.getElementById('dmSellerPanel');
+            const buyerPanel  = document.getElementById('dmBuyerPanel');
+            const sellerBtn   = document.getElementById('dmSubSeller');
+            const buyerBtn    = document.getElementById('dmSubBuyer');
+            if (!sellerPanel || !buyerPanel) return;
+            if (which === 'seller') {
+                sellerPanel.style.display = 'block';
+                buyerPanel.style.display  = 'none';
+                sellerBtn.classList.add('active');
+                buyerBtn.classList.remove('active');
+            } else {
+                sellerPanel.style.display = 'none';
+                buyerPanel.style.display  = 'block';
+                buyerBtn.classList.add('active');
+                sellerBtn.classList.remove('active');
+            }
         };
 
         window.initSellerDash = async function() {
-            // Dashboard content lives in #dashboardModalBody — re-run on every open to reflect plan changes
             _sdInitDone = false;
             _sdInitDone = true;
             const user = _fb().auth && _fb().auth.currentUser;
             if (!user) return;
 
-            // Fast-path: use cached plan, then confirm from Firebase
+            // Fetch real plan from Firebase
             let userPlan = (window._fbUserData && window._fbUserData.plan) || 'Free';
             try {
                 const uSnap = await _fb().get(_fb().ref(_fb().db, 'users/' + user.uid));
@@ -12444,34 +12686,70 @@ self.addEventListener('notificationclick', e => {
             const isGrowthPlus = userPlan === 'Growth' || userPlan === 'Pro';
             const isPro = userPlan === 'Pro';
 
-            // Unlock features based on real plan
-            function unlockFeature(lockedEl) {
-                if (!lockedEl) return;
-                const overlay = lockedEl.querySelector('.sd-locked-overlay');
-                if (overlay) overlay.remove();
-                lockedEl.classList.remove('sd-locked');
-                lockedEl.style.filter = '';
-                lockedEl.style.pointerEvents = '';
+            // Update plan pill in header
+            const planPill = document.getElementById('dmPlanPill');
+            if (planPill) planPill.textContent = userPlan.toUpperCase();
+
+            // Update plan card
+            const planNameEl = document.getElementById('dmPlanName');
+            const planPriceEl = document.getElementById('dmPlanPrice');
+            const planStatusEl = document.getElementById('dmPlanStatus');
+            const planPrices = { 'Free': '$0 / month', 'Starter': '$19 / month', 'Growth': '$49 / month', 'Pro': '$99 / month' };
+            if (planNameEl) planNameEl.textContent = userPlan;
+            if (planPriceEl) planPriceEl.textContent = planPrices[userPlan] || '$0 / month';
+            if (planStatusEl) {
+                if (isPaid) {
+                    planStatusEl.className = 'dmc-plan-active';
+                    planStatusEl.textContent = 'ACTIVE';
+                } else {
+                    planStatusEl.className = 'dmc-plan-inactive';
+                    planStatusEl.textContent = 'FREE';
+                }
             }
 
-            // Revenue chart — available on Growth+
-            const revCard = document.querySelector('#dashboardModalBody .sd-locked');
-            if (isGrowthPlus && revCard) unlockFeature(revCard);
+            // Render plan perks checklist
+            const perksEl = document.getElementById('dmPlanPerks');
+            if (perksEl) {
+                const allPerks = [
+                    { label: 'List up to ' + (isPro ? 'unlimited' : isPaid ? '10' : '3') + ' sites', ok: true },
+                    { label: (isPro ? '5%' : isPaid ? '7%' : '10%') + ' platform fee', ok: true },
+                    { label: 'Revenue Analytics', ok: isGrowthPlus },
+                    { label: 'Listing Boost', ok: isPaid },
+                    { label: 'Priority placement', ok: isPaid },
+                    { label: 'Agency consultation', ok: isPro },
+                    { label: 'Instant buyer alerts', ok: isPro },
+                ];
+                perksEl.innerHTML = allPerks.map(function(p) {
+                    return '<div class="dmc-perk">'
+                        + '<div class="dmc-perk-icon" style="background:' + (p.ok ? 'rgba(52,211,153,0.1)' : 'rgba(255,255,255,0.04)') + ';border:1px solid ' + (p.ok ? 'rgba(52,211,153,0.2)' : 'rgba(255,255,255,0.06)') + ';">'
+                        + (p.ok
+                            ? '<svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M2 5.5l2.5 2.5 4.5-4.5" stroke="#34d399" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+                            : '<svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M3 3l5 5M8 3l-5 5" stroke="rgba(255,255,255,0.22)" stroke-width="1.3" stroke-linecap="round"/></svg>'
+                          )
+                        + '</div>'
+                        + '<div class="dmc-perk-label" style="color:' + (p.ok ? 'var(--text)' : 'var(--muted)') + ';">' + p.label + '</div>'
+                        + '</div>';
+                }).join('');
+            }
 
-            // Boost listing — available on Starter+
-            const boostCards = document.querySelectorAll('#dashboardModalBody .sd-locked');
-            boostCards.forEach(function(card) {
-                const label = card.querySelector('.sd-lock-label');
-                if (label && label.textContent.includes('Listing Boost') && isPaid) {
-                    unlockFeature(card);
-                }
-                if (label && label.textContent.includes('Agency') && isPro) {
-                    unlockFeature(card);
-                }
-                if (label && label.textContent.includes('Buyer') && isPro) {
-                    unlockFeature(card);
-                }
-            });
+            // Unlock boost if paid
+            const boostAction = document.getElementById('dmBoostAction');
+            if (boostAction && isPaid) {
+                boostAction.innerHTML = '<button style="padding:9px 16px;border-radius:999px;background:linear-gradient(135deg,#a855f7,#f472b6);color:#fff;font-family:\'Syne\',sans-serif;font-size:11px;font-weight:700;border:none;cursor:pointer;">Boost Now — $19</button>';
+            }
+            // Unlock agency if pro
+            const agencyAction = document.getElementById('dmAgencyAction');
+            if (agencyAction && isPro) {
+                agencyAction.innerHTML = '<button style="padding:9px 16px;border-radius:999px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:\'Syne\',sans-serif;font-size:11px;font-weight:700;cursor:pointer;">Book Free Strategy Call</button>';
+            }
+            // Unlock rev chart if growth+
+            const revChartCard = document.getElementById('dmRevChartCard');
+            const revLockPill = document.getElementById('dmRevLockPill');
+            if (isGrowthPlus) {
+                if (revLockPill) revLockPill.style.display = 'none';
+                const blurredChart = revChartCard && revChartCard.querySelector('div[style*="blur"]');
+                if (blurredChart) { blurredChart.style.filter = ''; blurredChart.style.opacity = '1'; blurredChart.style.pointerEvents = ''; }
+            }
 
             // Load real listing data
             try {
@@ -12517,10 +12795,16 @@ self.addEventListener('notificationclick', e => {
                 const oc = document.getElementById('sdOfferCount');
                 if (oc) oc.textContent = oSnap.exists() ? Object.keys(oSnap.val()).length : 0;
 
+                // Revenue total
+                let totalRev = 0;
+                myListings.forEach(function(s) { totalRev += parseFloat(s.revenue || s.salePrice || 0); });
+                const revTotalEl = document.getElementById('sdRevTotal');
+                if (revTotalEl) revTotalEl.textContent = totalRev > 0 ? '$' + totalRev.toLocaleString() : '$0';
+
                 const rowsWrap = document.getElementById('sdListingRows');
                 if (rowsWrap) {
                     if (myListings.length === 0) {
-                        rowsWrap.innerHTML = '<div style="font-size:10px;color:var(--muted);text-align:center;padding:14px 0;">No listings yet. <a href="/sell-my-site" style="color:var(--accent);text-decoration:none;font-weight:600;">List your site</a></div>';
+                        rowsWrap.innerHTML = '<div style="font-size:10.5px;color:var(--muted);text-align:center;padding:16px 0 4px;">No listings yet. <a href="/sell-my-site" style="color:var(--accent);text-decoration:none;font-weight:600;">List your site →</a></div>';
                     } else {
                         const colors = ['#a855f7','#f472b6','#34d399','#60a5fa','#fbbf24'];
                         rowsWrap.innerHTML = myListings.slice(0,5).map(function(s,i) {
@@ -12528,11 +12812,11 @@ self.addEventListener('notificationclick', e => {
                             const status = s.status || 'live';
                             const badgeCls = status.toLowerCase() === 'live' ? 'live' : 'pending';
                             const name = s.title || s.name || s.url || 'Untitled';
-                            return '<div class="sd-listing-row">'
-                                + '<div class="sd-listing-dot" style="background:' + colors[i%colors.length] + ';"></div>'
-                                + '<div class="sd-listing-name">' + name + '</div>'
-                                + '<div class="sd-listing-views">' + views + ' views</div>'
-                                + '<div class="sd-listing-badge ' + badgeCls + '">' + status + '</div>'
+                            return '<div class="dmc-row">'
+                                + '<div class="dmc-dot" style="background:' + colors[i%colors.length] + ';"></div>'
+                                + '<div class="dmc-row-name">' + name + '</div>'
+                                + '<div class="dmc-row-views">' + (views > 999 ? (views/1000).toFixed(1)+'k' : views) + ' views</div>'
+                                + '<div class="dmc-badge ' + badgeCls + '">' + status + '</div>'
                                 + '</div>';
                         }).join('');
                     }
@@ -12634,7 +12918,7 @@ self.addEventListener('notificationclick', e => {
                 display: flex;
                 align-items: center;
                 gap: 10px;
-                padding: 14px 16px;
+                padding: 14px 16px 14px;
                 border-bottom: 1px solid var(--border);
                 background: var(--surface);
                 flex-shrink: 0;
@@ -12661,560 +12945,260 @@ self.addEventListener('notificationclick', e => {
                 overflow-y: auto;
                 -webkit-overflow-scrolling: touch;
                 overscroll-behavior: contain;
+                padding: 16px;
             }
+            /* Clean single-col dashboard cards */
+            .dmc { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; margin-bottom: 12px; }
+            .dmc-title { font-family:'Syne',sans-serif; font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:12px; display:flex; align-items:center; gap:6px; }
+            .dmc-stat-row { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+            .dmc-stat { background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:12px 8px; text-align:center; }
+            .dmc-stat-val { font-family:'Syne',sans-serif; font-size:1.15rem; font-weight:800; letter-spacing:-.04em; color:var(--text); }
+            .dmc-stat-lbl { font-size:9px; color:var(--muted); margin-top:3px; font-weight:500; letter-spacing:.01em; }
+            .dmc-row { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid rgba(255,255,255,0.04); }
+            .dmc-row:last-child { border-bottom:none; padding-bottom:0; }
+            .dmc-dot { width:7px; height:7px; border-radius:999px; flex-shrink:0; }
+            .dmc-row-name { flex:1; font-size:11.5px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+            .dmc-row-views { font-size:10px; color:var(--muted); flex-shrink:0; }
+            .dmc-badge { font-size:8px; font-weight:700; padding:2px 8px; border-radius:999px; flex-shrink:0; }
+            .dmc-badge.live { background:rgba(52,211,153,0.12); border:1px solid rgba(52,211,153,0.28); color:#34d399; }
+            .dmc-badge.pending { background:rgba(251,191,36,0.12); border:1px solid rgba(251,191,36,0.28); color:#fbbf24; }
+            .dmc-plan-row { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+            .dmc-plan-name { font-family:'Syne',sans-serif; font-size:1rem; font-weight:800; letter-spacing:-.02em; color:var(--text); }
+            .dmc-plan-active { font-size:9px; font-weight:700; padding:2px 8px; border-radius:999px; background:rgba(52,211,153,0.12); border:1px solid rgba(52,211,153,0.25); color:#34d399; }
+            .dmc-plan-inactive { font-size:9px; font-weight:700; padding:2px 8px; border-radius:999px; background:rgba(139,138,168,0.1); border:1px solid rgba(139,138,168,0.2); color:var(--muted); }
+            .dmc-perk { display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid rgba(255,255,255,0.04); }
+            .dmc-perk:last-child { border-bottom:none; }
+            .dmc-perk-icon { width:22px; height:22px; border-radius:7px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+            .dmc-perk-label { font-size:11px; font-weight:600; color:var(--text); flex:1; }
+            .dmc-perk-check { flex-shrink:0; }
+            .dmc-check-yes { color:#34d399; }
+            .dmc-check-no { color:rgba(255,255,255,0.18); }
+            .dmc-locked-pill { display:inline-flex; align-items:center; gap:4px; font-size:9px; font-weight:700; padding:3px 9px; border-radius:999px; background:rgba(168,85,247,0.1); border:1px solid rgba(168,85,247,0.22); color:var(--accent); cursor:pointer; transition:opacity .15s; }
+            .dmc-locked-pill:hover { opacity:.8; }
+            .dm-sub-nav { display:flex; gap:4px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07); border-radius:14px; padding:4px; margin-bottom:14px; flex-shrink:0; }
+            .dm-sub-btn { flex:1; padding:7px 4px; border-radius:10px; background:transparent; border:1px solid transparent; color:var(--muted); font-family:'Syne',sans-serif; font-size:11px; font-weight:700; cursor:pointer; letter-spacing:.02em; transition:background .15s,border-color .15s,color .15s; display:flex; align-items:center; justify-content:center; gap:5px; }
+            .dm-sub-btn.active { background:rgba(168,85,247,0.15); border-color:rgba(168,85,247,0.3); color:var(--text); }
         </style>
         <div class="dm-header">
             <div class="dm-back" onclick="closeDashboardModal()">
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 2L4 7l5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
-            <div class="dm-title">Seller Dashboard</div>
+            <div class="dm-title">Dashboard</div>
+            <div id="dmPlanPill" style="font-family:'Syne',sans-serif;font-size:9px;font-weight:700;letter-spacing:.05em;padding:3px 10px;border-radius:999px;background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.25);color:var(--accent);">FREE</div>
         </div>
         <div class="dm-body" id="dashboardModalBody">
 
-                    <style>
-                        .sd-section { margin-bottom: 18px; }
-                        .sd-card {
-                            background: var(--surface);
-                            border: 1px solid var(--border);
-                            border-radius: 16px;
-                            padding: 16px;
-                            margin-bottom: 10px;
-                        }
-                        .sd-card-title {
-                            font-family: 'Syne', sans-serif;
-                            font-size: 12px;
-                            font-weight: 700;
-                            color: var(--text);
-                            letter-spacing: -.01em;
-                            margin-bottom: 12px;
-                            display: flex;
-                            align-items: center;
-                            justify-content: space-between;
-                        }
-                        .sd-badge-pro {
-                            font-size: 8.5px;
-                            font-weight: 700;
-                            letter-spacing: .07em;
-                            text-transform: uppercase;
-                            padding: 2px 8px;
-                            border-radius: 999px;
-                            background: linear-gradient(135deg, #a855f7, #f472b6);
-                            color: #fff;
-                        }
-                        .sd-stat-grid {
-                            display: grid;
-                            grid-template-columns: repeat(3,1fr);
-                            gap: 8px;
-                            margin-bottom: 10px;
-                        }
-                        .sd-stat-box {
-                            background: var(--surface2);
-                            border: 1px solid var(--border);
-                            border-radius: 12px;
-                            padding: 10px 8px;
-                            text-align: center;
-                        }
-                        .sd-stat-val {
-                            font-family: 'Syne', sans-serif;
-                            font-size: 1.1rem;
-                            font-weight: 800;
-                            letter-spacing: -.04em;
-                            color: var(--text);
-                        }
-                        .sd-stat-lbl {
-                            font-size: 8.5px;
-                            color: var(--muted);
-                            margin-top: 2px;
-                            font-weight: 500;
-                        }
-                        .sd-locked {
-                            position: relative;
-                            overflow: hidden;
-                            border-radius: 14px;
-                            user-select: none;
-                        }
-                        .sd-locked-overlay {
-                            position: absolute;
-                            inset: 0;
-                            background: rgba(8,8,14,0.72);
-                            backdrop-filter: blur(3px);
-                            display: flex;
-                            flex-direction: column;
-                            align-items: center;
-                            justify-content: center;
-                            gap: 6px;
-                            border-radius: 14px;
-                            cursor: pointer;
-                            z-index: 2;
-                        }
-                        .sd-locked-overlay:hover { background: rgba(8,8,14,0.78); }
-                        .sd-lock-icon { width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.7); }
-                        .sd-lock-label {
-                            font-family: 'Syne', sans-serif;
-                            font-size: 10.5px;
-                            font-weight: 700;
-                            color: #fff;
-                            text-align: center;
-                        }
-                        .sd-lock-sub {
-                            font-size: 9px;
-                            color: rgba(255,255,255,0.5);
-                            text-align: center;
-                        }
-                        .sd-chart-wrap { width: 100%; height: 110px; position: relative; }
-                        .sd-chart-wrap canvas { width: 100% !important; }
-                        .sd-listing-row {
-                            display: flex;
-                            align-items: center;
-                            gap: 10px;
-                            padding: 9px 0;
-                            border-bottom: 1px solid rgba(255,255,255,0.04);
-                        }
-                        .sd-listing-row:last-child { border-bottom: none; }
-                        .sd-listing-dot {
-                            width: 8px; height: 8px;
-                            border-radius: 999px;
-                            flex-shrink: 0;
-                        }
-                        .sd-listing-name {
-                            font-size: 11px;
-                            font-weight: 600;
-                            color: var(--text);
-                            flex: 1;
-                            white-space: nowrap;
-                            overflow: hidden;
-                            text-overflow: ellipsis;
-                        }
-                        .sd-listing-views {
-                            font-size: 10px;
-                            color: var(--muted);
-                            font-weight: 500;
-                        }
-                        .sd-listing-badge {
-                            font-size: 8.5px;
-                            font-weight: 700;
-                            padding: 2px 7px;
-                            border-radius: 999px;
-                            flex-shrink: 0;
-                        }
-                        .sd-listing-badge.live { background: rgba(52,211,153,0.12); border: 1px solid rgba(52,211,153,0.28); color: #34d399; }
-                        .sd-listing-badge.pending { background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.28); color: #fbbf24; }
-                        .sd-boost-card {
-                            background: linear-gradient(135deg, rgba(168,85,247,0.14), rgba(244,114,182,0.08));
-                            border: 1px solid rgba(168,85,247,0.28);
-                            border-radius: 16px;
-                            padding: 16px;
-                            margin-bottom: 10px;
-                        }
-                        .sd-boost-title {
-                            font-family: 'Syne', sans-serif;
-                            font-size: 13px;
-                            font-weight: 800;
-                            color: var(--text);
-                            letter-spacing: -.02em;
-                            margin-bottom: 5px;
-                        }
-                        .sd-boost-sub {
-                            font-size: 10.5px;
-                            color: var(--muted);
-                            line-height: 1.55;
-                            margin-bottom: 12px;
-                        }
-                        .sd-boost-btn {
-                            display: inline-flex;
-                            align-items: center;
-                            gap: 6px;
-                            padding: 9px 16px;
-                            border-radius: 999px;
-                            font-family: 'Syne', sans-serif;
-                            font-size: 11px;
-                            font-weight: 700;
-                            cursor: pointer;
-                            border: none;
-                            transition: opacity .15s, transform .12s;
-                        }
-                        .sd-boost-btn:hover { opacity: .88; transform: scale(0.97); }
-                        .sd-boost-btn.primary { background: linear-gradient(135deg,#a855f7,#f472b6); color: #fff; }
-                        .sd-boost-btn.secondary { background: var(--surface2); border: 1px solid var(--border); color: var(--text); }
-                        .sd-tips-grid {
-                            display: grid;
-                            grid-template-columns: 1fr 1fr;
-                            gap: 8px;
-                        }
-                        .sd-tip-card {
-                            background: var(--surface2);
-                            border: 1px solid var(--border);
-                            border-radius: 12px;
-                            padding: 12px;
-                        }
-                        .sd-tip-icon { font-size: 18px; margin-bottom: 5px; }
-                        .sd-tip-title { font-size: 10.5px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
-                        .sd-tip-desc { font-size: 9.5px; color: var(--muted); line-height: 1.5; }
-                        /* two-col layout: Me | Seller */
-                        .sd-split {
-                            display: grid;
-                            grid-template-columns: 1fr 1fr;
-                            gap: 10px;
-                            height: 100%;
-                        }
-                        .sd-col {
-                            display: flex;
-                            flex-direction: column;
-                            gap: 10px;
-                            min-width: 0;
-                        }
-                        .sd-col-header {
-                            font-family: 'Syne', sans-serif;
-                            font-size: 11px;
-                            font-weight: 800;
-                            color: var(--muted);
-                            text-transform: uppercase;
-                            letter-spacing: .07em;
-                            padding-bottom: 8px;
-                            border-bottom: 1px solid var(--border);
-                            margin-bottom: 2px;
-                        }
-                        /* Premium popup */
-                        #sdPremiumPopup {
-                            display: none;
-                            position: fixed;
-                            inset: 0;
-                            z-index: 2000;
-                            background: rgba(8,8,14,0.82);
-                            backdrop-filter: blur(12px);
-                            align-items: center;
-                            justify-content: center;
-                            padding: 20px;
-                        }
-                        #sdPremiumPopup.open { display: flex; }
-                        .sdpp-box {
-                            background: var(--surface);
-                            border: 1px solid rgba(168,85,247,0.35);
-                            border-radius: 22px;
-                            padding: 28px 22px 22px;
-                            max-width: 340px;
-                            width: 100%;
-                            position: relative;
-                            box-shadow: 0 24px 60px rgba(0,0,0,0.55), 0 0 0 1px rgba(168,85,247,0.12) inset;
-                        }
-                        .sdpp-close {
-                            position: absolute;
-                            top: 14px; right: 14px;
-                            width: 28px; height: 28px;
-                            border-radius: 999px;
-                            background: var(--surface2);
-                            border: 1px solid var(--border);
-                            display: flex; align-items: center; justify-content: center;
-                            cursor: pointer; color: var(--muted);
-                            font-size: 13px; line-height: 1;
-                        }
-                        .sdpp-icon { font-size: 34px; text-align: center; margin-bottom: 10px; }
-                        .sdpp-title {
-                            font-family: 'Syne', sans-serif;
-                            font-size: 17px;
-                            font-weight: 800;
-                            letter-spacing: -.03em;
-                            color: var(--text);
-                            text-align: center;
-                            margin-bottom: 8px;
-                        }
-                        .sdpp-sub {
-                            font-size: 11.5px;
-                            color: var(--muted);
-                            text-align: center;
-                            line-height: 1.6;
-                            margin-bottom: 16px;
-                        }
-                        .sdpp-perks {
-                            background: var(--surface2);
-                            border: 1px solid var(--border);
-                            border-radius: 12px;
-                            padding: 12px;
-                            margin-bottom: 16px;
-                            display: flex;
-                            flex-direction: column;
-                            gap: 7px;
-                        }
-                        .sdpp-perk {
-                            display: flex;
-                            align-items: center;
-                            gap: 8px;
-                            font-size: 11px;
-                            color: var(--text);
-                            font-weight: 500;
-                        }
-                        .sdpp-perk-icon { font-size: 13px; flex-shrink: 0; }
-                        .sdpp-btn-row {
-                            display: flex;
-                            flex-direction: column;
-                            gap: 8px;
-                        }
-                        .sdpp-btn {
-                            width: 100%;
-                            padding: 12px;
-                            border-radius: 12px;
-                            font-family: 'Syne', sans-serif;
-                            font-size: 12px;
-                            font-weight: 700;
-                            cursor: pointer;
-                            border: none;
-                            transition: opacity .15s, transform .12s;
-                            text-align: center;
-                        }
-                        .sdpp-btn:hover { opacity: .88; transform: scale(0.98); }
-                        .sdpp-btn.cta { background: linear-gradient(135deg,#a855f7,#f472b6); color: #fff; }
-                        .sdpp-btn.outline { background: transparent; border: 1px solid var(--border); color: var(--muted); font-size: 11px; padding: 9px; }
-                    </style>
-
                     <!-- Premium popup overlay -->
-                    <div id="sdPremiumPopup">
-                        <div class="sdpp-box">
-                            <div class="sdpp-close" onclick="closePremiumPopup()">✕</div>
-                            <div class="sdpp-icon"><svg width="34" height="34" viewBox="0 0 34 34" fill="none"><path d="M20 4L9 19h9l-4 11 16-15h-10z" stroke="#a855f7" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
-                            <div class="sdpp-title">Premium Feature</div>
-                            <div class="sdpp-sub">This feature is only available on the <strong style="color:var(--accent)">Starter</strong> or <strong style="color:#f472b6">Pro</strong> plan. Upgrade to unlock advanced analytics, priority placement, agency support, and more.</div>
-                            <div class="sdpp-perks">
-                                <div class="sdpp-perk"><span class="sdpp-perk-icon"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 10V5l4-3 4 3v5H8.5V8H4.5v2H2Z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></svg></span> Advanced revenue &amp; traffic analytics</div>
-                                <div class="sdpp-perk"><span class="sdpp-perk-icon"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1l1.1 2.4L10.5 3.9l-2 1.9.5 2.7L6.5 7.2 4 8.5l.5-2.7-2-1.9 2.9-.5Z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></svg></span> Priority listing placement &amp; boosts</div>
-                                <div class="sdpp-perk"><span class="sdpp-perk-icon"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 3.5a1.5 1.5 0 0 1 1.5-1.5h6A1.5 1.5 0 0 1 11 3.5v4A1.5 1.5 0 0 1 9.5 9H6.5L3 11V3.5Z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></svg></span> Direct agency consultation calls</div>
-                                <div class="sdpp-perk"><span class="sdpp-perk-icon"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1.5v1M10.7 2.8l-.7.7M12 7h-1M10 10.2l-.7-.7M6.5 11v-1M3 10.2l.7-.7M1 7h1M3.2 3.5l.7.7" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><circle cx="6.5" cy="7" r="2.5" stroke="currentColor" stroke-width="1.1"/></svg></span> Instant buyer interest alerts</div>
-                                <div class="sdpp-perk"><span class="sdpp-perk-icon"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1.5L2 4v4a5 5 0 0 0 4.5 4.5A5 5 0 0 0 11 8V4L6.5 1.5Z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><path d="M4.5 6.5l1.5 1.5 2.5-2.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg></span> Escrow protection &amp; deal support</div>
-                                <div class="sdpp-perk"><span class="sdpp-perk-icon"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M1.5 4.5h10M1.5 7.5h7" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg></span> Social media promotion included</div>
+                    <div id="sdPremiumPopup" style="display:none;position:fixed;inset:0;z-index:3000;background:rgba(8,8,14,0.85);backdrop-filter:blur(14px);align-items:center;justify-content:center;padding:20px;">
+                        <div style="background:var(--surface);border:1px solid rgba(168,85,247,0.35);border-radius:22px;padding:26px 20px 20px;max-width:320px;width:100%;position:relative;box-shadow:0 24px 60px rgba(0,0,0,0.55);">
+                            <div onclick="closePremiumPopup()" style="position:absolute;top:12px;right:12px;width:28px;height:28px;border-radius:999px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);font-size:13px;">✕</div>
+                            <div style="display:flex;align-items:center;justify-content:center;margin-bottom:10px;"><svg width="32" height="32" viewBox="0 0 32 32" fill="none"><path d="M18 4L8 18h10l-4 10 14-14H18L22 4Z" stroke="#fbbf24" stroke-width="2" stroke-linejoin="round"/></svg></div>
+                            <div style="font-family:'Syne',sans-serif;font-size:17px;font-weight:800;letter-spacing:-.03em;color:var(--text);text-align:center;margin-bottom:6px;">Upgrade to Unlock</div>
+                            <div style="font-size:11.5px;color:var(--muted);text-align:center;line-height:1.6;margin-bottom:16px;" id="sdppDesc">This feature requires a paid plan.</div>
+                            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:16px;display:flex;flex-direction:column;gap:7px;">
+                                <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text);font-weight:500;"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 7l3 3 6-6" stroke="#34d399" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg> Revenue &amp; traffic analytics</div>
+                                <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text);font-weight:500;"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 7l3 3 6-6" stroke="#34d399" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg> Priority listing placement</div>
+                                <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text);font-weight:500;"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 7l3 3 6-6" stroke="#34d399" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg> Instant buyer interest alerts</div>
+                                <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text);font-weight:500;"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 7l3 3 6-6" stroke="#34d399" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg> Lower 5% transaction fee</div>
                             </div>
-                            <div class="sdpp-btn-row">
-                                <button class="sdpp-btn cta" onclick="closePremiumPopup();switchAccountSub('account');document.getElementById('acPlanPicker') && document.getElementById('acPlanPicker').scrollIntoView({behavior:'smooth',block:'nearest'});">Upgrade Now</button>
-                                <button class="sdpp-btn outline" onclick="closePremiumPopup()">Maybe later</button>
+                            <div style="display:flex;flex-direction:column;gap:8px;">
+                                <button class="sdpp-btn cta" onclick="closePremiumPopup();closeDashboardModal();switchAccountSub('account');document.getElementById('acPlanPicker')&&document.getElementById('acPlanPicker').scrollIntoView({behavior:'smooth',block:'nearest'});" style="width:100%;padding:13px;border-radius:12px;background:linear-gradient(135deg,#a855f7,#f472b6);border:none;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#fff;cursor:pointer;transition:opacity .15s;">View Plans →</button>
+                                <button onclick="closePremiumPopup()" style="width:100%;padding:10px;border-radius:12px;background:transparent;border:1px solid var(--border);font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;">Not now</button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Seller / Buyer sub-navigation -->
-                    <div id="sdSubNav" style="display:flex;gap:4px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:4px;margin-bottom:14px;flex-shrink:0;">
-                        <button id="sdSubBtn-seller" onclick="switchSdSub('seller')" style="flex:1;padding:7px 4px;border-radius:10px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.3);color:var(--text);font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.02em;transition:background .15s,border-color .15s;display:flex;align-items:center;justify-content:center;gap:5px;">
-                            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 11V5l4.5-3.5L11 5v6H8V8.5H5V11H2Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
-                            Seller
+                    <!-- Sub nav: Seller | Buyer -->
+                    <div class="dm-sub-nav">
+                        <button class="dm-sub-btn active" id="dmSubSeller" onclick="switchDmSub('seller')">
+                            <svg width="12" height="12" viewBox="0 0 13 13" fill="none"><path d="M2 11V5l4.5-3.5L11 5v6H8V8.5H5V11H2Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg> Seller
                         </button>
-                        <button id="sdSubBtn-buyer" onclick="switchSdSub('buyer')" style="flex:1;padding:7px 4px;border-radius:10px;background:transparent;border:1px solid transparent;color:var(--muted);font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.02em;transition:background .15s,border-color .15s;display:flex;align-items:center;justify-content:center;gap:5px;">
-                            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="4.5" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M2 11c0-2.5 2-4 4.5-4s4.5 1.5 4.5 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-                            Buyer
+                        <button class="dm-sub-btn" id="dmSubBuyer" onclick="switchDmSub('buyer')">
+                            <svg width="12" height="12" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="4.5" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M2 11c0-2.5 2-4 4.5-4s4.5 1.5 4.5 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg> Buyer
                         </button>
                     </div>
 
-                    <!-- SELLER DASHBOARD PANEL -->
-                    <div id="sdPanelSeller" style="display:block;">
-                        <div style="font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:6px;">
-                            <svg width="11" height="11" viewBox="0 0 13 13" fill="none"><path d="M2 11V5l4.5-3.5L11 5v6H8V8.5H5V11H2Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
-                            Seller Dashboard
+                    <!-- ── PLAN CARD ── -->
+                    <div class="dmc" id="dmPlanCard" style="background:linear-gradient(135deg,rgba(168,85,247,0.1),rgba(244,114,182,0.06));border-color:rgba(168,85,247,0.22);">
+                        <div class="dmc-title">
+                            <svg width="11" height="11" viewBox="0 0 13 13" fill="none"><path d="M6.5 1l1.18 2.39L10.5 3.82l-2 1.94.47 2.74L6.5 7.23 4.03 8.5l.47-2.74L2.5 3.82l2.82-.43Z" fill="currentColor"/></svg>
+                            Current Plan
+                        </div>
+                        <div class="dmc-plan-row">
+                            <div>
+                                <div class="dmc-plan-name" id="dmPlanName">Free</div>
+                                <div style="font-size:11px;color:var(--muted);margin-top:3px;" id="dmPlanPrice">$0 / month</div>
+                            </div>
+                            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+                                <div id="dmPlanStatus" class="dmc-plan-inactive">INACTIVE</div>
+                                <button onclick="closeDashboardModal();switchAccountSub('account');setTimeout(function(){var el=document.getElementById('acPlanPicker');if(el)el.scrollIntoView({behavior:'smooth',block:'nearest'});},200);" style="padding:6px 12px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;border:none;cursor:pointer;white-space:nowrap;">Upgrade</button>
+                            </div>
+                        </div>
+                        <!-- What's unlocked on this plan -->
+                        <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);">
+                            <div style="font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">What's included</div>
+                            <div id="dmPlanPerks" style="display:flex;flex-direction:column;gap:0;"></div>
+                        </div>
+                    </div>
+
+                    <!-- ── SELLER PANEL ── -->
+                    <div id="dmSellerPanel">
+
+                        <!-- Stats -->
+                        <div class="dmc">
+                            <div class="dmc-title">
+                                <svg width="11" height="11" viewBox="0 0 13 13" fill="none"><path d="M2 10V3M5.5 10V6M9 10V1M12.5 10V4.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+                                Your Stats
+                            </div>
+                            <div class="dmc-stat-row">
+                                <div class="dmc-stat">
+                                    <div class="dmc-stat-val" id="sdListingCount">0</div>
+                                    <div class="dmc-stat-lbl">Listings</div>
+                                </div>
+                                <div class="dmc-stat">
+                                    <div class="dmc-stat-val" id="sdTotalViews">0</div>
+                                    <div class="dmc-stat-lbl">Views</div>
+                                </div>
+                                <div class="dmc-stat">
+                                    <div class="dmc-stat-val" id="sdInquiries">0</div>
+                                    <div class="dmc-stat-lbl">Messages</div>
+                                </div>
+                                <div class="dmc-stat">
+                                    <div class="dmc-stat-val" id="sdSoldCount">0</div>
+                                    <div class="dmc-stat-lbl">Sold</div>
+                                </div>
+                                <div class="dmc-stat" style="grid-column:span 2;">
+                                    <div class="dmc-stat-val" id="sdRevTotal" style="color:#34d399;">$0</div>
+                                    <div class="dmc-stat-lbl">Revenue</div>
+                                </div>
+                            </div>
                         </div>
 
-                    <!-- Two-column layout -->
-                    <div class="sd-split">
-
-                        <!-- LEFT: seller activity placeholder col -->
-                        <div class="sd-col">
-                            <div class="sd-col-header">Overview</div>
-
-                            <!-- Seller quick stats -->
-                            <div class="sd-card">
-                                <div class="sd-card-title">Listing Stats</div>
-                                <div class="sd-stat-grid" style="grid-template-columns:1fr 1fr;">
-                                    <div class="sd-stat-box">
-                                        <div class="sd-stat-val" id="sdListingCount">0</div>
-                                        <div class="sd-stat-lbl">Listings</div>
-                                    </div>
-                                    <div class="sd-stat-box">
-                                        <div class="sd-stat-val" id="sdTotalViews">0</div>
-                                        <div class="sd-stat-lbl">Total Views</div>
-                                    </div>
-                                    <div class="sd-stat-box">
-                                        <div class="sd-stat-val" id="sdInquiries">0</div>
-                                        <div class="sd-stat-lbl">Inquiries</div>
-                                    </div>
-                                    <div class="sd-stat-box">
-                                        <div class="sd-stat-val" id="sdSoldCount">0</div>
-                                        <div class="sd-stat-lbl">Sold</div>
-                                    </div>
-                                </div>
+                        <!-- Views chart -->
+                        <div class="dmc">
+                            <div class="dmc-title">
+                                <svg width="11" height="11" viewBox="0 0 13 13" fill="none"><path d="M1.5 10L5 6l3 2 4-5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                Listing Views <span style="font-size:8.5px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted);">last 7 days</span>
                             </div>
-
-                            <!-- My listings -->
-                            <div class="sd-card">
-                                <div class="sd-card-title">My Listings</div>
-                                <div id="sdListingRows">
-                                    <div style="font-size:10px;color:var(--muted);text-align:center;padding:14px 0;">Loading your listings…</div>
-                                </div>
-                            </div>
-
-                            <!-- Seller Tips -->
-                            <div class="sd-card">
-                                <div class="sd-card-title">Seller Tips</div>
-                                <div class="sd-tips-grid">
-                                    <div class="sd-tip-card">
-                                        <div class="sd-tip-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2a7 7 0 1 0 0 14A7 7 0 0 0 9 2Z" stroke="#a855f7" stroke-width="1.3"/><path d="M6 9l2 2 4-4" stroke="#a855f7" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-                                        <div class="sd-tip-title">Verify Revenue</div>
-                                        <div class="sd-tip-desc">Include real screenshots of analytics and earnings to close faster.</div>
-                                    </div>
-                                    <div class="sd-tip-card">
-                                        <div class="sd-tip-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 1.5L11 6l4.8.7-3.5 3.4.83 4.8L9 12.5l-4.13 2.4.83-4.8L2.2 6.7 7 6Z" stroke="#f472b6" stroke-width="1.3" stroke-linejoin="round"/></svg></div>
-                                        <div class="sd-tip-title">Clear Listing</div>
-                                        <div class="sd-tip-desc">Write a compelling description with traffic sources and monetisation.</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                        </div><!-- /left col -->
-
-                        <!-- RIGHT: Seller Charts & Actions -->
-                        <div class="sd-col">
-                            <div class="sd-col-header">Analytics</div>
-
-                            <!-- Views chart -->
-                            <div class="sd-card">
-                                <div class="sd-card-title">Listing Views <span style="font-size:9px;color:var(--muted);font-weight:500;">last 7 days</span></div>
-                                <div class="sd-chart-wrap"><canvas id="sdViewsChart"></canvas></div>
-                            </div>
-
-                            <!-- Revenue chart (LOCKED) -->
-                            <div class="sd-card sd-locked">
-                                <div class="sd-card-title">Revenue Analytics <span class="sd-badge-pro">PRO</span></div>
-                                <div class="sd-chart-wrap" style="filter:blur(2px);pointer-events:none;"><canvas id="sdRevChart"></canvas></div>
-                                <div class="sd-locked-overlay" onclick="openPremiumPopup('Revenue Analytics')">
-                                    <div class="sd-lock-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="4" y="9" width="12" height="9" rx="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M7 9V6.5a3 3 0 0 1 6 0V9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="10" cy="14" r="1.2" fill="currentColor"/></svg></div>
-                                    <div class="sd-lock-label">Revenue Analytics</div>
-                                    <div class="sd-lock-sub">Upgrade to unlock</div>
-                                </div>
-                            </div>
-
-                            <!-- Boost your sales (LOCKED) -->
-                            <div class="sd-locked" style="border-radius:16px;">
-                                <div class="sd-boost-card" style="margin-bottom:0;">
-                                    <div class="sd-boost-title">Boost Your Listing</div>
-                                    <div class="sd-boost-sub">Get 5× more buyer eyeballs. Featured placement puts your site at the top of search results and the homepage for 7 days.</div>
-                                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                                        <button class="sd-boost-btn primary">Boost Now — $19</button>
-                                    </div>
-                                </div>
-                                <div class="sd-locked-overlay" onclick="openPremiumPopup('Listing Boost')">
-                                    <div class="sd-lock-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="4" y="9" width="12" height="9" rx="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M7 9V6.5a3 3 0 0 1 6 0V9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="10" cy="14" r="1.2" fill="currentColor"/></svg></div>
-                                    <div class="sd-lock-label">Listing Boost</div>
-                                    <div class="sd-lock-sub">Starter plan &amp; above</div>
-                                </div>
-                            </div>
-
-                            <!-- Talk to agency (LOCKED) -->
-                            <div class="sd-locked" style="border-radius:16px;">
-                                <div class="sd-card" style="background:linear-gradient(135deg,rgba(52,211,153,0.08),rgba(59,130,246,0.06));border-color:rgba(52,211,153,0.2);margin-bottom:0;">
-                                    <div class="sd-card-title">Talk to Our Agency</div>
-                                    <div style="font-size:10.5px;color:var(--muted);line-height:1.6;margin-bottom:12px;">Our in-house M&amp;A team has closed 200+ deals. Book a free 30-min strategy call — we'll value your site, review your listing, and give you a personalised game plan to sell faster.</div>
-                                    <button class="sd-boost-btn secondary" style="font-size:11px;">Book Free Strategy Call</button>
-                                </div>
-                                <div class="sd-locked-overlay" onclick="openPremiumPopup('Agency Consultation')">
-                                    <div class="sd-lock-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="4" y="9" width="12" height="9" rx="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M7 9V6.5a3 3 0 0 1 6 0V9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="10" cy="14" r="1.2" fill="currentColor"/></svg></div>
-                                    <div class="sd-lock-label">Agency Consultation</div>
-                                    <div class="sd-lock-sub">Pro plan only</div>
-                                </div>
-                            </div>
-
-                            <!-- Buyer interest alerts (LOCKED) -->
-                            <div class="sd-locked" style="border-radius:16px;">
-                                <div class="sd-card" style="margin-bottom:0;">
-                                    <div class="sd-card-title">Buyer Interest Alerts <span class="sd-badge-pro">PRO</span></div>
-                                    <div style="font-size:10px;color:var(--muted);line-height:1.6;">Get instant SMS + email alerts the moment a verified buyer views your listing 3+ times — so you can follow up at peak interest.</div>
-                                </div>
-                                <div class="sd-locked-overlay" onclick="openPremiumPopup('Buyer Alerts')">
-                                    <div class="sd-lock-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="4" y="9" width="12" height="9" rx="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M7 9V6.5a3 3 0 0 1 6 0V9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="10" cy="14" r="1.2" fill="currentColor"/></svg></div>
-                                    <div class="sd-lock-label">Buyer Interest Alerts</div>
-                                    <div class="sd-lock-sub">Upgrade to unlock</div>
-                                </div>
-                            </div>
-
-                        </div><!-- /right col -->
-                    </div><!-- /sd-split -->
-                    </div><!-- /sdPanelSeller -->
-
-                    <!-- BUYER DASHBOARD PANEL -->
-                    <div id="sdPanelBuyer" style="display:none;">
-                        <div style="font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:6px;">
-                            <svg width="11" height="11" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="4.5" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M2 11c0-2.5 2-4 4.5-4s4.5 1.5 4.5 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-                            Buyer Dashboard
+                            <div style="width:100%;height:100px;position:relative;"><canvas id="sdViewsChart"></canvas></div>
                         </div>
 
-                        <div class="sd-split">
-                            <!-- LEFT: Buyer stats -->
-                            <div class="sd-col">
-                                <div class="sd-col-header">Activity</div>
+                        <!-- My listings -->
+                        <div class="dmc">
+                            <div class="dmc-title" style="margin-bottom:8px;">
+                                <svg width="11" height="11" viewBox="0 0 13 13" fill="none"><path d="M2 4h9M2 7h9M2 10h5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+                                My Listings
+                                <a href="/sell-my-site" style="margin-left:auto;font-size:8.5px;font-weight:700;color:var(--accent);text-decoration:none;text-transform:none;letter-spacing:0;">+ List new</a>
+                            </div>
+                            <div id="sdListingRows"><div style="font-size:10.5px;color:var(--muted);text-align:center;padding:14px 0;">Loading…</div></div>
+                        </div>
 
-                                <div class="sd-card">
-                                    <div class="sd-card-title">Watchlist & Offers</div>
-                                    <div class="sd-stat-grid" style="grid-template-columns:1fr 1fr;">
-                                        <div class="sd-stat-box" style="cursor:pointer;" onclick="openSettingsPanel('saved')" title="View saved listings">
-                                            <div class="sd-stat-val" id="sdWatchCount">0</div>
-                                            <div class="sd-stat-lbl">Saved</div>
-                                        </div>
-                                        <div class="sd-stat-box">
-                                            <div class="sd-stat-val" id="sdOfferCount">0</div>
-                                            <div class="sd-stat-lbl">Offers</div>
-                                        </div>
-                                    </div>
-                                    <div style="font-size:9.5px;color:var(--muted);line-height:1.55;">Sites you're watching or have made offers on appear here.</div>
+                        <!-- Revenue chart — locked for Free -->
+                        <div class="dmc" id="dmRevChartCard">
+                            <div class="dmc-title" style="margin-bottom:8px;">
+                                <svg width="11" height="11" viewBox="0 0 13 13" fill="none"><rect x="1.5" y="3.5" width="10" height="7" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 5.5h10" stroke="currentColor" stroke-width="1.2"/></svg>
+                                Revenue Analytics
+                                <span id="dmRevLockPill" class="dmc-locked-pill" onclick="openPremiumPopup('Revenue Analytics')" style="margin-left:auto;"><svg width="11" height="11" viewBox="0 0 11 11" fill="none" style="display:inline;vertical-align:middle;"><rect x="2" y="5" width="7" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><path d="M3.5 5V3.5a2 2 0 0 1 4 0V5" stroke="currentColor" stroke-width="1.2"/></svg> Growth+</span>
+                            </div>
+                            <div style="width:100%;height:90px;position:relative;filter:blur(3px);pointer-events:none;opacity:.4;"><canvas id="sdRevChart"></canvas></div>
+                        </div>
+
+                        <!-- Boost listing — locked for Free -->
+                        <div class="dmc" style="background:linear-gradient(135deg,rgba(168,85,247,0.09),rgba(244,114,182,0.06));border-color:rgba(168,85,247,0.22);" id="dmBoostCard">
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                <div style="width:38px;height:38px;border-radius:12px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.25);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2l1.8 3.6L15 6.3l-3 2.9.7 4.1L9 11.5l-3.7 1.8.7-4.1-3-2.9 4.2-.7Z" stroke="#a855f7" stroke-width="1.3" stroke-linejoin="round"/></svg>
                                 </div>
-
-                                <div class="sd-card">
-                                    <div class="sd-card-title">Recent Activity</div>
-                                    <div id="sdActivityList" style="font-size:10px;color:var(--muted);line-height:1.8;">
-                                        <div style="display:flex;align-items:center;gap:6px;padding:4px 0;"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.1"/><path d="M4 6a2 2 0 0 1 4 0" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><circle cx="6" cy="4" r=".6" fill="currentColor"/></svg> Viewed 3 listings today</div>
-                                        <div style="display:flex;align-items:center;gap:6px;padding:4px 0;"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1l1.1 2.2L9.5 3.5l-1.8 1.8.4 2.5L6 6.7 3.9 7.8l.4-2.5L2.5 3.5l2.4-.3Z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></svg> No saved listings yet</div>
-                                        <div style="display:flex;align-items:center;gap:6px;padding:4px 0;"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 3a1.5 1.5 0 0 1 1.5-1.5h5A1.5 1.5 0 0 1 10 3v5a1.5 1.5 0 0 1-1.5 1.5H5L2 11V3Z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></svg> No messages yet</div>
-                                    </div>
+                                <div style="flex:1;min-width:0;">
+                                    <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:var(--text);letter-spacing:-.01em;margin-bottom:2px;">Boost Your Listing</div>
+                                    <div style="font-size:10.5px;color:var(--muted);line-height:1.5;">5× more buyer eyes. Featured on homepage for 7 days.</div>
                                 </div>
+                            </div>
+                            <div style="margin-top:12px;" id="dmBoostAction">
+                                <span class="dmc-locked-pill" onclick="openPremiumPopup('Listing Boost')"><svg width="11" height="11" viewBox="0 0 11 11" fill="none" style="display:inline;vertical-align:middle;margin-right:4px;"><rect x="2" y="5" width="7" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><path d="M3.5 5V3.5a2 2 0 0 1 4 0V5" stroke="currentColor" stroke-width="1.2"/></svg>Starter plan required — Upgrade to unlock</span>
+                            </div>
+                        </div>
 
-                                <div class="sd-card">
-                                    <div class="sd-card-title">Buyer Tips</div>
-                                    <div class="sd-tips-grid">
-                                        <div class="sd-tip-card">
-                                            <div class="sd-tip-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="8" cy="8" r="5.5" stroke="#a855f7" stroke-width="1.3"/><path d="M13 13l3 3" stroke="#a855f7" stroke-width="1.4" stroke-linecap="round"/></svg></div>
-                                            <div class="sd-tip-title">Due Diligence</div>
-                                            <div class="sd-tip-desc">Always verify revenue claims with real screenshots before making an offer.</div>
-                                        </div>
-                                        <div class="sd-tip-card">
-                                            <div class="sd-tip-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2a7 7 0 1 0 0 14A7 7 0 0 0 9 2Z" stroke="#34d399" stroke-width="1.3"/><path d="M6 9l2 2 4-4" stroke="#34d399" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-                                            <div class="sd-tip-title">Use Escrow</div>
-                                            <div class="sd-tip-desc">Never pay outside the platform. Escrow protects both sides.</div>
-                                        </div>
-                                    </div>
+                        <!-- Agency call — locked for non-Pro -->
+                        <div class="dmc" style="background:linear-gradient(135deg,rgba(52,211,153,0.07),rgba(56,189,248,0.05));border-color:rgba(52,211,153,0.18);" id="dmAgencyCard">
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                <div style="width:38px;height:38px;border-radius:12px;background:rgba(52,211,153,0.12);border:1px solid rgba(52,211,153,0.22);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2.5 4a1.5 1.5 0 0 1 1.5-1.5h10A1.5 1.5 0 0 1 15.5 4v8a1.5 1.5 0 0 1-1.5 1.5H9L3 16V4Z" stroke="#34d399" stroke-width="1.3" stroke-linejoin="round"/></svg>
                                 </div>
-                            </div><!-- /buyer left col -->
-
-                            <!-- RIGHT: Buyer charts -->
-                            <div class="sd-col">
-                                <div class="sd-col-header">Insights</div>
-
-                                <div class="sd-card">
-                                    <div class="sd-card-title">Listings Viewed <span style="font-size:9px;color:var(--muted);font-weight:500;">last 7 days</span></div>
-                                    <div class="sd-chart-wrap"><canvas id="sdBuyerViewsChart"></canvas></div>
+                                <div style="flex:1;min-width:0;">
+                                    <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:var(--text);letter-spacing:-.01em;margin-bottom:2px;">Talk to Our Agency</div>
+                                    <div style="font-size:10.5px;color:var(--muted);line-height:1.5;">Free 30-min strategy call. 200+ deals closed.</div>
                                 </div>
+                            </div>
+                            <div style="margin-top:12px;" id="dmAgencyAction">
+                                <span class="dmc-locked-pill" onclick="openPremiumPopup('Agency Consultation')"><svg width="11" height="11" viewBox="0 0 11 11" fill="none" style="display:inline;vertical-align:middle;margin-right:4px;"><rect x="2" y="5" width="7" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><path d="M3.5 5V3.5a2 2 0 0 1 4 0V5" stroke="currentColor" stroke-width="1.2"/></svg>Pro plan only — Upgrade to unlock</span>
+                            </div>
+                        </div>
 
-                                <div class="sd-card sd-locked">
-                                    <div class="sd-card-title">Spend Analytics <span class="sd-badge-pro">PRO</span></div>
-                                    <div class="sd-chart-wrap" style="filter:blur(2px);pointer-events:none;"><canvas id="sdBuyerSpendChart"></canvas></div>
-                                    <div class="sd-locked-overlay" onclick="openPremiumPopup('Spend Analytics')">
-                                        <div class="sd-lock-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="4" y="9" width="12" height="9" rx="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M7 9V6.5a3 3 0 0 1 6 0V9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="10" cy="14" r="1.2" fill="currentColor"/></svg></div>
-                                        <div class="sd-lock-label">Spend Analytics</div>
-                                        <div class="sd-lock-sub">Upgrade to unlock</div>
-                                    </div>
-                                </div>
+                        <!-- Seller tips -->
+                        <div class="dmc">
+                            <div class="dmc-title">
+                                <svg width="11" height="11" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="5" r="3.5" stroke="currentColor" stroke-width="1.2"/><path d="M5 11.5h3M6.5 8.5v3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+                                Seller Tips
+                            </div>
+                            <div style="display:flex;flex-direction:column;gap:0;">
+                                <div class="dmc-row"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="4" width="14" height="10" rx="2" stroke="#a855f7" stroke-width="1.2"/><circle cx="8" cy="9" r="2.5" stroke="#a855f7" stroke-width="1.2"/><path d="M5.5 4l1-2h3l1 2" stroke="#a855f7" stroke-width="1.2" stroke-linejoin="round"/></svg></div><div style="flex:1;min-width:0;"><div style="font-size:11px;font-weight:600;color:var(--text);">Show real revenue screenshots</div><div style="font-size:10px;color:var(--muted);margin-top:1px;">Verified listings close 3× faster.</div></div></div>
+                                <div class="dmc-row"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 12V14h2l7-7-2-2-7 7Z" stroke="#f472b6" stroke-width="1.2" stroke-linejoin="round"/><path d="M11.5 2.5l2 2" stroke="#f472b6" stroke-width="1.2" stroke-linecap="round"/></svg></div><div style="flex:1;min-width:0;"><div style="font-size:11px;font-weight:600;color:var(--text);">Write a compelling description</div><div style="font-size:10px;color:var(--muted);margin-top:1px;">Include traffic sources, MRR, and tech stack.</div></div></div>
+                                <div class="dmc-row" style="border-bottom:none;"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M8 2L3.5 8h5L6 12l4.5-6H6L8 2Z" stroke="#38bdf8" stroke-width="1.2" stroke-linejoin="round"/></svg></div><div style="flex:1;min-width:0;"><div style="font-size:11px;font-weight:600;color:var(--text);">Respond to buyers fast</div><div style="font-size:10px;color:var(--muted);margin-top:1px;">Speed signals serious sellers. Reply within an hour.</div></div></div>
+                            </div>
+                        </div>
 
-                                <div class="sd-card">
-                                    <div class="sd-card-title">Browse Marketplace</div>
-                                    <div style="font-size:10.5px;color:var(--muted);line-height:1.6;margin-bottom:12px;">Discover websites, SaaS products and online businesses currently for sale.</div>
-                                    <button onclick="closeDash();handleBrowseCta(event);" class="sd-boost-btn primary" style="width:100%;justify-content:center;">
-                                        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6" cy="6" r="4" stroke="#fff" stroke-width="1.2"/><path d="M9.5 9.5l2.5 2.5" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/></svg>
-                                        Browse Listings
-                                    </button>
+                    </div><!-- /dmSellerPanel -->
+
+                    <!-- ── BUYER PANEL ── -->
+                    <div id="dmBuyerPanel" style="display:none;">
+
+                        <!-- Buyer stats -->
+                        <div class="dmc">
+                            <div class="dmc-title">
+                                <svg width="11" height="11" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="4.5" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M2 11c0-2.5 2-4 4.5-4s4.5 1.5 4.5 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+                                Buyer Activity
+                            </div>
+                            <div class="dmc-stat-row">
+                                <div class="dmc-stat" style="cursor:pointer;" onclick="closeDashboardModal();">
+                                    <div class="dmc-stat-val" id="sdWatchCount">0</div>
+                                    <div class="dmc-stat-lbl">Saved</div>
                                 </div>
-                            </div><!-- /buyer right col -->
-                        </div><!-- /buyer sd-split -->
-                    </div><!-- /sdPanelBuyer -->
+                                <div class="dmc-stat">
+                                    <div class="dmc-stat-val" id="sdOfferCount">0</div>
+                                    <div class="dmc-stat-lbl">Offers</div>
+                                </div>
+                                <div class="dmc-stat">
+                                    <div class="dmc-stat-val" id="sdPurchasedCount">0</div>
+                                    <div class="dmc-stat-lbl">Purchased</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Browse CTA -->
+                        <div class="dmc" style="background:linear-gradient(135deg,rgba(52,211,153,0.09),rgba(56,189,248,0.06));border-color:rgba(52,211,153,0.2);">
+                            <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:var(--text);letter-spacing:-.01em;margin-bottom:5px;">Find Your Next Site</div>
+                            <div style="font-size:11px;color:var(--muted);line-height:1.6;margin-bottom:12px;">Browse sites, SaaS products and online businesses currently for sale on Siterifty.</div>
+                            <button onclick="closeDashboardModal();" style="width:100%;padding:11px;border-radius:12px;background:linear-gradient(135deg,#34d399,#38bdf8);border:none;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:#fff;cursor:pointer;letter-spacing:.02em;display:flex;align-items:center;justify-content:center;gap:6px;">
+                                <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6" cy="6" r="4" stroke="#fff" stroke-width="1.2"/><path d="M9.5 9.5l2.5 2.5" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/></svg>
+                                Browse Listings
+                            </button>
+                        </div>
+
+                        <!-- Buyer tips -->
+                        <div class="dmc">
+                            <div class="dmc-title">
+                                <svg width="11" height="11" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="5" r="3.5" stroke="currentColor" stroke-width="1.2"/><path d="M5 11.5h3M6.5 8.5v3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+                                Buyer Tips
+                            </div>
+                            <div style="display:flex;flex-direction:column;gap:0;">
+                                <div class="dmc-row"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4" stroke="#34d399" stroke-width="1.2"/><path d="M10 10l2 2" stroke="#34d399" stroke-width="1.2" stroke-linecap="round"/></svg></div><div style="flex:1;min-width:0;"><div style="font-size:11px;font-weight:600;color:var(--text);">Always verify revenue claims</div><div style="font-size:10px;color:var(--muted);margin-top:1px;">Ask for real analytics screenshots before offering.</div></div></div>
+                                <div class="dmc-row"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2L2 4.5v3C2 10 4.5 12.5 7 13c2.5-.5 5-3 5-5.5v-3L7 2Z" stroke="#f472b6" stroke-width="1.2" stroke-linejoin="round"/></svg></div><div style="flex:1;min-width:0;"><div style="font-size:11px;font-weight:600;color:var(--text);">Use escrow for every deal</div><div style="font-size:10px;color:var(--muted);margin-top:1px;">Never pay outside the platform. Escrow protects both sides.</div></div></div>
+                                <div class="dmc-row" style="border-bottom:none;"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2h10a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H4l-3 2V3a1 1 0 0 1 1-1Z" stroke="#38bdf8" stroke-width="1.2" stroke-linejoin="round"/></svg></div><div style="flex:1;min-width:0;"><div style="font-size:11px;font-weight:600;color:var(--text);">Message sellers directly</div><div style="font-size:10px;color:var(--muted);margin-top:1px;">Ask questions, negotiate price, and close the deal in chat.</div></div></div>
+                            </div>
+                        </div>
+
+                    </div><!-- /dmBuyerPanel -->
 
                 
         </div>
@@ -13265,21 +13249,20 @@ self.addEventListener('notificationclick', e => {
         </div>
         <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;" id="messagesModalBody">
 
-                <style>
-                    /* Messages layout */
+        <style>
+                    /* ── Modern Chat UI ── */
                     #tabMessages { padding: 0 !important; height: 100%; display: flex; flex-direction: column; }
                     .msg-view { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 
-                    /* Conversation list */
+                    /* Inbox */
                     .msg-inbox { flex: 1; overflow-y: auto; }
                     .msg-inbox-header {
-                        padding: 14px 16px 10px;
+                        padding: 14px 16px 12px;
                         font-family: 'Syne', sans-serif;
-                        font-size: 15px;
+                        font-size: 16px;
                         font-weight: 800;
-                        letter-spacing: -.02em;
+                        letter-spacing: -.03em;
                         color: var(--text);
-                        border-bottom: 1px solid var(--border);
                         display: flex;
                         align-items: center;
                         justify-content: space-between;
@@ -13289,55 +13272,66 @@ self.addEventListener('notificationclick', e => {
                         display: flex;
                         align-items: center;
                         gap: 8px;
-                        padding: 10px 16px;
-                        border-bottom: 1px solid rgba(255,255,255,0.04);
+                        padding: 0 14px 10px;
                         flex-shrink: 0;
                     }
                     .msg-inbox-search input {
                         flex: 1;
                         background: var(--surface2);
-                        border: 1px solid var(--border);
-                        border-radius: 999px;
-                        padding: 7px 14px;
-                        font-size: 11px;
+                        border: 1px solid rgba(255,255,255,0.08);
+                        border-radius: 12px;
+                        padding: 9px 14px;
+                        font-size: 12px;
                         color: var(--text);
                         outline: none;
+                        transition: border-color .15s;
                     }
+                    .msg-inbox-search input:focus { border-color: rgba(168,85,247,0.35); }
                     .msg-inbox-search input::placeholder { color: var(--muted); }
 
+                    /* Conversation rows */
                     .msg-conv-row {
                         display: flex;
                         align-items: center;
-                        gap: 11px;
-                        padding: 11px 16px;
-                        border-bottom: 1px solid rgba(255,255,255,0.035);
+                        gap: 12px;
+                        padding: 12px 16px;
                         cursor: pointer;
-                        transition: background .12s;
+                        transition: background .1s;
+                        position: relative;
                     }
-                    .msg-conv-row:hover { background: rgba(255,255,255,0.03); }
-                    .msg-conv-row.unread { background: rgba(168,85,247,0.04); }
+                    .msg-conv-row:active { background: rgba(255,255,255,0.04); }
+                    .msg-conv-row.unread { background: rgba(168,85,247,0.035); }
+                    .msg-conv-row + .msg-conv-row { border-top: 1px solid rgba(255,255,255,0.04); }
                     .msg-conv-avatar {
-                        width: 42px; height: 42px;
+                        width: 44px; height: 44px;
                         border-radius: 999px;
                         background: linear-gradient(135deg,#a855f7,#f472b6);
                         display: flex; align-items: center; justify-content: center;
                         font-family: 'Syne', sans-serif;
-                        font-size: 14px; font-weight: 800; color: #fff;
+                        font-size: 15px; font-weight: 800; color: #fff;
                         flex-shrink: 0;
                         overflow: hidden;
-                        border: 1.5px solid rgba(255,255,255,0.08);
+                        position: relative;
                     }
                     .msg-conv-avatar img { width: 100%; height: 100%; object-fit: cover; }
+                    .msg-conv-online {
+                        position: absolute;
+                        bottom: 1px; right: 1px;
+                        width: 10px; height: 10px;
+                        border-radius: 999px;
+                        background: #34d399;
+                        border: 2px solid var(--bg);
+                    }
                     .msg-conv-body { flex: 1; min-width: 0; }
                     .msg-conv-top {
                         display: flex;
                         align-items: center;
                         justify-content: space-between;
-                        gap: 6px;
-                        margin-bottom: 2px;
+                        gap: 8px;
+                        margin-bottom: 3px;
                     }
                     .msg-conv-name {
-                        font-size: 12px;
+                        font-size: 13px;
                         font-weight: 700;
                         color: var(--text);
                         white-space: nowrap;
@@ -13352,18 +13346,18 @@ self.addEventListener('notificationclick', e => {
                         white-space: nowrap;
                     }
                     .msg-conv-preview {
-                        font-size: 10.5px;
+                        font-size: 11px;
                         color: var(--muted);
                         white-space: nowrap;
                         overflow: hidden;
                         text-overflow: ellipsis;
                         line-height: 1.4;
                     }
-                    .msg-conv-preview.unread-text { color: var(--text); font-weight: 600; }
+                    .msg-conv-preview.unread-text { color: rgba(241,240,255,0.8); font-weight: 600; }
                     .msg-unread-badge {
                         min-width: 18px; height: 18px;
                         border-radius: 999px;
-                        background: #a855f7;
+                        background: linear-gradient(135deg,#a855f7,#f472b6);
                         color: #fff;
                         font-size: 8.5px;
                         font-weight: 700;
@@ -13379,181 +13373,186 @@ self.addEventListener('notificationclick', e => {
                         align-items: center;
                         gap: 10px;
                         padding: 11px 14px;
-                        border-bottom: 1px solid var(--border);
+                        border-bottom: 1px solid rgba(255,255,255,0.06);
                         flex-shrink: 0;
                         background: var(--surface);
                     }
                     .msg-back-btn {
-                        width: 30px; height: 30px;
+                        width: 32px; height: 32px;
                         border-radius: 999px;
-                        background: var(--surface2);
-                        border: 1px solid var(--border);
+                        background: rgba(255,255,255,0.06);
+                        border: none;
                         display: flex; align-items: center; justify-content: center;
                         cursor: pointer; color: var(--muted);
                         flex-shrink: 0;
-                        transition: color .12s;
+                        transition: background .12s, color .12s;
                     }
-                    .msg-back-btn:hover { color: var(--text); }
+                    .msg-back-btn:active { background: rgba(255,255,255,0.12); color: var(--text); }
                     .msg-thread-name {
                         font-family: 'Syne', sans-serif;
-                        font-size: 13px;
+                        font-size: 14px;
                         font-weight: 800;
                         color: var(--text);
-                        flex: 1;
-                        min-width: 0;
-                        white-space: nowrap;
-                        overflow: hidden;
-                        text-overflow: ellipsis;
+                        flex: 1; min-width: 0;
+                        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
                     }
                     .msg-thread-sub {
-                        font-size: 9.5px;
+                        font-size: 10px;
                         color: var(--muted);
                     }
+
+                    /* Bubbles */
                     .msg-bubble-list {
                         flex: 1;
                         overflow-y: auto;
-                        padding: 14px 14px 8px;
+                        padding: 16px 14px 10px;
                         display: flex;
                         flex-direction: column;
-                        gap: 8px;
+                        gap: 4px;
                     }
                     .msg-bubble-wrap {
                         display: flex;
                         flex-direction: column;
-                        max-width: 80%;
+                        max-width: 78%;
                     }
                     .msg-bubble-wrap.mine { align-self: flex-end; align-items: flex-end; }
                     .msg-bubble-wrap.theirs { align-self: flex-start; align-items: flex-start; }
                     .msg-bubble {
-                        padding: 9px 12px;
-                        border-radius: 16px;
-                        font-size: 11.5px;
-                        line-height: 1.55;
+                        padding: 10px 14px;
+                        font-size: 13px;
+                        line-height: 1.5;
                         word-break: break-word;
+                        max-width: 100%;
                     }
-                    .msg-bubble.mine {
+                    /* Bubble shaping — consecutive messages cluster */
+                    .msg-bubble-wrap.mine .msg-bubble {
                         background: linear-gradient(135deg,#a855f7,#9333ea);
                         color: #fff;
-                        border-bottom-right-radius: 4px;
+                        border-radius: 18px 18px 4px 18px;
                     }
-                    .msg-bubble.theirs {
+                    .msg-bubble-wrap.theirs .msg-bubble {
                         background: var(--surface2);
                         color: var(--text);
-                        border: 1px solid var(--border);
-                        border-bottom-left-radius: 4px;
+                        border: 1px solid rgba(255,255,255,0.07);
+                        border-radius: 18px 18px 18px 4px;
                     }
                     .msg-bubble-meta {
-                        font-size: 8.5px;
+                        font-size: 9px;
                         color: var(--muted);
-                        margin-top: 3px;
+                        margin-top: 4px;
                         padding: 0 4px;
                     }
                     .msg-date-divider {
                         align-self: center;
-                        font-size: 9px;
+                        font-size: 9.5px;
                         color: var(--muted);
-                        background: rgba(255,255,255,0.04);
+                        background: rgba(255,255,255,0.05);
+                        border: 1px solid rgba(255,255,255,0.06);
                         border-radius: 999px;
-                        padding: 2px 10px;
-                        margin: 4px 0;
+                        padding: 3px 12px;
+                        margin: 8px 0;
+                        letter-spacing: .02em;
                     }
+
                     /* Compose bar */
                     .msg-compose {
                         display: flex;
                         align-items: flex-end;
                         gap: 8px;
-                        padding: 10px 12px;
-                        border-top: 1px solid var(--border);
+                        padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+                        border-top: 1px solid rgba(255,255,255,0.06);
                         background: var(--surface);
                         flex-shrink: 0;
                     }
                     .msg-compose textarea {
                         flex: 1;
-                        background: var(--surface2);
-                        border: 1px solid var(--border);
-                        border-radius: 14px;
-                        padding: 9px 13px;
-                        font-size: 11.5px;
+                        background: rgba(255,255,255,0.06);
+                        border: 1px solid rgba(255,255,255,0.09);
+                        border-radius: 20px;
+                        padding: 10px 16px;
+                        font-size: 13px;
                         color: var(--text);
                         resize: none;
                         outline: none;
-                        line-height: 1.5;
-                        max-height: 100px;
+                        line-height: 1.45;
+                        max-height: 96px;
                         overflow-y: auto;
                         font-family: inherit;
                         transition: border-color .15s;
+                        -webkit-overflow-scrolling: touch;
                     }
-                    .msg-compose textarea:focus { border-color: rgba(168,85,247,0.45); }
+                    .msg-compose textarea:focus { border-color: rgba(168,85,247,0.4); background: rgba(168,85,247,0.05); }
                     .msg-compose textarea::placeholder { color: var(--muted); }
                     .msg-send-btn {
-                        width: 36px; height: 36px;
+                        width: 38px; height: 38px;
                         border-radius: 999px;
                         background: linear-gradient(135deg,#a855f7,#f472b6);
                         border: none;
                         display: flex; align-items: center; justify-content: center;
                         cursor: pointer;
                         flex-shrink: 0;
-                        transition: opacity .15s, transform .1s;
+                        transition: transform .1s, opacity .1s;
                     }
-                    .msg-send-btn:hover { opacity: .88; transform: scale(0.94); }
-                    .msg-send-btn:disabled { opacity: .4; pointer-events: none; }
+                    .msg-send-btn:active { transform: scale(0.9); opacity: .85; }
+                    .msg-send-btn:disabled { opacity: .3; pointer-events: none; }
+
+                    /* Typing indicator */
+                    .msg-typing {
+                        font-size: 10px;
+                        color: var(--muted);
+                        padding: 0 18px 5px;
+                        min-height: 16px;
+                        font-style: italic;
+                        letter-spacing: .01em;
+                    }
+
+                    /* Empty state */
                     .msg-empty-state {
                         flex: 1;
                         display: none;
                         flex-direction: column;
                         align-items: center;
                         justify-content: center;
-                        gap: 8px;
+                        gap: 10px;
                         padding: 40px 20px;
                         text-align: center;
                     }
-                    .msg-empty-icon { font-size: 36px; opacity: .5; }
-                    .msg-empty-title { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: var(--text); }
-                    .msg-empty-sub { font-size: 10.5px; color: var(--muted); line-height: 1.6; }
-                    .msg-typing {
-                        font-size: 9.5px;
-                        color: var(--muted);
-                        padding: 0 16px 6px;
-                        min-height: 18px;
-                        font-style: italic;
-                    }
+                    .msg-empty-icon { font-size: 40px; opacity: .45; margin-bottom: 2px; }
+                    .msg-empty-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 800; color: var(--text); letter-spacing: -.01em; }
+                    .msg-empty-sub { font-size: 11.5px; color: var(--muted); line-height: 1.6; max-width: 220px; }
                 </style>
 
                 <!-- INBOX VIEW -->
                 <div id="msgInboxView" class="msg-view">
                     <div class="msg-inbox-header">
                         Messages
-                        <span id="msgTotalUnread" style="font-size:10px;font-weight:600;color:var(--muted);"></span>
+                        <span id="msgTotalUnread" style="font-size:11px;font-weight:600;color:var(--muted);"></span>
                     </div>
                     <div class="msg-inbox-search">
                         <input type="text" id="msgSearch" placeholder="Search conversations…" oninput="filterConvs(this.value)">
                     </div>
                     <div class="msg-inbox" id="msgConvList">
-                        <!-- PINNED: Siterifty official channel — always first, always visible -->
-                        <div id="siteriftyPinnedChat" class="msg-conv-row unread" style="background:linear-gradient(135deg,rgba(168,85,247,0.07),rgba(244,114,182,0.04));border-left:2px solid rgba(168,85,247,0.45);padding-left:14px;" onclick="openSiteriftyChat()">
-                            <div class="msg-conv-avatar" style="background:none;border:2px solid rgba(168,85,247,0.4);overflow:hidden;flex-shrink:0;">
-                                <img src="https://i.imgur.com/8EEl86u.jpeg" alt="Siterifty" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none';this.parentElement.innerHTML='S';">
+                        <!-- PINNED: Siterifty official channel -->
+                        <div id="siteriftyPinnedChat" class="msg-conv-row unread" style="background:linear-gradient(135deg,rgba(168,85,247,0.06),rgba(244,114,182,0.03));border-left:2px solid rgba(168,85,247,0.5);padding-left:14px;" onclick="openSiteriftyChat()">
+                            <div class="msg-conv-avatar" style="background:none;overflow:hidden;flex-shrink:0;">
+                                <img src="https://i.imgur.com/8EEl86u.jpeg" alt="Siterifty" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none';this.parentElement.textContent='S';">
+                                <div class="msg-conv-online"></div>
                             </div>
                             <div class="msg-conv-body">
                                 <div class="msg-conv-top">
-                                    <div style="display:flex;align-items:center;gap:4px;min-width:0;overflow:hidden;">
-                                        <span class="msg-conv-name" style="color:var(--text);">SITERIFTY</span>
-                                        <!-- Verified badge -->
-                                        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" title="Verified" style="flex-shrink:0;"><circle cx="6.5" cy="6.5" r="6.5" fill="#38bdf8"/><path d="M4 6.5l1.8 1.8 3.2-3.6" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                        <!-- Admin badge -->
-                                        <span style="font-size:7.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:1px 5px;border-radius:4px;background:rgba(168,85,247,0.18);border:1px solid rgba(168,85,247,0.35);color:#a855f7;flex-shrink:0;">Admin</span>
-                                        <!-- Pin icon -->
-                                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style="flex-shrink:0;opacity:0.45;"><path d="M6.5 1.5L8.5 3.5 6 6l.5 3L3 6.5.5 4 3.5 1.5l.5 2 2.5-2Z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></svg>
+                                    <div style="display:flex;align-items:center;gap:5px;min-width:0;overflow:hidden;">
+                                        <span class="msg-conv-name">Siterifty</span>
+                                        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="flex-shrink:0;"><circle cx="6.5" cy="6.5" r="6.5" fill="#38bdf8"/><path d="M4 6.5l1.8 1.8 3.2-3.6" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                        <span style="font-size:7.5px;font-weight:700;padding:1px 5px;border-radius:4px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.3);color:#a855f7;flex-shrink:0;">Admin</span>
                                     </div>
-                                    <span class="msg-conv-time" style="color:var(--accent);font-weight:600;font-size:8.5px;">Pinned</span>
+                                    <span class="msg-conv-time" style="color:var(--accent);font-weight:600;">Pinned</span>
                                 </div>
-                                <div class="msg-conv-preview" style="color:var(--muted);">👋 Welcome to Siterifty! Ask us anything or chat with the community.</div>
+                                <div class="msg-conv-preview">Welcome to Siterifty! Ask us anything or chat with the community.</div>
                             </div>
                         </div>
-                        <!-- End pinned chat -->
 
                         <div class="msg-empty-state" id="msgEmptyState">
-                            <div class="msg-empty-icon">💬</div>
+                            <div class="msg-empty-icon"><svg width="40" height="40" viewBox="0 0 40 40" fill="none"><path d="M6 6h28a2 2 0 0 1 2 2v18a2 2 0 0 1-2 2H12l-8 6V8a2 2 0 0 1 2-2Z" stroke="rgba(168,85,247,0.5)" stroke-width="1.8" stroke-linejoin="round"/><circle cx="14" cy="17" r="2" fill="rgba(168,85,247,0.5)"/><circle cx="20" cy="17" r="2" fill="rgba(168,85,247,0.5)"/><circle cx="26" cy="17" r="2" fill="rgba(168,85,247,0.5)"/></svg></div>
                             <div class="msg-empty-title">No messages yet</div>
                             <div class="msg-empty-sub">When buyers or sellers message you, they'll appear here.</div>
                         </div>
@@ -13593,7 +13592,7 @@ self.addEventListener('notificationclick', e => {
             <!-- Glow header -->
             <div style="position:relative;overflow:hidden;background:linear-gradient(135deg,rgba(168,85,247,0.18),rgba(244,114,182,0.1));padding:28px 24px 20px;text-align:center;border-bottom:1px solid rgba(168,85,247,0.12);">
                 <div style="position:absolute;top:-20px;left:50%;transform:translateX(-50%);width:160px;height:80px;background:radial-gradient(ellipse,rgba(168,85,247,0.3),transparent 70%);pointer-events:none;"></div>
-                <div style="font-size:44px;line-height:1;margin-bottom:10px;">🎁</div>
+                <div style="display:flex;align-items:center;justify-content:center;font-size:44px;line-height:1;margin-bottom:10px;"><svg width="44" height="44" viewBox="0 0 44 44" fill="none"><rect x="6" y="20" width="32" height="18" rx="3" stroke="#a855f7" stroke-width="2"/><rect x="10" y="14" width="24" height="6" rx="2" stroke="#a855f7" stroke-width="2"/><path d="M22 14V38" stroke="#a855f7" stroke-width="2" stroke-linecap="round"/><path d="M22 14c0 0-5-8 0-8s0 8 0 8" stroke="#f472b6" stroke-width="1.8" stroke-linecap="round"/><path d="M22 14c0 0 5-8 0-8s0 8 0 8" stroke="#f472b6" stroke-width="1.8" stroke-linecap="round"/></svg></div>
                 <div style="font-family:'Syne',sans-serif;font-size:19px;font-weight:800;color:#f1f0ff;letter-spacing:-0.03em;margin-bottom:6px;">You got a referral bonus!</div>
                 <div style="font-size:12px;color:rgba(139,138,168,0.8);line-height:1.6;">A friend invited you to Siterifty. You've been credited $1 as a welcome bonus.</div>
             </div>
@@ -13637,5 +13636,257 @@ self.addEventListener('notificationclick', e => {
             </div>
         </div>
     </div>
+
+<!-- ══════════════════════════════════════════════
+     HASH ROUTER — modal deep-linking
+     Opens the right modal when the URL contains a
+     recognised hash, and pushes the hash when a
+     modal opens so sharing/bookmarking works.
+     Hashes:  #auth  #account  #wallet  #topup
+              #plans  #upgrade  #dashboard  #messages
+              #signout  #referral
+══════════════════════════════════════════════ -->
+<script>
+(function() {
+    'use strict';
+
+    // ── Map hash → opener function name ──────────────────────────────
+    var HASH_MAP = {
+        'auth':       'openAuthModal',
+        'account':    '_openDashHash',      // special wrapper below
+        'wallet':     'openWalletModal',
+        'topup':      'openTopUpModal',
+        'plans':      'openPlansPickerModal',
+        'upgrade':    '_openUpgradeHash',   // special wrapper below
+        'dashboard':  'openDashboardModal',
+        'messages':   '_openMessagesHash',  // special wrapper — handles pending conv
+        'signout':    '_openSignOutHash',   // special wrapper below
+        'referral':   '_openReferralHash'   // special wrapper below
+    };
+
+    // ── Closers (called on popstate when modal is open) ───────────────
+    var CLOSE_MAP = {
+        'auth':       'closeAuthModal',
+        'account':    'closeDash',
+        'wallet':     'closeWalletModal',
+        'topup':      'closeTopUpModal',
+        'plans':      'closePlansPickerModal',
+        'upgrade':    'closeUpgradeModal',
+        'dashboard':  'closeDashboardModal',
+        'messages':   'closeMessagesModal',
+        'signout':    'cancelSignOut',
+        'referral':   '_closeReferralHash'
+    };
+
+    // ── Read + clear a pending conversation from sessionStorage ──────
+    function consumePendingConv() {
+        try {
+            var raw = sessionStorage.getItem('siterifty_pending_conv');
+            if (!raw) return null;
+            sessionStorage.removeItem('siterifty_pending_conv');
+            return JSON.parse(raw);
+        } catch(e) { return null; }
+    }
+
+    // ── Open messages and, if there's a pending conv, jump to thread ──
+    window._openMessagesHash = function() {
+        var user = window._fbAuth && window._fbAuth.currentUser;
+        if (!user) {
+            // Not signed in — open auth instead; pending conv stays in sessionStorage
+            if (typeof window.openAuthModal === 'function') window.openAuthModal();
+            return;
+        }
+        // Open the messages modal first
+        if (typeof window.openMessagesModal === 'function') window.openMessagesModal();
+
+        // Check for a pending conversation to jump into
+        var pending = consumePendingConv();
+        if (pending && pending.sellerUid && pending.sellerUid !== user.uid) {
+            setTimeout(function() {
+                if (typeof window.startConversation === 'function') {
+                    window.startConversation(pending.sellerUid, pending.prefill || '');
+                } else {
+                    // Fallback: manually open thread
+                    var cid = [user.uid, pending.sellerUid].sort().join('_');
+                    if (typeof window.initMessagesTab === 'function') {
+                        window.initMessagesTab().then(function() {
+                            if (typeof window.openThread === 'function') {
+                                window.openThread(cid, pending.sellerUid);
+                                if (pending.prefill) {
+                                    var inp = document.getElementById('msgInput');
+                                    if (inp) {
+                                        inp.value = pending.prefill;
+                                        if (typeof window.autoResizeMsgInput === 'function') window.autoResizeMsgInput(inp);
+                                    }
+                                }
+                            }
+                        });
+                    }
+                }
+            }, 350);
+        }
+    };
+
+    // ── After sign-in, check if we should resume a pending conv ──────
+    // Fires when Firebase auth state resolves on the index page
+    function checkPostAuthPendingConv() {
+        try {
+            var raw = sessionStorage.getItem('siterifty_pending_conv');
+            if (!raw) return;
+            var pending = JSON.parse(raw);
+            if (!pending || !pending.sellerUid) return;
+            var user = window._fbAuth && window._fbAuth.currentUser;
+            if (!user || user.uid === pending.sellerUid) return;
+            // Consume and open
+            sessionStorage.removeItem('siterifty_pending_conv');
+            setTimeout(function() {
+                if (typeof window.startConversation === 'function') {
+                    window.startConversation(pending.sellerUid, pending.prefill || '');
+                }
+            }, 500);
+        } catch(e) {}
+    }
+    // Hook into Firebase auth state change (wait for _fbAuth to be ready)
+    var _authHookSet = false;
+    function tryHookAuth() {
+        if (_authHookSet) return;
+        if (!window._fbAuth) { setTimeout(tryHookAuth, 200); return; }
+        _authHookSet = true;
+        try {
+            // Use the already-imported onAuthStateChanged if available
+            if (window._fbAuth.onAuthStateChanged) {
+                window._fbAuth.onAuthStateChanged(window._fbAuth, function(user) {
+                    if (user) checkPostAuthPendingConv();
+                });
+            }
+        } catch(e) {}
+    }
+    setTimeout(tryHookAuth, 400);
+
+    // ── Helpers for modals that don't have a single global opener ─────
+    window._openDashHash = function() {
+        if (window._fbAuth && window._fbAuth.currentUser) {
+            var dm = document.getElementById('dashModal');
+            if (dm && dm.style.display !== 'block') {
+                if (typeof window.openAuthModal === 'function') window.openAuthModal();
+            }
+        } else {
+            if (typeof window.openAuthModal === 'function') window.openAuthModal();
+        }
+    };
+
+    window._openUpgradeHash = function() {
+        if (typeof window.openPlansPickerModal === 'function') window.openPlansPickerModal();
+    };
+
+    window._openSignOutHash = function() {
+        var modal = document.getElementById('signOutConfirmModal');
+        if (modal) {
+            modal.style.display = 'flex';
+            if (typeof window.lockBodyScroll === 'function') window.lockBodyScroll();
+        }
+    };
+
+    window._openReferralHash = function() {
+        var modal = document.getElementById('referralWelcomeModal');
+        if (modal) {
+            modal.style.display = 'flex';
+            if (typeof window.lockBodyScroll === 'function') window.lockBodyScroll();
+        }
+    };
+
+    window._closeReferralHash = function() {
+        var modal = document.getElementById('referralWelcomeModal');
+        if (modal) modal.style.display = 'none';
+        if (typeof window.unlockBodyScroll === 'function') window.unlockBodyScroll();
+    };
+
+    // ── Push hash when a modal opens ─────────────────────────────────
+    function pushHash(hash) {
+        if (window.location.hash !== '#' + hash) {
+            history.pushState({ siteriftyModal: hash }, '', '#' + hash);
+        }
+    }
+
+    function clearHash() {
+        if (window.location.hash) {
+            history.pushState({ siteriftyModal: null }, '', window.location.pathname + window.location.search);
+        }
+    }
+
+    // Wrap every opener to push its hash, and every closer to clear it.
+    function patchFunctions() {
+        Object.keys(HASH_MAP).forEach(function(hash) {
+            var openerName = HASH_MAP[hash];
+            var closerName = CLOSE_MAP[hash];
+
+            // Patch opener
+            var origOpen = window[openerName];
+            if (typeof origOpen === 'function') {
+                window[openerName] = function() {
+                    pushHash(hash);
+                    origOpen.apply(this, arguments);
+                };
+            }
+
+            // Patch closer
+            if (closerName) {
+                var origClose = window[closerName];
+                if (typeof origClose === 'function') {
+                    window[closerName] = function() {
+                        clearHash();
+                        origClose.apply(this, arguments);
+                    };
+                }
+            }
+        });
+    }
+
+    // ── Handle popstate (back button closes the modal) ────────────────
+    window.addEventListener('popstate', function(e) {
+        var prevHash = e.state && e.state.siteriftyModal;
+        if (prevHash && CLOSE_MAP[prevHash]) {
+            var closerName = CLOSE_MAP[prevHash];
+            var fn = window[closerName];
+            if (typeof fn === 'function') fn();
+        }
+        var curHash = window.location.hash.replace('#', '');
+        if (curHash && HASH_MAP[curHash]) {
+            var openerName = HASH_MAP[curHash];
+            var openFn = window[openerName];
+            if (typeof openFn === 'function') {
+                var _origPush = history.pushState;
+                history.pushState = function() {};
+                openFn();
+                history.pushState = _origPush;
+            }
+        }
+    });
+
+    // ── On load, open modal if hash is already in the URL ─────────────
+    function openFromHash() {
+        var hash = window.location.hash.replace('#', '');
+        if (!hash || !HASH_MAP[hash]) return;
+        var openerName = HASH_MAP[hash];
+        var fn = window[openerName];
+        if (typeof fn === 'function') {
+            history.replaceState({ siteriftyModal: hash }, '', '#' + hash);
+            fn();
+        }
+    }
+
+    // ── Boot ─────────────────────────────────────────────────────────
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            patchFunctions();
+            setTimeout(openFromHash, 600);
+        });
+    } else {
+        patchFunctions();
+        setTimeout(openFromHash, 600);
+    }
+})();
+</script>
+
 </body>
 </html>
