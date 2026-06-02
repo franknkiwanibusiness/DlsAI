@@ -98,11 +98,33 @@ html,body { height:100%; overflow:hidden; background:var(--bg); }
     border:1.5px solid rgba(255,255,255,0.1);
     display:flex; align-items:center; justify-content:center;
     font-family:'Syne',sans-serif; font-size:13px; font-weight:700; color:#fff;
-    cursor:pointer; overflow:hidden; flex-shrink:0;
-    transition:opacity .15s,transform .15s;
+    overflow:hidden; flex-shrink:0;
+    pointer-events:none;
 }
-.header-avatar:hover { opacity:.8; transform:scale(1.05); }
 .header-avatar img { width:100%; height:100%; object-fit:cover; display:block; border-radius:999px; }
+.header-back-btn {
+    display:flex; align-items:center; gap:5px;
+    background:var(--surface2); border:1px solid var(--border);
+    border-radius:999px; padding:6px 12px 6px 9px;
+    color:var(--text2); font-size:12px; font-weight:600;
+    cursor:pointer; transition:background .15s, color .15s, border-color .15s;
+    font-family:'DM Sans',sans-serif;
+}
+.header-back-btn:hover { background:var(--surface3); color:var(--text); border-color:var(--border-h); }
+
+/* Message bubble row with avatar */
+.bubble-row {
+    display:flex; align-items:flex-end; gap:7px;
+}
+.bubble-row.mine { flex-direction:row-reverse; }
+.msg-avatar {
+    width:26px; height:26px; border-radius:999px;
+    flex-shrink:0; overflow:hidden;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Syne',sans-serif; font-weight:700; font-size:10px; color:#fff;
+    margin-bottom:2px;
+}
+.msg-avatar img { width:100%; height:100%; object-fit:cover; border-radius:999px; }
 
 /* ── MAIN BODY ─────────────────────────────────────── */
 .main {
@@ -590,9 +612,14 @@ html,body { height:100%; overflow:hidden; background:var(--bg); }
 
     <!-- Top header -->
     <div class="top-header">
-        <a href="/" class="header-wordmark">Site<span>rifty</span></a>
+        <button class="header-back-btn" onclick="history.back()" aria-label="Go back">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M9 2L4 7l5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Back
+        </button>
         <div class="header-title">Messages</div>
-        <div class="header-avatar" id="myAvatar" onclick="location.href='/?account=open'"></div>
+        <div class="header-avatar" id="myAvatar"></div>
     </div>
 
     <!-- Main content -->
@@ -1083,15 +1110,24 @@ function renderMessages(snap) {
             if (groupOpen) { html += '</div>'; groupOpen = false; }
             html += `<div class="bubble-group ${side}">`;
             groupOpen = true;
-            // Show sender name for theirs (not mine)
-            if (!mine) {
-                const senderName = _activeOtherData.username || _activeOtherData.displayName || m.name || 'User';
-                html += `<div class="bubble-sender">@${escHtml(senderName)}</div>`;
-            }
             lastSender = m.uid;
         }
 
-        html += `<div class="bubble ${side}">${escHtml(m.text||'')}</div>`;
+        // Build avatar HTML (only on last bubble in group)
+        const avatarHtml = (() => {
+            if (!isLastInGroup) return `<div class="msg-avatar" style="visibility:hidden;"></div>`;
+            const userData = mine ? _myData : _activeOtherData;
+            const uid      = mine ? _me.uid : (_activeOtherUid || '');
+            const name     = (userData && (userData.username || userData.displayName || userData.email)) || '?';
+            const photo    = userData && userData.photoURL;
+            if (photo) {
+                return `<div class="msg-avatar"><img src="${photo}" alt="${escHtml(name.charAt(0))}" onerror="this.style.display='none';this.parentElement.textContent='${name.charAt(0).toUpperCase()}';"></div>`;
+            }
+            const [c1,c2] = gradFor(uid);
+            return `<div class="msg-avatar" style="background:linear-gradient(135deg,${c1},${c2});">${name.charAt(0).toUpperCase()}</div>`;
+        })();
+
+        html += `<div class="bubble-row ${side}">${avatarHtml}<div class="bubble ${side}">${escHtml(m.text||'')}</div></div>`;
         if (isLastInGroup) {
             html += `<div class="bubble-meta ${side}">${formatTime(ts)}</div>`;
         }
