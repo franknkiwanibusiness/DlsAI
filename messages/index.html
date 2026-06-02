@@ -398,6 +398,47 @@ html,body { height:100%; overflow:hidden; background:var(--bg); }
 .send-btn:hover { opacity:.88; }
 .send-btn:active { transform:scale(.93); }
 .send-btn:disabled { opacity:.4; cursor:not-allowed; transform:none; }
+.img-btn {
+    width:30px; height:30px; border-radius:999px; flex-shrink:0;
+    background:transparent; border:none; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    color:var(--muted); transition:color .15s;
+    padding:0; margin-bottom:3px;
+}
+.img-btn:hover { color:var(--accent); }
+.img-preview-bar {
+    display:none; flex-wrap:wrap; gap:8px;
+    padding:8px 16px 0;
+}
+.img-preview-bar.has-imgs { display:flex; }
+.img-thumb-wrap {
+    position:relative; width:64px; height:64px;
+    border-radius:10px; overflow:hidden;
+    border:1px solid var(--border);
+}
+.img-thumb-wrap img { width:100%; height:100%; object-fit:cover; }
+.img-thumb-remove {
+    position:absolute; top:2px; right:2px;
+    width:18px; height:18px; border-radius:999px;
+    background:rgba(0,0,0,.7); border:none; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    color:#fff; font-size:11px; line-height:1;
+}
+.bubble-img {
+    max-width:220px; border-radius:12px; display:block;
+    cursor:pointer; margin-top:2px;
+    transition:opacity .15s;
+}
+.bubble-img:hover { opacity:.88; }
+#imgLightbox {
+    display:none; position:fixed; inset:0; z-index:200;
+    background:rgba(0,0,0,.88); backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+    align-items:center; justify-content:center;
+    cursor:zoom-out;
+}
+#imgLightbox.open { display:flex; animation:fadeIn .15s ease; }
+#imgLightbox img { max-width:92vw; max-height:88vh; border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,.6); }
 
 /* ── EMPTY CHAT ────────────────────────────────────── */
 .chat-empty {
@@ -703,12 +744,21 @@ html,body { height:100%; overflow:hidden; background:var(--bg); }
                 </div>
 
                 <!-- Input bar -->
+                <div class="img-preview-bar" id="imgPreviewBar"></div>
                 <div class="input-bar">
+                    <input type="file" id="imgFileInput" accept="image/*" multiple style="display:none;" onchange="handleImgFiles(this.files)">
                     <div class="input-wrap">
+                        <button class="img-btn" onclick="$('imgFileInput').click()" title="Send image" type="button">
+                            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                                <rect x="1.5" y="3.5" width="15" height="11" rx="2" stroke="currentColor" stroke-width="1.4"/>
+                                <circle cx="6" cy="7.5" r="1.2" fill="currentColor"/>
+                                <path d="M1.5 12l4-4 3 3 2.5-2.5L16 13" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
                         <textarea
                             class="msg-input" id="msgInput"
                             placeholder="Message…" rows="1"
-                            oninput="autoResize(this); onTyping()"
+                            oninput="autoResize(this); updateSendBtn()"
                             onkeydown="handleInputKey(event)">
                         </textarea>
                     </div>
@@ -727,6 +777,11 @@ html,body { height:100%; overflow:hidden; background:var(--bg); }
 
 <!-- Toast -->
 <div id="toast"></div>
+
+<!-- Image lightbox -->
+<div id="imgLightbox" onclick="this.classList.remove('open')">
+    <img id="imgLightboxImg" src="" alt="">
+</div>
 
 <script type="module">
 import {
@@ -755,6 +810,34 @@ const app  = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 const db   = getDatabase(app);
 const auth = getAuth(app);
 
+const IMGUR_CLIENT_ID = "891e5bb4aa94282";
+
+// ── Upload image to Imgur, returns CDN URL ─────────────
+async function uploadToImgur(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = async () => {
+            try {
+                // Send raw base64 (no data: prefix) — Imgur accepts this
+                const b64 = reader.result.split(',')[1];
+                const res  = await fetch('https://api.imgur.com/3/image', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Client-ID ' + IMGUR_CLIENT_ID,
+                        'Content-Type':  'application/json'
+                    },
+                    body: JSON.stringify({ image: b64, type: 'base64' })
+                });
+                const json = await res.json();
+                if (json.success) resolve(json.data.link);
+                else reject(new Error(json.data?.error || 'Imgur upload failed'));
+            } catch(e) { reject(e); }
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
 // ── State ────────────────────────────────────────────
 let _me            = null;   // Firebase user
 let _myData        = {};     // users/{uid} data
@@ -766,6 +849,7 @@ let _inboxUnsub    = null;
 let _threadUnsub   = null;
 let _typingTimer   = null;
 let _convMetaUnsubs= {};     // convId → unsub fn
+let _pendingImgs   = [];     // { file, dataUrl } awaiting send
 
 // ── Helpers ──────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -983,6 +1067,8 @@ window.filterConvs = function(val) { renderInbox(val); };
 async function openThread(cid, otherUid, listingId, listingTitle) {
     _activeConvId    = cid;
     _activeOtherUid  = otherUid;
+    _pendingImgs     = [];
+    renderImgPreviews();
 
     // Fetch other user's profile
     _activeOtherData = {};
@@ -1047,6 +1133,8 @@ window.openThread = openThread;
 window.closeThread = function() {
     if (_threadUnsub) { _threadUnsub(); _threadUnsub = null; }
     _activeConvId = null; _activeOtherUid = null;
+    _pendingImgs = [];
+    renderImgPreviews();
     $('threadView').style.display = 'none';
     $('noChatSelected').style.display = 'flex';
     $('chatPanel').classList.remove('visible-mobile');
@@ -1127,7 +1215,15 @@ function renderMessages(snap) {
             return `<div class="msg-avatar" style="background:linear-gradient(135deg,${c1},${c2});">${name.charAt(0).toUpperCase()}</div>`;
         })();
 
-        html += `<div class="bubble-row ${side}">${avatarHtml}<div class="bubble ${side}">${escHtml(m.text||'')}</div></div>`;
+        let bubbleContent = '';
+        if (m.imageUrl) {
+            bubbleContent = `<img src="${m.imageUrl}" class="bubble-img" alt="Image" onclick="openLightbox('${m.imageUrl}')" loading="lazy">`;
+        } else {
+            bubbleContent = escHtml(m.text || '');
+        }
+        // Image bubbles get transparent background
+        const bubbleStyle = m.imageUrl ? ' style="background:none;border:none;padding:2px;"' : '';
+        html += `<div class="bubble-row ${side}">${avatarHtml}<div class="bubble ${side}"${bubbleStyle}>${bubbleContent}</div></div>`;
         if (isLastInGroup) {
             html += `<div class="bubble-meta ${side}">${formatTime(ts)}</div>`;
         }
@@ -1144,62 +1240,133 @@ function renderMessages(snap) {
 window.sendMessage = async function() {
     const inp  = $('msgInput');
     const btn  = $('sendBtn');
-    const text = inp ? inp.value.trim() : '';
-    if (!text || !_activeConvId || !_me) return;
+    const text = (inp ? inp.value.trim() : '');
+    const hasImgs = _pendingImgs.length > 0;
+    if (!text && !hasImgs) return;
+    if (!_activeConvId || !_me) { showToast('No conversation selected'); return; }
+
+    // Snapshot images and clear state before async work
+    const imgFiles = _pendingImgs.slice();
+    _pendingImgs = [];
+    renderImgPreviews();
 
     btn.disabled = true;
-    inp.value = '';
-    autoResize(inp);
-    inp.focus();
+    if (inp) { inp.value = ''; autoResize(inp); }
 
-    const ts    = Date.now();
-    const msgId = ts + '_' + Math.random().toString(36).slice(2,7);
-    const cid   = _activeConvId;
-
+    const cid     = _activeConvId;
+    const otherUid = _activeOtherUid;
     const myName  = _myData.username || _myData.displayName || _me.email?.split('@')[0] || 'User';
     const myPhoto = _myData.photoURL || _me.photoURL || null;
 
     try {
-        // Write message node
-        await set(ref(db, 'chats/' + cid + '/messages/' + msgId), {
-            uid:  _me.uid,
-            text: text,
-            ts:   ts,
-            name: myName
-        });
+        // Upload images to Imgur — only the CDN URL is stored in DB
+        const imageUrls = [];
+        for (const {file} of imgFiles) {
+            showToast('Uploading image…', 999999);
+            const url = await uploadToImgur(file);
+            imageUrls.push(url);
+        }
+        if (imageUrls.length) $('toast').classList.remove('show');
 
-        // Update conv meta
-        const otherUnread = ((_convs[cid] || {})['unread_' + _activeOtherUid] || 0) + 1;
+        // Build messages (one per image + one text if any)
+        const ts = Date.now();
+        const sends = [];
+        if (imageUrls.length) {
+            imageUrls.forEach((url, i) => {
+                const msgId = (ts + i) + '_' + Math.random().toString(36).slice(2,7);
+                sends.push(set(ref(db, 'chats/' + cid + '/messages/' + msgId), {
+                    uid: _me.uid, imageUrl: url, ts: ts + i, name: myName
+                }));
+            });
+        }
+        if (text) {
+            const msgId = (ts + imageUrls.length) + '_' + Math.random().toString(36).slice(2,7);
+            sends.push(set(ref(db, 'chats/' + cid + '/messages/' + msgId), {
+                uid: _me.uid, text: text, ts: ts + imageUrls.length, name: myName
+            }));
+        }
+        await Promise.all(sends);
+
+        // Update conv meta — store tiny Imgur URL, not base64
+        const lastText = text || (imageUrls.length ? '📷 Image' : '');
+        const otherUnread = ((_convs[cid] || {})['unread_' + otherUid] || 0) + 1;
         const patch = {
-            lastText:                  text,
-            lastTs:                    ts,
-            lastSender:                _me.uid,
-            members:                   { [_me.uid]: true, [_activeOtherUid]: true },
-            ['name_'  + _me.uid]:      myName,
-            ['photo_' + _me.uid]:      myPhoto,
-            ['unread_' + _activeOtherUid]: otherUnread
+            lastText,
+            lastTs:   ts,
+            lastSender: _me.uid,
+            members:  { [_me.uid]: true, [otherUid]: true },
+            ['name_'  + _me.uid]:  myName,
+            ['photo_' + _me.uid]:  myPhoto,
+            ['unread_' + otherUid]: otherUnread
         };
         await update(ref(db, 'chats/' + cid + '/meta'), patch);
-
-        // Ensure both users have this conv in their index
-        await set(ref(db, 'userChats/' + _me.uid           + '/' + cid), true);
-        await set(ref(db, 'userChats/' + _activeOtherUid   + '/' + cid), true);
+        await set(ref(db, 'userChats/' + _me.uid   + '/' + cid), true);
+        await set(ref(db, 'userChats/' + otherUid  + '/' + cid), true);
 
     } catch(e) {
         console.error('[sendMessage]', e);
-        showToast('Failed to send — try again');
-        if (inp) inp.value = text;
+        showToast('Failed to send — ' + (e.message || 'try again'));
+        // Restore text if failed
+        if (text && inp) inp.value = text;
     } finally {
         btn.disabled = false;
+        updateSendBtn();
+        if (inp) inp.focus();
     }
+};
+
+// ── Image handling ─────────────────────────────────────
+window.handleImgFiles = function(files) {
+    Array.from(files).forEach(file => {
+        if (!file.type.startsWith('image/')) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+            _pendingImgs.push({ file, dataUrl: e.target.result });
+            renderImgPreviews();
+            updateSendBtn();
+        };
+        reader.readAsDataURL(file);
+    });
+    // reset input so same file can be re-selected
+    $('imgFileInput').value = '';
+};
+
+function renderImgPreviews() {
+    const bar = $('imgPreviewBar');
+    if (!bar) return;
+    bar.innerHTML = '';
+    if (!_pendingImgs.length) { bar.classList.remove('has-imgs'); return; }
+    bar.classList.add('has-imgs');
+    _pendingImgs.forEach((item, idx) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'img-thumb-wrap';
+        wrap.innerHTML = `<img src="${item.dataUrl}" alt=""><button class="img-thumb-remove" onclick="removePendingImg(${idx})">✕</button>`;
+        bar.appendChild(wrap);
+    });
+}
+
+window.removePendingImg = function(idx) {
+    _pendingImgs.splice(idx, 1);
+    renderImgPreviews();
+    updateSendBtn();
+};
+
+window.openLightbox = function(url) {
+    $('imgLightboxImg').src = url;
+    $('imgLightbox').classList.add('open');
 };
 
 // ── Input helpers ──────────────────────────────────────
 window.autoResize = function(el) {
     el.style.height = 'auto';
     el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+};
+
+window.updateSendBtn = function() {
     const btn = $('sendBtn');
-    if (btn) btn.disabled = !el.value.trim();
+    if (!btn) return;
+    const hasText = !!($('msgInput') && $('msgInput').value.trim());
+    btn.disabled = !hasText && _pendingImgs.length === 0;
 };
 
 window.handleInputKey = function(e) {
@@ -1211,8 +1378,7 @@ window.handleInputKey = function(e) {
 
 // Typing indicator (just visual, no persistence for simplicity)
 window.onTyping = function() {
-    const btn = $('sendBtn');
-    if (btn) btn.disabled = !$('msgInput').value.trim();
+    updateSendBtn();
 };
 
 // ── Auth functions ─────────────────────────────────────
