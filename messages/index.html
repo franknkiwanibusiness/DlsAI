@@ -232,6 +232,63 @@ html,body { height:100%; overflow:hidden; background:var(--bg); }
     padding:0 5px; flex-shrink:0;
 }
 
+/* ── ADMIN PINNED ROW ──────────────────────────────── */
+.admin-pin-row {
+    display:flex; align-items:center; gap:12px;
+    padding:10px 16px 10px;
+    cursor:pointer;
+    border-left:2px solid #f5c842;
+    background:rgba(245,200,66,.04);
+    position:relative;
+    transition:background .12s;
+    flex-shrink:0;
+}
+.admin-pin-row:hover { background:rgba(245,200,66,.08); }
+.admin-pin-row::after {
+    content:'PINNED';
+    position:absolute; top:5px; right:12px;
+    font-size:8px; font-weight:700; letter-spacing:.08em;
+    color:rgba(245,200,66,.5);
+}
+.admin-avatar-wrap {
+    position:relative; flex-shrink:0;
+    width:44px; height:44px;
+}
+.admin-avatar {
+    width:44px; height:44px; border-radius:999px;
+    background:linear-gradient(135deg,#f5c842,#f97316);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Syne',sans-serif; font-weight:800; font-size:16px; color:#111;
+    border:2px solid rgba(245,200,66,.4);
+}
+.admin-verified-dot {
+    position:absolute; bottom:0px; right:-1px;
+    width:16px; height:16px; border-radius:999px;
+    background:#f5c842; border:2px solid var(--bg);
+    display:flex; align-items:center; justify-content:center;
+}
+.admin-name-row {
+    display:flex; align-items:center; gap:5px; margin-bottom:3px; flex-wrap:wrap;
+}
+.admin-name {
+    font-family:'Syne',sans-serif; font-size:.8rem; font-weight:700; color:var(--text);
+}
+.badge-verified {
+    display:inline-flex; align-items:center; gap:2px;
+    background:rgba(245,200,66,.15); border:1px solid rgba(245,200,66,.35);
+    border-radius:999px; padding:1px 6px;
+    font-size:9px; font-weight:700; color:#f5c842; white-space:nowrap;
+}
+.badge-admin {
+    display:inline-flex; align-items:center; gap:2px;
+    background:rgba(155,93,229,.15); border:1px solid rgba(155,93,229,.35);
+    border-radius:999px; padding:1px 6px;
+    font-size:9px; font-weight:700; color:var(--accent); white-space:nowrap;
+}
+.admin-sep {
+    height:1px; background:var(--border); margin:0;
+}
+
 /* ── EMPTY SIDEBAR ─────────────────────────────────── */
 .sidebar-empty {
     flex:1; display:flex; flex-direction:column;
@@ -1002,6 +1059,40 @@ function renderInbox(filter) {
 
     list.innerHTML = '';
 
+    // ── Always-pinned Admin row ──
+    if (!(filter || '').trim()) {
+        const adminRow = document.createElement('div');
+        adminRow.className = 'admin-pin-row';
+        adminRow.onclick = () => openAdminThread();
+        adminRow.innerHTML = `
+            <div class="admin-avatar-wrap">
+                <div class="admin-avatar">S</div>
+                <div class="admin-verified-dot">
+                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                        <path d="M1.5 4l1.8 1.8L6.5 2" stroke="#111" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="conv-body">
+                <div class="admin-name-row">
+                    <span class="admin-name">Siterifty</span>
+                    <span class="badge-verified">
+                        <svg width="7" height="7" viewBox="0 0 8 8" fill="none">
+                            <path d="M1.5 4l1.8 1.8L6.5 2" stroke="#f5c842" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Verified
+                    </span>
+                    <span class="badge-admin">Admin</span>
+                </div>
+                <div class="conv-preview">Official support &amp; announcements</div>
+            </div>
+        `;
+        list.appendChild(adminRow);
+        const sep = document.createElement('div');
+        sep.className = 'admin-sep';
+        list.appendChild(sep);
+    }
+
     const entries = Object.entries(_convs);
     if (!entries.length) {
         list.innerHTML = `
@@ -1062,6 +1153,52 @@ function renderInbox(filter) {
 }
 
 window.filterConvs = function(val) { renderInbox(val); };
+
+// ── Admin thread ──────────────────────────────────────
+const ADMIN_UID = 'siterifty_admin';
+window.openAdminThread = function() {
+    if (!_me) return;
+    const cid = 'admin_' + _me.uid;
+    _activeConvId   = cid;
+    _activeOtherUid = ADMIN_UID;
+    _activeOtherData = {
+        username: 'Siterifty',
+        displayName: 'Siterifty',
+        isAdmin: true
+    };
+
+    // Header
+    const av = $('threadAvatar');
+    av.style.width = '38px'; av.style.height = '38px'; av.style.borderRadius = '999px';
+    av.style.background = 'linear-gradient(135deg,#f5c842,#f97316)';
+    av.style.display = 'flex'; av.style.alignItems = 'center'; av.style.justifyContent = 'center';
+    av.style.fontFamily = "'Syne',sans-serif"; av.style.fontWeight = '800';
+    av.style.fontSize = '15px'; av.style.color = '#111'; av.style.flexShrink = '0';
+    av.style.overflow = 'hidden';
+    av.innerHTML = 'S';
+
+    $('threadName').innerHTML = `Siterifty <span style="display:inline-flex;align-items:center;gap:3px;background:rgba(245,200,66,.15);border:1px solid rgba(245,200,66,.35);border-radius:999px;padding:1px 6px;font-size:9px;font-weight:700;color:#f5c842;vertical-align:middle;">
+        <svg width="7" height="7" viewBox="0 0 8 8" fill="none"><path d="M1.5 4l1.8 1.8L6.5 2" stroke="#f5c842" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Verified</span>
+        <span style="display:inline-flex;align-items:center;background:rgba(155,93,229,.15);border:1px solid rgba(155,93,229,.35);border-radius:999px;padding:1px 6px;font-size:9px;font-weight:700;color:var(--accent);vertical-align:middle;margin-left:3px;">Admin</span>`;
+    $('threadSub').textContent = 'Official support & announcements';
+    $('threadListingLink').style.display = 'none';
+
+    $('noChatSelected').style.display = 'none';
+    $('threadView').style.display = 'flex';
+    $('chatPanel').classList.add('visible-mobile');
+    $('sidebar').classList.add('hidden-mobile');
+
+    document.querySelectorAll('.conv-row').forEach(r => r.classList.remove('active'));
+
+    if (_threadUnsub) _threadUnsub();
+    _threadUnsub = onValue(ref(db, 'chats/' + cid + '/messages'), snap => {
+        renderMessages(snap);
+    });
+
+    history.pushState({ cid, otherUid: ADMIN_UID }, '', '?with=' + ADMIN_UID);
+    setTimeout(() => { const inp = $('msgInput'); if (inp) inp.focus(); }, 150);
+};
 
 // ── Open thread ───────────────────────────────────────
 async function openThread(cid, otherUid, listingId, listingTitle) {
