@@ -953,11 +953,11 @@
         <span class="wordmark">Siterifty<span>.com</span></span>
     </a>
     <div class="header-right">
-        <a href="/browse-listings" class="back-btn">
+        <a href="/browse" class="back-btn">
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M7.5 2L3.5 6l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
             Browse
         </a>
-        <div class="avatar" id="avatarBtn" onclick="if(window._fbAuth&&window._fbAuth.currentUser){location.href = window.location.origin + '/?account=open';}else{location.href = window.location.origin + '/?auth=login';}" title="Account">
+        <div class="avatar" id="avatarBtn" onclick="if(window._fbAuth&&window._fbAuth.currentUser){location.href = window.location.origin + '/?account=open';}else{location.href = window.location.origin + '/#auth';}" title="Account">
             <svg id="avatarGuestIcon" width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="6" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M2 13c0-3 2.686-5 6-5s6 2 6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
         </div>
     </div>
@@ -1033,7 +1033,7 @@
 
     <!-- Breadcrumb -->
     <div class="breadcrumb">
-        <a href="/browse-listings" class="back-btn" style="padding:4px 10px;font-size:10px;">← Browse</a>
+        <a href="/browse" class="back-btn" style="padding:4px 10px;font-size:10px;">← Browse</a>
         <span class="breadcrumb-sep">/</span>
         <span class="breadcrumb-current" id="breadTitle">…</span>
     </div>
@@ -1238,7 +1238,7 @@
     </div>
     <h2>Listing not found</h2>
     <p id="notFoundMsg">This listing doesn't exist or may have been removed.</p>
-    <a href="/browse-listings" style="display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:999px;background:#fff;color:#111;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;text-decoration:none;transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Browse listings</a>
+    <a href="/browse" style="display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:999px;background:#fff;color:#111;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;text-decoration:none;transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Browse listings</a>
 </div>
 
 <!-- Toast -->
@@ -1450,50 +1450,67 @@ function updateAvatarUI(user){
     const av=$('avatarBtn'),gi=$('avatarGuestIcon');
     if(!user){if(gi)gi.style.display='';return;}
     if(gi)gi.style.display='none';
-    av.textContent='';
+    av.innerHTML='';
     const[c1,c2]=gradFor(user.uid);
     av.style.background=`linear-gradient(135deg,${c1},${c2})`;
     const sp=document.createElement('span');
     sp.textContent=(user.displayName||user.email||'?').charAt(0).toUpperCase();
     av.appendChild(sp);
-    get(ref(db,'users/'+user.uid+'/photoURL')).then(s=>{
-        const url=s&&s.val();
-        if(url&&av){av.innerHTML='';av.style.background='none';const img=document.createElement('img');img.src=url;img.alt='';img.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:999px;display:block;';av.appendChild(img);}
-    }).catch(()=>{});
+    // Use already-loaded _userData.photoURL — no extra round-trip
+    const photoURL=(_userData&&_userData.photoURL)||user.photoURL||null;
+    if(photoURL&&av){
+        av.innerHTML=''; av.style.background='none';
+        const img=document.createElement('img');
+        img.src=photoURL; img.alt='';
+        img.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:999px;display:block;';
+        img.onerror=()=>{
+            av.innerHTML='';
+            const[c1,c2]=gradFor(user.uid);
+            av.style.background=`linear-gradient(135deg,${c1},${c2})`;
+            av.textContent=(user.displayName||user.email||'?').charAt(0).toUpperCase();
+        };
+        av.appendChild(img);
+    }
 }
 
 // ── Load listing ──
 async function loadListing(user){
     try {
-        const[snap,userSnap]=await Promise.all([
-            get(ref(db,'websites/'+listingId)),
-            get(ref(db,'users/'+user.uid))
+        // Step 1: load listing + current viewer's user data in parallel
+        const [snap, userSnap] = await Promise.all([
+            get(ref(db, 'websites/' + listingId)),
+            get(ref(db, 'users/' + user.uid))
         ]);
-        if(!snap.exists()){showNotFound();return;}
-        _listingData={...snap.val(),listingId};
-        _userData=userSnap.val()||{};
+        if (!snap.exists()) { showNotFound(); return; }
+        _listingData = { ...snap.val(), listingId };
+        _userData    = userSnap.val() || {};
 
-        const d=_listingData;
-        if((d.status||'').toLowerCase()!=='live'){showNotFound();return;}
+        const d = _listingData;
+        const sellerUid = d.uid || '';
+        const isOwner   = sellerUid && user.uid === sellerUid;
+        // Non-live listings are visible only to the owner (so they can preview pending/rejected)
+        if ((d.status || '').toLowerCase() !== 'live' && !isOwner) { showNotFound(); return; }
 
-        const sellerUid=d.uid||'';
-        if(sellerUid){
-            const sSnap=await get(ref(db,'users/'+sellerUid));
-            _sellerData=sSnap.val()||{};
-        }
+        // Step 2: load seller profile + reveal status in parallel
+        const fetchSeller  = sellerUid
+            ? get(ref(db, 'users/' + sellerUid))
+            : Promise.resolve(null);
+        const fetchRevealed = (!isOwner && sellerUid)
+            ? get(ref(db, 'websites/' + listingId + '/reveals/' + user.uid))
+            : Promise.resolve(null);
 
-        let hasRevealed=false;
-        if(sellerUid&&user.uid!==sellerUid){
-            const revSnap=await get(ref(db,`websites/${listingId}/reveals/${user.uid}`));
-            hasRevealed=revSnap.exists();
-        }
+        const [sSnap, revSnap] = await Promise.all([fetchSeller, fetchRevealed]);
+        _sellerData = sSnap ? (sSnap.val() || {}) : {};
+        const hasRevealed = revSnap ? revSnap.exists() : false;
 
-        renderListing(d,user,hasRevealed);
+        // Refresh header avatar now _userData is loaded
+        updateAvatarUI(user);
+        renderListing(d, user, hasRevealed);
         $('skelScreen').classList.add('hidden');
-        $('pageWrap').style.display='';
+        $('pageWrap').style.display = '';
         $('notFound').classList.remove('show');
-    } catch(e){
-        console.error('[listing]',e);
+    } catch(e) {
+        console.error('[listing]', e);
         showNotFound();
     }
 }
@@ -1672,21 +1689,28 @@ function renderOwnershipProof(d){
 // ── Load seller stats from user node ──
 function loadSellerStats(uid){
     if(!uid) return;
-    get(ref(db,'users/'+uid)).then(snap=>{
-        if(!snap.exists()) return;
-        const data=snap.val();
-        const listings=data.listings?Object.values(data.listings):[];
-        const sold=listings.filter(l=>l.status==='sold').length;
-        const total=listings.length;
-        const joinDate=data.createdAt?new Date(data.createdAt).toLocaleDateString('en-US',{year:'numeric',month:'short'}):'—';
-        const sr=$('sellerStatsRow');
-        if(sr){
-            $('sstatListings').textContent=total||'—';
-            $('sstatSold').textContent=sold||'0';
-            $('sstatJoined').textContent=joinDate;
-            sr.style.display='';
-        }
-    }).catch(()=>{});
+    // Use _sellerData already loaded in loadListing — no extra Firebase fetch
+    const data = _sellerData || {};
+    const rawListings = data.listings;
+    // Firebase returns objects {key:{...}}, not arrays — must use Object.values
+    const allListings = rawListings
+        ? (Array.isArray(rawListings) ? rawListings : Object.values(rawListings)).filter(Boolean)
+        : [];
+    // Only count listings that have a status (exclude soft-deleted nulls)
+    const listings = allListings.filter(l => l && l.status);
+    const live   = listings.filter(l => l.status === 'live' || l.status === 'active').length;
+    const sold   = listings.filter(l => l.status === 'sold').length;
+    const total  = listings.length;
+    const joinDate = data.createdAt
+        ? new Date(data.createdAt).toLocaleDateString('en-US', {year:'numeric',month:'short'})
+        : '—';
+    const sr = $('sellerStatsRow');
+    if(sr){
+        $('sstatListings').textContent = live || total || '0';
+        $('sstatSold').textContent     = sold || '0';
+        $('sstatJoined').textContent   = joinDate;
+        sr.style.display = '';
+    }
 }
 
 // ── Action buttons ──
@@ -1735,7 +1759,7 @@ window.openMessageWithSeller = function(sellerUid, listingId, listingTitle) {
                 listingTitle: listingTitle
             }));
         } catch(e) {}
-        location.href = window.location.origin + '/?auth=login';
+        location.href = window.location.origin + '/?messages=open#auth';
         return;
     }
 
@@ -1879,10 +1903,11 @@ function buildLockCard(isPremium,bal,plan){
 }
 
 function buildRevealedCard(d,sellerData){
-    const email=sellerData.email||d.sellerEmail||'';
-    const phone=sellerData.phone||d.sellerPhone||'';
-    const name=sellerData.displayName||sellerData.username||d.sellerName||d.username||'';
-    const website=sellerData.website||d.sellerWebsite||'';
+    // Priority: live user node → denormalized listing fields saved at submission time
+    const email   = sellerData.email   || d.sellerEmail   || '';
+    const phone   = sellerData.phone   || d.sellerPhone   || '';
+    const name    = sellerData.username || sellerData.displayName || d.sellerName || d.username || '';
+    const website = sellerData.website  || d.sellerWebsite || '';
 
     let rows='';
     if(email) rows+=contactRow('mail','Email',email);
@@ -2033,24 +2058,32 @@ onAuthStateChanged(auth,user=>{
 function renderSeller(d,user,isOwner,hasRevealed){
     const sel=_sellerData||{};
     const uid=d.uid||'';
-    const name=sel.username||d.username||d.sellerName||'—';
-    const plan=(sel.plan||'Free').toLowerCase();
+    // Full fallback chain: live user node → denormalized listing fields
+    const name = sel.username || d.username || d.sellerName || sel.displayName || '—';
+    const plan = (sel.plan || d.sellerPlan || 'Free');
+    const planLower = plan.toLowerCase();
 
+    // Avatar — prefer live photoURL from _sellerData, then denormalized sellerPhoto
     const av=$('sellerAvatar');
-    av.style.background=gradCSS(uid);
-    av.textContent=name.charAt(0).toUpperCase();
-    if(uid){
-        get(ref(db,'users/'+uid+'/photoURL')).then(s=>{
-            const url=s&&s.val();
-            if(url){av.innerHTML='';av.style.background='none';const img=document.createElement('img');img.src=url;img.alt='';av.appendChild(img);}
-        }).catch(()=>{});
+    const sellerPhotoURL = sel.photoURL || d.sellerPhoto || null;
+    if(sellerPhotoURL){
+        av.style.background='none';
+        const img=document.createElement('img');
+        img.src=sellerPhotoURL; img.alt='';
+        img.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:999px;display:block;';
+        img.onerror=()=>{av.innerHTML='';av.style.background=gradCSS(uid);av.textContent=name.charAt(0).toUpperCase();};
+        av.appendChild(img);
+    } else {
+        av.style.background=gradCSS(uid);
+        av.textContent=name.charAt(0).toUpperCase();
     }
     $('sellerName').textContent='@'+name;
 
     const meta=$('sellerMeta');
-    meta.innerHTML=`<span class="seller-plan-badge plan-${plan}">${sel.plan||'Free'}</span>`;
-    if(sel.createdAt){
-        const ms=new Date(sel.createdAt).toLocaleDateString('en-US',{year:'numeric',month:'short'});
+    meta.innerHTML=`<span class="seller-plan-badge plan-${planLower}">${plan}</span>`;
+    const joinTs = sel.createdAt || d.sellerCreatedAt || null;
+    if(joinTs){
+        const ms=new Date(joinTs).toLocaleDateString('en-US',{year:'numeric',month:'short'});
         meta.innerHTML+=`<span>Member since ${ms}</span>`;
     }
 
