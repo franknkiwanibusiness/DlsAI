@@ -2850,9 +2850,16 @@
         countEl.textContent = used + '/' + limit;
         countEl.className = 'quota-count' + (maxed ? ' maxed' : '');
 
-        // Cache for submit check
-        window._sellerBarUsed  = used;
-        window._sellerBarLimit = limit;
+        // Cache for submit check — use non-writable descriptors to resist console tampering.
+        // NOTE: _fbSaveListing re-reads Firebase directly, so even if these are bypassed
+        // the server-side quota check still blocks the write.
+        try {
+            Object.defineProperty(window, '_sellerBarUsed',  { value: used,  writable: false, configurable: true });
+            Object.defineProperty(window, '_sellerBarLimit', { value: limit, writable: false, configurable: true });
+        } catch(_) {
+            window._sellerBarUsed  = used;
+            window._sellerBarLimit = limit;
+        }
     }
 
     function _todayKey() {
@@ -2865,7 +2872,27 @@
         const user = auth.currentUser;
         if (!user) throw new Error('Not signed in');
 
-        const uid          = user.uid;
+        const uid = user.uid;
+
+        // ── SERVER-SIDE QUOTA RE-CHECK ──────────────────────────────────────
+        // Re-read quota from Firebase directly — cannot be bypassed by overriding
+        // window._sellerBarUsed or window._sellerBarLimit in the console.
+        const freshSnap = await get(ref(db, 'users/' + uid));
+        const freshData = freshSnap.val() || {};
+        const freshPlan    = (freshData.plan || 'Free').toLowerCase();
+        const freshLimit   = { free: 1, starter: 5, growth: 15, pro: Infinity }[freshPlan] ?? 1;
+        const todayKey     = _todayKey();
+        const todayStart   = new Date(todayKey).getTime();
+        const todayEnd     = todayStart + 86400000;
+        const allListings  = freshData.listings ? Object.values(freshData.listings) : [];
+        const freshUsed    = allListings.filter(l => {
+            const t = l.createdAt || 0;
+            return t >= todayStart && t < todayEnd;
+        }).length;
+        if (isFinite(freshLimit) && freshUsed >= freshLimit) {
+            throw new Error('Daily listing quota reached for your plan. Upgrade to post more listings.');
+        }
+        // ────────────────────────────────────────────────────────────────────
         const username     = (window._fbUserData && window._fbUserData.username) || '';
         const sellerPhoto  = user.photoURL || (window._fbUserData && window._fbUserData.photoURL) || null;
         const listRef      = push(ref(db, 'users/' + uid + '/listings'));
@@ -3016,7 +3043,11 @@ function unlockScroll() {
 window._sellerBarIncrement = function() {
     const used  = (window._sellerBarUsed  || 0) + 1;
     const limit =  window._sellerBarLimit ?? 1;
-    window._sellerBarUsed = used;
+    try {
+        Object.defineProperty(window, '_sellerBarUsed', { value: used, writable: false, configurable: true });
+    } catch(_) {
+        window._sellerBarUsed = used;
+    }
     // Re-render via the Firebase module's _renderQuota by triggering a fake onValue update
     // Simpler: just update the DOM directly here
     const dotsEl  = document.getElementById('quotaDots');
@@ -4257,9 +4288,10 @@ window._sellerBarIncrement = function() {
 <!-- Footer -->
 <footer class="page-footer">
     <div class="footer-text">
-        © 2025 Siterifty &nbsp;·&nbsp; <a href="https://siterifty.com/terms" target="_blank" rel="noopener">Terms</a> &nbsp;·&nbsp; <a href="https://siterifty.com/privacy" target="_blank" rel="noopener">Privacy</a> &nbsp;·&nbsp; <a href="mailto:support@siterifty.com">Contact</a>
+        © <span id="footerYear"></span> Siterifty &nbsp;·&nbsp; <a href="/browse">Browse</a> &nbsp;·&nbsp; <a href="https://siterifty.com/terms" target="_blank" rel="noopener">Terms</a> &nbsp;·&nbsp; <a href="https://siterifty.com/privacy" target="_blank" rel="noopener">Privacy</a> &nbsp;·&nbsp; <a href="mailto:support@siterifty.com">Contact</a>
     </div>
 </footer>
+<script>document.querySelectorAll("#footerYear").forEach(function(el){el.textContent=new Date().getFullYear();});</script>
 
 <script>
 // ══ PAGE-WIDE SKELETON REVEAL ══
@@ -5563,371 +5595,6 @@ function _fieldErr(inputId, msg) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
     showErr(msg);
-}
-
-// ══ SUBMIT ══
-async function submitListing() {
-    // ── 1. Collect raw values ──
-    const titleRaw    = document.getElementById('siteTitle').value.trim();
-    const urlRaw      = document.getElementById('siteUrl').value.trim();
-    const descRaw     = document.getElementById('siteDesc').value.trim();
-    const priceRaw    = document.getElementById('sitePrice').value.trim();
-    const cat         = document.getElementById('siteCategory').value;
-    const age         = document.getElementById('siteAge').value;
-    const revenueRaw  = document.getElementById('siteRevenue').value.trim();
-    const trafficRaw  = document.getElementById('siteTraffic').value.trim();
-    const expensesRaw = document.getElementById('siteExpenses').value.trim();
-    const reason      = document.getElementById('siteReason').value;
-    const chk1        = document.getElementById('chk1').checked;
-    const chk2        = document.getElementById('chk2').checked;
-    const chk3        = document.getElementById('chk3').checked;
-    const hasProof    = state.proofFiles.code.length > 0 ||
-                        Object.values(state.domainDocs).filter(Boolean).length >= 1 ||
-                        state.proofFiles.hosting;
-    const imgCount    = state.images.filter(Boolean).length;
-
-    // ── 2. Title ──
-    if (!titleRaw)
-        return _fieldErr('siteTitle', 'Please enter a listing title.');
-    if (titleRaw.length < 10)
-        return _fieldErr('siteTitle', 'Title must be at least 10 characters — be specific so buyers can find your listing.');
-    if (titleRaw.length > 80)
-        return _fieldErr('siteTitle', 'Title must be 80 characters or fewer.');
-    if (/^[^a-zA-Z0-9]+$/.test(titleRaw))
-        return _fieldErr('siteTitle', 'Title must contain real words, not just symbols.');
-
-    // ── 3. URL ──
-    if (!urlRaw)
-        return _fieldErr('siteUrl', 'Please enter your website URL.');
-    if (!_isValidUrl(urlRaw))
-        return _fieldErr('siteUrl', 'Please enter a valid URL (e.g. mysite.com or app.mysite.com).');
-    const cleanUrl = _normalizeUrl(urlRaw);
-    // Block localhost / private IPs
-    if (/^(localhost|127\.|192\.168\.|10\.|0\.0\.0\.0)/.test(cleanUrl))
-        return _fieldErr('siteUrl', 'URL must be a publicly accessible website, not a local address.');
-
-    // ── 4. Category ──
-    if (!cat)
-        return _fieldErr('siteCategory', 'Please select a category for your listing.');
-
-    // ── 5. Site Age ──
-    if (!age)
-        return _fieldErr('siteAge', 'Please select the age of your site.');
-
-    // ── 6. Description ──
-    if (!descRaw)
-        return _fieldErr('siteDesc', 'Please add a short description of your site.');
-    if (descRaw.length < 30)
-        return _fieldErr('siteDesc', 'Description is too short — write at least 30 characters to help buyers understand what you\'re selling.');
-    if (descRaw.length > 500)
-        return _fieldErr('siteDesc', 'Description must be 500 characters or fewer.');
-
-    // ── 7. Asking Price ──
-    if (!priceRaw)
-        return _fieldErr('sitePrice', 'Please enter an asking price.');
-    const price = parseFloat(priceRaw);
-    if (isNaN(price) || price < 1)
-        return _fieldErr('sitePrice', 'Asking price must be at least $1.');
-    if (price > 100_000_000)
-        return _fieldErr('sitePrice', 'Asking price seems unrealistically high. Please double-check.');
-    if (!/^\d+(\.\d{1,2})?$/.test(priceRaw))
-        return _fieldErr('sitePrice', 'Price can have at most 2 decimal places (e.g. 499 or 499.99).');
-
-    // ── 8. Optional financials — if entered must be valid ──
-    let revenue = null, traffic = null, expenses = null;
-    if (revenueRaw !== '') {
-        revenue = parseFloat(revenueRaw);
-        if (isNaN(revenue) || revenue < 0)
-            return _fieldErr('siteRevenue', 'Monthly revenue must be 0 or a positive number.');
-        if (revenue > 100_000_000)
-            return _fieldErr('siteRevenue', 'Monthly revenue value seems unrealistically high.');
-    }
-    if (trafficRaw !== '') {
-        traffic = parseInt(trafficRaw, 10);
-        if (isNaN(traffic) || traffic < 0)
-            return _fieldErr('siteTraffic', 'Monthly traffic must be 0 or a positive number.');
-        if (traffic > 1_000_000_000)
-            return _fieldErr('siteTraffic', 'Monthly traffic value seems unrealistically high.');
-    }
-    if (expensesRaw !== '') {
-        expenses = parseFloat(expensesRaw);
-        if (isNaN(expenses) || expenses < 0)
-            return _fieldErr('siteExpenses', 'Monthly expenses must be 0 or a positive number.');
-        if (expenses > 100_000_000)
-            return _fieldErr('siteExpenses', 'Monthly expenses value seems unrealistically high.');
-    }
-
-    // ── 9. Images — all 4 strictly required ──
-    if (imgCount < 4) {
-        const remaining = 4 - imgCount;
-        document.getElementById('formStep2').scrollIntoView({ behavior: 'smooth', block: 'center' });
-        return showErr(`All 4 images are required. You still need ${remaining} more image${remaining > 1 ? 's' : ''} (2 landscape + 2 portrait).`);
-    }
-    const stillUploading = state.imgUploading && Object.values(state.imgUploading).some(Boolean);
-    if (stillUploading)
-        return showErr('Please wait — images are still uploading to Imgur.');
-
-    // ── 10. Ownership proof — strictly required ──
-    const codeFiles    = state.proofFiles.code;
-    const domainDocs   = Object.values(state.domainDocs).filter(Boolean);
-    const hostingDoc   = state.proofFiles.hosting;
-    const hasCodeProof = codeFiles.length > 0;
-    const hasDomainProof  = domainDocs.length >= 2;
-    const hasHostingProof = !!hostingDoc;
-    const hasProofFinal   = hasCodeProof || hasDomainProof || hasHostingProof;
-
-    if (!hasProofFinal) {
-        document.getElementById('formStep3').scrollIntoView({ behavior: 'smooth', block: 'center' });
-        return showErr('Proof of ownership is required. Upload source code files, domain documents, or a hosting dashboard screenshot.');
-    }
-
-    // ── 11. Terms ──
-    if (!chk1 || !chk2 || !chk3)
-        return showErr('Please agree to all three terms before submitting.');
-
-    // ── 12. Quota ──
-    if (typeof window._sellerBarLimit !== 'undefined' &&
-        typeof window._sellerBarUsed  !== 'undefined' &&
-        window._sellerBarUsed >= window._sellerBarLimit) {
-        openListingLimitModal();
-        return;
-    }
-
-    // ── 13. Auth ──
-    if (!window._fbAuth || !window._fbAuth.currentUser)
-        return showErr('Please sign in to submit your listing.');
-
-    // ── All good — sanitize, then proof-based review, then submit ──
-    hideErr();
-
-    const submitBtn = document.querySelector('[onclick="submitListing()"]');
-    if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="animation:spin .7s linear infinite;flex-shrink:0;"><circle cx="7" cy="7" r="5.5" stroke="rgba(255,255,255,0.25)" stroke-width="1.4"/><path d="M7 1.5a5.5 5.5 0 0 1 5.5 5.5" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/></svg> Reviewing…`;
-    }
-
-    const listingPayload = {
-        title:       _sanitize(titleRaw),
-        url:         cleanUrl,
-        description: _sanitize(descRaw),
-        price,
-        category:    cat,
-        age,
-        ...(revenue  !== null && { revenue }),
-        ...(traffic  !== null && { traffic }),
-        ...(expenses !== null && { expenses }),
-        ...(reason   && { reason }),
-        tech: _sanitize(document.getElementById('siteTech')?.value?.trim() || ''),
-        negotiable: document.getElementById('siteNegotiable')?.value || 'no',
-        businessType: document.getElementById('siteBusinessType')?.value || '',
-        tradingName:  document.getElementById('siteTradingName')?.value?.trim() || '',
-        partnerCount: document.getElementById('sitePartnerCount')?.value || '',
-        images: state.images.filter(Boolean),
-        // The verification tab the user selected — saved so admins know which method was chosen
-        proofTab: state.currentProof,
-    };
-
-    // ── PROOF METHOD DETERMINES REVIEW PATH ──
-    // Code files → AI reads uploaded files + fetches live site meta, auto-approves ONLY
-    //              if title/description match both the uploaded code AND the live site.
-    // Domain docs / hosting → ALWAYS pending_admin — zero auto-approve path.
-
-    if (hasCodeProof) {
-        // ── Step A: Read uploaded code files (up to 3, capped at 3000 chars each) ──
-        if (submitBtn) submitBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="animation:spin .7s linear infinite;flex-shrink:0;"><circle cx="7" cy="7" r="5.5" stroke="rgba(255,255,255,0.25)" stroke-width="1.4"/><path d="M7 1.5a5.5 5.5 0 0 1 5.5 5.5" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/></svg> Reading code files…`;
-
-        let codeSnippets = [];
-        const readableExts = ['html','htm','css','js','jsx','ts','tsx','php','py','rb','txt','md'];
-        const filesToRead  = codeFiles.slice(0, 3);
-
-        for (const file of filesToRead) {
-            const ext = file.name.split('.').pop().toLowerCase();
-            if (!readableExts.includes(ext)) continue;
-            try {
-                const text = await new Promise((resolve, reject) => {
-                    const r = new FileReader();
-                    r.onload  = () => resolve(r.result);
-                    r.onerror = () => reject();
-                    r.readAsText(file, 'utf-8');
-                });
-                codeSnippets.push({ filename: file.name, content: text.slice(0, 3000) });
-            } catch (_) { /* skip unreadable file */ }
-        }
-
-        // ── Step B: Fetch live site meta (title + description) via our API proxy ──
-        // This lets the AI cross-check what the seller entered against what is
-        // actually published at the URL — preventing fake listings.
-        if (submitBtn) submitBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="animation:spin .7s linear infinite;flex-shrink:0;"><circle cx="7" cy="7" r="5.5" stroke="rgba(255,255,255,0.25)" stroke-width="1.4"/><path d="M7 1.5a5.5 5.5 0 0 1 5.5 5.5" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/></svg> Fetching live site…`;
-
-        let liveSiteMeta = null;
-        try {
-            const metaRes = await _apiCall({
-                action: 'fetch_site_meta',
-                url:    listingPayload.url,
-            });
-            // Expected shape: { title, description, h1, metaKeywords, fetchedAt }
-            if (metaRes && (metaRes.title || metaRes.description)) {
-                liveSiteMeta = metaRes;
-            }
-        } catch (metaErr) {
-            console.warn('[SiteMeta] Could not fetch live site meta — proceeding without it:', metaErr);
-            // Non-fatal: AI will still review uploaded code; result may be pending_admin
-        }
-
-        if (submitBtn) submitBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="animation:spin .7s linear infinite;flex-shrink:0;"><circle cx="7" cy="7" r="5.5" stroke="rgba(255,255,255,0.25)" stroke-width="1.4"/><path d="M7 1.5a5.5 5.5 0 0 1 5.5 5.5" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/></svg> AI reviewing…`;
-
-        try {
-            // ── Step C: AI cross-checks listing info vs uploaded code vs live site ──
-            // Auto-approve ONLY when all three agree.
-            // If live site meta could not be fetched, the AI must fall back to
-            // pending_admin (no auto-approve without live verification).
-            const reviewed = await _apiCall({
-                action:  'review_listing',
-                listing: {
-                    title:       listingPayload.title,
-                    url:         listingPayload.url,
-                    description: listingPayload.description,
-                    price:       listingPayload.price,
-                    category:    listingPayload.category,
-                    age:         listingPayload.age,
-                    revenue:     listingPayload.revenue  ?? null,
-                    traffic:     listingPayload.traffic  ?? null,
-                    expenses:    listingPayload.expenses ?? null,
-                },
-                // Uploaded source files — ownership signal
-                codeFiles: codeSnippets,
-                // Live page meta — must match title/description entered by the seller.
-                // If null (fetch failed) the AI must NOT auto-approve.
-                liveSiteMeta: liveSiteMeta,
-                // Instruct the AI: auto-approve ONLY when liveSiteMeta is present AND
-                // the entered title/description are consistent with both the uploaded
-                // code content AND the live site title/meta-description.
-                reviewInstructions: liveSiteMeta
-                    ? 'Auto-approve ONLY if: (1) the uploaded code files clearly belong to the declared URL/site, AND (2) the entered title and description are reasonably consistent with the live site\'s <title> tag and meta description. If either check fails, return status=pending_admin. If content violates policy, return status=rejected.'
-                    : 'Live site meta could not be fetched. You MUST return status=pending_admin — do not auto-approve without live site verification.',
-            });
-
-            const aiStatus = reviewed.status || 'pending_admin';
-            const aiReason = reviewed.reason || '';
-
-            if (reviewed.suggestedPriceMin) listingPayload.suggestedPriceMin = reviewed.suggestedPriceMin;
-            if (reviewed.suggestedPriceMax) listingPayload.suggestedPriceMax = reviewed.suggestedPriceMax;
-            if (reviewed.priceReason)       listingPayload.priceReason       = reviewed.priceReason;
-
-            listingPayload.aiReviewStatus  = aiStatus;
-            listingPayload.aiReviewReason  = aiReason;
-            listingPayload.status          = aiStatus;
-            listingPayload.reviewedAt      = Date.now();
-            listingPayload.proofMethod     = 'code';
-            listingPayload.liveSiteChecked = !!liveSiteMeta;
-
-            // Rejected — block save entirely
-            if (aiStatus === 'rejected') {
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2l6 6-6 6M2 8h12" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Submit Listing`;
-                }
-                document.getElementById('aiRejectedReason').textContent = aiReason || 'Your listing does not meet our content policy.';
-                lockScroll();
-                document.getElementById('aiRejectModal').classList.add('open');
-                // 🔔 Push: listing rejected
-                _notifyEvent('listing-event', 'listing_rejected', { title: listingPayload.title, reason: aiReason });
-                return;
-            }
-
-            // pending_admin — show saving state (no auto-live)
-            if (aiStatus === 'pending_admin' && submitBtn) {
-                submitBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="animation:spin .7s linear infinite;flex-shrink:0;"><circle cx="7" cy="7" r="5.5" stroke="rgba(255,255,255,0.25)" stroke-width="1.4"/><path d="M7 1.5a5.5 5.5 0 0 1 5.5 5.5" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/></svg> Saving…`;
-            }
-
-        } catch (aiErr) {
-            console.warn('[AI Review] Failed, defaulting to pending_admin:', aiErr);
-            listingPayload.aiReviewStatus  = 'pending_admin';
-            listingPayload.aiReviewReason  = 'AI review unavailable — sent to admin.';
-            listingPayload.status          = 'pending_admin';
-            listingPayload.reviewedAt      = Date.now();
-            listingPayload.proofMethod     = 'code';
-            listingPayload.liveSiteChecked = !!liveSiteMeta;
-        }
-
-    } else {
-        // ── Domain docs or hosting → ALWAYS pending_admin — no auto-approve path ──
-        listingPayload.aiReviewStatus  = 'pending_admin';
-        listingPayload.aiReviewReason  = 'Domain/hosting proof requires manual admin verification.';
-        listingPayload.status          = 'pending_admin';
-        listingPayload.reviewedAt      = Date.now();
-        listingPayload.proofMethod     = hasDomainProof ? 'domain' : 'hosting';
-        listingPayload.liveSiteChecked = false;
-
-        if (submitBtn) {
-            submitBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="animation:spin .7s linear infinite;flex-shrink:0;"><circle cx="7" cy="7" r="5.5" stroke="rgba(255,255,255,0.25)" stroke-width="1.4"/><path d="M7 1.5a5.5 5.5 0 0 1 5.5 5.5" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/></svg> Saving…`;
-        }
-    }
-
-    // ── Save to Firebase — update if editing, create if new ──
-    const _editId = window._editingListingId || null;
-    const _doSave = () => {
-        const savePromise = _editId && typeof window._fbUpdateListing === 'function'
-            ? window._fbUpdateListing(_editId, { ...listingPayload, listingId: _editId })
-            : window._fbSaveListing(listingPayload);
-        return savePromise.then(() => {
-            // Clear edit mode
-            window._editingListingId = null;
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2l6 6-6 6M2 8h12" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Submit Listing`;
-            }
-            // Show different success message based on AI result
-            if (listingPayload.status === 'pending_admin') {
-                document.getElementById('successTitle').textContent   = _editId ? 'Listing Updated' : 'Listing Under Review';
-                document.getElementById('successSubtitle').textContent = 'Our team will review your listing shortly. You\'ll be emailed once it\'s approved and goes live.';
-                document.getElementById('successStatusChip').style.display = 'inline-flex';
-                const reasonEl = document.getElementById('successPendingReason');
-                const reasonText = listingPayload.aiReviewReason || '';
-                if (reasonText) {
-                    reasonEl.textContent = '⚠ ' + reasonText;
-                    reasonEl.style.display = 'block';
-                } else {
-                    reasonEl.style.display = 'none';
-                }
-                _notifyEvent('listing-event', 'listing_pending', { title: listingPayload.title });
-            } else {
-                document.getElementById('successTitle').textContent   = _editId ? 'Listing Updated!' : 'Listing Submitted!';
-                document.getElementById('successSubtitle').textContent = 'Your listing passed AI review and is now live on the marketplace.';
-                document.getElementById('successStatusChip').style.display = 'none';
-                document.getElementById('successPendingReason').style.display = 'none';
-                _notifyEvent('listing-event', 'listing_approved', { title: listingPayload.title, price: listingPayload.price, id: listingPayload.id });
-            }
-            lockScroll();
-            document.getElementById('successModal').classList.add('open');
-        }).catch(err => {
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2l6 6-6 6M2 8h12" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Submit Listing`;
-            }
-            showErr('Failed to submit: ' + (err.message || 'Unknown error. Please try again.'));
-        });
-    };
-
-    if (typeof window._fbSaveListing === 'function') {
-        _doSave();
-    } else {
-        let waited = 0;
-        const waitInterval = setInterval(() => {
-            waited += 200;
-            if (typeof window._fbSaveListing === 'function') {
-                clearInterval(waitInterval);
-                _doSave();
-            } else if (waited >= 6000) {
-                clearInterval(waitInterval);
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2l6 6-6 6M2 8h12" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Submit Listing`;
-                }
-                showErr('Connection error — Firebase did not load. Please refresh the page and try again.');
-            }
-        }, 200);
-    }
 }
 
 function saveDraft() {
