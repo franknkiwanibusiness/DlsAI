@@ -2,10 +2,17 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>HTML Surgeon</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HTML Surgeon – Smart AI Editor</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a0f;
+    color: #e8e8f0;
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+  }
   :root {
     --bg: #0a0a0f;
     --surface: #13131a;
@@ -17,141 +24,83 @@
     --muted: #6b6b8a;
     --success: #4ade80;
     --mono: 'JetBrains Mono', monospace;
-    --display: 'Syne', sans-serif;
   }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--display);
-    min-height: 100dvh;
-    overflow-x: hidden;
-  }
-
-  /* ── Header ── */
   header {
-    position: sticky; top: 0; z-index: 100;
+    position: sticky; top: 0;
     background: rgba(10,10,15,0.92);
     backdrop-filter: blur(16px);
     border-bottom: 1px solid var(--border);
     padding: 14px 20px;
-    display: flex; align-items: center; gap: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 100;
   }
   .logo {
-    font-size: 18px; font-weight: 800; letter-spacing: -0.5px;
+    font-size: 18px; font-weight: 800;
     background: linear-gradient(135deg, var(--accent), var(--accent2));
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   }
-  .logo span { font-weight: 400; opacity: 0.6; }
   .step-pill {
     margin-left: auto;
-    font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+    font-size: 11px; font-weight: 600;
     color: var(--muted);
     background: var(--surface2);
     border: 1px solid var(--border);
     border-radius: 20px;
     padding: 4px 12px;
   }
-  .step-pill b { color: var(--accent); }
-
-  /* ── Steps nav ── */
   .steps-bar {
-    display: flex; background: var(--surface); border-bottom: 1px solid var(--border);
-    overflow-x: auto; scrollbar-width: none;
+    display: flex;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
   }
-  .steps-bar::-webkit-scrollbar { display: none; }
   .step-btn {
     flex: 1; min-width: 80px;
     padding: 12px 8px;
-    background: none; border: none; cursor: pointer;
-    font-family: var(--display); font-size: 11px; font-weight: 700;
-    letter-spacing: 0.5px; text-transform: uppercase;
+    background: none; border: none;
+    font-family: 'Syne', sans-serif;
+    font-size: 11px; font-weight: 700;
+    text-transform: uppercase;
     color: var(--muted);
     border-bottom: 2px solid transparent;
-    transition: all 0.2s;
+    cursor: pointer;
     display: flex; flex-direction: column; align-items: center; gap: 4px;
   }
   .step-btn .snum {
-    width: 22px; height: 22px; border-radius: 50%;
-    background: var(--surface2); border: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 10px; transition: all 0.2s;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center; justify-content: center;
+    font-size: 10px;
   }
   .step-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
   .step-btn.active .snum { background: var(--accent); border-color: var(--accent); color: #fff; }
   .step-btn.done { color: var(--success); }
   .step-btn.done .snum { background: var(--success); border-color: var(--success); color: #000; }
-
-  /* ── Pages ── */
   .page { display: none; padding: 20px; animation: fadeUp 0.25s ease; }
   .page.active { display: block; }
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  /* ── Upload zone ── */
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   .upload-zone {
     border: 2px dashed var(--border);
     border-radius: 16px;
     padding: 48px 24px;
     text-align: center;
     cursor: pointer;
-    transition: all 0.2s;
-    position: relative;
     background: var(--surface);
   }
   .upload-zone.drag { border-color: var(--accent); background: rgba(124,106,255,0.08); }
-  .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-  .upload-icon {
-    width: 56px; height: 56px; margin: 0 auto 16px;
-    background: linear-gradient(135deg, rgba(124,106,255,0.2), rgba(255,106,155,0.2));
-    border-radius: 16px; border: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: center; font-size: 24px;
-  }
-  .upload-zone h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
-  .upload-zone p { font-size: 13px; color: var(--muted); line-height: 1.5; }
-  .upload-zone .formats {
-    margin-top: 16px; display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;
-  }
-  .tag {
-    font-family: var(--mono); font-size: 10px;
-    background: var(--surface2); border: 1px solid var(--border);
-    padding: 3px 8px; border-radius: 6px; color: var(--muted);
-  }
-
-  /* ── File info card ── */
+  .upload-zone input { position: absolute; opacity: 0; width: 100%; height: 100%; inset: 0; cursor: pointer; }
+  .upload-icon { width: 56px; height: 56px; margin: 0 auto 16px; background: linear-gradient(135deg, rgba(124,106,255,0.2), rgba(255,106,155,0.2)); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
   .file-card {
     background: var(--surface); border: 1px solid var(--border);
     border-radius: 12px; padding: 14px 16px;
     display: flex; align-items: center; gap: 12px;
     margin-top: 16px;
   }
-  .file-icon {
-    width: 40px; height: 40px; border-radius: 10px;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    display: flex; align-items: center; justify-content: center;
-    font-size: 18px; flex-shrink: 0;
-  }
-  .file-info { flex: 1; min-width: 0; }
-  .file-name { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .file-size { font-size: 12px; color: var(--muted); margin-top: 2px; font-family: var(--mono); }
-  .remove-btn {
-    background: none; border: none; color: var(--muted); cursor: pointer;
-    font-size: 18px; padding: 4px; transition: color 0.2s;
-  }
-  .remove-btn:hover { color: var(--accent2); }
-
-  /* ── Section label ── */
-  .section-label {
-    font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
-    color: var(--muted); margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
-  }
-  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-
-  /* ── Code box ── */
   .code-wrap {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -162,160 +111,66 @@
     background: var(--surface2);
     border-bottom: 1px solid var(--border);
     padding: 10px 14px;
-    display: flex; align-items: center; gap: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
   .code-header span { font-size: 12px; color: var(--muted); font-family: var(--mono); flex: 1; }
-  .copy-btn, .icon-btn {
-    background: none; border: 1px solid var(--border);
-    color: var(--muted); cursor: pointer;
-    font-size: 11px; padding: 4px 10px; border-radius: 6px;
-    font-family: var(--display); font-weight: 600; transition: all 0.2s;
-  }
-  .copy-btn:hover, .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .copy-btn.copied { border-color: var(--success); color: var(--success); }
   textarea.code-area {
     width: 100%; height: 260px;
     background: transparent; border: none; outline: none; resize: none;
     font-family: var(--mono); font-size: 12px; line-height: 1.6;
     color: var(--text); padding: 14px;
-    scrollbar-width: thin; scrollbar-color: var(--border) transparent;
   }
-
-  /* ── Prompt ── */
   .prompt-wrap {
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: 12px; overflow: hidden; margin-top: 16px;
+    border-radius: 12px; overflow: hidden;
   }
   .prompt-wrap textarea {
     width: 100%; height: 110px;
     background: transparent; border: none; outline: none; resize: none;
-    font-family: var(--display); font-size: 14px; line-height: 1.6;
-    color: var(--text); padding: 14px;
+    font-family: 'Syne', sans-serif; font-size: 14px; padding: 14px;
+    color: var(--text);
   }
-  .prompt-wrap textarea::placeholder { color: var(--muted); }
-  .prompt-footer {
-    border-top: 1px solid var(--border);
-    padding: 10px 14px;
-    display: flex; align-items: center; gap: 8px;
-  }
-  .char-count { font-size: 11px; color: var(--muted); font-family: var(--mono); flex: 1; }
-
-  /* ── Buttons ── */
   .btn {
     display: flex; align-items: center; justify-content: center; gap: 8px;
     width: 100%; padding: 15px;
     border: none; border-radius: 12px; cursor: pointer;
-    font-family: var(--display); font-size: 15px; font-weight: 700;
-    transition: all 0.2s; letter-spacing: 0.3px;
+    font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700;
+    transition: all 0.2s;
   }
   .btn-primary {
     background: linear-gradient(135deg, var(--accent), #9b6aff);
     color: #fff;
     box-shadow: 0 4px 24px rgba(124,106,255,0.35);
   }
-  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 30px rgba(124,106,255,0.45); }
-  .btn-primary:active { transform: translateY(0); }
-  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-  .btn-secondary {
-    background: var(--surface2); color: var(--text);
-    border: 1px solid var(--border);
-  }
-  .btn-ghost {
-    background: none; color: var(--muted);
-    border: 1px dashed var(--border); font-size: 13px;
-  }
-  .btn-success {
-    background: linear-gradient(135deg, #22c55e, #16a34a);
-    color: #fff;
-  }
-
-  /* ── Loading ── */
-  .loading-bar {
-    height: 3px; background: var(--surface2); border-radius: 3px;
-    overflow: hidden; margin: 12px 0;
-  }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .loading-bar { height: 3px; background: var(--surface2); border-radius: 3px; overflow: hidden; margin: 12px 0; }
   .loading-bar-inner {
     height: 100%;
     background: linear-gradient(90deg, var(--accent), var(--accent2));
-    border-radius: 3px;
     animation: loadProgress 2s ease-in-out infinite;
   }
-  @keyframes loadProgress {
-    0% { width: 0%; margin-left: 0; }
-    50% { width: 70%; margin-left: 15%; }
-    100% { width: 0%; margin-left: 100%; }
-  }
-  .status-msg {
-    text-align: center; font-size: 13px; color: var(--muted);
-    font-family: var(--mono);
-  }
-
-  /* ── Result diff ── */
-  .diff-tabs {
-    display: flex; background: var(--surface2);
-    border-bottom: 1px solid var(--border);
-  }
-  .diff-tab {
-    flex: 1; padding: 10px;
-    background: none; border: none; cursor: pointer;
-    font-family: var(--display); font-size: 11px; font-weight: 700;
-    letter-spacing: 0.5px; text-transform: uppercase;
-    color: var(--muted); border-bottom: 2px solid transparent;
-    transition: all 0.2s;
-  }
-  .diff-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-
-  /* ── Preview iframe ── */
-  .preview-container {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 12px; overflow: hidden;
-  }
-  .preview-toolbar {
-    background: var(--surface2); border-bottom: 1px solid var(--border);
-    padding: 10px 14px; display: flex; align-items: center; gap: 8px;
-  }
-  .preview-dots { display: flex; gap: 5px; }
-  .preview-dots span {
-    width: 10px; height: 10px; border-radius: 50%;
-  }
-  .preview-dots span:nth-child(1) { background: #ff5f57; }
-  .preview-dots span:nth-child(2) { background: #febc2e; }
-  .preview-dots span:nth-child(3) { background: #28c840; }
-  .preview-url {
-    flex: 1; background: var(--bg); border: 1px solid var(--border);
-    border-radius: 6px; padding: 5px 10px;
-    font-family: var(--mono); font-size: 11px; color: var(--muted);
-  }
-  .preview-frame {
-    width: 100%; height: 420px; border: none;
-    background: #fff;
-  }
-
-  /* ── Toast ── */
+  @keyframes loadProgress { 0% { width: 0%; margin-left: 0; } 50% { width: 70%; margin-left: 15%; } 100% { width: 0%; margin-left: 100%; } }
   .toast {
     position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
     background: var(--surface2); border: 1px solid var(--border);
     padding: 12px 20px; border-radius: 12px;
     font-size: 13px; font-weight: 600;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
     transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    z-index: 999; white-space: nowrap;
+    z-index: 999;
   }
   .toast.show { transform: translateX(-50%) translateY(0); }
   .toast.error { border-color: var(--accent2); color: var(--accent2); }
   .toast.success { border-color: var(--success); color: var(--success); }
-
-  /* ── Misc ── */
-  .mt8 { margin-top: 8px; }
-  .mt16 { margin-top: 16px; }
-  .mt20 { margin-top: 20px; }
-  .gap12 { display: flex; flex-direction: column; gap: 12px; }
   .hint {
-    font-size: 12px; color: var(--muted); line-height: 1.5;
+    font-size: 12px; color: var(--muted);
     background: rgba(124,106,255,0.06); border: 1px solid rgba(124,106,255,0.15);
     border-radius: 8px; padding: 10px 12px; margin-top: 12px;
   }
-  .hint b { color: var(--accent); }
+  .preview-frame { width: 100%; height: 420px; border: none; background: #fff; border-radius: 0 0 12px 12px; }
+  .mt16 { margin-top: 16px; }
+  .mt20 { margin-top: 20px; }
 </style>
 </head>
 <body>
@@ -326,161 +181,217 @@
 </header>
 
 <div class="steps-bar">
-  <button class="step-btn active" onclick="goToStep(1)" id="sbtn1">
-    <span class="snum">1</span>Upload
-  </button>
-  <button class="step-btn" onclick="goToStep(2)" id="sbtn2">
-    <span class="snum">2</span>Review
-  </button>
-  <button class="step-btn" onclick="goToStep(3)" id="sbtn3">
-    <span class="snum">3</span>Edit
-  </button>
-  <button class="step-btn" onclick="goToStep(4)" id="sbtn4">
-    <span class="snum">4</span>Preview
-  </button>
+  <button class="step-btn active" onclick="goToStep(1)" id="sbtn1"><span class="snum">1</span>Upload</button>
+  <button class="step-btn" onclick="goToStep(2)" id="sbtn2"><span class="snum">2</span>Review</button>
+  <button class="step-btn" onclick="goToStep(3)" id="sbtn3"><span class="snum">3</span>Edit</button>
+  <button class="step-btn" onclick="goToStep(4)" id="sbtn4"><span class="snum">4</span>Preview</button>
 </div>
 
-<!-- ══ STEP 1: UPLOAD ══ -->
+<!-- STEP 1 -->
 <div class="page active" id="page1">
   <div class="upload-zone" id="uploadZone">
-    <input type="file" id="fileInput" accept=".html,.htm,.txt,.css,.js,.jsx,.vue,.php,.xml,.json,.md" />
+    <input type="file" id="fileInput" accept=".html,.htm,.css,.js,.jsx,.vue,.php,.xml,.json,.md" />
     <div class="upload-icon">📄</div>
     <h3>Drop your file here</h3>
-    <p>Upload any HTML, CSS, or code file<br>to start editing with AI</p>
-    <div class="formats">
-      <span class="tag">.html</span>
-      <span class="tag">.htm</span>
-      <span class="tag">.css</span>
-      <span class="tag">.js</span>
-      <span class="tag">.php</span>
-      <span class="tag">.txt</span>
-      <span class="tag">+ more</span>
+    <p>Upload any code file – our smart extractor will only send the relevant parts to AI.</p>
+    <div class="formats" style="display: flex; gap: 6px; justify-content: center; margin-top: 16px;">
+      <span class="tag" style="font-family: monospace; background: #1c1c27; padding: 3px 8px; border-radius: 6px;">.html</span>
+      <span class="tag" style="font-family: monospace; background: #1c1c27; padding: 3px 8px; border-radius: 6px;">.css</span>
+      <span class="tag" style="font-family: monospace; background: #1c1c27; padding: 3px 8px; border-radius: 6px;">.js</span>
     </div>
   </div>
-
   <div id="fileCard" style="display:none">
     <div class="file-card">
       <div class="file-icon" id="fileEmoji">📄</div>
-      <div class="file-info">
-        <div class="file-name" id="fileName">—</div>
-        <div class="file-size" id="fileSize">—</div>
-      </div>
-      <button class="remove-btn" onclick="clearFile()">✕</button>
+      <div class="file-info"><div class="file-name" id="fileName">—</div><div class="file-size" id="fileSize">—</div></div>
+      <button class="remove-btn" onclick="clearFile()" style="background:none; border:none; color:var(--muted); font-size:18px;">✕</button>
     </div>
-    <button class="btn btn-primary mt16" onclick="goToStep(2)">
-      Review Code →
-    </button>
+    <button class="btn btn-primary mt16" onclick="goToStep(2)">Review Code →</button>
   </div>
 </div>
 
-<!-- ══ STEP 2: REVIEW ══ -->
+<!-- STEP 2 -->
 <div class="page" id="page2">
-  <div class="section-label">Extracted Code</div>
+  <div class="section-label" style="font-size:11px; text-transform:uppercase;">Extracted Code</div>
   <div class="code-wrap">
-    <div class="code-header">
-      <span id="codeLabel">code</span>
-      <button class="copy-btn" id="copyBtn" onclick="copyCode()">Copy</button>
-    </div>
+    <div class="code-header"><span id="codeLabel">code</span><button class="copy-btn" onclick="copyCode()">Copy</button></div>
     <textarea class="code-area" id="codeArea" spellcheck="false"></textarea>
   </div>
-
-  <div class="hint mt16">
-    <b>Tip:</b> You can edit the code directly above before sending to AI. Only paste the section you want changed to save tokens.
-  </div>
-
-  <button class="btn btn-primary mt20" onclick="goToStep(3)">
-    Set Edit Instructions →
-  </button>
+  <div class="hint mt16"><b>✂️ Smart extraction active</b> – You can manually trim this code further. The AI will only see what you leave here.</div>
+  <button class="btn btn-primary mt20" onclick="goToStep(3)">Set Edit Instructions →</button>
   <button class="btn btn-ghost mt8" onclick="goToStep(1)">← Back</button>
 </div>
 
-<!-- ══ STEP 3: EDIT ══ -->
+<!-- STEP 3 -->
 <div class="page" id="page3">
   <div class="section-label">Your Instructions</div>
   <div class="prompt-wrap">
-    <textarea id="promptArea" placeholder="Describe what you want to change...&#10;&#10;e.g. &quot;Change the hero section background to a dark gradient and make the heading font larger&quot;" maxlength="2000"></textarea>
-    <div class="prompt-footer">
+    <textarea id="promptArea" placeholder="Describe what you want to change...&#10;&#10;Example: &quot;Make all buttons rounded with a purple gradient and add a hover effect&quot;" maxlength="2000"></textarea>
+    <div class="prompt-footer" style="padding:10px 14px; border-top:1px solid var(--border); display:flex; justify-content:space-between;">
       <span class="char-count" id="charCount">0 / 2000</span>
-      <button class="icon-btn" onclick="clearPrompt()">Clear</button>
+      <button class="icon-btn" onclick="clearPrompt()" style="background:none; border:1px solid var(--border); border-radius:6px; padding:4px 10px;">Clear</button>
     </div>
   </div>
-
-  <div class="hint">
-    <b>Examples:</b> "Make all buttons rounded with a purple gradient" · "Add a sticky navbar" · "Fix the mobile layout of the footer" · "Change font to Inter"
-  </div>
-
   <div id="loadingArea" style="display:none; margin-top:20px;">
     <div class="loading-bar"><div class="loading-bar-inner"></div></div>
     <p class="status-msg" id="statusMsg">Sending to AI...</p>
   </div>
-
-  <button class="btn btn-primary mt20" id="sendBtn" onclick="sendToAI()">
-    ✦ Apply AI Edit
-  </button>
+  <button class="btn btn-primary mt20" id="sendBtn" onclick="sendToAI()">✦ Apply AI Edit</button>
   <button class="btn btn-ghost mt8" onclick="goToStep(2)">← Back to Code</button>
 </div>
 
-<!-- ══ STEP 4: PREVIEW ══ -->
+<!-- STEP 4 -->
 <div class="page" id="page4">
-  <div class="section-label">Result</div>
-
   <div class="code-wrap">
-    <div class="diff-tabs">
-      <button class="diff-tab active" id="tab-result" onclick="switchTab('result')">Edited Code</button>
-      <button class="diff-tab" id="tab-original" onclick="switchTab('original')">Original</button>
+    <div style="display:flex; border-bottom:1px solid var(--border);">
+      <button class="diff-tab active" onclick="switchTab('result')">Edited Code</button>
+      <button class="diff-tab" onclick="switchTab('original')">Original</button>
     </div>
-    <div id="panel-result">
-      <div class="code-header">
-        <span id="resultLabel">result.html</span>
-        <button class="copy-btn" id="copyResultBtn" onclick="copyResult()">Copy</button>
-      </div>
-      <textarea class="code-area" id="resultArea" spellcheck="false"></textarea>
-    </div>
-    <div id="panel-original" style="display:none">
-      <div class="code-header">
-        <span>original</span>
-      </div>
-      <textarea class="code-area" id="origArea" spellcheck="false" readonly></textarea>
-    </div>
+    <div id="panel-result"><div class="code-header"><span>result.html</span><button class="copy-btn" onclick="copyResult()">Copy</button></div><textarea class="code-area" id="resultArea" spellcheck="false"></textarea></div>
+    <div id="panel-original" style="display:none"><div class="code-header"><span>original</span></div><textarea class="code-area" id="origArea" spellcheck="false" readonly></textarea></div>
   </div>
-
   <div class="section-label mt20">Live Preview</div>
-  <div class="preview-container">
-    <div class="preview-toolbar">
-      <div class="preview-dots">
-        <span></span><span></span><span></span>
-      </div>
-      <div class="preview-url">preview://local</div>
-      <button class="icon-btn" onclick="refreshPreview()">↺</button>
+  <div class="preview-container" style="background:var(--surface); border-radius:12px; overflow:hidden;">
+    <div class="preview-toolbar" style="background:var(--surface2); padding:10px; display:flex; gap:8px;">
+      <div class="preview-dots"><span></span><span></span><span></span></div>
+      <button class="icon-btn" onclick="refreshPreview()">↺ Refresh</button>
     </div>
     <iframe class="preview-frame" id="previewFrame" sandbox="allow-scripts allow-same-origin"></iframe>
   </div>
-
-  <div class="gap12 mt20">
-    <button class="btn btn-success" onclick="downloadResult()">
-      ↓ Download Edited File
-    </button>
-    <button class="btn btn-secondary" onclick="goToStep(3)">
-      ✦ Edit Again
-    </button>
+  <div style="display:flex; flex-direction:column; gap:12px; margin-top:20px;">
+    <button class="btn btn-success" onclick="downloadResult()">↓ Download Edited File</button>
+    <button class="btn btn-secondary" onclick="goToStep(3)">✦ Edit Again</button>
     <button class="btn btn-ghost" onclick="startFresh()">Start Fresh</button>
   </div>
 </div>
 
-<!-- Toast -->
 <div class="toast" id="toast"></div>
 
 <script>
-  // ── State ──
-  let state = {
-    file: null,
-    rawCode: '',
-    fileName: '',
-    resultCode: '',
-    currentStep: 1
-  };
+  // ---------- STATE ----------
+  let state = { file: null, rawCode: '', fileName: '', resultCode: '', currentStep: 1 };
 
-  // ── Step navigation ──
+  // ---------- HELPERS ----------
+  function showToast(msg, type = '') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show' + (type ? ' ' + type : '');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+  }
+
+  function getEmoji(name) {
+    if (name.match(/\.html?$/i)) return '🌐';
+    if (name.match(/\.css$/i)) return '🎨';
+    if (name.match(/\.js$/i)) return '⚡';
+    return '📄';
+  }
+
+  // ---------- SMART EXTRACTION (frontend) ----------
+  function extractRelevantCode(fullCode, instruction) {
+    const isHtml = fullCode.trim().startsWith('<!DOCTYPE') || /<html/i.test(fullCode);
+    if (!isHtml) {
+      // For CSS/JS: keep only lines containing instruction keywords
+      const keywords = instruction.toLowerCase().split(/\s+/);
+      const lines = fullCode.split('\n');
+      const relevant = lines.filter(line => keywords.some(kw => line.toLowerCase().includes(kw)));
+      let snippet = relevant.join('\n');
+      if (snippet.length === 0) snippet = fullCode.slice(0, 5000);
+      return { snippet, originalLength: fullCode.length, snippetLength: snippet.length };
+    }
+
+    // Parse HTML with DOMParser
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(fullCode, 'text/html');
+    const lowerInst = instruction.toLowerCase();
+
+    // Extract selectors from instruction (e.g., .hero, #nav, button, header)
+    const selectors = [];
+    const selectorMatches = lowerInst.match(/(?:#|\.)[a-z0-9_-]+|(?:button|div|span|header|footer|nav|section|form|input|a)/gi);
+    if (selectorMatches) selectors.push(...selectorMatches.map(s => s.toLowerCase()));
+
+    let elements = [];
+    for (let sel of selectors) {
+      try {
+        const found = doc.querySelectorAll(sel);
+        elements.push(...found);
+      } catch(e) {}
+    }
+
+    let snippet = '';
+    if (elements.length > 0) {
+      snippet = elements.map(el => el.outerHTML).join('\n');
+      // Also capture any <style> that matches keywords
+      const styles = doc.querySelectorAll('style');
+      for (let style of styles) {
+        if (lowerInst.split(' ').some(word => style.textContent.includes(word))) {
+          snippet += '\n' + style.outerHTML;
+        }
+      }
+    } else {
+      // fallback: take first 6000 characters
+      snippet = fullCode.slice(0, 6000) + '\n<!-- ... truncated ... -->';
+    }
+    return { snippet, originalLength: fullCode.length, snippetLength: snippet.length };
+  }
+
+  // ---------- AI CALL with smart extraction ----------
+  async function sendToAI() {
+    const prompt = document.getElementById('promptArea').value.trim();
+    if (!prompt) return showToast('Write your edit instructions first', 'error');
+    if (!state.rawCode) return showToast('No code to edit', 'error');
+
+    const sendBtn = document.getElementById('sendBtn');
+    const loadingArea = document.getElementById('loadingArea');
+    const statusMsg = document.getElementById('statusMsg');
+
+    sendBtn.disabled = true;
+    loadingArea.style.display = 'block';
+    statusMsg.innerHTML = '🔍 Extracting only the code that matters...';
+
+    try {
+      // Smart extraction
+      const extracted = extractRelevantCode(state.rawCode, prompt);
+      statusMsg.innerHTML = `✂️ Reduced from ${extracted.originalLength.toLocaleString()} to ${extracted.snippetLength.toLocaleString()} chars. Sending to AI...`;
+
+      const response = await fetch('/api/edit-smart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullCode: state.rawCode,
+          snippet: extracted.snippet,
+          instruction: prompt,
+          fileName: state.fileName
+        })
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || `API error ${response.status}`);
+      }
+
+      const data = await response.json();
+      state.resultCode = data.result;
+      document.getElementById('resultArea').value = state.resultCode;
+      document.getElementById('origArea').value = state.rawCode;
+      loadingArea.style.display = 'none';
+      sendBtn.disabled = false;
+      showToast('✅ Edit applied successfully!', 'success');
+      goToStep(4);
+    } catch (err) {
+      loadingArea.style.display = 'none';
+      sendBtn.disabled = false;
+      showToast(err.message || 'AI edit failed', 'error');
+    }
+  }
+
+  // ---------- UI Handlers ----------
   function goToStep(n) {
     if (n === 2 && !state.rawCode) return showToast('Upload a file first', 'error');
     if (n === 3 && !state.rawCode) return showToast('Upload a file first', 'error');
@@ -488,25 +399,74 @@
 
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.getElementById('page' + n).classList.add('active');
-
     document.querySelectorAll('.step-btn').forEach((b, i) => {
       b.classList.remove('active', 'done');
       if (i + 1 < n) b.classList.add('done');
       if (i + 1 === n) b.classList.add('active');
     });
-
     document.getElementById('headerStep').textContent = n;
     state.currentStep = n;
-
     if (n === 4) refreshPreview();
   }
 
-  // ── File upload ──
+  function copyCode() { navigator.clipboard.writeText(state.rawCode).then(() => flashCopy('copyBtn')); }
+  function copyResult() { navigator.clipboard.writeText(state.resultCode).then(() => flashCopy('copyResultBtn')); }
+  function flashCopy(id) {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    const orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = orig, 2000);
+  }
+
+  function switchTab(tab) {
+    document.getElementById('panel-result').style.display = tab === 'result' ? 'block' : 'none';
+    document.getElementById('panel-original').style.display = tab === 'original' ? 'block' : 'none';
+  }
+
+  function refreshPreview() {
+    const code = document.getElementById('resultArea').value || state.resultCode;
+    if (!code) return;
+    const iframe = document.getElementById('previewFrame');
+    const blob = new Blob([code], { type: 'text/html' });
+    iframe.src = URL.createObjectURL(blob);
+  }
+
+  function downloadResult() {
+    const code = document.getElementById('resultArea').value;
+    if (!code) return showToast('No result yet', 'error');
+    const blob = new Blob([code], { type: 'text/html' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'edited_' + (state.fileName || 'file.html');
+    a.click();
+    showToast('Download started', 'success');
+  }
+
+  function startFresh() {
+    clearFile();
+    document.getElementById('promptArea').value = '';
+    document.getElementById('charCount').textContent = '0 / 2000';
+    document.getElementById('resultArea').value = '';
+    document.getElementById('origArea').value = '';
+    goToStep(1);
+  }
+
+  function clearFile() {
+    state = { file: null, rawCode: '', fileName: '', resultCode: '', currentStep: 1 };
+    document.getElementById('fileInput').value = '';
+    document.getElementById('fileCard').style.display = 'none';
+  }
+
+  function clearPrompt() {
+    document.getElementById('promptArea').value = '';
+    document.getElementById('charCount').textContent = '0 / 2000';
+  }
+
+  // File upload handlers
   const fileInput = document.getElementById('fileInput');
   const uploadZone = document.getElementById('uploadZone');
-
   fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
-
   uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag'); });
   uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag'));
   uploadZone.addEventListener('drop', e => {
@@ -521,177 +481,20 @@
       state.rawCode = ev.target.result;
       state.fileName = file.name;
       state.file = file;
-
       document.getElementById('fileName').textContent = file.name;
-      document.getElementById('fileSize').textContent = formatSize(file.size) + ' · ' + file.type;
+      document.getElementById('fileSize').textContent = formatSize(file.size);
       document.getElementById('fileEmoji').textContent = getEmoji(file.name);
       document.getElementById('fileCard').style.display = 'block';
-
       document.getElementById('codeArea').value = state.rawCode;
       document.getElementById('origArea').value = state.rawCode;
       document.getElementById('codeLabel').textContent = file.name;
-      document.getElementById('resultLabel').textContent = 'edited_' + file.name;
     };
     reader.readAsText(file);
   }
 
-  function clearFile() {
-    state = { file: null, rawCode: '', fileName: '', resultCode: '', currentStep: 1 };
-    fileInput.value = '';
-    document.getElementById('fileCard').style.display = 'none';
-  }
-
-  // ── Code area sync ──
-  document.getElementById('codeArea').addEventListener('input', function() {
-    state.rawCode = this.value;
-  });
-
-  // ── Prompt char count ──
-  document.getElementById('promptArea').addEventListener('input', function() {
-    document.getElementById('charCount').textContent = this.value.length + ' / 2000';
-  });
-
-  function clearPrompt() {
-    document.getElementById('promptArea').value = '';
-    document.getElementById('charCount').textContent = '0 / 2000';
-  }
-
-  // ── Copy ──
-  function copyCode() {
-    navigator.clipboard.writeText(state.rawCode).then(() => flashCopy('copyBtn'));
-  }
-  function copyResult() {
-    navigator.clipboard.writeText(state.resultCode).then(() => flashCopy('copyResultBtn'));
-  }
-  function flashCopy(id) {
-    const btn = document.getElementById(id);
-    btn.textContent = 'Copied!'; btn.classList.add('copied');
-    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
-  }
-
-  // ── AI call ──
-  async function sendToAI() {
-    const prompt = document.getElementById('promptArea').value.trim();
-    if (!prompt) return showToast('Write your edit instructions first', 'error');
-    if (!state.rawCode) return showToast('No code to edit', 'error');
-
-    const sendBtn = document.getElementById('sendBtn');
-    const loadingArea = document.getElementById('loadingArea');
-    const statusMsg = document.getElementById('statusMsg');
-
-    sendBtn.disabled = true;
-    loadingArea.style.display = 'block';
-    statusMsg.textContent = 'Sending to Groq AI...';
-
-    try {
-      statusMsg.textContent = 'AI is editing your code...';
-
-      const response = await fetch('/api/edit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          code: state.rawCode,
-          instruction: prompt,
-          fileName: state.fileName
-        })
-      });
-
-      statusMsg.textContent = 'Processing response...';
-
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.error || 'API error ' + response.status);
-      }
-
-      const data = await response.json();
-      state.resultCode = data.result || data.code || '';
-
-      document.getElementById('resultArea').value = state.resultCode;
-      loadingArea.style.display = 'none';
-      sendBtn.disabled = false;
-
-      showToast('Edit applied! ✦', 'success');
-      goToStep(4);
-
-    } catch (err) {
-      loadingArea.style.display = 'none';
-      sendBtn.disabled = false;
-      showToast(err.message || 'Something went wrong', 'error');
-    }
-  }
-
-  // ── Preview ──
-  function switchTab(tab) {
-    document.getElementById('tab-result').classList.toggle('active', tab === 'result');
-    document.getElementById('tab-original').classList.toggle('active', tab === 'original');
-    document.getElementById('panel-result').style.display = tab === 'result' ? 'block' : 'none';
-    document.getElementById('panel-original').style.display = tab === 'original' ? 'block' : 'none';
-  }
-
-  function refreshPreview() {
-    const code = document.getElementById('resultArea').value || state.resultCode;
-    if (!code) return;
-    const iframe = document.getElementById('previewFrame');
-    const blob = new Blob([code], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    iframe.src = url;
-  }
-
-  // Sync edits to preview
-  document.getElementById('resultArea').addEventListener('input', function() {
-    state.resultCode = this.value;
-  });
-
-  // ── Download ──
-  function downloadResult() {
-    const code = document.getElementById('resultArea').value;
-    if (!code) return showToast('No result yet', 'error');
-    const blob = new Blob([code], { type: 'text/html' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'edited_' + (state.fileName || 'file.html');
-    a.click();
-    showToast('Downloaded!', 'success');
-  }
-
-  function startFresh() {
-    clearFile();
-    document.getElementById('promptArea').value = '';
-    document.getElementById('charCount').textContent = '0 / 2000';
-    document.getElementById('resultArea').value = '';
-    document.getElementById('origArea').value = '';
-    goToStep(1);
-    // reset step buttons
-    document.querySelectorAll('.step-btn').forEach((b, i) => {
-      b.classList.remove('active', 'done');
-      if (i === 0) b.classList.add('active');
-    });
-    document.getElementById('headerStep').textContent = '1';
-  }
-
-  // ── Toast ──
-  function showToast(msg, type = '') {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.className = 'toast show' + (type ? ' ' + type : '');
-    clearTimeout(t._timer);
-    t._timer = setTimeout(() => t.classList.remove('show'), 3000);
-  }
-
-  // ── Helpers ──
-  function formatSize(bytes) {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / 1024 / 1024).toFixed(1) + ' MB';
-  }
-  function getEmoji(name) {
-    if (name.match(/\.html?$/i)) return '🌐';
-    if (name.match(/\.css$/i)) return '🎨';
-    if (name.match(/\.js$/i)) return '⚡';
-    if (name.match(/\.json$/i)) return '📋';
-    if (name.match(/\.md$/i)) return '📝';
-    return '📄';
-  }
+  document.getElementById('codeArea').addEventListener('input', e => state.rawCode = e.target.value);
+  document.getElementById('resultArea').addEventListener('input', e => state.resultCode = e.target.value);
+  document.getElementById('promptArea').addEventListener('input', e => document.getElementById('charCount').textContent = e.target.value.length + ' / 2000');
 </script>
 </body>
 </html>
