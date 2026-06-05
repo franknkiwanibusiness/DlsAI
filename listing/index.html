@@ -1217,10 +1217,11 @@ function unlockScroll(){
 }
 
 // ── Listing ID ──
-const listingId = (location.pathname.match(/\/listing\/(-?[A-Za-z0-9_-]+)/)||[])[1]
-    || new URLSearchParams(location.search).get('id')
-    || (location.hash.replace('#','').trim()||null)
-    || null;
+// Handles: /listing/ID  OR  /listing?id=ID  OR  #ID  OR  ?id=ID on any path
+const _pathMatch = location.pathname.match(/\/listing\/([A-Za-z0-9_-]+)/);
+const _qpId      = new URLSearchParams(location.search).get('id');
+const _hashId    = location.hash.replace(/^#\/?/,'').trim() || null;
+const listingId  = (_pathMatch && _pathMatch[1]) || _qpId || _hashId || null;
 if(!listingId) showNotFound();
 
 // ── State ──
@@ -1292,7 +1293,7 @@ async function loadListing(user){
             get(ref(db, 'websites/' + listingId)),
             get(ref(db, 'users/' + user.uid))
         ]);
-        if (!snap.exists()) { showNotFound(); return; }
+        if (!snap.exists()) { console.warn('[listing] not found in DB:', listingId); showNotFound(); return; }
         _listingData = { ...snap.val(), listingId };
         _userData    = userSnap.val() || {};
 
@@ -1300,7 +1301,7 @@ async function loadListing(user){
         const sellerUid = d.uid || '';
         const isOwner   = sellerUid && user.uid === sellerUid;
         // Non-live listings are visible only to the owner (so they can preview pending/rejected)
-        if ((d.status || '').toLowerCase() !== 'live' && !isOwner) { showNotFound(); return; }
+        const statusNorm = (d.status || '').toLowerCase(); console.log('[listing] id:', listingId, '| status:', statusNorm, '| isOwner:', isOwner); if (statusNorm !== 'live' && statusNorm !== 'active' && !isOwner) { showNotFound(); return; }
 
         // Step 2: load seller profile + reveal status in parallel
         const fetchSeller  = sellerUid
