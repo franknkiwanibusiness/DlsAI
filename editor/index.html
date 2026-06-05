@@ -84,21 +84,48 @@
   .page { display: none; padding: 20px; animation: fadeUp 0.25s ease; }
   .page.active { display: block; }
   @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  
+  /* UPLOAD ZONE – no absolute overlay */
   .upload-zone {
     border: 2px dashed var(--border);
     border-radius: 16px;
     padding: 48px 24px;
     text-align: center;
-    cursor: pointer;
     background: var(--surface);
+    transition: all 0.2s;
   }
   .upload-zone.drag { border-color: var(--accent); background: rgba(124,106,255,0.08); }
-  .upload-zone input { position: absolute; opacity: 0; width: 100%; height: 100%; inset: 0; cursor: pointer; }
-  .upload-icon { width: 56px; height: 56px; margin: 0 auto 16px; background: linear-gradient(135deg, rgba(124,106,255,0.2), rgba(255,106,155,0.2)); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+  .upload-icon {
+    width: 56px; height: 56px; margin: 0 auto 16px;
+    background: linear-gradient(135deg, rgba(124,106,255,0.2), rgba(255,106,155,0.2));
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+  }
+  .btn-file {
+    background: var(--surface2);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 10px 24px;
+    border-radius: 40px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .btn-file:hover { background: rgba(124,106,255,0.2); }
   .file-card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 12px; padding: 14px 16px;
-    display: flex; align-items: center; gap: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
     margin-top: 16px;
   }
   .code-wrap {
@@ -123,8 +150,10 @@
     color: var(--text); padding: 14px;
   }
   .prompt-wrap {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 12px; overflow: hidden;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
   }
   .prompt-wrap textarea {
     width: 100%; height: 110px;
@@ -171,6 +200,8 @@
   .preview-frame { width: 100%; height: 420px; border: none; background: #fff; border-radius: 0 0 12px 12px; }
   .mt16 { margin-top: 16px; }
   .mt20 { margin-top: 20px; }
+  .flex-btns { display: flex; gap: 12px; margin-top: 16px; }
+  .flex-btns .btn { width: auto; flex: 1; }
 </style>
 </head>
 <body>
@@ -187,13 +218,14 @@
   <button class="step-btn" onclick="goToStep(4)" id="sbtn4"><span class="snum">4</span>Preview</button>
 </div>
 
-<!-- STEP 1 -->
+<!-- STEP 1: UPLOAD (fixed: no overlay input) -->
 <div class="page active" id="page1">
   <div class="upload-zone" id="uploadZone">
-    <input type="file" id="fileInput" accept=".html,.htm,.css,.js,.jsx,.vue,.php,.xml,.json,.md" />
     <div class="upload-icon">📄</div>
     <h3>Drop your file here</h3>
-    <p>Upload any code file – our smart extractor will only send the relevant parts to AI.</p>
+    <p>Upload any HTML, CSS, or code file</p>
+    <button class="btn-file" id="selectFileBtn">📂 Choose file</button>
+    <input type="file" id="fileInput" accept=".html,.htm,.css,.js,.jsx,.vue,.php,.xml,.json,.md" style="display: none;">
     <div class="formats" style="display: flex; gap: 6px; justify-content: center; margin-top: 16px;">
       <span class="tag" style="font-family: monospace; background: #1c1c27; padding: 3px 8px; border-radius: 6px;">.html</span>
       <span class="tag" style="font-family: monospace; background: #1c1c27; padding: 3px 8px; border-radius: 6px;">.css</span>
@@ -204,33 +236,41 @@
     <div class="file-card">
       <div class="file-icon" id="fileEmoji">📄</div>
       <div class="file-info"><div class="file-name" id="fileName">—</div><div class="file-size" id="fileSize">—</div></div>
-      <button class="remove-btn" onclick="clearFile()" style="background:none; border:none; color:var(--muted); font-size:18px;">✕</button>
+      <button class="remove-btn" onclick="clearFile()" style="background:none; border:none; color:var(--muted); font-size:18px; cursor:pointer;">✕</button>
     </div>
     <button class="btn btn-primary mt16" onclick="goToStep(2)">Review Code →</button>
   </div>
 </div>
 
-<!-- STEP 2 -->
+<!-- STEP 2: REVIEW -->
 <div class="page" id="page2">
   <div class="section-label" style="font-size:11px; text-transform:uppercase;">Extracted Code</div>
   <div class="code-wrap">
     <div class="code-header"><span id="codeLabel">code</span><button class="copy-btn" onclick="copyCode()">Copy</button></div>
     <textarea class="code-area" id="codeArea" spellcheck="false"></textarea>
   </div>
-  <div class="hint mt16"><b>✂️ Smart extraction active</b> – You can manually trim this code further. The AI will only see what you leave here.</div>
-  <button class="btn btn-primary mt20" onclick="goToStep(3)">Set Edit Instructions →</button>
-  <button class="btn btn-ghost mt8" onclick="goToStep(1)">← Back</button>
+  <div class="hint mt16">
+    <b>✂️ Smart extraction active</b> – You can manually trim this code further. The AI will only see what you leave here.<br>
+    <b>📝 Where to write your edit instructions?</b> → Go to <strong>Step 3 (Edit)</strong> and describe the changes you want.
+  </div>
+  <div class="flex-btns">
+    <button class="btn btn-secondary" onclick="goToStep(3)">✏️ Go to Edit Instructions →</button>
+    <button class="btn btn-ghost" onclick="goToStep(1)">← Back</button>
+  </div>
 </div>
 
-<!-- STEP 3 -->
+<!-- STEP 3: EDIT INSTRUCTIONS -->
 <div class="page" id="page3">
-  <div class="section-label">Your Instructions</div>
+  <div class="section-label">✍️ Your Edit Instructions</div>
   <div class="prompt-wrap">
-    <textarea id="promptArea" placeholder="Describe what you want to change...&#10;&#10;Example: &quot;Make all buttons rounded with a purple gradient and add a hover effect&quot;" maxlength="2000"></textarea>
+    <textarea id="promptArea" placeholder="Describe what you want to change...&#10;&#10;Example: &quot;Make all buttons rounded with a purple gradient and add a hover effect&quot;&#10;&#10;Example: &quot;Change the hero section background to dark gradient and make heading larger&quot;" maxlength="2000"></textarea>
     <div class="prompt-footer" style="padding:10px 14px; border-top:1px solid var(--border); display:flex; justify-content:space-between;">
       <span class="char-count" id="charCount">0 / 2000</span>
-      <button class="icon-btn" onclick="clearPrompt()" style="background:none; border:1px solid var(--border); border-radius:6px; padding:4px 10px;">Clear</button>
+      <button class="icon-btn" onclick="clearPrompt()" style="background:none; border:1px solid var(--border); border-radius:6px; padding:4px 10px; cursor:pointer;">Clear</button>
     </div>
+  </div>
+  <div class="hint">
+    💡 <b>Be specific</b> – mention selectors (e.g., <code>.button</code>, <code>#header</code>), or describe the component you want to change. The AI will only edit the parts related to your instruction.
   </div>
   <div id="loadingArea" style="display:none; margin-top:20px;">
     <div class="loading-bar"><div class="loading-bar-inner"></div></div>
@@ -240,7 +280,7 @@
   <button class="btn btn-ghost mt8" onclick="goToStep(2)">← Back to Code</button>
 </div>
 
-<!-- STEP 4 -->
+<!-- STEP 4: PREVIEW / RESULT -->
 <div class="page" id="page4">
   <div class="code-wrap">
     <div style="display:flex; border-bottom:1px solid var(--border);">
@@ -254,7 +294,7 @@
   <div class="preview-container" style="background:var(--surface); border-radius:12px; overflow:hidden;">
     <div class="preview-toolbar" style="background:var(--surface2); padding:10px; display:flex; gap:8px;">
       <div class="preview-dots"><span></span><span></span><span></span></div>
-      <button class="icon-btn" onclick="refreshPreview()">↺ Refresh</button>
+      <button class="icon-btn" onclick="refreshPreview()" style="background:none; border:1px solid var(--border); border-radius:6px; padding:4px 10px;">↺ Refresh</button>
     </div>
     <iframe class="preview-frame" id="previewFrame" sandbox="allow-scripts allow-same-origin"></iframe>
   </div>
@@ -344,8 +384,8 @@
   // ---------- AI CALL with smart extraction ----------
   async function sendToAI() {
     const prompt = document.getElementById('promptArea').value.trim();
-    if (!prompt) return showToast('Write your edit instructions first', 'error');
-    if (!state.rawCode) return showToast('No code to edit', 'error');
+    if (!prompt) return showToast('Write your edit instructions first (Step 3)', 'error');
+    if (!state.rawCode) return showToast('Upload a file first', 'error');
 
     const sendBtn = document.getElementById('sendBtn');
     const loadingArea = document.getElementById('loadingArea');
@@ -356,7 +396,6 @@
     statusMsg.innerHTML = '🔍 Extracting only the code that matters...';
 
     try {
-      // Smart extraction
       const extracted = extractRelevantCode(state.rawCode, prompt);
       statusMsg.innerHTML = `✂️ Reduced from ${extracted.originalLength.toLocaleString()} to ${extracted.snippetLength.toLocaleString()} chars. Sending to AI...`;
 
@@ -463,16 +502,19 @@
     document.getElementById('charCount').textContent = '0 / 2000';
   }
 
-  // File upload handlers
+  // ---------- File upload handlers (fixed: no overlay) ----------
   const fileInput = document.getElementById('fileInput');
+  const selectBtn = document.getElementById('selectFileBtn');
   const uploadZone = document.getElementById('uploadZone');
-  fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+
+  selectBtn.addEventListener('click', () => fileInput.click());
   uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag'); });
   uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag'));
   uploadZone.addEventListener('drop', e => {
     e.preventDefault(); uploadZone.classList.remove('drag');
     if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
   });
+  fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
 
   function handleFile(file) {
     if (!file) return;
