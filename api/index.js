@@ -1022,6 +1022,36 @@ Never make up information about specific listings or prices. Direct complex issu
     }
 
     // ════════════════════════════════════════════════════════════
+    // POST admin/grant-credit
+    // Body: { email, amount }
+    // ════════════════════════════════════════════════════════════
+    if (route === "admin/grant-credit" && req.method === "POST") {
+      await requireAdmin();
+      const { email, amount } = body;
+      if (!email) return json(res, 400, { error: "email required" });
+      const credit = parseFloat(parseFloat(amount || 1).toFixed(2));
+      if (isNaN(credit) || credit <= 0 || credit > 1) {
+        return json(res, 400, { error: "Amount must be between $0.01 and $1.00" });
+      }
+
+      const usersData = await dbGet("/users");
+      let uid = null;
+      if (usersData && typeof usersData === "object") {
+        for (const [k, v] of Object.entries(usersData)) {
+          if (v && (v.email || "").toLowerCase() === email.toLowerCase()) { uid = k; break; }
+        }
+      }
+      if (!uid) return json(res, 404, { error: "No user found with that email" });
+
+      const userData = await dbGet("/users/" + uid);
+      const currentBal = parseFloat(((userData && userData.balance) || 0).toFixed(2));
+      const newBal = parseFloat((currentBal + credit).toFixed(2));
+      await dbPatch("/users/" + uid, { balance: newBal });
+
+      return json(res, 200, { ok: true, uid, previousBalance: currentBal, newBalance: newBal });
+    }
+
+    // ════════════════════════════════════════════════════════════
     // POST admin/maintenance
     // Body: { active, message, eta }
     // ════════════════════════════════════════════════════════════
