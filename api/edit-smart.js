@@ -1,5 +1,5 @@
-// api/edit-smart.js
-import { Groq } from 'groq-sdk';
+// api/edit-smart.js - CommonJS version for Vercel/Netlify
+const { Groq } = require('groq-sdk');
 
 // Helper: split snippet into safe chunks (max 12k chars)
 function splitIntoChunks(text, instruction) {
@@ -8,7 +8,6 @@ function splitIntoChunks(text, instruction) {
 
   const isCss = /[.#@][\w-]+\s*\{/.test(text);
   if (isCss) {
-    // split by each CSS rule block
     const rules = text.split(/(?<=})\s*(?=[.#@])/);
     const chunks = [];
     let current = '';
@@ -23,7 +22,6 @@ function splitIntoChunks(text, instruction) {
     if (current) chunks.push(current);
     return chunks;
   } else {
-    // HTML: split by top-level tags
     const parts = text.split(/(?=<\w+[^>]*>)/);
     const chunks = [];
     let current = '';
@@ -70,8 +68,15 @@ function mergeChunks(editedChunks, originalFullCode, originalSnippet) {
   }
 }
 
-export default async function handler(req, res) {
-  // Only allow POST
+// Vercel/Netlify serverless handler
+module.exports = async function handler(req, res) {
+  // Enable CORS for development (optional, but helpful)
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -81,27 +86,29 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing snippet or instruction' });
   }
 
-  // Initialize Groq with your API key (set in environment variables)
+  // Check for API key
+  if (!process.env.GROQ_API_KEY) {
+    console.error('GROQ_API_KEY is not set in environment variables');
+    return res.status(500).json({ error: 'Server configuration error: missing API key' });
+  }
+
   const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
   try {
     console.log(`Processing: snippet length ${snippet.length}, instruction: "${instruction.slice(0, 50)}..."`);
 
-    // 1. Split snippet into manageable chunks
     const chunks = splitIntoChunks(snippet, instruction);
     console.log(`Split into ${chunks.length} chunk(s)`);
 
-    // 2. Edit each chunk in parallel
     const editedChunks = await Promise.all(
       chunks.map(chunk => editChunk(chunk, instruction, groq))
     );
 
-    // 3. Merge back into the original full code
     const finalResult = mergeChunks(editedChunks, fullCode, snippet);
-
-    res.status(200).json({ result: finalResult });
+    return res.status(200).json({ result: finalResult });
   } catch (err) {
-    console.error('API error:', err);
-    res.status(500).json({ error: err.message || 'Internal server error' });
+    console.error('API error details:', err);
+    // Send a clear error message back to the frontend
+    return res.status(500).json({ error: err.message || 'Internal server error' });
   }
-}
+};
