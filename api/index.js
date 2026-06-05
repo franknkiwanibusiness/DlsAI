@@ -259,7 +259,10 @@ function verifyAdminJWT(token) {
 }
 
 // ─── Resend helper ───────────────────────────────────────────────────────────
-async function sendEmail({ to, subject, html, from = "Siterifty <no-reply@siterifty.com>" }) {
+async function sendEmail({ to, subject, html, from }) {
+  // Use env var so the from domain matches whatever Resend verified domain is set
+  const emailDomain = process.env.RESEND_DOMAIN || process.env.APP_DOMAIN || "dlsvalue.site";
+  if (!from) from = "Siterifty <no-reply@" + emailDomain + ">";
   const res = await request("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -346,10 +349,14 @@ function readBody(req) {
 }
 
 // ─── CORS headers ─────────────────────────────────────────────────────────────
-function setCORS(res) {
-  res.setHeader("Access-Control-Allow-Origin", "https://siterifty.com");
+// Reflects the request Origin so the API works on any domain (dlsvalue.site,
+// siterifty.com, Vercel preview URLs, localhost, etc.) without hardcoding.
+function setCORS(req, res) {
+  const origin = (req.headers && req.headers.origin) || "*";
+  res.setHeader("Access-Control-Allow-Origin", origin);
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Vary", "Origin");
 }
 
 function json(res, status, body) {
@@ -362,7 +369,7 @@ function json(res, status, body) {
 //  MAIN HANDLER
 // ═══════════════════════════════════════════════════════════════════════════
 module.exports = async function handler(req, res) {
-  setCORS(res);
+  setCORS(req, res);
   if (req.method === "OPTIONS") return json(res, 204, {});
 
   // Strip /api/ prefix and trailing slash
@@ -758,7 +765,7 @@ Keep the response under 200 words and use **bold** for headings.`;
 
       const system = `You are Siterifty's helpful AI assistant. You help users buy and sell websites, understand plans (Free 30% fee, Starter $20/mo 15% fee, Growth $40/mo 10% fee, Pro $50/mo 5% fee), navigate the platform, and troubleshoot issues. Be concise, friendly, and helpful.
 Current user: ${username || "Guest"} on ${userPlan || "Free"} plan.
-Never make up information about specific listings or prices. Direct complex issues to support@siterifty.com.`;
+Never make up information about specific listings or prices. Direct complex issues to the support tab.`;
 
       // Limit to last 10 messages to keep tokens reasonable
       const trimmed = messages.slice(-10).map(({ role, content }) => ({ role, content }));
@@ -913,6 +920,120 @@ Never make up information about specific listings or prices. Direct complex issu
         txCount,
         breakdown,
       });
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // Admin helper — verify caller is admin
+    // ════════════════════════════════════════════════════════════
+    async function requireAdmin() {
+      const user = await requireAuth();
+      const adminEmail = (LOGIN_EMAIL || "").trim().toLowerCase();
+      if (!adminEmail || (user.email || "").trim().toLowerCase() !== adminEmail) {
+        throw Object.assign(new Error("Admin access only"), { status: 403 });
+      }
+      return user;
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // POST admin/ban
+    // Body: { email, reason }
+    // ════════════════════════════════════════════════════════════
+    if (route === "admin/ban" && req.method === "POST") {
+      await requireAdmin();
+      const { email, reason } = body;
+      if (!email) return json(res, 400, { error: "email required" });
+
+      const usersData = await dbGet("/users");
+      let uid = null;
+      if (usersData && typeof usersData === "object") {
+        for (const [k, v] of Object.entries(usersData)) {
+          if (v && (v.email || "").toLowerCase() === email.toLowerCase()) { uid = k; break; }
+        }
+      }
+      if (!uid) return json(res, 404, { error: "No user found with that email" });
+
+      await dbPatch(`/users/${uid}`, {
+        banned: { active: true, reason: reason || "Terms of Service violation", ts: Date.now() }
+      });
+      return json(res, 200, { ok: true, uid });
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // POST admin/unban
+    // Body: { email }
+    // ════════════════════════════════════════════════════════════
+    if (route === "admin/unban" && req.method === "POST") {
+      await requireAdmin();
+      const { email } = body;
+      if (!email) return json(res, 400, { error: "email required" });
+
+      const usersData = await dbGet("/users");
+      let uid = null;
+      if (usersData && typeof usersData === "object") {
+        for (const [k, v] of Object.entries(usersData)) {
+          if (v && (v.email || "").toLowerCase() === email.toLowerCase()) { uid = k; break; }
+        }
+      }
+      if (!uid) return json(res, 404, { error: "No user found with that email" });
+
+      await dbPatch(`/users/${uid}`, {
+        banned: { active: false, reason: "", ts: Date.now() }
+      });
+      return json(res, 200, { ok: true, uid });
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // GET admin/appeals
+    // Returns all pending appeals
+    // ════════════════════════════════════════════════════════════
+    if (route === "admin/appeals" && req.method === "GET") {
+      await requireAdmin();
+      const appealsData = await dbGet("/appeals");
+      const pending = [];
+      if (appealsData && typeof appealsData === "object") {
+        for (const [key, val] of Object.entries(appealsData)) {
+          if (val && val.status === "pending") pending.push({ key, ...val });
+        }
+      }
+      pending.sort((a, b) => (a.ts || 0) - (b.ts || 0));
+      return json(res, 200, { appeals: pending });
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // POST admin/appeals/resolve
+    // Body: { key, action: "approve"|"deny" }
+    // ════════════════════════════════════════════════════════════
+    if (route === "admin/appeals/resolve" && req.method === "POST") {
+      await requireAdmin();
+      const { key, action } = body;
+      if (!key || !action) return json(res, 400, { error: "key and action required" });
+
+      await dbPatch(`/appeals/${key}`, { status: "reviewed", resolution: action, resolvedAt: Date.now() });
+
+      if (action === "approve") {
+        const appeal = await dbGet(`/appeals/${key}`);
+        if (appeal && appeal.uid && appeal.uid !== "unknown") {
+          await dbPatch(`/users/${appeal.uid}`, {
+            banned: { active: false, reason: "", ts: Date.now() }
+          });
+        }
+      }
+      return json(res, 200, { ok: true });
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // POST admin/maintenance
+    // Body: { active, message, eta }
+    // ════════════════════════════════════════════════════════════
+    if (route === "admin/maintenance" && req.method === "POST") {
+      await requireAdmin();
+      const { active, message, eta } = body;
+      await dbSet("/meta/maintenance", {
+        active: !!active,
+        message: message || "",
+        eta: eta || ""
+      });
+      return json(res, 200, { ok: true });
     }
 
     // ─── 404 ──────────────────────────────────────────────────
