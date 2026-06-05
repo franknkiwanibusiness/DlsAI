@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HTML Surgeon – Smart AI Editor</title>
+<title>HTML Surgeon – Smart AI Editor (Fixed Merge)</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -84,8 +84,6 @@
   .page { display: none; padding: 20px; animation: fadeUp 0.25s ease; }
   .page.active { display: block; }
   @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-  
-  /* UPLOAD ZONE – no absolute overlay */
   .upload-zone {
     border: 2px dashed var(--border);
     border-radius: 16px;
@@ -218,7 +216,7 @@
   <button class="step-btn" onclick="goToStep(4)" id="sbtn4"><span class="snum">4</span>Preview</button>
 </div>
 
-<!-- STEP 1: UPLOAD (fixed: no overlay input) -->
+<!-- STEP 1: UPLOAD -->
 <div class="page active" id="page1">
   <div class="upload-zone" id="uploadZone">
     <div class="upload-icon">📄</div>
@@ -244,14 +242,14 @@
 
 <!-- STEP 2: REVIEW -->
 <div class="page" id="page2">
-  <div class="section-label" style="font-size:11px; text-transform:uppercase;">Extracted Code</div>
+  <div class="section-label" style="font-size:11px; text-transform:uppercase;">Extracted Code (exact from your file)</div>
   <div class="code-wrap">
     <div class="code-header"><span id="codeLabel">code</span><button class="copy-btn" onclick="copyCode()">Copy</button></div>
     <textarea class="code-area" id="codeArea" spellcheck="false"></textarea>
   </div>
   <div class="hint mt16">
-    <b>✂️ Smart extraction active</b> – You can manually trim this code further. The AI will only see what you leave here.<br>
-    <b>📝 Where to write your edit instructions?</b> → Go to <strong>Step 3 (Edit)</strong> and describe the changes you want.
+    <b>✂️ Smart extraction</b> – This is the exact block of code that will be sent to the AI.<br>
+    <b>📝 Edit instructions?</b> → Go to <strong>Step 3</strong>.
   </div>
   <div class="flex-btns">
     <button class="btn btn-secondary" onclick="goToStep(3)">✏️ Go to Edit Instructions →</button>
@@ -270,7 +268,7 @@
     </div>
   </div>
   <div class="hint">
-    💡 <b>Be specific</b> – mention selectors (e.g., <code>.button</code>, <code>#header</code>), or describe the component you want to change. The AI will only edit the parts related to your instruction.
+    💡 <b>Be specific</b> – mention selectors (e.g., <code>.button</code>, <code>#header</code>), or describe the component you want to change.
   </div>
   <div id="loadingArea" style="display:none; margin-top:20px;">
     <div class="loading-bar"><div class="loading-bar-inner"></div></div>
@@ -284,8 +282,8 @@
 <div class="page" id="page4">
   <div class="code-wrap">
     <div style="display:flex; border-bottom:1px solid var(--border);">
-      <button class="diff-tab active" onclick="switchTab('result')">Edited Code</button>
-      <button class="diff-tab" onclick="switchTab('original')">Original</button>
+      <button class="diff-tab active" onclick="switchTab('result')">Edited Code (Full File)</button>
+      <button class="diff-tab" onclick="switchTab('original')">Original (Full File)</button>
     </div>
     <div id="panel-result"><div class="code-header"><span>result.html</span><button class="copy-btn" onclick="copyResult()">Copy</button></div><textarea class="code-area" id="resultArea" spellcheck="false"></textarea></div>
     <div id="panel-original" style="display:none"><div class="code-header"><span>original</span></div><textarea class="code-area" id="origArea" spellcheck="false" readonly></textarea></div>
@@ -309,7 +307,14 @@
 
 <script>
   // ---------- STATE ----------
-  let state = { file: null, rawCode: '', fileName: '', resultCode: '', currentStep: 1 };
+  let state = {
+    file: null,
+    rawCode: '',        // full original file content
+    originalSnippet: '', // exact substring that will be sent to AI
+    fileName: '',
+    resultCode: '',     // full file after merging
+    currentStep: 1
+  };
 
   // ---------- HELPERS ----------
   function showToast(msg, type = '') {
@@ -333,25 +338,26 @@
     return '📄';
   }
 
-  // ---------- SMART EXTRACTION (frontend) ----------
-  function extractRelevantCode(fullCode, instruction) {
+  // ---------- SMART EXTRACTION (returns exact substring from original file) ----------
+  function extractExactSnippet(fullCode, instruction) {
+    // For HTML files, try to find a relevant block using selectors from instruction
     const isHtml = fullCode.trim().startsWith('<!DOCTYPE') || /<html/i.test(fullCode);
     if (!isHtml) {
-      // For CSS/JS: keep only lines containing instruction keywords
+      // For CSS/JS: keep only lines containing keywords
       const keywords = instruction.toLowerCase().split(/\s+/);
       const lines = fullCode.split('\n');
-      const relevant = lines.filter(line => keywords.some(kw => line.toLowerCase().includes(kw)));
-      let snippet = relevant.join('\n');
+      const relevantLines = lines.filter(line => keywords.some(kw => line.toLowerCase().includes(kw)));
+      let snippet = relevantLines.join('\n');
       if (snippet.length === 0) snippet = fullCode.slice(0, 5000);
-      return { snippet, originalLength: fullCode.length, snippetLength: snippet.length };
+      return snippet;
     }
 
-    // Parse HTML with DOMParser
+    // Parse HTML and find elements matching instruction selectors
     const parser = new DOMParser();
     const doc = parser.parseFromString(fullCode, 'text/html');
     const lowerInst = instruction.toLowerCase();
 
-    // Extract selectors from instruction (e.g., .hero, #nav, button, header)
+    // Extract selectors
     const selectors = [];
     const selectorMatches = lowerInst.match(/(?:#|\.)[a-z0-9_-]+|(?:button|div|span|header|footer|nav|section|form|input|a)/gi);
     if (selectorMatches) selectors.push(...selectorMatches.map(s => s.toLowerCase()));
@@ -364,24 +370,27 @@
       } catch(e) {}
     }
 
-    let snippet = '';
-    if (elements.length > 0) {
-      snippet = elements.map(el => el.outerHTML).join('\n');
-      // Also capture any <style> that matches keywords
-      const styles = doc.querySelectorAll('style');
-      for (let style of styles) {
-        if (lowerInst.split(' ').some(word => style.textContent.includes(word))) {
-          snippet += '\n' + style.outerHTML;
-        }
-      }
-    } else {
-      // fallback: take first 6000 characters
-      snippet = fullCode.slice(0, 6000) + '\n<!-- ... truncated ... -->';
+    if (elements.length === 0) {
+      // fallback: first 6000 chars
+      return fullCode.slice(0, 6000);
     }
-    return { snippet, originalLength: fullCode.length, snippetLength: snippet.length };
+
+    // Get the outerHTML of the first matching element (or combine multiple)
+    // For simplicity, we take the first element's outerHTML (most relevant)
+    // This ensures the snippet exists as a contiguous block in the original file.
+    const targetElement = elements[0];
+    const snippet = targetElement.outerHTML;
+
+    // Verify the snippet exists in the original fullCode (it should)
+    if (!fullCode.includes(snippet)) {
+      // If not found due to parsing differences, fallback to first 6000 chars
+      console.warn('Exact snippet not found in original – using fallback');
+      return fullCode.slice(0, 6000);
+    }
+    return snippet;
   }
 
-  // ---------- AI CALL with smart extraction ----------
+  // ---------- AI CALL with exact snippet and frontend merging ----------
   async function sendToAI() {
     const prompt = document.getElementById('promptArea').value.trim();
     if (!prompt) return showToast('Write your edit instructions first (Step 3)', 'error');
@@ -393,18 +402,20 @@
 
     sendBtn.disabled = true;
     loadingArea.style.display = 'block';
-    statusMsg.innerHTML = '🔍 Extracting only the code that matters...';
+    statusMsg.innerHTML = '🔍 Extracting exact code block...';
 
     try {
-      const extracted = extractRelevantCode(state.rawCode, prompt);
-      statusMsg.innerHTML = `✂️ Reduced from ${extracted.originalLength.toLocaleString()} to ${extracted.snippetLength.toLocaleString()} chars. Sending to AI...`;
+      // Extract the exact snippet from the original file
+      const exactSnippet = extractExactSnippet(state.rawCode, prompt);
+      state.originalSnippet = exactSnippet;
+      statusMsg.innerHTML = `✂️ Extracted ${exactSnippet.length.toLocaleString()} chars. Sending to AI...`;
 
+      // Send to backend (the backend does NOT need to merge)
       const response = await fetch('/api/edit-smart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fullCode: state.rawCode,
-          snippet: extracted.snippet,
+          snippet: exactSnippet,
           instruction: prompt,
           fileName: state.fileName
         })
@@ -416,12 +427,19 @@
       }
 
       const data = await response.json();
-      state.resultCode = data.result;
+      const editedSnippet = data.result;
+
+      // ---- FRONTEND MERGING ----
+      // Replace the exact original snippet with the edited version in the full code
+      const mergedFullCode = state.rawCode.replace(state.originalSnippet, editedSnippet);
+      state.resultCode = mergedFullCode;
+
+      // Update UI
       document.getElementById('resultArea').value = state.resultCode;
       document.getElementById('origArea').value = state.rawCode;
       loadingArea.style.display = 'none';
       sendBtn.disabled = false;
-      showToast('✅ Edit applied successfully!', 'success');
+      showToast('✅ Edit applied – full file merged!', 'success');
       goToStep(4);
     } catch (err) {
       loadingArea.style.display = 'none';
@@ -488,11 +506,19 @@
     document.getElementById('charCount').textContent = '0 / 2000';
     document.getElementById('resultArea').value = '';
     document.getElementById('origArea').value = '';
+    state.resultCode = '';
     goToStep(1);
   }
 
   function clearFile() {
-    state = { file: null, rawCode: '', fileName: '', resultCode: '', currentStep: 1 };
+    state = {
+      file: null,
+      rawCode: '',
+      originalSnippet: '',
+      fileName: '',
+      resultCode: '',
+      currentStep: 1
+    };
     document.getElementById('fileInput').value = '';
     document.getElementById('fileCard').style.display = 'none';
   }
@@ -502,7 +528,7 @@
     document.getElementById('charCount').textContent = '0 / 2000';
   }
 
-  // ---------- File upload handlers (fixed: no overlay) ----------
+  // ---------- File upload handlers ----------
   const fileInput = document.getElementById('fileInput');
   const selectBtn = document.getElementById('selectFileBtn');
   const uploadZone = document.getElementById('uploadZone');
@@ -527,6 +553,7 @@
       document.getElementById('fileSize').textContent = formatSize(file.size);
       document.getElementById('fileEmoji').textContent = getEmoji(file.name);
       document.getElementById('fileCard').style.display = 'block';
+      // Show full file in the "Review" textarea (user can manually edit if they want)
       document.getElementById('codeArea').value = state.rawCode;
       document.getElementById('origArea').value = state.rawCode;
       document.getElementById('codeLabel').textContent = file.name;
@@ -534,7 +561,11 @@
     reader.readAsText(file);
   }
 
-  document.getElementById('codeArea').addEventListener('input', e => state.rawCode = e.target.value);
+  // Allow manual editing of the snippet in Step 2
+  document.getElementById('codeArea').addEventListener('input', e => {
+    state.originalSnippet = e.target.value;
+    state.rawCode = e.target.value;  // if user manually changes, treat as new full code
+  });
   document.getElementById('resultArea').addEventListener('input', e => state.resultCode = e.target.value);
   document.getElementById('promptArea').addEventListener('input', e => document.getElementById('charCount').textContent = e.target.value.length + ' / 2000');
 </script>
