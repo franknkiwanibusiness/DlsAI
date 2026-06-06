@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="stylesheet" href="/global.css">
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#070710">
@@ -13,7 +11,30 @@
     <meta name="robots" content="noindex">
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,400&display=swap" rel="stylesheet">
-    <style>*, *::before, *::after {
+    <style>
+        :root {
+            --bg: #070710;
+            --surface: #0e0e1c;
+            --surface2: #141426;
+            --surface3: #1a1a30;
+            --border: rgba(255,255,255,0.06);
+            --border-hover: rgba(255,255,255,0.14);
+            --accent: #9b5de5;
+            --accent2: #e879a0;
+            --accent3: #38bdf8;
+            --accent-glow: rgba(155,93,229,0.15);
+            --green: #2dd4a0;
+            --yellow: #f5c842;
+            --red: #f87171;
+            --text: #ede9ff;
+            --text2: #b8b3d8;
+            --muted: #6b6890;
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 18px;
+            --radius-xl: 24px;
+        }
+        *, *::before, *::after {
             font-family: 'DM Sans', sans-serif;
             box-sizing: border-box; margin: 0; padding: 0;
             -webkit-tap-highlight-color: transparent;
@@ -24,18 +45,72 @@
         *::-webkit-scrollbar { display: none; }
         html { background: var(--bg); overflow-x: hidden; }
         body { background: var(--bg); min-height: 100svh; padding-top: 64px; -webkit-overflow-scrolling: touch; }
-@keyframes modalPop { 0%{opacity:0;transform:scale(.94) translateY(8px)}100%{opacity:1;transform:scale(1) translateY(0)} }
+
+        /*  ANIMATIONS  */
+        @keyframes blade-chase { 0%{opacity:.12}5%{opacity:1}25%{opacity:.18}100%{opacity:.12} }
+        .blade { animation: blade-chase 1.4s linear infinite; }
+        .b-1{animation-delay:-1.40s}.b-2{animation-delay:-1.26s}.b-3{animation-delay:-1.12s}
+        .b-4{animation-delay:-0.98s}.b-5{animation-delay:-0.84s}.b-6{animation-delay:-0.70s}
+        .b-7{animation-delay:-0.56s}.b-8{animation-delay:-0.42s}.b-9{animation-delay:-0.28s}.b-10{animation-delay:-0.14s}
+        @keyframes line-slide { 0%{transform:translateX(-100%)}100%{transform:translateX(500%)} }
+        @keyframes modalPop { 0%{opacity:0;transform:scale(.94) translateY(8px)}100%{opacity:1;transform:scale(1) translateY(0)} }
         @keyframes fadeUp { from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none} }
         @keyframes shimmer { 0%{background-position:200% 0}100%{background-position:-200% 0} }
         @keyframes glow-pulse { 0%,100%{opacity:.4}50%{opacity:.8} }
         @keyframes lock-shake { 0%,100%{transform:translateX(0)}20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)} }
         @keyframes reveal-pop { 0%{transform:scale(.88);opacity:0}60%{transform:scale(1.04)}100%{transform:scale(1);opacity:1} }
-.header-right { display:flex; align-items:center; gap:10px; }
-.avatar img { width:100%; height:100%; object-fit:cover; border-radius:999px; display:block; }
-/* ── PAGE ── */
-/* Desktop two-column layout */
+
+        /*  HEADER  */
+        header {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            height: 64px; padding: 0 max(20px, env(safe-area-inset-left)) 0 max(20px, env(safe-area-inset-right));
+            display: flex; align-items: center; justify-content: space-between; gap: 12px;
+            background: rgba(7,7,16,0.88); backdrop-filter: blur(32px) saturate(180%);
+            -webkit-backdrop-filter: blur(32px) saturate(180%);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        header::after {
+            content:''; position:absolute; bottom:-1px; left:0;
+            width:22%; height:1px;
+            background:linear-gradient(90deg,transparent,var(--accent),var(--accent2),transparent);
+            animation:line-slide 4s ease-in-out infinite;
+        }
+        .wordmark {
+            font-family:'Syne',sans-serif; font-weight:800; font-size:1.05rem;
+            letter-spacing:-0.05em; color:var(--text); white-space:nowrap; text-decoration:none;
+        }
+        .wordmark span { background:linear-gradient(135deg,var(--accent),var(--accent2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; font-weight:500; }
+        .header-right { display:flex; align-items:center; gap:10px; }
+        .avatar {
+            width:34px; height:34px; border-radius:999px;
+            background:linear-gradient(135deg,var(--accent),var(--accent2));
+            border:1.5px solid rgba(255,255,255,0.1);
+            display:flex; align-items:center; justify-content:center;
+            font-family:'Syne',sans-serif; font-size:13px; font-weight:700; color:#fff;
+            flex-shrink:0; cursor:pointer; overflow:hidden; transition:opacity .15s,transform .15s;
+        }
+        .avatar:hover { opacity:.85; transform:scale(1.05); }
+        .avatar img { width:100%; height:100%; object-fit:cover; border-radius:999px; display:block; }
+        .back-btn {
+            display:inline-flex; align-items:center; gap:5px;
+            background:var(--surface2); border:1px solid var(--border);
+            border-radius:999px; padding:6px 13px;
+            font-family:'Syne',sans-serif; font-size:11px; font-weight:600;
+            color:var(--muted); cursor:pointer; text-decoration:none;
+            transition:background .15s,color .15s,border-color .15s; white-space:nowrap;
+        }
+        .back-btn:hover { background:var(--surface3); color:var(--text); border-color:var(--border-hover); }
+
+        /*  PAGE  */
+        .page-wrap {
+            max-width: 960px; margin: 0 auto;
+            padding: 24px 16px 40px;
+            animation: fadeUp .35s ease both;
+        }
+        /* Desktop two-column layout */
         @media(min-width:720px){
-.listing-layout { display:grid; grid-template-columns:1fr 320px; gap:20px; align-items:start; }
+            .page-wrap { padding: 28px 24px 48px; }
+            .listing-layout { display:grid; grid-template-columns:1fr 320px; gap:20px; align-items:start; }
             .listing-main { min-width:0; }
             .listing-sidebar { min-width:0; }
         }
@@ -44,16 +119,19 @@
             .listing-sidebar { margin-top:0; }
         }
 
-        /* ── BREADCRUMB ── */
+        /*  BREADCRUMB  */
         .breadcrumb { display:flex; align-items:center; gap:8px; margin-bottom:22px; }
-/* ── SKELETON ── */
+        .breadcrumb-sep { color:rgba(255,255,255,0.18); font-size:11px; }
+        .breadcrumb-current { font-size:11px; color:var(--text2); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:220px; }
+
+        /*  SKELETON  */
         .skel {
             border-radius:8px;
             background:linear-gradient(90deg,var(--surface2) 25%,#1c1c2e 50%,var(--surface2) 75%);
             background-size:200% 100%; animation:shimmer 1.8s infinite;
         }
 
-        /* ── SKELETON SCREEN ── */
+        /*  SKELETON SCREEN  */
         #skelScreen {
             max-width:960px; margin:0 auto;
             padding:24px 16px 80px;
@@ -82,7 +160,7 @@
         .sk-seller-name { height:14px; width:45%; border-radius:6px; }
         .sk-seller-sub  { height:11px; width:30%; border-radius:5px; }
 
-        /* ── GALLERY ── */
+        /*  GALLERY  */
         .gallery-wrap {
             position:relative; border-radius:var(--radius-xl); overflow:hidden;
             background:var(--surface); aspect-ratio:16/9; margin-bottom:24px;
@@ -124,9 +202,9 @@
         .g-badge.featured { background:rgba(155,93,229,.75); border:1px solid rgba(155,93,229,.5); color:#fff; }
         .g-badge.sponsored { background:rgba(245,200,66,.75); border:1px solid rgba(245,200,66,.4); color:#111; }
 
-        /* ── TITLE AREA ── */
-        .listing-
-.listing-title {
+        /*  TITLE AREA  */
+        .listing-header { margin-bottom:20px; }
+        .listing-title {
             font-family:'Syne',sans-serif; font-size:1.55rem; font-weight:800;
             letter-spacing:-0.045em; color:var(--text); margin-bottom:8px; line-height:1.18;
         }
@@ -148,7 +226,7 @@
         .tag-pill.sponsored { border-color:rgba(245,200,66,.3); color:var(--yellow); background:rgba(245,200,66,.07); }
         .time-pill { font-size:9.5px; color:var(--muted); display:flex; align-items:center; gap:4px; }
 
-        /* ── PRICE + ACTION ROW ── */
+        /*  PRICE + ACTION ROW  */
         .price-action-block {
             display:flex; align-items:center; justify-content:space-between;
             gap:16px; flex-wrap:wrap; margin-bottom:24px;
@@ -163,7 +241,7 @@
         .price-sub { font-size:11px; color:var(--muted); margin-top:4px; }
         .action-btns { display:flex; gap:9px; align-items:center; flex-wrap:wrap; }
 
-        /* ── BUTTONS ── */
+        /*  BUTTONS  */
         .btn-primary {
             display:inline-flex; align-items:center; justify-content:center; gap:7px;
             padding:12px 20px; border-radius:var(--radius-md);
@@ -201,7 +279,7 @@
             white-space:nowrap;
         }
 
-        /* ── SECTIONS ── */
+        /*  SECTIONS  */
         .section-card {
             background:var(--surface); border:1px solid var(--border);
             border-radius:var(--radius-lg); padding:20px;
@@ -213,7 +291,7 @@
             letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:16px;
         }
 
-        /* ── FINANCIALS ── */
+        /*  FINANCIALS  */
         .fin-grid {
             display:grid; grid-template-columns:repeat(3,1fr);
             gap:1px; background:var(--border); border-radius:var(--radius-md); overflow:hidden;
@@ -226,28 +304,28 @@
         .fin-val.neutral { color:var(--muted); } .fin-val.price-val { color:var(--text); }
         .fin-sub { font-size:9px; color:var(--muted); margin-top:1px; }
 
-        /* ── METRICS ── */
+        /*  METRICS  */
         .metrics-row { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
         .metric-cell { background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-md); padding:14px 16px; }
         .metric-label { font-size:8.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
         .metric-val { font-family:'Syne',sans-serif; font-size:16px; font-weight:800; color:var(--text); letter-spacing:-0.02em; }
         .metric-sub { font-size:9px; color:var(--muted); margin-top:2px; }
 
-        /* ── DESCRIPTION ── */
+        /*  DESCRIPTION  */
         .desc-text { font-size:13px; color:var(--text2); line-height:1.75; white-space:pre-wrap; }
 
-        /* ── TECH TAG ── */
+        /*  TECH TAG  */
         .tech-tag {
             display:inline-block; background:rgba(255,255,255,.04); border:1px solid var(--border);
             border-radius:6px; padding:4px 10px; font-size:10px; color:var(--text2); margin:3px 2px;
         }
 
-        /* ── DIVIDER ── */
+        /*  DIVIDER  */
         .divider { height:1px; background:var(--border); margin:16px 0; }
 
-        /* ══════════════════════════════════════════════════════
+        /* 
            REVEAL CONTACT — PREMIUM / BALANCE LOCK DESIGN
-        ═══════════════════════════════════════════════════════ */
+         */
         .contact-lock-card {
             background: linear-gradient(145deg, #0f0f20, #13122a);
             border: 1px solid rgba(155,93,229,0.22);
@@ -271,8 +349,10 @@
         }
 
         /* Locked state: premium gate */
-        .reveal-locked-
-.reveal-lock-icon {
+        .reveal-locked-header {
+            display:flex; align-items:center; gap:14px; margin-bottom:20px;
+        }
+        .reveal-lock-icon {
             width:52px; height:52px; border-radius:16px;
             background:linear-gradient(135deg,rgba(155,93,229,.18),rgba(232,121,160,.12));
             border:1px solid rgba(155,93,229,.3);
@@ -364,8 +444,10 @@
             background:radial-gradient(circle, rgba(45,212,160,.12) 0%, transparent 70%);
             pointer-events:none;
         }
-        .contact-revealed-
-.contact-revealed-icon {
+        .contact-revealed-header {
+            display:flex; align-items:center; gap:10px; margin-bottom:20px;
+        }
+        .contact-revealed-icon {
             width:38px; height:38px; border-radius:11px; flex-shrink:0;
             background:rgba(45,212,160,.15); border:1px solid rgba(45,212,160,.3);
             display:flex; align-items:center; justify-content:center;
@@ -395,7 +477,7 @@
         .btn-contact-email:hover { background:linear-gradient(135deg,rgba(45,212,160,.22),rgba(56,189,248,.14)); opacity:.92; }
         .btn-contact-email:active { transform:scale(.98); }
 
-        /* ── SELLER CARD ── */
+        /*  SELLER CARD  */
         .seller-wrap { display:flex; align-items:center; gap:14px; }
         .seller-avatar {
             width:50px; height:50px; border-radius:999px;
@@ -414,12 +496,17 @@
             font-size:8.5px; font-weight:700; letter-spacing:.07em; text-transform:uppercase;
             border:1px solid transparent; white-space:nowrap;
         }
-/* ── STARS ── */
+        .plan-free    { background:rgba(120,80,40,.14); border-color:rgba(160,100,50,.3)!important; color:#b87840; }
+        .plan-starter { background:rgba(155,93,229,.1);  border-color:rgba(155,93,229,.28)!important; color:var(--accent); }
+        .plan-growth  { background:rgba(232,121,160,.1); border-color:rgba(232,121,160,.28)!important; color:var(--accent2); }
+        .plan-pro     { background:rgba(56,189,248,.1);  border-color:rgba(56,189,248,.28)!important; color:var(--accent3); }
+
+        /*  STARS  */
         .stars-row { display:flex; align-items:center; gap:3px; margin-top:4px; }
         .stars-count { font-size:11px; color:var(--muted); margin-left:4px; }
         .stars-count.has-ratings { color:var(--yellow); font-weight:600; }
 
-        /* ── RATE SECTION ── */
+        /*  RATE SECTION  */
         .rate-wrap { display:flex; flex-direction:column; gap:8px; margin-top:14px; }
         .rate-label { font-size:11px; color:var(--muted); }
         .rate-stars-input { display:flex; gap:6px; }
@@ -436,7 +523,7 @@
         .rate-submit:disabled { opacity:.45; cursor:default; }
         .rate-ok { font-size:11px; color:var(--green); display:none; }
 
-        /* ── UNIFIED BODY ── */
+        /*  UNIFIED BODY  */
         .unified-body { padding: 24px; }
         .body-sep { height:1px; background:var(--border); }
 
@@ -483,7 +570,7 @@
         .calc-val { font-family:'Syne',sans-serif; font-size:14px; font-weight:800; letter-spacing:-0.02em; color:var(--text); }
         .calc-sub { font-size:9px; color:var(--muted); }
 
-        /* ── OWNER BANNER ── */
+        /*  OWNER BANNER  */
         .owner-banner {
             display:flex; align-items:center; gap:8px;
             padding:11px 14px; background:rgba(155,93,229,.07);
@@ -491,7 +578,7 @@
             font-size:12px; color:var(--muted);
         }
 
-        /* ── UPGRADE NUDGE ── */
+        /*  UPGRADE NUDGE  */
         .upgrade-nudge {
             margin-top:16px; padding:14px 16px;
             background:linear-gradient(135deg,rgba(155,93,229,.08),rgba(232,121,160,.05));
@@ -511,7 +598,7 @@
         }
         .btn-upgrade-small:hover { opacity:.85; }
 
-        /* ── BALANCE MODAL ── */
+        /*  BALANCE MODAL  */
         #balanceModal {
             display:none; position:fixed; inset:0; z-index:1001;
             background:rgba(0,0,0,.8); backdrop-filter:blur(22px) saturate(160%);
@@ -570,7 +657,7 @@
         }
         .balance-cancel-btn:hover { background:var(--surface2); border-color:var(--border-hover); color:var(--text); }
 
-        /* ── NOT FOUND ── */
+        /*  NOT FOUND  */
         #notFound {
             display:none; position:fixed; inset:0;
             flex-direction:column; align-items:center; justify-content:center;
@@ -581,26 +668,60 @@
         #notFound h2 { font-family:'Syne',sans-serif; font-size:1.5rem; font-weight:800; color:var(--text); margin-bottom:10px; letter-spacing:-0.03em; }
         #notFound p { font-size:13px; color:var(--muted); line-height:1.6; margin-bottom:28px; max-width:260px; }
 
-        /* ── AUTH MODAL ── */
+        /*  AUTH MODAL  */
         #authModal {
             display:none; position:fixed; inset:0; z-index:1000;
             background:rgba(0,0,0,.75); backdrop-filter:blur(22px) saturate(160%);
             -webkit-backdrop-filter:blur(22px) saturate(160%); overflow:hidden;
         }
-/* ── SIDEBAR ── */
+        .auth-wrap { height:100%; display:flex; align-items:center; justify-content:center; padding:20px 16px; }
+        .auth-box {
+            width:100%; max-width:420px;
+            background:linear-gradient(160deg,#16162a 0%,#0f0f1e 100%);
+            border:1px solid rgba(255,255,255,.1); border-top:1px solid rgba(255,255,255,.18);
+            border-radius:24px; padding:32px 28px;
+            position:relative; box-shadow:0 32px 80px rgba(0,0,0,.8);
+            animation:modalPop .28s cubic-bezier(0.34,1.3,0.64,1) both;
+            overflow-y:auto; -webkit-overflow-scrolling:touch; max-height:92svh;
+        }
+
+        /*  SIDEBAR  */
         @media(min-width:720px){
             .listing-sidebar { position:sticky; top:80px; align-self:start; }
             .listing-sidebar .section-card { margin-bottom:12px; }
             /* On desktop move price-action into sidebar order via grid placement */
             .price-action-block { order:-1; }
         }
-        @media(max-width:480px){
-}
-.auth-logo span { font-family:'Syne',sans-serif; font-weight:800; font-size:1rem; letter-spacing:-0.04em; color:var(--text); }
+        @media(max-width:480px){.auth-box{padding:26px 20px 28px;border-radius:20px;}}
+        .auth-close {
+            position:absolute; top:16px; right:16px; width:32px; height:32px; border-radius:999px;
+            background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.09);
+            display:flex; align-items:center; justify-content:center;
+            cursor:pointer; color:var(--muted); transition:background .15s,color .15s;
+        }
+        .auth-close:hover { background:rgba(255,255,255,.1); color:var(--text); }
+        .auth-logo { display:flex; align-items:center; gap:8px; margin-bottom:22px; }
+        .auth-logo span { font-family:'Syne',sans-serif; font-weight:800; font-size:1rem; letter-spacing:-0.04em; color:var(--text); }
         .auth-logo span em { background:linear-gradient(135deg,var(--accent),var(--accent2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; font-style:normal; font-weight:400; }
-.auth-divider::before,.auth-divider::after { content:''; flex:1; height:1px; background:var(--border); }
+        .auth-title { font-family:'Syne',sans-serif; font-size:1.35rem; font-weight:800; letter-spacing:-0.04em; color:var(--text); margin-bottom:5px; }
+        .auth-sub { font-size:12px; color:var(--muted); margin-bottom:22px; line-height:1.6; }
+        .auth-label { display:block; font-size:11px; font-weight:500; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-bottom:7px; }
+        .auth-input { width:100%; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:12px 14px; font-size:15px; color:var(--text); outline:none; transition:border-color .2s,background .2s; margin-bottom:14px; font-family:'DM Sans',sans-serif; -webkit-appearance:none; }
+        .auth-input:focus { border-color:rgba(168,85,247,.55); background:rgba(255,255,255,.08); }
+        .auth-input::placeholder { color:rgba(139,138,168,.5); }
+        .auth-btn { width:100%; padding:13px; border-radius:12px; background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; font-family:'Syne',sans-serif; font-weight:700; font-size:14px; border:none; cursor:pointer; transition:opacity .15s,transform .1s; margin-top:4px; }
+        .auth-btn:hover { opacity:.88; } .auth-btn:active { transform:scale(0.97); } .auth-btn:disabled { opacity:.45; cursor:default; }
+        .auth-google-btn { width:100%; padding:12px 16px; border-radius:12px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); color:var(--text); font-family:'DM Sans',sans-serif; font-weight:600; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px; transition:background .15s,border-color .15s; margin-bottom:0; }
+        .auth-google-btn:hover { background:rgba(255,255,255,.1); border-color:rgba(255,255,255,.2); }
+        .auth-google-btn:disabled { opacity:.45; cursor:default; }
+        .auth-switch { text-align:center; font-size:12px; color:var(--muted); margin-top:18px; }
+        .auth-switch a { color:var(--accent); cursor:pointer; text-decoration:none; font-weight:500; }
+        .auth-err { font-size:12px; color:#f87171; background:rgba(248,113,113,.1); border:1px solid rgba(248,113,113,.2); border-radius:8px; padding:9px 12px; margin-bottom:14px; display:none; }
+        .auth-ok  { font-size:12px; color:#34d399; background:rgba(52,211,153,.1); border:1px solid rgba(52,211,153,.2); border-radius:8px; padding:9px 12px; margin-bottom:14px; display:none; }
+        .auth-divider { display:flex; align-items:center; gap:10px; margin:18px 0; color:var(--muted); font-size:11px; }
+        .auth-divider::before,.auth-divider::after { content:''; flex:1; height:1px; background:var(--border); }
 
-        /* ══ ANALYTICS SECTION ══ */
+        /*  ANALYTICS SECTION  */
         .stat-section-title { font-family:'Syne',sans-serif; font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:14px; }
         .stat-grid {
             display:grid; grid-template-columns:repeat(3,1fr);
@@ -626,7 +747,7 @@
         .stat-badge.neutral { background:rgba(255,255,255,.05); color:var(--muted); }
         .an-sep { height:1px; background:var(--border); margin:18px 0; }
 
-        /* ── TOAST ── */
+        /*  TOAST  */
         #toast {
             position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
             background:var(--surface3); border:1px solid var(--border);
@@ -648,11 +769,25 @@
             .btn-primary,.btn-secondary { flex:1; }
         }
 
-        /* ── FOOTER ── */</style>
+        /*  FOOTER  */
+        footer {
+            padding: 28px 20px max(48px, calc(32px + env(safe-area-inset-bottom)));
+            border-top: 1px solid rgba(255,255,255,0.04);
+            text-align: center;
+        }
+        .footer-links {
+            display: flex; align-items: center; justify-content: center;
+            flex-wrap: wrap; gap: 6px 14px;
+            font-size: 11.5px; color: rgba(180,176,220,0.7);
+        }
+        .footer-links a { color: rgba(155,93,229,.65); text-decoration: none; transition: color .15s; }
+        .footer-links a:hover { color: #9b5de5; }
+        .footer-sep { opacity: .3; }
+    </style>
 </head>
 <body>
 
-<!-- ══ HEADER ══ -->
+<!--  HEADER  -->
 <header>
     <a href="/" aria-label="Siterifty — home" style="display:flex;align-items:center;gap:10px;flex-shrink:0;text-decoration:none;opacity:1;transition:opacity .18s;" onmouseover="this.style.opacity='.75'" onmouseout="this.style.opacity='1'">
         <svg width="28" height="28" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">
@@ -682,7 +817,7 @@
     </div>
 </header>
 
-<!-- ══ SKELETON SCREEN ══ -->
+<!--  SKELETON SCREEN  -->
 <div id="skelScreen">
 
     <!-- Breadcrumb skeleton -->
@@ -747,7 +882,7 @@
 
 </div>
 
-<!-- ══ PAGE ══ -->
+<!--  PAGE  -->
 <div class="page-wrap" id="pageWrap" style="display:none;">
 
     <!-- Breadcrumb -->
@@ -787,7 +922,7 @@
 
 
 
-    <!-- ══ UNIFIED LISTING BODY — all data in one cohesive card ══ -->
+    <!--  UNIFIED LISTING BODY — all data in one cohesive card  -->
     <div class="section-card unified-body" id="unifiedBody" style="display:none;">
 
         <!-- Analytics inline -->
@@ -827,7 +962,7 @@
                         <div style="font-size:10px;color:var(--muted);margin-top:1px;" id="ownershipMethod">Identity &amp; domain documents reviewed by Siterifty</div>
                     </div>
                 </div>
-                <div style="font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:rgba(45,212,160,.55);white-space:nowrap;flex-shrink:0;">✓ Verified</div>
+                <div style="font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:rgba(45,212,160,.55);white-space:nowrap;flex-shrink:0;"> Verified</div>
             </div>
         </div>
 
@@ -892,7 +1027,7 @@
                     <div class="rate-star" data-val="5" onclick="setRating(5)"><svg width="22" height="22" viewBox="0 0 22 22"><polygon points="11,2 13.39,7.76 19.8,8.27 15.1,12.34 16.56,18.6 11,15.27 5.44,18.6 6.9,12.34 2.2,8.27 8.61,7.76" fill="currentColor"/></svg></div>
                 </div>
                 <button class="rate-submit" id="rateSubmitBtn" onclick="submitRating()" disabled>Submit rating</button>
-                <div class="rate-ok" id="rateOk">✓ Rating saved!</div>
+                <div class="rate-ok" id="rateOk"><svg style="display:inline;vertical-align:-2px;" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Rating saved!</div>
             </div>
         </div>
 
@@ -920,7 +1055,7 @@
 <!-- Toast -->
 <div id="toast"></div>
 
-<!-- ══ BALANCE SPEND MODAL ══ -->
+<!--  BALANCE SPEND MODAL  -->
 <div id="balanceModal">
     <div class="balance-modal-wrap">
         <div class="balance-modal-box">
@@ -947,7 +1082,7 @@
                 </div>
             </div>
             <div class="balance-low-warn" id="balanceLowWarn" style="display:none;">
-                ⚠️ Insufficient balance. <a href="/?wallet=topup" style="color:#f5c842;font-weight:700;text-decoration:underline;">Top up your wallet →</a>
+                <svg style="display:inline;vertical-align:-2px;" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f5c842" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Insufficient balance. <a href="/?wallet=topup" style="color:#f5c842;font-weight:700;text-decoration:underline;">Top up your wallet →</a>
             </div>
             <div id="balanceModalErr" style="display:none;font-size:12px;color:#f87171;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.2);border-radius:8px;padding:9px 12px;margin-bottom:12px;"></div>
             <button class="balance-confirm-btn" id="balanceConfirmBtn" onclick="confirmBalanceReveal()">
@@ -958,7 +1093,7 @@
     </div>
 </div>
 
-<!-- ══ AUTH MODAL ══ -->
+<!--  AUTH MODAL  -->
 <div id="authModal">
     <div class="auth-wrap">
         <div class="auth-box">
@@ -1029,28 +1164,44 @@
 </div>
 
 <script type="module">
-import { app, auth, db } from "/firebase-config.js";
 import {
-    ref, get, set, update, onValue, increment
+    initializeApp, getApps
+} from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+import {
+    getDatabase, ref, get, set, update, onValue, increment
 } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
 import {
-    onAuthStateChanged,
+    getAuth, onAuthStateChanged,
     createUserWithEmailAndPassword, signInWithEmailAndPassword,
     sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup
 } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
+    authDomain: "itzhoyoo-f9f7e.firebaseapp.com",
+    databaseURL: "https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com",
+    projectId: "itzhoyoo-f9f7e",
+    storageBucket: "itzhoyoo-f9f7e.filestorage.app",
+    messagingSenderId: "1094792075584",
+    appId: "1:1094792075584:web:d49e9c3f899d3cd31082a5"
+};
+
+const app  = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+const db   = getDatabase(app);
+const auth = getAuth(app);
 
 window._fbDb   = db;
 window._fbAuth = auth;
 window._fbDbFns = { ref, get, set, update, onValue };
 
-// ── Helpers ──
+//  Helpers 
 function $(id){ return document.getElementById(id); }
 function showErr(id,msg){ const el=$(id); if(el){el.textContent=msg;el.style.display='block';} }
 function showOk(id,msg){ const el=$(id); if(el){el.textContent=msg;el.style.display='block';} }
 function hideMsg(...ids){ ids.forEach(id=>{const el=$(id);if(el){el.style.display='none';el.textContent='';}}); }
 function setBtn(id,text,disabled){ const b=$(id); if(b){b.textContent=text;b.disabled=disabled;} }
 
-// ── Scroll lock ──
+//  Scroll lock 
 let _scrollY=0,_lockCount=0;
 function lockScroll(){
     if(_lockCount===0){_scrollY=window.scrollY||0;document.body.style.cssText+=`;position:fixed;top:-${_scrollY}px;left:0;right:0;overflow:hidden`;}
@@ -1065,7 +1216,7 @@ function unlockScroll(){
     }
 }
 
-// ── Listing ID ──
+//  Listing ID 
 // Handles: /listing/ID  OR  /listing?id=ID  OR  #ID  OR  ?id=ID on any path
 const _pathMatch = location.pathname.match(/\/listing\/([A-Za-z0-9_-]+)/);
 const _qpId      = new URLSearchParams(location.search).get('id');
@@ -1073,10 +1224,10 @@ const _hashId    = location.hash.replace(/^#\/?/,'').trim() || null;
 const listingId  = (_pathMatch && _pathMatch[1]) || _qpId || _hashId || null;
 if(!listingId) showNotFound();
 
-// ── State ──
+//  State 
 let _authReady=false, _currentUser=null, _listingData=null, _sellerData=null, _userData=null;
 
-// ── Auth state ──
+//  Auth state 
 onAuthStateChanged(auth, async user=>{
     _currentUser=user;
     updateAvatarUI(user);
@@ -1102,7 +1253,7 @@ function showAuthGate(){
     $('authModal').onclick=null;
 }
 
-// ── Avatar ──
+//  Avatar 
 const AVATAR_GRADS=[['#9b5de5','#e879a0'],['#38bdf8','#818cf8'],['#2dd4a0','#38bdf8'],['#f5c842','#f97316'],['#e879a0','#fb7185'],['#818cf8','#9b5de5']];
 function gradFor(uid){if(!uid)return AVATAR_GRADS[0];let h=0;for(let i=0;i<uid.length;i++)h=(h*31+uid.charCodeAt(i))>>>0;return AVATAR_GRADS[h%AVATAR_GRADS.length];}
 function gradCSS(uid){const[c1,c2]=gradFor(uid);return`linear-gradient(135deg,${c1},${c2})`;}
@@ -1134,7 +1285,7 @@ function updateAvatarUI(user){
     }
 }
 
-// ── Load listing ──
+//  Load listing 
 async function loadListing(user){
     try {
         // Step 1: load listing + current viewer's user data in parallel
@@ -1184,17 +1335,17 @@ function showNotFound(){
     $('notFound').classList.add('show');
 }
 
-// ── XSS escape helper ──
+//  XSS escape helper 
 function _esc(s){
     return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
-// ── Safe URL helper — only allow http/https ──
+//  Safe URL helper — only allow http/https 
 function _safeUrl(u){
     try { const p=new URL(u); return (p.protocol==='https:'||p.protocol==='http:') ? u : '#'; } catch(_){ return '#'; }
 }
 
-// ── Render listing ──
+//  Render listing 
 function renderListing(d,user,hasRevealed){
     const isOwner=(d.uid&&user.uid===d.uid);
 
@@ -1212,7 +1363,7 @@ function renderListing(d,user,hasRevealed){
     // Tags
     const tr=$('tagRow'); tr.innerHTML='';
     if(d.sponsored||d.isSponsored) tr.innerHTML+=`<span class="tag-pill sponsored">★ Sponsored</span>`;
-    else if(d.featured||d.isFeatured) tr.innerHTML+=`<span class="tag-pill featured">✦ Featured</span>`;
+    else if(d.featured||d.isFeatured) tr.innerHTML+=`<span class="tag-pill featured"> Featured</span>`;
     if(d.category) tr.innerHTML+=`<span class="tag-pill cat">${_esc(d.category)}</span>`;
     if(d.age) tr.innerHTML+=`<span class="tag-pill">${_esc(d.age)} old</span>`;
     const ago=timeAgo(d.createdAt);
@@ -1221,7 +1372,7 @@ function renderListing(d,user,hasRevealed){
     // Gallery badges
     const gb=$('galleryBadge'); gb.innerHTML='';
     if(d.sponsored||d.isSponsored) gb.innerHTML+=`<div class="g-badge sponsored">★ Sponsored</div>`;
-    else if(d.featured||d.isFeatured) gb.innerHTML+=`<div class="g-badge featured">✦ Featured</div>`;
+    else if(d.featured||d.isFeatured) gb.innerHTML+=`<div class="g-badge featured"> Featured</div>`;
 
     // Price
     $('listingPrice').textContent=fmtPrice(d.price);
@@ -1242,15 +1393,15 @@ function renderListing(d,user,hasRevealed){
         $('techCard').style.display='';
     }
 
-    // ── Listing details table ──
+    //  Listing details table 
     renderListingDetails(d);
 
-    // ── Separator after analytics if description/tech present ──
+    //  Separator after analytics if description/tech present 
     const hasBody = d.description || d.tech;
     const hasAnalytics = $('analyticsCard').style.display !== 'none';
     if(hasAnalytics && hasBody) $('bodyAftAnalytics').style.display='';
 
-    // ── Ownership proof ──
+    //  Ownership proof 
     renderOwnershipProof(d);
 
     // Show unified body
@@ -1266,7 +1417,7 @@ function renderListing(d,user,hasRevealed){
     renderGallery(d);
 }
 
-// ── Listing details table ──
+//  Listing details table 
 function renderListingDetails(d){
     const rows=[];
 
@@ -1292,7 +1443,7 @@ function renderListingDetails(d){
     // Pageviews
     if(d.pageviews) rows.push({label:'Monthly Pageviews',val:Number(d.pageviews).toLocaleString(),cls:''});
 
-    // ── Calculated insights ──
+    //  Calculated insights 
     const price=parseFloat(d.price)||0;
     const rev=parseFloat(d.revenue)||0;
     const exp=parseFloat(d.expenses)||0;
@@ -1345,7 +1496,7 @@ function renderListingDetails(d){
     }
 }
 
-// ── Ownership proof display ──
+//  Ownership proof display 
 function renderOwnershipProof(d){
     const ob=$('ownershipBlock');
     // Show if listing was reviewed/approved (proof was uploaded at submission)
@@ -1357,7 +1508,7 @@ function renderOwnershipProof(d){
     }
 }
 
-// ── Load seller stats from user node ──
+//  Load seller stats from user node 
 function loadSellerStats(uid){
     if(!uid) return;
     // Use _sellerData already loaded in loadListing — no extra Firebase fetch
@@ -1384,7 +1535,7 @@ function loadSellerStats(uid){
     }
 }
 
-// ── Action buttons ──
+//  Action buttons 
 function renderActions(d,user,isOwner){
     const ar=$('actionRow'); ar.innerHTML='';
     if(isOwner){
@@ -1422,7 +1573,7 @@ function renderActions(d,user,isOwner){
     }
 }
 
-// ── Open message thread with seller via messages page ─────────────────
+//  Open message thread with seller via messages page 
 window.openMessageWithSeller = function(sellerUid, listingId, listingTitle, sellerUsername) {
     if (!sellerUid) return;
 
@@ -1448,11 +1599,11 @@ window.openMessageWithSeller = function(sellerUid, listingId, listingTitle, sell
     location.href = window.location.origin + '/messages?' + params.toString();
 };
 
-// ══════════════════════════════════════════════════════════
+// 
 // CONTACT REVEAL SECTION
 // Logic: isOwner → nothing | hasRevealed → show contact
 //        isPremium → free reveal | !isPremium → $1 balance option
-// ══════════════════════════════════════════════════════════
+// 
 function isPremiumPlan(plan){
     return ['starter','growth','pro'].includes((plan||'').toLowerCase());
 }
@@ -1607,7 +1758,7 @@ function contactRow(icon,label,value){
     </div>`;
 }
 
-// ── Reveal: Premium (free) ──
+//  Reveal: Premium (free) 
 window.doReveal = async function(method){
     const user=_currentUser;
     if(!user||!_listingData) return;
@@ -1622,7 +1773,7 @@ window.doReveal = async function(method){
         renderContactSection(d,user,true,true);
         $('rateWrap').style.display='';
         loadExistingRating(user.uid);
-        showToast('🔓 Contact revealed!');
+        showToast('<svg style="display:inline;vertical-align:-2px;" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg> Contact revealed.');
     } catch(e){
         console.error('[reveal]',e);
         document.querySelectorAll('.reveal-option').forEach(el=>{el.style.pointerEvents='';el.style.opacity='';});
@@ -1630,7 +1781,7 @@ window.doReveal = async function(method){
     }
 };
 
-// ── Balance reveal modal ──
+//  Balance reveal modal 
 window.openBalanceReveal = function(){
     const bal=parseFloat((_userData&&_userData.balance)||0);
     const after=Math.max(0,bal-1);
@@ -1678,7 +1829,7 @@ window.confirmBalanceReveal = async function(){
         renderContactSection(_listingData,user,true,true);
         $('rateWrap').style.display='';
         loadExistingRating(user.uid);
-        showToast('🔓 Contact revealed! $1.00 spent from balance.');
+        showToast('<svg style="display:inline;vertical-align:-2px;" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg> Contact revealed. $1.00 spent from balance.');
     } catch(e){
         console.error('[balance-reveal]',e);
         if(btn){btn.disabled=false;btn.textContent='Confirm — Spend $1.00';}
@@ -1686,7 +1837,7 @@ window.confirmBalanceReveal = async function(){
     }
 };
 
-// ── Save ──
+//  Save 
 window._savedListings=[];
 window.toggleSave = async function(){
     const user=_currentUser;
@@ -1719,7 +1870,7 @@ onAuthStateChanged(auth,user=>{
     });
 });
 
-// ── Seller ──
+//  Seller 
 function renderSeller(d,user,isOwner,hasRevealed){
     const sel=_sellerData||{};
     const uid=d.uid||'';
@@ -1781,7 +1932,7 @@ function renderSellerStars(ratings){
     $('sellerStars').innerHTML=html;
 }
 
-// ── Rating ──
+//  Rating 
 let _selectedRating=0;
 async function loadExistingRating(uid){
     if(!_listingData) return;
@@ -1791,7 +1942,7 @@ async function loadExistingRating(uid){
             const val=parseInt(snap.val());
             _selectedRating=val; highlightStars(val);
             const btn=$('rateSubmitBtn');if(btn)btn.disabled=false;
-            const ok=$('rateOk');if(ok){ok.textContent='✓ You rated '+val+' star'+(val!==1?'s':'');ok.style.display='block';}
+            const ok=$('rateOk');if(ok){ok.textContent='<svg style="display:inline;vertical-align:-2px;" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> You rated '+val+' star'+(val!==1?'s':'');ok.style.display='block';}
         }
     } catch(e){}
 }
@@ -1804,7 +1955,7 @@ window.submitRating=async function(){
     if(btn){btn.disabled=true;btn.textContent='Saving…';}
     try {
         await set(ref(db,`websites/${d.listingId}/ratings/${user.uid}`),_selectedRating);
-        const ok=$('rateOk');if(ok){ok.textContent='✓ Rating saved! Thank you.';ok.style.display='block';}
+        const ok=$('rateOk');if(ok){ok.textContent='<svg style="display:inline;vertical-align:-2px;" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Rating saved. Thank you.';ok.style.display='block';}
         if(btn){btn.textContent='Submit rating';btn.disabled=false;}
         const snap=await get(ref(db,`websites/${d.listingId}/ratings`));
         renderSellerStars(snap.val());
@@ -1815,7 +1966,7 @@ window.submitRating=async function(){
     }
 };
 
-// ── Gallery ──
+//  Gallery 
 let _galleryIdx=0,_galleryImgs=[];
 function renderGallery(d){
     const raw=d.images;
@@ -1857,7 +2008,7 @@ function galleryGo(i){
     const cnt=$('galleryCount');if(cnt)cnt.textContent=`${_galleryIdx+1} / ${imgs.length}`;
 }
 
-// ── Formatters ──
+//  Formatters 
 function fmtPrice(n){n=parseFloat(n);if(isNaN(n))return'—';if(n>=1000)return'$'+(n/1000).toFixed(n%1000===0?0:1)+'k';return'$'+n;}
 function fmtTraffic(n){if(!n)return'—';return n>=1000?(n/1000).toFixed(1)+'k/mo':n+'/mo';}
 function timeAgo(ts){
@@ -1871,7 +2022,7 @@ function timeAgo(ts){
 }
 function finCell(label,val,cls){return`<div class="fin-cell"><div class="fin-label">${label}</div><div class="fin-val ${cls}">${val}</div></div>`;}
 
-// ── Toast ──
+//  Toast 
 let _toastTimer;
 window.showToast=function(msg){
     const t=$('toast');t.innerHTML=msg;t.classList.add('show');
@@ -1879,7 +2030,7 @@ window.showToast=function(msg){
     _toastTimer=setTimeout(()=>t.classList.remove('show'),msg.includes('<a ')?4000:2600);
 };
 
-// ── Auth Modal ──
+//  Auth Modal 
 window.showPanel=function(name){
     ['signup','login','forgot'].forEach(p=>{
         const el=$('panel'+p.charAt(0).toUpperCase()+p.slice(1));
@@ -1958,9 +2109,9 @@ window.doForgot=async function(){
     } catch(e){setBtn('btnForgot','Send reset link →',false);showErr('errForgot',firebaseErrMsg(e.code));}
 };
 
-// ══════════════════════════════════════════════════
+// 
 // ANALYTICS RENDERER — real data only, no fake charts
-// ══════════════════════════════════════════════════
+// 
 function renderAnalytics(d){
     const ac=$('analyticsCard');
     const rev   = d.revenue    != null ? parseFloat(d.revenue)    : null;
@@ -1987,7 +2138,7 @@ function renderAnalytics(d){
 
     let html = `<div class="stat-section-title">Analytics & Performance</div>`;
 
-    // ── Financials grid ──
+    //  Financials grid 
     if(hasFinancials){
         const cells = [];
         if(rev !== null) cells.push(statCell('Monthly Revenue', '$'+fmt(rev), 'pos', yearlyRev?'$'+fmt(yearlyRev)+'/yr':''));
@@ -2003,7 +2154,7 @@ function renderAnalytics(d){
         html += `<div class="stat-grid${cells.length === 2 ? ' two-col' : ''}">${cells.join('')}</div>`;
     }
 
-    // ── Traffic / reach grid ──
+    //  Traffic / reach grid 
     if(hasTraffic || hasMetrics){
         if(hasFinancials) html += `<div class="an-sep"></div>`;
         const cells2 = [];
