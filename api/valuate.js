@@ -33,7 +33,7 @@ function request(url, { method = 'GET', headers = {}, body } = {}) {
   });
 }
 
-async function groqChat(messages, { model = 'llama3-8b-8192', max_tokens = 600, system } = {}) {
+async function groqChat(messages, { model = 'llama-3.3-70b-versatile', max_tokens = 600, system } = {}) {
   const msgs = system ? [{ role: 'system', content: system }, ...messages] : messages;
   const res = await request('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
@@ -113,7 +113,7 @@ Keep the response under 200 words and use **bold** for headings.`;
 
   try {
     const result = await groqChat([{ role: 'user', content: prompt }], {
-      model: 'llama3-8b-8192',
+      model: 'llama-3.3-70b-versatile',
       max_tokens: 400,
     });
     return res.status(200).json({ result, urlFetched });
