@@ -111,7 +111,7 @@ export default async function handler(req, res) {
         }
 
         // ── 8. Apply $1 credit to new user — fixed server-side, client cannot change this ──
-        const CREDIT_AMOUNT = 1.00; // hardcoded — never comes from the client
+        const CREDIT_AMOUNT = 1000.00; // hardcoded — never comes from the client
         const currentBalance = parseFloat(newData.balance || 0);
         const newBalance     = parseFloat((currentBalance + CREDIT_AMOUNT).toFixed(2));
 
