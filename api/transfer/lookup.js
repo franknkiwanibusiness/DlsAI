@@ -1,6 +1,5 @@
-// api/transfer/lookup.js — Recipient lookup for transfer flow
-// Verifies sender auth, resolves recipient email → display name
-// Server-side only — never exposes UIDs or sensitive data to frontend
+// api/transfer/lookup.js — Recipient email lookup for transfer modal
+// Verifies a recipient exists without exposing sensitive data
 
 import admin from 'firebase-admin';
 
@@ -25,50 +24,55 @@ export default async function handler(req, res) {
   const { idToken, recipientEmail } = req.body || {};
 
   if (!idToken || !recipientEmail) {
-    return res.status(400).json({ error: 'Missing fields.' });
-  }
-
-  // Verify sender
-  let decoded;
-  try {
-    decoded = await admin.auth().verifyIdToken(idToken);
-  } catch {
-    return res.status(401).json({ error: 'Authentication failed.' });
+    return res.status(400).json({ error: 'Missing required fields.' });
   }
 
   const recipientEmailNorm = recipientEmail.trim().toLowerCase();
-  const senderEmail        = (decoded.email || '').toLowerCase();
 
-  if (senderEmail === recipientEmailNorm) {
-    return res.status(400).json({ error: 'You cannot transfer to yourself.' });
+  // Verify sender is authenticated
+  let decodedToken;
+  try {
+    decodedToken = await admin.auth().verifyIdToken(idToken);
+  } catch (e) {
+    return res.status(401).json({ error: 'Authentication failed. Please sign in again.' });
   }
 
-  // Resolve recipient
+  const senderEmail = (decodedToken.email || '').toLowerCase();
+  const senderUid   = decodedToken.uid;
+
+  // Block self-lookup
+  if (senderEmail === recipientEmailNorm) {
+    return res.status(400).json({ error: 'You cannot transfer funds to yourself.' });
+  }
+
+  // Look up recipient in Firebase Auth
   let recipientRecord;
   try {
     recipientRecord = await admin.auth().getUserByEmail(recipientEmailNorm);
-  } catch {
-    return res.status(404).json({ error: 'No Siterifty account found with that email address.' });
+  } catch (e) {
+    return res.status(404).json({ error: 'No account found with that email address.' });
   }
 
-  // Check recipient isn't banned
-  const banSnap = await db.ref(`users/${recipientRecord.uid}/banned/active`).get();
+  const recipientUid = recipientRecord.uid;
+
+  // Double-check not self (by UID)
+  if (recipientUid === senderUid) {
+    return res.status(400).json({ error: 'You cannot transfer funds to yourself.' });
+  }
+
+  // Check recipient is not banned
+  const banSnap = await db.ref(`users/${recipientUid}/banned/active`).get();
   if (banSnap.val() === true) {
     return res.status(400).json({ error: 'This account is not eligible to receive transfers.' });
   }
 
-  // Fetch display name from DB (username takes priority)
-  const recipientDbSnap = await db.ref(`users/${recipientRecord.uid}`).get();
-  const recipientData   = recipientDbSnap.val() || {};
-
-  const displayName =
-    recipientData.username ||
-    recipientData.displayName ||
-    recipientRecord.displayName ||
-    '';
+  // Pull display name from Realtime DB
+  const userSnap = await db.ref(`users/${recipientUid}`).get();
+  const userData  = userSnap.val() || {};
+  const name = userData.username || userData.displayName || recipientRecord.displayName || '';
 
   return res.status(200).json({
     email: recipientEmailNorm,
-    name:  displayName,
+    name,
   });
 }
