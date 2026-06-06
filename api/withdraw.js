@@ -18,7 +18,6 @@ if (!admin.apps.length) {
     credential: admin.credential.cert({
       projectId:   process.env.FIREBASE_PROJECT_ID,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      // Vercel stores \n literally in env — restore real newlines
       privateKey:  process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
     }),
     databaseURL: process.env.FIREBASE_DATABASE_URL,
@@ -30,7 +29,10 @@ const auth = admin.auth();
 
 // ── Plan fee table ───────────────────────────────────────────
 const PLAN_FEES = { free: 0.30, starter: 0.15, growth: 0.10, pro: 0.05 };
-const MINIMUM_NET = 10; // minimum NET payout in USD — enforced server-side only
+
+// ── Limits (enforced server-side — clients cannot bypass) ────
+const MINIMUM_NET = 50;    // minimum NET payout in USD
+const MAXIMUM_GROSS = 999; // maximum GROSS requested per transaction
 
 // ── AI scam / fraud detection ────────────────────────────────
 async function analyseWithdrawal({ uid, email, paypalEmail, amount, userRecord, recentWithdrawals }) {
@@ -91,7 +93,6 @@ Respond ONLY with a JSON object — no markdown, no extra text:
     const parsed = JSON.parse(clean);
     return parsed;
   } catch (e) {
-    // If AI call fails, don't block the withdrawal — log and continue
     console.error('[withdraw] AI analysis error:', e.message);
     return { flagged: false, reason: '' };
   }
@@ -117,8 +118,6 @@ export default async function handler(req, res) {
 
   const uid = decoded.uid;
 
-  // ── Route by action ──────────────────────────────────────
-
   // ────────────────────────────────────────────────────────
   //  action: "preview"  — return server-side balance + fees
   // ────────────────────────────────────────────────────────
@@ -136,7 +135,7 @@ export default async function handler(req, res) {
   }
 
   // ────────────────────────────────────────────────────────
-  //  action: "history"  — fetch withdrawal records from Firebase
+  //  action: "history"  — fetch withdrawal records
   // ────────────────────────────────────────────────────────
   if (action === 'history') {
     const snap = await db
@@ -146,7 +145,6 @@ export default async function handler(req, res) {
       .once('value');
 
     const raw = snap.val() || {};
-    // Convert object → array, sorted newest first
     const history = Object.values(raw).sort((a, b) => new Date(b.date) - new Date(a.date));
 
     return res.status(200).json({ history });
@@ -172,17 +170,34 @@ export default async function handler(req, res) {
     const balance = parseFloat(userData.balance) || 0;
     const plan    = (userData.plan || 'free').toLowerCase();
     const feeRate = PLAN_FEES[plan] ?? 0.30;
-    const fee     = parseFloat((balance * feeRate).toFixed(2));
-    const net     = parseFloat((balance - fee).toFixed(2));
 
-    // ── Server-side minimum check (not in frontend — users can't bypass) ──
+    if (balance <= 0) {
+      return res.status(400).json({ error: 'No balance available to withdraw.' });
+    }
+
+    // ── Resolve requested gross amount ────────────────────
+    // Client sends requestedGross; fall back to full balance if missing.
+    const requestedGross = parseFloat(req.body.requestedGross) || balance;
+
+    // Must not exceed the user's actual balance
+    if (requestedGross > balance) {
+      return res.status(400).json({ error: `Requested amount ($${requestedGross.toFixed(2)}) exceeds your balance ($${balance.toFixed(2)}).` });
+    }
+
+    // ── Enforce per-transaction maximum ($999 gross) ──────
+    if (requestedGross > MAXIMUM_GROSS) {
+      return res.status(400).json({ error: `Maximum withdrawal is $${MAXIMUM_GROSS.toFixed(2)} per transaction.` });
+    }
+
+    const withdrawGross = parseFloat(requestedGross.toFixed(2));
+    const fee           = parseFloat((withdrawGross * feeRate).toFixed(2));
+    const net           = parseFloat((withdrawGross - fee).toFixed(2));
+
+    // ── Enforce minimum net payout ($50) ──────────────────
     if (net < MINIMUM_NET) {
       return res.status(400).json({
         error: `Your net payout ($${net.toFixed(2)}) is below the minimum of $${MINIMUM_NET.toFixed(2)}.`,
       });
-    }
-    if (balance <= 0) {
-      return res.status(400).json({ error: 'No balance available to withdraw.' });
     }
 
     // ── Fetch recent withdrawals for AI analysis ──────────
@@ -207,7 +222,6 @@ export default async function handler(req, res) {
     });
 
     if (aiResult.flagged && aiResult.confidence === 'high') {
-      // High-confidence fraud: reject outright and flag the account for review
       await db.ref(`users/${uid}/flaggedForReview`).set({
         flaggedAt: new Date().toISOString(),
         reason: aiResult.reason,
@@ -224,10 +238,9 @@ export default async function handler(req, res) {
     try {
       const txResult = await db.ref(`users/${uid}/balance`).transaction(currentBalance => {
         const cur = parseFloat(currentBalance) || 0;
-        // Re-validate inside transaction to prevent race conditions
-        if (cur !== balance) return; // abort — balance changed since preview
-        if (cur <= 0) return;        // abort — nothing to withdraw
-        return 0; // deduct full balance (withdrawal is of full balance)
+        // Abort if balance changed since we read it, or insufficient funds
+        if (cur < withdrawGross) return; // abort
+        return parseFloat((cur - withdrawGross).toFixed(2)); // deduct requested amount only
       });
 
       if (!txResult.committed) {
@@ -235,7 +248,7 @@ export default async function handler(req, res) {
           error: 'Your balance changed during processing. Please try again.',
         });
       }
-      newBalance = 0;
+      newBalance = txResult.snapshot.val() ?? 0;
     } catch (e) {
       console.error('[withdraw] transaction error:', e);
       return res.status(500).json({ error: 'Database error. Please try again.' });
@@ -247,7 +260,7 @@ export default async function handler(req, res) {
       id:          withdrawalId,
       uid,
       amount:      net,
-      gross:       balance,
+      gross:       withdrawGross,
       fee,
       feeRate,
       method:      method || 'paypal',
@@ -259,21 +272,20 @@ export default async function handler(req, res) {
     };
 
     await db.ref(`withdrawals/${uid}/${withdrawalId}`).set(entry);
-
-    // Also write to a flat admin-visible collection
     await db.ref(`admin/withdrawals/${withdrawalId}`).set(entry);
 
     return res.status(200).json({
-      success:    true,
-      amount:     net,
-      gross:      balance,
+      success:      true,
+      withdrawalId,
+      amount:       net,
+      gross:        withdrawGross,
       fee,
       paypalEmail,
-      method:     entry.method,
-      status:     entry.status,
+      method:       entry.method,
+      status:       entry.status,
       newBalance,
-      flagged:    aiResult.flagged,
-      warning:    aiResult.flagged ? aiResult.reason : null,
+      flagged:      aiResult.flagged,
+      warning:      aiResult.flagged ? aiResult.reason : null,
     });
   }
 
