@@ -10,9 +10,12 @@
  *   POST  admin/login             — return signed JWT for admin dashboard
  *   POST  notify                  — send Resend email / record event
  *   POST  send-email              — send arbitrary transactional email via Resend
- *   POST  valuate                 — AI site valuation via Groq
  *   POST  chat                    — AI support chat via Groq
- *   GET   stats                   — public counter (visitor bump)
+ *
+ * Separate serverless functions (own files in /api/):
+ *   POST  /api/valuate            — AI site valuation (api/valuate.js)
+ *   GET   /api/stats              — homepage stat numbers (api/stats.js)
+ *   POST  /api/refer              — referral credit (api/refer.js)
  *
  * Security model:
  *   • Every wallet route requires a Firebase ID token in Authorization: Bearer <token>
@@ -712,56 +715,6 @@ module.exports = async function handler(req, res) {
     }
 
     // ════════════════════════════════════════════════════════════
-    // POST valuate  — AI site valuation
-    // Body: { revenue, traffic, desc, url? }
-    // ════════════════════════════════════════════════════════════
-    if (route === "valuate" && req.method === "POST") {
-      if (!GROQ_API_KEY) {
-        return json(res, 503, { error: "Valuation service not configured (missing GROQ_API_KEY)" });
-      }
-
-      const { revenue, traffic, desc, url } = body;
-      let urlContent = "";
-      let urlFetched = false;
-
-      if (url) {
-        try {
-          const r = await request(url);
-          urlContent = typeof r.body === "string"
-            ? r.body.replace(/<[^>]+>/g, " ").slice(0, 1500)
-            : "";
-          urlFetched = true;
-        } catch { /* ignore fetch errors — URL is optional */ }
-      }
-
-      const prompt = `You are a website valuation expert. Provide a concise but detailed valuation.
-Site details:
-- Monthly revenue: $${revenue || 0}
-- Monthly traffic: ${traffic || 0} visitors
-- Description: ${desc || "N/A"}
-${urlFetched ? `- Site content snippet: ${urlContent}` : ""}
-
-Provide:
-1. **Estimated value range** (use standard 24–40x monthly revenue multiple for revenue-generating sites)
-2. **Key value drivers** (2–3 bullet points)
-3. **Risk factors** (1–2 bullet points)
-4. **Recommendation** (buy/sell/hold assessment)
-
-Keep the response under 200 words and use **bold** for headings.`;
-
-      try {
-        const result = await groqChat([{ role: "user", content: prompt }], {
-          model: "llama3-8b-8192",
-          max_tokens: 400,
-        });
-        return json(res, 200, { result, urlFetched });
-      } catch (groqErr) {
-        console.error("[valuate groq error]", groqErr);
-        return json(res, 502, { error: "AI valuation failed: " + (groqErr.message || "unknown error") });
-      }
-    }
-
-    // ════════════════════════════════════════════════════════════
     // POST chat  — AI support chat
     // Body: { messages, deviceId, userPlan, username }
     // ════════════════════════════════════════════════════════════
@@ -780,27 +733,6 @@ Never make up information about specific listings or prices. Direct complex issu
 
       const reply = await groqChat(trimmed, { system, max_tokens: 500 });
       return json(res, 200, { reply });
-    }
-
-    // ════════════════════════════════════════════════════════════
-    // GET stats  — visitor counter bump
-    // ════════════════════════════════════════════════════════════
-    if (route === "stats" && req.method === "GET") {
-      // Fire-and-forget visitor count increment
-      dbGet("/meta/visitorCount").then((count) => {
-        dbSet("/meta/visitorCount", (parseInt(count || 0) + 1));
-      }).catch(() => {});
-
-      // Build deterministic daily-growth numbers the frontend renders as a/b/c.
-      // a = sellers (thousands), b = sites listed (thousands), c = countries.
-      // Numbers grow by a fixed daily delta — no scheduled job needed.
-      const BASE_DATE = new Date("2024-01-01").getTime();
-      const daysSince = Math.floor((Date.now() - BASE_DATE) / 86400000);
-      const a = Math.floor(12 + daysSince * 0.04);   // sellers  e.g. "14k+"
-      const b = Math.floor(8  + daysSince * 0.03);   // listings e.g. "10k+"
-      const c = Math.floor(40 + daysSince * 0.02);   // countries e.g. "44+"
-
-      return json(res, 200, { ok: true, a, b, c });
     }
 
     // ════════════════════════════════════════════════════════════
