@@ -2765,6 +2765,56 @@
             listings:    data.listings    || null,
         };
         _applyUserUI(data, user);
+        // Attach per-listing status watchers so admin approvals show instantly
+        _syncListingStatuses(data);
+    }
+
+    // ── Real-time status sync: watch each listing under websites/<id> ──
+    // Admin approves by writing status='live' to websites/<id>.
+    // The users/<uid>/listings/<id> node may lag behind — sync it here.
+    let _listingStatusUnsubs = {};
+
+    function _syncListingStatuses(data) {
+        // Tear down old listeners
+        Object.values(_listingStatusUnsubs).forEach(u => { try { u(); } catch(_) {} });
+        _listingStatusUnsubs = {};
+
+        if (!data || !data.listings) return;
+        const uid = auth.currentUser?.uid;
+        if (!uid) return;
+
+        Object.keys(data.listings).forEach(lid => {
+            const unsub = onValue(ref(db, 'websites/' + lid), snap => {
+                const webData = snap.val();
+                if (!webData) return;
+
+                // Check if status changed versus what we have locally
+                const localListing = (window._fbUserData?.listings?.[lid]) || {};
+                if (webData.status && webData.status !== localListing.status) {
+                    // Update local cache
+                    if (window._fbUserData && window._fbUserData.listings) {
+                        window._fbUserData.listings[lid] = { ...localListing, ...webData };
+                    }
+                    // Also write the updated status back to users node so it persists
+                    try {
+                        update(ref(db, 'users/' + uid + '/listings/' + lid), { status: webData.status });
+                    } catch(_) {}
+
+                    // Re-render My Listings tab with merged data
+                    if (typeof window._renderMyListings === 'function' && window._fbUserData) {
+                        const mergedListings = {};
+                        if (window._fbUserData.listings) {
+                            Object.assign(mergedListings, window._fbUserData.listings);
+                        }
+                        mergedListings[lid] = { ...localListing, ...webData };
+                        window._renderMyListings({ ...window._fbUserData, listings: mergedListings });
+                    }
+                }
+            }, err => {
+                console.warn('[StatusSync] onValue error for', lid, err);
+            });
+            _listingStatusUnsubs[lid] = unsub;
+        });
     }
 
     // ── Apply user data to all UI surfaces ──
@@ -2967,6 +3017,32 @@
             updatedAt: Date.now(),
             listingId,
         };
+
+        // ── STATUS PRESERVATION FIX ──
+        // If admin has approved the listing (status = 'live' or 'active' in the websites node),
+        // respect that and don't let a user edit reset it unless the edit explicitly re-queues review.
+        // The edit modal explicitly sets status='pending_admin' which is correct.
+        // But when the submit form re-saves via _fbUpdateListing, it should not overwrite an
+        // admin-approved status with 'approved' or 'pending' from the AI review pass.
+        // Rule: if existingData.status is 'live' or 'active' AND payload.status is NOT 'pending_admin',
+        // preserve the existing approved status.
+        if (
+            (existingData.status === 'live' || existingData.status === 'active') &&
+            payload.status !== 'pending_admin' &&
+            payload.status !== 'pending'
+        ) {
+            enriched.status = existingData.status;
+        }
+        // Also re-read the websites node in case admin approved there but user node hasn't caught up
+        try {
+            const webSnap = await get(ref(db, 'websites/' + listingId));
+            const webData = webSnap.val();
+            if (webData && (webData.status === 'live' || webData.status === 'active') &&
+                payload.status !== 'pending_admin' && payload.status !== 'pending') {
+                enriched.status = webData.status;
+            }
+        } catch(_) {}
+        // ── END STATUS PRESERVATION FIX ──
 
         const updates = {};
         updates['users/' + uid + '/listings/' + listingId] = enriched;
@@ -5836,7 +5912,7 @@ window._renderMyListings = function(data) {
             const url = l.url || l.siteUrl || '';
             const title = l.title || l.siteTitle || 'Untitled';
 
-            const canPromote = statusLabel === 'live';
+            const canPromote = statusLabel !== 'sold'; // show promote for live AND pending if user has balance
             const canEdit = statusLabel !== 'sold';
 
             const row = document.createElement('div');
@@ -5887,7 +5963,7 @@ window._renderMyListings = function(data) {
                         <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M9 2.5l2.5 2.5L4 12.5H1.5V10L9 2.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
                         Edit
                     </button>` : ''}
-                    ${canPromote ? `<button class="icon-btn promote-btn" title="Promote listing" onclick="openPromoteModal(this)" data-title="${title}" data-url="${url}" data-category="${category}" data-price="${price}">
+                    ${canPromote ? `<button class="icon-btn promote-btn" title="Promote listing" onclick="openPromoteModal(this)" data-title="${title}" data-url="${url}" data-category="${category}" data-price="${price}" data-id="${listingId}" data-status="${statusLabel}">
                         <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 7l3-4 2 2 3-3 2 2" stroke="#a855f7" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M11 3v3h-3" stroke="#a855f7" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                         Promote
                     </button>` : ''}
@@ -7085,12 +7161,29 @@ let _pmSimViews = 0;
 
 function openPromoteModal(btn) {
     const row = btn.closest('.listing-row');
+    const listingStatus = btn.dataset.status || 'live';
     _pmData = {
-        title: btn.dataset.title || row.querySelector('.listing-row-title')?.textContent || 'Your Site',
-        url:   btn.dataset.url   || row.querySelector('.listing-row-url')?.textContent  || 'yoursite.com',
+        title:    btn.dataset.title    || row.querySelector('.listing-row-title')?.textContent || 'Your Site',
+        url:      btn.dataset.url      || row.querySelector('.listing-row-url')?.textContent   || 'yoursite.com',
         category: btn.dataset.category || 'Site',
-        price: btn.dataset.price || ''
+        price:    btn.dataset.price    || '',
+        id:       btn.dataset.id       || '',
+        status:   listingStatus,
     };
+
+    // Check balance — if zero, redirect to top-up instead
+    const currentBalance = parseFloat(window._fbUserData?.balance ?? 0);
+    if (currentBalance <= 0) {
+        // Show a friendly nudge to top up
+        const toast = document.createElement('div');
+        toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.3);color:#c084fc;font-family:Syne,sans-serif;font-size:12px;font-weight:700;padding:10px 20px;border-radius:999px;z-index:9999;animation:fadeInUp .3s ease both;white-space:nowrap;';
+        toast.textContent = '💳 Add balance to promote your listing →';
+        toast.style.cursor = 'pointer';
+        toast.onclick = () => { location.href = window.location.origin + '/#topup'; toast.remove(); };
+        document.body.appendChild(toast);
+        setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity .3s'; setTimeout(() => toast.remove(), 320); }, 4000);
+        return;
+    }
 
     // Populate UI
     document.getElementById('pmSiteName').textContent     = _pmData.title;
@@ -7111,10 +7204,27 @@ function openPromoteModal(btn) {
     document.getElementById('pmLaunchBtn').disabled  = true;
     document.getElementById('adminNotice').style.display = 'none';
 
-    // Set wallet balance from live data
-    const walletEl = document.getElementById('walletPillAmount');
-    const walBal   = walletEl ? walletEl.textContent : '—';
-    document.getElementById('pmWalletBal').textContent = walBal.startsWith('$') ? walBal : ('$' + (window._fbUserData?.wallet || '0.00'));
+    // Set wallet balance from live data — read from _fbUserData directly for accuracy
+    const currentBalance2 = parseFloat(window._fbUserData?.balance ?? 0);
+    document.getElementById('pmWalletBal').textContent = '$' + currentBalance2.toFixed(2);
+
+    // Show pending notice if listing not yet live
+    if (listingStatus !== 'live') {
+        const existingNotice = document.getElementById('pmPendingNotice');
+        if (!existingNotice) {
+            const notice = document.createElement('div');
+            notice.id = 'pmPendingNotice';
+            notice.style.cssText = 'background:rgba(251,191,36,0.07);border:1px solid rgba(251,191,36,0.2);border-radius:10px;padding:10px 13px;font-size:11px;color:rgba(251,191,36,0.9);line-height:1.55;margin-bottom:14px;';
+            notice.innerHTML = '⚠ Your listing is under review. The promotion will activate automatically once your listing goes live.';
+            const pmBody = document.querySelector('#promoteModal .pm-body') || document.querySelector('#promoteModal .modal-body');
+            if (pmBody) pmBody.insertBefore(notice, pmBody.firstChild);
+        } else {
+            existingNotice.style.display = '';
+        }
+    } else {
+        const existingNotice = document.getElementById('pmPendingNotice');
+        if (existingNotice) existingNotice.style.display = 'none';
+    }
 
     // Reset AI bar to scanning
     setAiBar('scanning');
