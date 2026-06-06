@@ -1452,558 +1452,6 @@
     </div>
 </footer>
 
-<script>
-document.getElementById('footerYear').textContent = new Date().getFullYear();
-
-//  TAB SWITCHING 
-function switchTab(tab, el) {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    el.classList.add('active');
-    window._activeTab = tab;
-    const convs = document.querySelectorAll('.conv-item');
-    convs.forEach(c => {
-        if (tab === 'archived') {
-            c.style.display = c.dataset.tab === 'archived' ? 'flex' : 'none';
-        } else if (tab === 'buying') {
-            c.style.display = (c.dataset.tab === 'archived' || c.dataset.tab === 'selling') ? 'none' : 'flex';
-        } else if (tab === 'selling') {
-            c.style.display = (c.dataset.tab === 'archived') ? 'none' : (c.dataset.tab === 'selling' ? 'flex' : 'none');
-        } else {
-            c.style.display = (c.dataset.tab === 'archived') ? 'none' : 'flex';
-        }
-    });
-    // Show/hide section labels based on visible items
-    document.querySelectorAll('.conv-section-label').forEach(label => {
-        let sibling = label.nextElementSibling;
-        let hasVisible = false;
-        while (sibling && !sibling.classList.contains('conv-section-label')) {
-            if (sibling.classList.contains('conv-item') && sibling.style.display !== 'none') {
-                hasVisible = true; break;
-            }
-            sibling = sibling.nextElementSibling;
-        }
-        label.style.display = hasVisible ? 'block' : 'none';
-    });
-    // Show empty state if no visible conversations
-    const list = document.getElementById('convList');
-    const anyVisible = [...document.querySelectorAll('.conv-item')].some(c => c.style.display !== 'none');
-    const existingEmpty = list.querySelector('.tab-empty');
-    if (existingEmpty) existingEmpty.remove();
-    if (!anyVisible) {
-        const empty = document.createElement('div');
-        empty.className = 'empty-state tab-empty';
-        empty.innerHTML = `<div class="empty-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M20 13V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7m16 0-2 6H6l-2-6m16 0H4" stroke="rgba(155,93,229,.5)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="empty-title">No ${tab} conversations</div><div class="empty-sub">Nothing here yet.</div>`;
-        list.appendChild(empty);
-    }
-}
-
-//  SEARCH 
-document.getElementById('msgSearch').addEventListener('input', function() {
-    const q = this.value.toLowerCase().trim();
-    document.querySelectorAll('.conv-item').forEach(item => {
-        const text = item.textContent.toLowerCase();
-        item.style.display = (!q || text.includes(q)) ? 'flex' : 'none';
-    });
-    // Show/hide section labels based on visible items
-    document.querySelectorAll('.conv-section-label').forEach(label => {
-        const next = label.nextElementSibling;
-        label.style.display = (next && next.style.display !== 'none') ? 'block' : 'none';
-    });
-});
-
-//  OPEN / CLOSE CHAT — driven by Firebase module 
-function closeChat() {
-    document.getElementById('chatView').classList.remove('active');
-    document.getElementById('listView').style.display = '';
-    document.getElementById('siteFooter').style.display = '';
-    document.getElementById('pageWrap').classList.remove('chat-active');
-}
-
-//  OFFER ACTIONS 
-function acceptOffer() {
-    const el = document.getElementById('offerResponse');
-    el.innerHTML = `
-        <div class="msg-system" style="background:rgba(45,212,160,0.08);border:1px solid rgba(45,212,160,0.2);border-radius:999px;color:var(--green);font-family:'Syne',sans-serif;font-size:11px;font-weight:700;display:flex;align-items:center;gap:6px;">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Offer accepted — $4,200
-        </div>`;
-    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
-function declineOffer() {
-    const el = document.getElementById('offerResponse');
-    el.innerHTML = `<div class="msg-system">Offer declined.</div>`;
-    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
-
-//  SEND MESSAGE 
-// (sendMessage is now defined below with photo support)
-
-function handleCompose(e) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendMessage();
-    }
-}
-
-function escapeHtml(str) {
-    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-// Auto-resize textarea
-document.getElementById('composeInput').addEventListener('input', function() {
-    this.style.height = 'auto';
-    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
-});
-
-//  NEW COMPOSE — user search overlay 
-function showCompose() {
-    const overlay = document.getElementById('userSearchOverlay');
-    const input   = document.getElementById('userSearchInput');
-    if (!overlay) return;
-    overlay.style.display = 'block';
-    setTimeout(() => input && input.focus(), 80);
-}
-
-function closeUserSearch() {
-    const overlay = document.getElementById('userSearchOverlay');
-    const input   = document.getElementById('userSearchInput');
-    if (overlay) overlay.style.display = 'none';
-    if (input)   { input.value = ''; }
-    _setUserSearchResults('<div id="userSearchHint" style="padding:24px 16px;text-align:center;font-size:12px;color:var(--muted);">Type a username to start searching</div>');
-}
-
-function _setUserSearchResults(html) {
-    const el = document.getElementById('userSearchResults');
-    if (el) el.innerHTML = html;
-}
-
-let _userSearchTimer = null;
-function onUserSearchInput(val) {
-    clearTimeout(_userSearchTimer);
-    const q = val.trim().toLowerCase().replace(/^@/, '');
-    if (!q) {
-        _setUserSearchResults('<div style="padding:24px 16px;text-align:center;font-size:12px;color:var(--muted);">Type a username to start searching</div>');
-        return;
-    }
-    _setUserSearchResults('<div style="padding:20px 16px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:12px;color:var(--muted);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="animation:spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-dasharray="40" stroke-dashoffset="10" stroke-linecap="round"/></svg>Searching…</div>');
-    _userSearchTimer = setTimeout(() => _doUserSearch(q), 350);
-}
-
-// Actual implementation is set by the Firebase module below
-window._doUserSearch = null;
-function _doUserSearch(q) {
-    if (window._doUserSearch) window._doUserSearch(q);
-    else setTimeout(() => window._doUserSearch && window._doUserSearch(q), 500);
-}
-
-//  ATTACH MENU 
-function toggleAttachMenu(e) {
-    e.stopPropagation();
-    const menu = document.getElementById('attachMenu');
-    const isOpen = menu.style.display !== 'none';
-    menu.style.display = isOpen ? 'none' : 'block';
-    if (!isOpen) {
-        // close on outside click
-        setTimeout(() => document.addEventListener('click', _closeAttachOnOutside, { once: true }), 0);
-    }
-}
-function _closeAttachOnOutside() {
-    const menu = document.getElementById('attachMenu');
-    if (menu) menu.style.display = 'none';
-}
-function closeAttachMenu() {
-    const menu = document.getElementById('attachMenu');
-    if (menu) menu.style.display = 'none';
-}
-
-//  MORE MENU (topbar) 
-function toggleMoreMenu(e) {
-    e.stopPropagation();
-    const menu = document.getElementById('chatMoreMenu');
-    const isOpen = menu.style.display !== 'none';
-    menu.style.display = isOpen ? 'none' : 'block';
-    if (!isOpen) {
-        setTimeout(() => document.addEventListener('click', _closeMoreOnOutside, { once: true }), 0);
-    }
-}
-function _closeMoreOnOutside() {
-    const menu = document.getElementById('chatMoreMenu');
-    if (menu) menu.style.display = 'none';
-}
-
-//  ARCHIVE THREAD 
-function handleArchiveThread() {
-    document.getElementById('chatMoreMenu').style.display = 'none';
-    const threadId = window._activeChatId;
-    if (!threadId) return;
-    if (!confirm('Archive this conversation? You can find it under the Archived tab.')) return;
-
-    // Write archived:true to Firebase
-    const { _fbDb, _ref, _set } = window;
-    if (_fbDb && _ref && _set) {
-        _set(_ref(_fbDb, 'messages/' + threadId + '/archived'), true).then(() => {
-            // Reflect in DOM — update the conv-item's data-tab
-            const item = document.querySelector(`[data-thread-id="${threadId}"]`);
-            if (item) item.dataset.tab = 'archived';
-            closeChat();
-            // Re-apply current tab filter
-            const activeBtn = document.querySelector('.tab-btn.active');
-            if (activeBtn) switchTab(activeBtn.dataset.tab, activeBtn);
-
-            // Show toast
-            _showToast('Conversation archived');
-        }).catch(() => _showToast('Failed to archive', true));
-    } else {
-        // Fallback: just update DOM
-        const item = document.querySelector(`[data-thread-id="${threadId}"]`);
-        if (item) item.dataset.tab = 'archived';
-        closeChat();
-        _showToast('Conversation archived');
-    }
-}
-
-// Unarchive — called if already archived
-function handleUnarchiveThread(threadId) {
-    const { _fbDb, _ref, _set } = window;
-    if (_fbDb && _ref && _set) {
-        _set(_ref(_fbDb, 'messages/' + threadId + '/archived'), false).then(() => {
-            _showToast('Conversation unarchived');
-        }).catch(() => {});
-    }
-}
-
-//  MARK AS SOLD 
-function handleMarkAsSold() {
-    closeAttachMenu();
-    const threadId = window._activeChatId;
-    if (!threadId) return;
-    if (!confirm('Mark the listing in this conversation as Sold?')) return;
-
-    // Add a system message + write to Firebase
-    const { _fbDb, _ref, _push, _set, _serverTimestamp } = window;
-    if (_fbDb && _ref && _push && _set && _serverTimestamp) {
-        const msgRef = _push(_ref(_fbDb, 'messages/' + threadId + '/messages'));
-        _set(msgRef, {
-            type: 'system',
-            text: 'Listing marked as sold',
-            senderUid: 'system',
-            ts: _serverTimestamp()
-        }).catch(() => {});
-        _set(_ref(_fbDb, 'messages/' + threadId + '/sold'), true).catch(() => {});
-        _set(_ref(_fbDb, 'messages/' + threadId + '/lastMessage'), 'Listing marked as sold').catch(() => {});
-    }
-
-    // Inject sold banner immediately
-    const banner = document.createElement('div');
-    banner.className = 'sold-banner';
-    banner.innerHTML = `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="var(--green)" stroke-width="1.3"/><path d="M5 8l2.2 2.2L11 5.5" stroke="var(--green)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg> Listing marked as sold`;
-    const msgs = document.getElementById('chatMessages');
-    msgs.appendChild(banner);
-    msgs.scrollTop = msgs.scrollHeight;
-    _showToast('Listing marked as sold.');
-}
-
-//  BLOCK USER 
-function handleBlockUser() {
-    closeAttachMenu();
-    document.getElementById('chatMoreMenu').style.display = 'none';
-    const otherName = document.getElementById('chatName')?.textContent || 'this user';
-    if (!confirm(`Block ${otherName}? They won't be able to message you.`)) return;
-
-    const threadId = window._activeChatId;
-    const myUid = window._currentUser?.uid;
-    const { _fbDb, _ref, _set } = window;
-
-    if (_fbDb && _ref && _set && myUid && threadId) {
-        _set(_ref(_fbDb, 'messages/' + threadId + '/blocked/' + myUid), true).catch(() => {});
-        // Also store in user's own blocked list
-        const otherId = document.querySelector(`[data-thread-id="${threadId}"]`)?.dataset.otherUid || '';
-        if (otherId) {
-            _set(_ref(_fbDb, 'users/' + myUid + '/blocked/' + otherId), true).catch(() => {});
-        }
-    }
-    closeChat();
-    _showToast('User blocked');
-}
-
-//  IMGUR PHOTO UPLOAD 
-const IMGUR_CLIENT_ID = "891e5bb4aa94282";
-let _pendingPhotos = []; // { file, dataUrl, imgurUrl, uploading }
-
-function triggerPhotoUpload() {
-    closeAttachMenu();
-    document.getElementById('photoFileInput').click();
-}
-
-async function onPhotosSelected(files) {
-    if (!files || !files.length) return;
-
-    // Free users: max 1 photo per day (after free trial is already used)
-    if (!_isPaid()) {
-        const today = new Date().toISOString().slice(0, 10);
-        const lastDay = localStorage.getItem('_photoLastDay');
-        const dayCount = parseInt(localStorage.getItem('_photoDayCount') || '0');
-        if (lastDay === today && dayCount >= 1) {
-            _showToast(_svg.camera + ' Free plan: 1 photo per day. Upgrade or wait until tomorrow.', true);
-            document.getElementById('photoFileInput').value = '';
-            return;
-        }
-        // Track this upload day
-        if (lastDay !== today) {
-            localStorage.setItem('_photoLastDay', today);
-            localStorage.setItem('_photoDayCount', '1');
-        } else {
-            localStorage.setItem('_photoDayCount', String(dayCount + 1));
-        }
-    }
-
-    const strip = document.getElementById('photoPreviewStrip');
-    strip.classList.add('active');
-
-    for (const file of Array.from(files)) {
-        if (!file.type.startsWith('image/')) continue;
-        const idx = _pendingPhotos.length;
-        const dataUrl = await _readFileAsDataURL(file);
-        _pendingPhotos.push({ file, dataUrl, imgurUrl: null, uploading: true });
-        _renderPhotoStrip();
-
-        // Upload to Imgur
-        try {
-            const base64 = dataUrl.split(',')[1];
-            const resp = await fetch('https://api.imgur.com/3/image', {
-                method: 'POST',
-                headers: { 'Authorization': 'Client-ID ' + IMGUR_CLIENT_ID },
-                body: JSON.stringify({ image: base64, type: 'base64' })
-            });
-            const json = await resp.json();
-            if (json.success) {
-                _pendingPhotos[idx].imgurUrl = json.data.link;
-            } else {
-                _pendingPhotos[idx].imgurUrl = null;
-            }
-        } catch {
-            _pendingPhotos[idx].imgurUrl = null;
-        }
-        _pendingPhotos[idx].uploading = false;
-        _renderPhotoStrip();
-    }
-    // Reset the file input so same files can be re-selected
-    document.getElementById('photoFileInput').value = '';
-}
-
-function _readFileAsDataURL(file) {
-    return new Promise(res => {
-        const r = new FileReader();
-        r.onload = e => res(e.target.result);
-        r.readAsDataURL(file);
-    });
-}
-
-function _renderPhotoStrip() {
-    const strip = document.getElementById('photoPreviewStrip');
-    strip.innerHTML = '';
-    if (!_pendingPhotos.length) { strip.classList.remove('active'); return; }
-    strip.classList.add('active');
-    _pendingPhotos.forEach((p, i) => {
-        const wrap = document.createElement('div');
-        wrap.className = 'photo-thumb-wrap';
-        wrap.innerHTML = `<img src="${p.dataUrl}" alt="">`;
-        if (p.uploading) {
-            wrap.innerHTML += `<div class="upload-spinner"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,.7)" stroke-width="2.5" stroke-dasharray="40" stroke-dashoffset="10" stroke-linecap="round"/></svg></div>`;
-        } else {
-            const rm = document.createElement('button');
-            rm.className = 'remove-photo';
-            rm.innerHTML = '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-            rm.onclick = () => { _pendingPhotos.splice(i, 1); _renderPhotoStrip(); };
-            wrap.appendChild(rm);
-        }
-        strip.appendChild(wrap);
-    });
-}
-
-// Override sendMessage to also send any pending photos
-const _origSendMessage = window.sendMessage;
-
-function sendMessage() {
-    // If there are pending photos, send them first
-    if (_pendingPhotos.length > 0) {
-        const photos = _pendingPhotos.filter(p => !p.uploading);
-        const uploading = _pendingPhotos.filter(p => p.uploading);
-        if (uploading.length > 0) {
-            _showToast('Still uploading photos, please wait…', true);
-            return;
-        }
-        const urls = photos.map(p => p.imgurUrl).filter(Boolean);
-        if (urls.length) {
-            _sendPhotoMessage(urls);
-        }
-        _pendingPhotos = [];
-        _renderPhotoStrip();
-        // Also send text if present
-        const input = document.getElementById('composeInput');
-        if (input.value.trim()) _origSendTextMessage();
-        return;
-    }
-    _origSendTextMessage();
-}
-
-//  URL detection helper 
-const _URL_REGEX = /https?:\/\/[^\s<>"]+/gi;
-function _extractUrls(text) {
-    return text.match(_URL_REGEX) || [];
-}
-
-function _origSendTextMessage() {
-    const input = document.getElementById('composeInput');
-    const text = input.value.trim();
-    if (!text) return;
-
-    const urls = _extractUrls(text);
-
-    // Gate links for free users
-    if (urls.length > 0 && !_isPaid()) {
-        const linkTrialUsed = localStorage.getItem('_linkTrialUsed') === '1';
-        if (!linkTrialUsed) {
-            localStorage.setItem('_linkTrialUsed', '1');
-            _showToast(_svg.link + ' 1 free link trial. Future links cost $0.10 each.', false);
-            _doSendText(text, urls);
-            input.value = '';
-            input.style.height = 'auto';
-        } else {
-            const bal = _userBalance();
-            if (bal < 0.10) {
-                _showToast(_svg.link + ' Links cost $0.10 each. Top up your wallet or upgrade.', true);
-                setTimeout(() => { location.href = '/#topup'; }, 1200);
-                return;
-            }
-            _chargeWallet('link').then(ok => {
-                if (ok) {
-                    _showToast(_svg.check + ' $0.10 charged for link.', false);
-                    _doSendText(text, urls);
-                    input.value = '';
-                    input.style.height = 'auto';
-                } else {
-                    _showToast(_svg.warn + ' Payment failed. Top up your wallet.', true);
-                }
-            });
-        }
-        return;
-    }
-
-    _doSendText(text, urls);
-    input.value = '';
-    input.style.height = 'auto';
-}
-
-// Build link preview card HTML
-function _linkPreviewHtml(url) {
-    const domain = (() => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } })();
-    return `<div class="link-preview-card" style="margin-top:7px;border-radius:10px;border:1px solid rgba(255,255,255,0.09);overflow:hidden;background:rgba(255,255,255,0.04);max-width:320px;">
-        <div style="padding:10px 12px;display:flex;flex-direction:column;gap:4px;">
-            <div style="display:flex;align-items:center;gap:6px;">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(155,93,229,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-                <span style="font-size:10px;color:rgba(185,183,220,0.55);font-family:'Syne',sans-serif;">${escapeHtml(domain)}</span>
-            </div>
-            <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" style="font-size:12px;color:#b39ddb;word-break:break-all;text-decoration:none;">${escapeHtml(url.length > 50 ? url.slice(0, 50) + '…' : url)}</a>
-            <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer"
-               style="margin-top:4px;display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:999px;background:rgba(155,93,229,0.15);border:1px solid rgba(155,93,229,0.3);color:#c4a8ff;font-size:10px;font-family:'Syne',sans-serif;font-weight:700;letter-spacing:.04em;text-decoration:none;width:fit-content;transition:background .15s;">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                Visit
-            </a>
-        </div>
-    </div>`;
-}
-
-// Make text safe and linkify for display (local render)
-function _renderMessageText(text) {
-    const safe = escapeHtml(text);
-    return safe.replace(/https?:\/\/[^\s<>"]+/gi, url =>
-        `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color:#b39ddb;text-decoration:underline;word-break:break-all;">${url}</a>`
-    );
-}
-
-function _doSendText(text, urls) {
-    if (window._sendToFirebase) {
-        window._sendToFirebase(text);
-    } else {
-        // Local fallback render
-        const msgs = document.getElementById('chatMessages');
-        const now = new Date();
-        const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-        const bubble = document.createElement('div');
-        bubble.className = 'msg-row own';
-        bubble.style.cssText = 'opacity:0;transform:translateY(6px);transition:opacity .22s,transform .22s;';
-        const previews = urls.length > 0 ? urls.map(_linkPreviewHtml).join('') : '';
-        bubble.innerHTML = `<div class="msg-bubble own">${_renderMessageText(text)}${previews}<span class="msg-time">${timeStr}<span class="msg-ticks ticks-sent"><svg width="14" height="9" viewBox="0 0 14 9" fill="none"><path d="M1 4.5l3 3 5.5-6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 4.5l3 3 5.5-6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span></div>`;
-        msgs.appendChild(bubble);
-        requestAnimationFrame(() => { bubble.style.opacity = '1'; bubble.style.transform = 'none'; });
-        msgs.scrollTop = msgs.scrollHeight;
-    }
-}
-
-function _sendPhotoMessage(urls) {
-    const threadId = window._activeChatId;
-    const myUid = window._currentUser?.uid;
-    const { _fbDb, _ref, _push, _set, _serverTimestamp } = window;
-    const msgs = document.getElementById('chatMessages');
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-
-    if (_fbDb && _ref && _push && _set && _serverTimestamp && threadId) {
-        const msgRef = _push(_ref(_fbDb, 'messages/' + threadId + '/messages'));
-        _set(msgRef, {
-            type: 'photos',
-            photos: urls,
-            senderUid: myUid,
-            ts: _serverTimestamp()
-        }).catch(() => {});
-        _set(_ref(_fbDb, 'messages/' + threadId + '/lastMessage'), `${urls.length} photo${urls.length>1?'s':''}`).catch(() => {});
-        _set(_ref(_fbDb, 'messages/' + threadId + '/lastTs'), _serverTimestamp()).catch(() => {});
-        // Increment unread — handled by _sendToFirebase normally
-    } else {
-        // Local fallback render
-        const row = document.createElement('div');
-        row.className = 'msg-row own';
-        row.style.cssText = 'opacity:0;transform:translateY(6px);transition:opacity .22s,transform .22s;';
-        const size = urls.length === 1 ? '200px' : '95px';
-        const photosHtml = urls.map(u => `<img src="${u}" style="width:${size};height:${size};" onclick="openLightbox('${u}')" loading="lazy">`).join('');
-        row.innerHTML = `<div class="msg-bubble own" style="padding:8px;background:transparent;border:none;"><div class="msg-photo-grid">${photosHtml}</div><span class="msg-time">${timeStr}<span class="msg-ticks ticks-sent"><svg width="14" height="9" viewBox="0 0 14 9" fill="none"><path d="M1 4.5l3 3 5.5-6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 4.5l3 3 5.5-6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span></div>`;
-        msgs.appendChild(row);
-        requestAnimationFrame(() => { row.style.opacity = '1'; row.style.transform = 'none'; });
-        msgs.scrollTop = msgs.scrollHeight;
-    }
-}
-
-//  LIGHTBOX 
-function openLightbox(url) {
-    const lb = document.getElementById('photoLightbox');
-    document.getElementById('lightboxImg').src = url;
-    lb.classList.add('open');
-}
-function closeLightbox() {
-    document.getElementById('photoLightbox').classList.remove('open');
-}
-
-//  TOAST 
-function _showToast(msg, isError) {
-    let t = document.getElementById('_toast');
-    if (!t) {
-        t = document.createElement('div');
-        t.id = '_toast';
-        t.style.cssText = 'position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(12px);background:var(--surface2);border:1px solid var(--border-hover);border-radius:999px;padding:9px 18px;font-size:12.5px;font-family:\'Syne\',sans-serif;font-weight:600;color:var(--text);z-index:999;opacity:0;transition:opacity .2s,transform .2s;white-space:nowrap;pointer-events:none;';
-        document.body.appendChild(t);
-    }
-    t.textContent = msg;
-    t.style.color = isError ? 'var(--red)' : 'var(--text)';
-    t.style.opacity = '1';
-    t.style.transform = 'translateX(-50%) translateY(0)';
-    clearTimeout(t._timer);
-    t._timer = setTimeout(() => {
-        t.style.opacity = '0';
-        t.style.transform = 'translateX(-50%) translateY(8px)';
-    }, 2800);
-}</script>
-
-<!--  FIREBASE  -->
 <script type="module">
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
 import { getDatabase, ref, onValue, push, set, serverTimestamp, get, query, orderByKey, startAt, endAt, limitToFirst } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
@@ -2522,9 +1970,6 @@ window._ref = ref;
 window._push = push;
 window._set = set;
 window._serverTimestamp = serverTimestamp;
-// Also expose under the _fb* names used by new feature JS
-window._fbDb = db;
-window._fbAuth = auth;
 
 //  USER SEARCH 
 // Searches usernames/{prefix} → fetches user profile → shows results
@@ -2849,7 +2294,7 @@ async function confirmBoost() {
             const badge = document.createElement('span');
             badge.className = 'boost-badge';
             badge.title = 'Boosted thread';
-            badge.style.cssText = 'display:inline-flex;align-items:center;font-size:9px;font-weight:700;color:#f5c842;background:rgba(245,200,66,0.12);border:1px solid rgba(245,200,66,0.25);border-radius:999px;padding:1px 6px;margin-left:6px;font-family:'Syne',sans-serif;';
+            badge.style.cssText = 'display:inline-flex;align-items:center;font-size:9px;font-weight:700;color:#f5c842;background:rgba(245,200,66,0.12);border:1px solid rgba(245,200,66,0.25);border-radius:999px;padding:1px 6px;margin-left:6px;font-family:\'Syne\',sans-serif;';
             badge.innerHTML = _svg.bolt + ' Boosted';
             chatName.appendChild(badge);
         }
@@ -2861,6 +2306,582 @@ async function confirmBoost() {
         btn.disabled = false; btn.innerHTML = '<svg style="display:inline;vertical-align:-2px;" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Boost for \$1.00';
     }
 }
+
+// ════════════════════════════════════════════════════════
+// UI FUNCTIONS (merged from plain script — needs Firebase scope)
+// ════════════════════════════════════════════════════════
+document.getElementById('footerYear').textContent = new Date().getFullYear();
+
+//  TAB SWITCHING 
+function switchTab(tab, el) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    window._activeTab = tab;
+    const convs = document.querySelectorAll('.conv-item');
+    convs.forEach(c => {
+        if (tab === 'archived') {
+            c.style.display = c.dataset.tab === 'archived' ? 'flex' : 'none';
+        } else if (tab === 'buying') {
+            c.style.display = (c.dataset.tab === 'archived' || c.dataset.tab === 'selling') ? 'none' : 'flex';
+        } else if (tab === 'selling') {
+            c.style.display = (c.dataset.tab === 'archived') ? 'none' : (c.dataset.tab === 'selling' ? 'flex' : 'none');
+        } else {
+            c.style.display = (c.dataset.tab === 'archived') ? 'none' : 'flex';
+        }
+    });
+    // Show/hide section labels based on visible items
+    document.querySelectorAll('.conv-section-label').forEach(label => {
+        let sibling = label.nextElementSibling;
+        let hasVisible = false;
+        while (sibling && !sibling.classList.contains('conv-section-label')) {
+            if (sibling.classList.contains('conv-item') && sibling.style.display !== 'none') {
+                hasVisible = true; break;
+            }
+            sibling = sibling.nextElementSibling;
+        }
+        label.style.display = hasVisible ? 'block' : 'none';
+    });
+    // Show empty state if no visible conversations
+    const list = document.getElementById('convList');
+    const anyVisible = [...document.querySelectorAll('.conv-item')].some(c => c.style.display !== 'none');
+    const existingEmpty = list.querySelector('.tab-empty');
+    if (existingEmpty) existingEmpty.remove();
+    if (!anyVisible) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-state tab-empty';
+        empty.innerHTML = `<div class="empty-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M20 13V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7m16 0-2 6H6l-2-6m16 0H4" stroke="rgba(155,93,229,.5)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="empty-title">No ${tab} conversations</div><div class="empty-sub">Nothing here yet.</div>`;
+        list.appendChild(empty);
+    }
+}
+
+//  SEARCH 
+document.getElementById('msgSearch').addEventListener('input', function() {
+    const q = this.value.toLowerCase().trim();
+    document.querySelectorAll('.conv-item').forEach(item => {
+        const text = item.textContent.toLowerCase();
+        item.style.display = (!q || text.includes(q)) ? 'flex' : 'none';
+    });
+    // Show/hide section labels based on visible items
+    document.querySelectorAll('.conv-section-label').forEach(label => {
+        const next = label.nextElementSibling;
+        label.style.display = (next && next.style.display !== 'none') ? 'block' : 'none';
+    });
+});
+
+//  OPEN / CLOSE CHAT — driven by Firebase module 
+function closeChat() {
+    document.getElementById('chatView').classList.remove('active');
+    document.getElementById('listView').style.display = '';
+    document.getElementById('siteFooter').style.display = '';
+    document.getElementById('pageWrap').classList.remove('chat-active');
+}
+
+//  OFFER ACTIONS 
+function acceptOffer() {
+    const el = document.getElementById('offerResponse');
+    el.innerHTML = `
+        <div class="msg-system" style="background:rgba(45,212,160,0.08);border:1px solid rgba(45,212,160,0.2);border-radius:999px;color:var(--green);font-family:'Syne',sans-serif;font-size:11px;font-weight:700;display:flex;align-items:center;gap:6px;">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Offer accepted — $4,200
+        </div>`;
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function declineOffer() {
+    const el = document.getElementById('offerResponse');
+    el.innerHTML = `<div class="msg-system">Offer declined.</div>`;
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+//  SEND MESSAGE 
+// (sendMessage is now defined below with photo support)
+
+function handleCompose(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+    }
+}
+
+function escapeHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Auto-resize textarea
+document.getElementById('composeInput').addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
+
+//  NEW COMPOSE — user search overlay 
+function showCompose() {
+    const overlay = document.getElementById('userSearchOverlay');
+    const input   = document.getElementById('userSearchInput');
+    if (!overlay) return;
+    overlay.style.display = 'block';
+    setTimeout(() => input && input.focus(), 80);
+}
+
+function closeUserSearch() {
+    const overlay = document.getElementById('userSearchOverlay');
+    const input   = document.getElementById('userSearchInput');
+    if (overlay) overlay.style.display = 'none';
+    if (input)   { input.value = ''; }
+    _setUserSearchResults('<div id="userSearchHint" style="padding:24px 16px;text-align:center;font-size:12px;color:var(--muted);">Type a username to start searching</div>');
+}
+
+function _setUserSearchResults(html) {
+    const el = document.getElementById('userSearchResults');
+    if (el) el.innerHTML = html;
+}
+
+let _userSearchTimer = null;
+function onUserSearchInput(val) {
+    clearTimeout(_userSearchTimer);
+    const q = val.trim().toLowerCase().replace(/^@/, '');
+    if (!q) {
+        _setUserSearchResults('<div style="padding:24px 16px;text-align:center;font-size:12px;color:var(--muted);">Type a username to start searching</div>');
+        return;
+    }
+    _setUserSearchResults('<div style="padding:20px 16px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:12px;color:var(--muted);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="animation:spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-dasharray="40" stroke-dashoffset="10" stroke-linecap="round"/></svg>Searching…</div>');
+    _userSearchTimer = setTimeout(() => _doUserSearch(q), 350);
+}
+
+// Actual implementation is set by the Firebase module below
+window._doUserSearch = null;
+function _doUserSearch(q) {
+    if (window._doUserSearch) window._doUserSearch(q);
+    else setTimeout(() => window._doUserSearch && window._doUserSearch(q), 500);
+}
+
+//  ATTACH MENU 
+function toggleAttachMenu(e) {
+    e.stopPropagation();
+    const menu = document.getElementById('attachMenu');
+    const isOpen = menu.style.display !== 'none';
+    menu.style.display = isOpen ? 'none' : 'block';
+    if (!isOpen) {
+        // close on outside click
+        setTimeout(() => document.addEventListener('click', _closeAttachOnOutside, { once: true }), 0);
+    }
+}
+function _closeAttachOnOutside() {
+    const menu = document.getElementById('attachMenu');
+    if (menu) menu.style.display = 'none';
+}
+function closeAttachMenu() {
+    const menu = document.getElementById('attachMenu');
+    if (menu) menu.style.display = 'none';
+}
+
+//  MORE MENU (topbar) 
+function toggleMoreMenu(e) {
+    e.stopPropagation();
+    const menu = document.getElementById('chatMoreMenu');
+    const isOpen = menu.style.display !== 'none';
+    menu.style.display = isOpen ? 'none' : 'block';
+    if (!isOpen) {
+        setTimeout(() => document.addEventListener('click', _closeMoreOnOutside, { once: true }), 0);
+    }
+}
+function _closeMoreOnOutside() {
+    const menu = document.getElementById('chatMoreMenu');
+    if (menu) menu.style.display = 'none';
+}
+
+//  ARCHIVE THREAD 
+function handleArchiveThread() {
+    document.getElementById('chatMoreMenu').style.display = 'none';
+    const threadId = window._activeChatId;
+    if (!threadId) return;
+    if (!confirm('Archive this conversation? You can find it under the Archived tab.')) return;
+
+    // Write archived:true to Firebase
+    const { _fbDb, _ref, _set } = window;
+    if (_fbDb && _ref && _set) {
+        _set(_ref(_fbDb, 'messages/' + threadId + '/archived'), true).then(() => {
+            // Reflect in DOM — update the conv-item's data-tab
+            const item = document.querySelector(`[data-thread-id="${threadId}"]`);
+            if (item) item.dataset.tab = 'archived';
+            closeChat();
+            // Re-apply current tab filter
+            const activeBtn = document.querySelector('.tab-btn.active');
+            if (activeBtn) switchTab(activeBtn.dataset.tab, activeBtn);
+
+            // Show toast
+            _showToast('Conversation archived');
+        }).catch(() => _showToast('Failed to archive', true));
+    } else {
+        // Fallback: just update DOM
+        const item = document.querySelector(`[data-thread-id="${threadId}"]`);
+        if (item) item.dataset.tab = 'archived';
+        closeChat();
+        _showToast('Conversation archived');
+    }
+}
+
+// Unarchive — called if already archived
+function handleUnarchiveThread(threadId) {
+    const { _fbDb, _ref, _set } = window;
+    if (_fbDb && _ref && _set) {
+        _set(_ref(_fbDb, 'messages/' + threadId + '/archived'), false).then(() => {
+            _showToast('Conversation unarchived');
+        }).catch(() => {});
+    }
+}
+
+//  MARK AS SOLD 
+function handleMarkAsSold() {
+    closeAttachMenu();
+    const threadId = window._activeChatId;
+    if (!threadId) return;
+    if (!confirm('Mark the listing in this conversation as Sold?')) return;
+
+    // Add a system message + write to Firebase
+    const { _fbDb, _ref, _push, _set, _serverTimestamp } = window;
+    if (_fbDb && _ref && _push && _set && _serverTimestamp) {
+        const msgRef = _push(_ref(_fbDb, 'messages/' + threadId + '/messages'));
+        _set(msgRef, {
+            type: 'system',
+            text: 'Listing marked as sold',
+            senderUid: 'system',
+            ts: _serverTimestamp()
+        }).catch(() => {});
+        _set(_ref(_fbDb, 'messages/' + threadId + '/sold'), true).catch(() => {});
+        _set(_ref(_fbDb, 'messages/' + threadId + '/lastMessage'), 'Listing marked as sold').catch(() => {});
+    }
+
+    // Inject sold banner immediately
+    const banner = document.createElement('div');
+    banner.className = 'sold-banner';
+    banner.innerHTML = `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="var(--green)" stroke-width="1.3"/><path d="M5 8l2.2 2.2L11 5.5" stroke="var(--green)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg> Listing marked as sold`;
+    const msgs = document.getElementById('chatMessages');
+    msgs.appendChild(banner);
+    msgs.scrollTop = msgs.scrollHeight;
+    _showToast('Listing marked as sold.');
+}
+
+//  BLOCK USER 
+function handleBlockUser() {
+    closeAttachMenu();
+    document.getElementById('chatMoreMenu').style.display = 'none';
+    const otherName = document.getElementById('chatName')?.textContent || 'this user';
+    if (!confirm(`Block ${otherName}? They won't be able to message you.`)) return;
+
+    const threadId = window._activeChatId;
+    const myUid = window._currentUser?.uid;
+    const { _fbDb, _ref, _set } = window;
+
+    if (_fbDb && _ref && _set && myUid && threadId) {
+        _set(_ref(_fbDb, 'messages/' + threadId + '/blocked/' + myUid), true).catch(() => {});
+        // Also store in user's own blocked list
+        const otherId = document.querySelector(`[data-thread-id="${threadId}"]`)?.dataset.otherUid || '';
+        if (otherId) {
+            _set(_ref(_fbDb, 'users/' + myUid + '/blocked/' + otherId), true).catch(() => {});
+        }
+    }
+    closeChat();
+    _showToast('User blocked');
+}
+
+//  IMGUR PHOTO UPLOAD 
+const IMGUR_CLIENT_ID = "891e5bb4aa94282";
+let _pendingPhotos = []; // { file, dataUrl, imgurUrl, uploading }
+
+function triggerPhotoUpload() {
+    closeAttachMenu();
+    document.getElementById('photoFileInput').click();
+}
+
+async function onPhotosSelected(files) {
+    if (!files || !files.length) return;
+
+    // Free users: max 1 photo per day (after free trial is already used)
+    if (!_isPaid()) {
+        const today = new Date().toISOString().slice(0, 10);
+        const lastDay = localStorage.getItem('_photoLastDay');
+        const dayCount = parseInt(localStorage.getItem('_photoDayCount') || '0');
+        if (lastDay === today && dayCount >= 1) {
+            _showToast(_svg.camera + ' Free plan: 1 photo per day. Upgrade or wait until tomorrow.', true);
+            document.getElementById('photoFileInput').value = '';
+            return;
+        }
+        // Track this upload day
+        if (lastDay !== today) {
+            localStorage.setItem('_photoLastDay', today);
+            localStorage.setItem('_photoDayCount', '1');
+        } else {
+            localStorage.setItem('_photoDayCount', String(dayCount + 1));
+        }
+    }
+
+    const strip = document.getElementById('photoPreviewStrip');
+    strip.classList.add('active');
+
+    for (const file of Array.from(files)) {
+        if (!file.type.startsWith('image/')) continue;
+        const idx = _pendingPhotos.length;
+        const dataUrl = await _readFileAsDataURL(file);
+        _pendingPhotos.push({ file, dataUrl, imgurUrl: null, uploading: true });
+        _renderPhotoStrip();
+
+        // Upload to Imgur
+        try {
+            const base64 = dataUrl.split(',')[1];
+            const resp = await fetch('https://api.imgur.com/3/image', {
+                method: 'POST',
+                headers: { 'Authorization': 'Client-ID ' + IMGUR_CLIENT_ID },
+                body: JSON.stringify({ image: base64, type: 'base64' })
+            });
+            const json = await resp.json();
+            if (json.success) {
+                _pendingPhotos[idx].imgurUrl = json.data.link;
+            } else {
+                _pendingPhotos[idx].imgurUrl = null;
+            }
+        } catch {
+            _pendingPhotos[idx].imgurUrl = null;
+        }
+        _pendingPhotos[idx].uploading = false;
+        _renderPhotoStrip();
+    }
+    // Reset the file input so same files can be re-selected
+    document.getElementById('photoFileInput').value = '';
+}
+
+function _readFileAsDataURL(file) {
+    return new Promise(res => {
+        const r = new FileReader();
+        r.onload = e => res(e.target.result);
+        r.readAsDataURL(file);
+    });
+}
+
+function _renderPhotoStrip() {
+    const strip = document.getElementById('photoPreviewStrip');
+    strip.innerHTML = '';
+    if (!_pendingPhotos.length) { strip.classList.remove('active'); return; }
+    strip.classList.add('active');
+    _pendingPhotos.forEach((p, i) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'photo-thumb-wrap';
+        wrap.innerHTML = `<img src="${p.dataUrl}" alt="">`;
+        if (p.uploading) {
+            wrap.innerHTML += `<div class="upload-spinner"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,.7)" stroke-width="2.5" stroke-dasharray="40" stroke-dashoffset="10" stroke-linecap="round"/></svg></div>`;
+        } else {
+            const rm = document.createElement('button');
+            rm.className = 'remove-photo';
+            rm.innerHTML = '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+            rm.onclick = () => { _pendingPhotos.splice(i, 1); _renderPhotoStrip(); };
+            wrap.appendChild(rm);
+        }
+        strip.appendChild(wrap);
+    });
+}
+
+// Override sendMessage to also send any pending photos
+
+function sendMessage() {
+    // If there are pending photos, send them first
+    if (_pendingPhotos.length > 0) {
+        const photos = _pendingPhotos.filter(p => !p.uploading);
+        const uploading = _pendingPhotos.filter(p => p.uploading);
+        if (uploading.length > 0) {
+            _showToast('Still uploading photos, please wait…', true);
+            return;
+        }
+        const urls = photos.map(p => p.imgurUrl).filter(Boolean);
+        if (urls.length) {
+            _sendPhotoMessage(urls);
+        }
+        _pendingPhotos = [];
+        _renderPhotoStrip();
+        // Also send text if present
+        const input = document.getElementById('composeInput');
+        if (input.value.trim()) _origSendTextMessage();
+        return;
+    }
+    _origSendTextMessage();
+}
+
+//  URL detection helper 
+const _URL_REGEX = /https?:\/\/[^\s<>"]+/gi;
+function _extractUrls(text) {
+    return text.match(_URL_REGEX) || [];
+}
+
+function _origSendTextMessage() {
+    const input = document.getElementById('composeInput');
+    const text = input.value.trim();
+    if (!text) return;
+
+    const urls = _extractUrls(text);
+
+    // Gate links for free users
+    if (urls.length > 0 && !_isPaid()) {
+        const linkTrialUsed = localStorage.getItem('_linkTrialUsed') === '1';
+        if (!linkTrialUsed) {
+            localStorage.setItem('_linkTrialUsed', '1');
+            _showToast(_svg.link + ' 1 free link trial. Future links cost $0.10 each.', false);
+            _doSendText(text, urls);
+            input.value = '';
+            input.style.height = 'auto';
+        } else {
+            const bal = _userBalance();
+            if (bal < 0.10) {
+                _showToast(_svg.link + ' Links cost $0.10 each. Top up your wallet or upgrade.', true);
+                setTimeout(() => { location.href = '/#topup'; }, 1200);
+                return;
+            }
+            _chargeWallet('link').then(ok => {
+                if (ok) {
+                    _showToast(_svg.check + ' $0.10 charged for link.', false);
+                    _doSendText(text, urls);
+                    input.value = '';
+                    input.style.height = 'auto';
+                } else {
+                    _showToast(_svg.warn + ' Payment failed. Top up your wallet.', true);
+                }
+            });
+        }
+        return;
+    }
+
+    _doSendText(text, urls);
+    input.value = '';
+    input.style.height = 'auto';
+}
+
+// Build link preview card HTML
+function _linkPreviewHtml(url) {
+    const domain = (() => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } })();
+    return `<div class="link-preview-card" style="margin-top:7px;border-radius:10px;border:1px solid rgba(255,255,255,0.09);overflow:hidden;background:rgba(255,255,255,0.04);max-width:320px;">
+        <div style="padding:10px 12px;display:flex;flex-direction:column;gap:4px;">
+            <div style="display:flex;align-items:center;gap:6px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(155,93,229,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                <span style="font-size:10px;color:rgba(185,183,220,0.55);font-family:'Syne',sans-serif;">${escapeHtml(domain)}</span>
+            </div>
+            <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" style="font-size:12px;color:#b39ddb;word-break:break-all;text-decoration:none;">${escapeHtml(url.length > 50 ? url.slice(0, 50) + '…' : url)}</a>
+            <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer"
+               style="margin-top:4px;display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:999px;background:rgba(155,93,229,0.15);border:1px solid rgba(155,93,229,0.3);color:#c4a8ff;font-size:10px;font-family:'Syne',sans-serif;font-weight:700;letter-spacing:.04em;text-decoration:none;width:fit-content;transition:background .15s;">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                Visit
+            </a>
+        </div>
+    </div>`;
+}
+
+// Make text safe and linkify for display (local render)
+function _renderMessageText(text) {
+    const safe = escapeHtml(text);
+    return safe.replace(/https?:\/\/[^\s<>"]+/gi, url =>
+        `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color:#b39ddb;text-decoration:underline;word-break:break-all;">${url}</a>`
+    );
+}
+
+function _doSendText(text, urls) {
+    if (window._sendToFirebase) {
+        window._sendToFirebase(text);
+    } else {
+        // Local fallback render
+        const msgs = document.getElementById('chatMessages');
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        const bubble = document.createElement('div');
+        bubble.className = 'msg-row own';
+        bubble.style.cssText = 'opacity:0;transform:translateY(6px);transition:opacity .22s,transform .22s;';
+        const previews = urls.length > 0 ? urls.map(_linkPreviewHtml).join('') : '';
+        bubble.innerHTML = `<div class="msg-bubble own">${_renderMessageText(text)}${previews}<span class="msg-time">${timeStr}<span class="msg-ticks ticks-sent"><svg width="14" height="9" viewBox="0 0 14 9" fill="none"><path d="M1 4.5l3 3 5.5-6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 4.5l3 3 5.5-6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span></div>`;
+        msgs.appendChild(bubble);
+        requestAnimationFrame(() => { bubble.style.opacity = '1'; bubble.style.transform = 'none'; });
+        msgs.scrollTop = msgs.scrollHeight;
+    }
+}
+
+function _sendPhotoMessage(urls) {
+    const threadId = window._activeChatId;
+    const myUid = window._currentUser?.uid;
+    const { _fbDb, _ref, _push, _set, _serverTimestamp } = window;
+    const msgs = document.getElementById('chatMessages');
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+    if (_fbDb && _ref && _push && _set && _serverTimestamp && threadId) {
+        const msgRef = _push(_ref(_fbDb, 'messages/' + threadId + '/messages'));
+        _set(msgRef, {
+            type: 'photos',
+            photos: urls,
+            senderUid: myUid,
+            ts: _serverTimestamp()
+        }).catch(() => {});
+        _set(_ref(_fbDb, 'messages/' + threadId + '/lastMessage'), `${urls.length} photo${urls.length>1?'s':''}`).catch(() => {});
+        _set(_ref(_fbDb, 'messages/' + threadId + '/lastTs'), _serverTimestamp()).catch(() => {});
+        // Increment unread — handled by _sendToFirebase normally
+    } else {
+        // Local fallback render
+        const row = document.createElement('div');
+        row.className = 'msg-row own';
+        row.style.cssText = 'opacity:0;transform:translateY(6px);transition:opacity .22s,transform .22s;';
+        const size = urls.length === 1 ? '200px' : '95px';
+        const photosHtml = urls.map(u => `<img src="${u}" style="width:${size};height:${size};" onclick="openLightbox('${u}')" loading="lazy">`).join('');
+        row.innerHTML = `<div class="msg-bubble own" style="padding:8px;background:transparent;border:none;"><div class="msg-photo-grid">${photosHtml}</div><span class="msg-time">${timeStr}<span class="msg-ticks ticks-sent"><svg width="14" height="9" viewBox="0 0 14 9" fill="none"><path d="M1 4.5l3 3 5.5-6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 4.5l3 3 5.5-6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span></div>`;
+        msgs.appendChild(row);
+        requestAnimationFrame(() => { row.style.opacity = '1'; row.style.transform = 'none'; });
+        msgs.scrollTop = msgs.scrollHeight;
+    }
+}
+
+//  LIGHTBOX 
+function openLightbox(url) {
+    const lb = document.getElementById('photoLightbox');
+    document.getElementById('lightboxImg').src = url;
+    lb.classList.add('open');
+}
+function closeLightbox() {
+    document.getElementById('photoLightbox').classList.remove('open');
+}
+
+//  TOAST 
+function _showToast(msg, isError) {
+    let t = document.getElementById('_toast');
+    if (!t) {
+        t = document.createElement('div');
+        t.id = '_toast';
+        t.style.cssText = 'position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(12px);background:var(--surface2);border:1px solid var(--border-hover);border-radius:999px;padding:9px 18px;font-size:12.5px;font-family:\'Syne\',sans-serif;font-weight:600;color:var(--text);z-index:999;opacity:0;transition:opacity .2s,transform .2s;white-space:nowrap;pointer-events:none;';
+        document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.color = isError ? 'var(--red)' : 'var(--text)';
+    t.style.opacity = '1';
+    t.style.transform = 'translateX(-50%) translateY(0)';
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => {
+        t.style.opacity = '0';
+        t.style.transform = 'translateX(-50%) translateY(8px)';
+    }, 2800);
+}
+
+// ── Expose functions to window for HTML onclick attributes ──
+if (typeof switchTab !== "undefined") window.switchTab = switchTab;
+if (typeof showCompose !== "undefined") window.showCompose = showCompose;
+if (typeof closeChat !== "undefined") window.closeChat = closeChat;
+if (typeof handleCompose !== "undefined") window.handleCompose = handleCompose;
+if (typeof toggleAttachMenu !== "undefined") window.toggleAttachMenu = toggleAttachMenu;
+if (typeof closeAttachMenu !== "undefined") window.closeAttachMenu = closeAttachMenu;
+if (typeof toggleMoreMenu !== "undefined") window.toggleMoreMenu = toggleMoreMenu;
+if (typeof onUserSearchInput !== "undefined") window.onUserSearchInput = onUserSearchInput;
+if (typeof closeUserSearch !== "undefined") window.closeUserSearch = closeUserSearch;
+if (typeof sendMessage !== "undefined") window.sendMessage = sendMessage;
+if (typeof onPhotosSelected !== "undefined") window.onPhotosSelected = onPhotosSelected;
+if (typeof openLightbox !== "undefined") window.openLightbox = openLightbox;
+if (typeof closeLightbox !== "undefined") window.closeLightbox = closeLightbox;
+if (typeof openBoostModal !== "undefined") window.openBoostModal = openBoostModal;
+if (typeof closeBoostModal !== "undefined") window.closeBoostModal = closeBoostModal;
+if (typeof confirmBoost !== "undefined") window.confirmBoost = confirmBoost;
+if (typeof handleArchiveThread !== "undefined") window.handleArchiveThread = handleArchiveThread;
+if (typeof handleMarkAsSold !== "undefined") window.handleMarkAsSold = handleMarkAsSold;
+if (typeof handleBlockUser !== "undefined") window.handleBlockUser = handleBlockUser;
+if (typeof _gatedPhotoUpload !== "undefined") window._gatedPhotoUpload = _gatedPhotoUpload;
+if (typeof _showToast !== "undefined") window._showToast = _showToast;
+
 </script>
 
 </body>
