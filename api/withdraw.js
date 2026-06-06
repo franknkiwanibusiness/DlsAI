@@ -7,7 +7,7 @@
 //    FIREBASE_DATABASE_URL
 //    FIREBASE_CLIENT_EMAIL
 //    FIREBASE_PRIVATE_KEY          (include \n line-breaks)
-//    ANTHROPIC_API_KEY             (for AI scam detection)
+//    GROQ_API_KEY                  (for AI scam detection)
 // ============================================================
 
 import admin from 'firebase-admin';
@@ -63,24 +63,30 @@ Respond ONLY with a JSON object — no markdown, no extra text:
   "reason": "one short sentence explaining why flagged, or empty string if clean"
 }`;
 
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
+        model: 'llama-3.1-8b-instant',
         max_tokens: 256,
-        messages: [{ role: 'user', content: prompt }],
+        temperature: 0,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a fraud-detection assistant. Respond ONLY with valid JSON — no markdown, no extra text.',
+          },
+          { role: 'user', content: prompt },
+        ],
       }),
     });
 
     if (!res.ok) return { flagged: false, reason: '' };
 
     const data = await res.json();
-    const text = (data.content || []).map(b => b.text || '').join('').trim();
+    const text = data.choices?.[0]?.message?.content?.trim() || '';
     const clean = text.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(clean);
     return parsed;
