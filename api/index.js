@@ -716,6 +716,10 @@ module.exports = async function handler(req, res) {
     // Body: { revenue, traffic, desc, url? }
     // ════════════════════════════════════════════════════════════
     if (route === "valuate" && req.method === "POST") {
+      if (!GROQ_API_KEY) {
+        return json(res, 503, { error: "Valuation service not configured (missing GROQ_API_KEY)" });
+      }
+
       const { revenue, traffic, desc, url } = body;
       let urlContent = "";
       let urlFetched = false;
@@ -727,7 +731,7 @@ module.exports = async function handler(req, res) {
             ? r.body.replace(/<[^>]+>/g, " ").slice(0, 1500)
             : "";
           urlFetched = true;
-        } catch { /* ignore fetch errors */ }
+        } catch { /* ignore fetch errors — URL is optional */ }
       }
 
       const prompt = `You are a website valuation expert. Provide a concise but detailed valuation.
@@ -745,12 +749,16 @@ Provide:
 
 Keep the response under 200 words and use **bold** for headings.`;
 
-      const result = await groqChat([{ role: "user", content: prompt }], {
-        model: "llama3-8b-8192",
-        max_tokens: 400,
-      });
-
-      return json(res, 200, { result, urlFetched });
+      try {
+        const result = await groqChat([{ role: "user", content: prompt }], {
+          model: "llama3-8b-8192",
+          max_tokens: 400,
+        });
+        return json(res, 200, { result, urlFetched });
+      } catch (groqErr) {
+        console.error("[valuate groq error]", groqErr);
+        return json(res, 502, { error: "AI valuation failed: " + (groqErr.message || "unknown error") });
+      }
     }
 
     // ════════════════════════════════════════════════════════════
@@ -778,11 +786,21 @@ Never make up information about specific listings or prices. Direct complex issu
     // GET stats  — visitor counter bump
     // ════════════════════════════════════════════════════════════
     if (route === "stats" && req.method === "GET") {
-      // Fire-and-forget increment
+      // Fire-and-forget visitor count increment
       dbGet("/meta/visitorCount").then((count) => {
         dbSet("/meta/visitorCount", (parseInt(count || 0) + 1));
       }).catch(() => {});
-      return json(res, 200, { ok: true });
+
+      // Build deterministic daily-growth numbers the frontend renders as a/b/c.
+      // a = sellers (thousands), b = sites listed (thousands), c = countries.
+      // Numbers grow by a fixed daily delta — no scheduled job needed.
+      const BASE_DATE = new Date("2024-01-01").getTime();
+      const daysSince = Math.floor((Date.now() - BASE_DATE) / 86400000);
+      const a = Math.floor(12 + daysSince * 0.04);   // sellers  e.g. "14k+"
+      const b = Math.floor(8  + daysSince * 0.03);   // listings e.g. "10k+"
+      const c = Math.floor(40 + daysSince * 0.02);   // countries e.g. "44+"
+
+      return json(res, 200, { ok: true, a, b, c });
     }
 
     // ════════════════════════════════════════════════════════════
