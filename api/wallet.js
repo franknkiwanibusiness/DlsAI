@@ -21,9 +21,10 @@ const db = admin.database();
 
 // ── Pricing table (server owns these — never trust the client) ─────────────
 const PRICES = {
-    photo:        0.10,
-    link:         0.10,
-    'boost-thread': 1.00,
+    photo:          0.10,   // sending a photo in chat
+    link:           0.10,   // inserting a link in chat
+    unblock:        0.10,   // unblocking another user (free plan only)
+    'boost-thread': 1.00,   // boosting a conversation to the top
 };
 
 // ── Helper: verify idToken → returns uid or throws ────────────────────────
@@ -45,7 +46,7 @@ async function deductBalance(uid, amount) {
         newBalance = parseFloat((bal - amount).toFixed(2));
         return newBalance;
     }, (err, committed) => {
-        if (err)       throw new Error('Database error');
+        if (err)        throw new Error('Database error');
         if (!committed) throw new Error('Insufficient balance');
     });
 
@@ -53,7 +54,8 @@ async function deductBalance(uid, amount) {
 }
 
 // ── POST /api/wallet/charge ────────────────────────────────────────────────
-// Body: { idToken, type }   — type: 'photo' | 'link'
+// Body: { idToken, type }
+// type: 'photo' | 'link' | 'unblock'
 // The server looks up the price; the client never sends an amount.
 router.post('/charge', async (req, res) => {
     try {
@@ -66,7 +68,7 @@ router.post('/charge', async (req, res) => {
 
         const uid = await verifyToken(idToken);
 
-        // Check plan — paid users are never charged
+        // Check plan — paid users are never charged for per-action fees
         const userSnap = await db.ref(`users/${uid}`).once('value');
         const userData  = userSnap.val() || {};
         const plan      = (userData.plan || 'free').toLowerCase();
@@ -80,15 +82,61 @@ router.post('/charge', async (req, res) => {
         // Log the transaction
         await db.ref(`users/${uid}/transactions`).push({
             type,
-            amount:    -price,
-            ts:        admin.database.ServerValue.TIMESTAMP,
-            balance:   newBalance,
+            amount:  -price,
+            ts:      admin.database.ServerValue.TIMESTAMP,
+            balance: newBalance,
         });
 
         return res.json({ newBalance });
     } catch (err) {
         const status = err.message === 'Insufficient balance' ? 402 : 500;
         return res.status(status).json({ error: err.message || 'Charge failed' });
+    }
+});
+
+// ── POST /api/wallet/unblock ───────────────────────────────────────────────
+// Charges the unblock fee (free for paid plans), then removes the block flags
+// from Firebase so the server is the single source of truth for this mutation.
+// Body: { idToken, blockedUid, threadId }
+router.post('/unblock', async (req, res) => {
+    try {
+        const { idToken, blockedUid, threadId } = req.body;
+        if (!blockedUid) return res.status(400).json({ error: 'Missing blockedUid' });
+
+        const uid = await verifyToken(idToken);
+
+        // Check plan
+        const userSnap = await db.ref(`users/${uid}`).once('value');
+        const userData  = userSnap.val() || {};
+        const plan      = (userData.plan || 'free').toLowerCase();
+        const isPaid    = plan !== 'free';
+
+        let newBalance = parseFloat(userData.balance || 0);
+
+        if (!isPaid) {
+            // Atomically deduct — will throw 'Insufficient balance' if too low
+            newBalance = await deductBalance(uid, PRICES.unblock);
+
+            // Log
+            await db.ref(`users/${uid}/transactions`).push({
+                type:    'unblock',
+                amount:  -PRICES.unblock,
+                ts:      admin.database.ServerValue.TIMESTAMP,
+                balance: newBalance,
+                meta:    { unblockedUid: blockedUid },
+            });
+        }
+
+        // Remove block flags (server-side write — safe from client manipulation)
+        const updates = {};
+        if (threadId) updates[`messages/${threadId}/blocked/${uid}`] = null;
+        updates[`users/${uid}/blocked/${blockedUid}`] = null;
+        await db.ref().update(updates);
+
+        return res.json({ newBalance, skipped: isPaid });
+    } catch (err) {
+        const status = err.message === 'Insufficient balance' ? 402 : 500;
+        return res.status(status).json({ error: err.message || 'Unblock failed' });
     }
 });
 
