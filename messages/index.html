@@ -872,6 +872,45 @@
         }
         .msg-offer-decline:hover { background: rgba(248,113,113,0.15); }
 
+        /* Make Offer modal in messages */
+        #msgOfferModal {
+            display:none; position:fixed; inset:0; z-index:200;
+            background:rgba(0,0,0,.82); backdrop-filter:blur(20px) saturate(160%);
+            -webkit-backdrop-filter:blur(20px) saturate(160%);
+        }
+        .msg-offer-modal-wrap { height:100%; display:flex; align-items:flex-end; justify-content:center; }
+        @media(min-width:600px){.msg-offer-modal-wrap{align-items:center;padding:20px 16px;}}
+        .msg-offer-modal-box {
+            width:100%; max-width:420px;
+            background:linear-gradient(160deg,#16162a 0%,#0f0f1e 100%);
+            border:1px solid rgba(255,255,255,.1); border-top:1px solid rgba(255,255,255,.18);
+            border-radius:24px 24px 0 0; padding:26px 22px 36px;
+            position:relative; overflow-y:auto; -webkit-overflow-scrolling:touch;
+            animation:modalPop .25s cubic-bezier(0.34,1.3,0.64,1) both;
+            box-shadow:0 -8px 40px rgba(155,93,229,.12),0 32px 80px rgba(0,0,0,.9);
+        }
+        @media(min-width:600px){.msg-offer-modal-box{border-radius:24px;}}
+        .moff-close {
+            position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:999px;
+            background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);
+            display:flex;align-items:center;justify-content:center;
+            cursor:pointer;color:var(--muted);transition:background .15s,color .15s;
+        }
+        .moff-close:hover{background:rgba(255,255,255,.1);color:var(--text);}
+        .moff-title{font-family:'Syne',sans-serif;font-size:1.15rem;font-weight:800;color:var(--text);letter-spacing:-0.03em;margin-bottom:3px;}
+        .moff-sub{font-size:12px;color:var(--muted);margin-bottom:18px;line-height:1.6;}
+        .moff-err{font-size:12px;color:#f87171;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:8px;padding:9px 12px;margin-bottom:12px;display:none;}
+        .moff-ok{font-size:12px;color:#34d399;background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.2);border-radius:8px;padding:9px 12px;margin-bottom:12px;display:none;}
+        .moff-amt-wrap{position:relative;margin-bottom:14px;}
+        .moff-dollar{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--muted);}
+        .moff-amt{width:100%;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.12);border-radius:13px;padding:13px 13px 13px 30px;font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--text);outline:none;-webkit-appearance:none;transition:border-color .2s;}
+        .moff-amt:focus{border-color:rgba(155,93,229,.6);}
+        .moff-note{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:11px;padding:10px 13px;font-size:13px;color:var(--text);outline:none;resize:none;font-family:'DM Sans',sans-serif;transition:border-color .2s;margin-bottom:14px;min-height:60px;}
+        .moff-note:focus{border-color:rgba(155,93,229,.45);}
+        .moff-note::placeholder{color:rgba(139,138,168,.45);}
+        .moff-btn{width:100%;padding:13px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff;font-family:'Syne',sans-serif;font-size:14px;font-weight:800;cursor:pointer;transition:opacity .15s,transform .1s;}
+        .moff-btn:hover{opacity:.88;} .moff-btn:active{transform:scale(.97);} .moff-btn:disabled{opacity:.4;cursor:default;transform:none;}
+
         /* ── COMPOSE BAR ── */
         .chat-compose {
             display: flex;
@@ -1344,6 +1383,10 @@
                         <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="var(--green)" stroke-width="1.3"/><path d="M5 8l2.2 2.2L11 5.5" stroke="var(--green)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
                         Mark as Sold
                     </button>
+                    <button class="attach-menu-item" onclick="openMsgOfferModal()">
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2C4.686 2 2 4.46 2 7.5c0 1.25.46 2.4 1.24 3.3L2 14l3.4-1.06A6.14 6.14 0 0 0 8 13c3.314 0 6-2.46 6-5.5S11.314 2 8 2z" stroke="var(--accent)" stroke-width="1.3" stroke-linejoin="round"/><path d="M5.5 7.5h5M5.5 9.5h3" stroke="var(--accent)" stroke-width="1.2" stroke-linecap="round"/></svg>
+                        Make Offer
+                    </button>
                     <div class="attach-menu-divider"></div>
                     <div class="attach-menu-label">Send</div>
                     <button class="attach-menu-item" onclick="triggerPhotoUpload()">
@@ -1379,6 +1422,28 @@
     </div><!-- /chatView -->
 
 </div><!-- /page-wrap -->
+
+<!-- Make Offer Modal (messages page) -->
+<div id="msgOfferModal">
+    <div class="msg-offer-modal-wrap">
+        <div class="msg-offer-modal-box">
+            <button class="moff-close" onclick="closeMsgOfferModal()">
+                <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            </button>
+            <div class="moff-title">Make an Offer</div>
+            <div class="moff-sub" id="moffSub">Send a formal offer to the seller.</div>
+            <div id="moffErr" class="moff-err"></div>
+            <div id="moffOk" class="moff-ok"></div>
+            <div class="moff-amt-wrap">
+                <span class="moff-dollar">$</span>
+                <input class="moff-amt" id="moffAmt" type="number" min="1" step="1" placeholder="0">
+            </div>
+            <label style="display:block;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Note (optional)</label>
+            <textarea class="moff-note" id="moffNote" placeholder="Add any message to accompany your offer…" maxlength="400"></textarea>
+            <button class="moff-btn" id="moffBtn" onclick="submitMsgOffer()">Send Offer</button>
+        </div>
+    </div>
+</div>
 
 <!-- Footer — only shown in list view -->
 <footer id="siteFooter">
@@ -1462,20 +1527,132 @@ function closeChat() {
     document.getElementById('pageWrap').classList.remove('chat-active');
 }
 
-// ── OFFER ACTIONS ──
-function acceptOffer() {
+// ── OFFER ACTIONS (server-side via /api/offers) ──
+window._currentOfferId = null;
+window._currentOfferData = null;
+
+async function acceptOffer() {
+    if (!window._currentOfferId) { showToast('No active offer.'); return; }
+    const user = window._currentUser;
+    if (!user) return;
     const el = document.getElementById('offerResponse');
-    el.innerHTML = `
-        <div class="msg-system" style="background:rgba(45,212,160,0.08);border:1px solid rgba(45,212,160,0.2);border-radius:999px;color:var(--green);font-family:'Syne',sans-serif;font-size:11px;font-weight:700;">
-            ✓ Offer accepted — $4,200
-        </div>`;
-    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    try {
+        const idToken = await user.getIdToken();
+        const r = await fetch('/api/offers/accept', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken, offerId: window._currentOfferId }),
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'Accept failed');
+        const d = window._currentOfferData || {};
+        const amt = d.amount ? '$' + Number(d.amount).toLocaleString() : 'the offer';
+        if (el) el.innerHTML = `<div class="msg-system" style="background:rgba(45,212,160,0.08);border:1px solid rgba(45,212,160,0.2);border-radius:999px;color:var(--green);font-family:'Syne',sans-serif;font-size:11px;font-weight:700;padding:6px 14px;">✓ Offer accepted — ${amt} · Buyer notified by email</div>`;
+        showToast('Offer accepted — buyer notified!');
+    } catch(e) { console.error('[acceptOffer]', e); showToast('Error: ' + e.message); }
 }
-function declineOffer() {
+
+async function declineOffer() {
+    if (!window._currentOfferId) { showToast('No active offer.'); return; }
+    const user = window._currentUser;
+    if (!user) return;
     const el = document.getElementById('offerResponse');
-    el.innerHTML = `<div class="msg-system">Offer declined.</div>`;
-    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    try {
+        const idToken = await user.getIdToken();
+        const r = await fetch('/api/offers/decline', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken, offerId: window._currentOfferId }),
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'Decline failed');
+        if (el) el.innerHTML = `<div class="msg-system" style="color:var(--muted);font-size:11px;">Offer declined.</div>`;
+        showToast('Offer declined.');
+    } catch(e) { console.error('[declineOffer]', e); showToast('Error: ' + e.message); }
 }
+
+// ── MAKE OFFER MODAL (from messages) ──
+window.openMsgOfferModal = function() {
+    const moff = document.getElementById('msgOfferModal');
+    const sub  = document.getElementById('moffSub');
+    const err  = document.getElementById('moffErr');
+    const ok   = document.getElementById('moffOk');
+    const btn  = document.getElementById('moffBtn');
+    const amt  = document.getElementById('moffAmt');
+    const note = document.getElementById('moffNote');
+
+    // Get listing context from chat header
+    const titleEl = document.getElementById('chatListingTitle');
+    const listingTitle = titleEl ? titleEl.textContent : 'this listing';
+    if (sub) sub.textContent = `Send a formal offer for "${listingTitle}"`;
+    if (err) { err.style.display='none'; err.textContent=''; }
+    if (ok)  { ok.style.display='none';  ok.textContent=''; }
+    if (btn) { btn.disabled=false; btn.textContent='Send Offer'; }
+    if (amt) amt.value = '';
+    if (note) note.value = '';
+
+    // Close attach menu first
+    const attachMenu = document.getElementById('attachMenu');
+    if (attachMenu) attachMenu.style.display = 'none';
+
+    if (moff) moff.style.display = 'block';
+};
+
+window.closeMsgOfferModal = function() {
+    const moff = document.getElementById('msgOfferModal');
+    if (moff) moff.style.display = 'none';
+};
+
+window.submitMsgOffer = async function() {
+    const err  = document.getElementById('moffErr');
+    const ok   = document.getElementById('moffOk');
+    const btn  = document.getElementById('moffBtn');
+    const amtV = parseFloat((document.getElementById('moffAmt')||{}).value);
+    const noteV = ((document.getElementById('moffNote')||{}).value||'').trim();
+
+    const showErr3 = (m) => { if(err){err.textContent=m;err.style.display='block';} };
+    const showOk3  = (m) => { if(ok) {ok.textContent=m; ok.style.display='block';} };
+
+    if (!amtV || amtV <= 0) { showErr3('Please enter a valid amount.'); return; }
+
+    // Need current conversation context: sellerUid, listingId
+    // These are stored by the Firebase module on thread open
+    const sellerUid = window._activeThreadSellerUid || '';
+    const listingId = window._activeThreadListingId || '';
+    const buyer = window._currentUser;
+
+    if (!buyer) { showErr3('Not signed in.'); return; }
+    if (!sellerUid) { showErr3('No conversation context found.'); return; }
+
+    btn.disabled = true; btn.textContent = 'Sending…';
+
+    try {
+        const ts = Date.now();
+        const offerId = (listingId||'msg') + '_' + buyer.uid + '_' + ts;
+        const { ref: fbRef, set: fbSet } = window._fbDbFns;
+        const db = window._fbDb;
+
+        const offerData = {
+            offerId, listingId, sellerUid, buyerUid: buyer.uid,
+            buyerEmail: buyer.email||'', buyerName: buyer.displayName||'',
+            amount: amtV, note: noteV, status: 'pending',
+            createdAt: ts, updatedAt: ts,
+            source: 'messages',
+        };
+
+        await fbSet(fbRef(db, 'offers/' + offerId), offerData);
+        if (sellerUid) await fbSet(fbRef(db, 'users/' + sellerUid + '/incomingOffers/' + offerId), { offerId, listingId, amount: amtV, buyerUid: buyer.uid, status: 'pending', createdAt: ts });
+        await fbSet(fbRef(db, 'users/' + buyer.uid + '/sentOffers/' + offerId), { offerId, listingId, amount: amtV, sellerUid, status: 'pending', createdAt: ts });
+
+        showOk3(`Offer of $${amtV.toLocaleString()} sent!`);
+        btn.textContent = '✓ Sent';
+        setTimeout(() => window.closeMsgOfferModal(), 1600);
+    } catch (e) {
+        console.error('[msgOffer]', e);
+        showErr3('Failed to send offer. Try again.');
+        btn.disabled = false; btn.textContent = 'Send Offer';
+    }
+};
 
 // ── SEND MESSAGE ──
 // (sendMessage is now defined below with photo support)
@@ -1856,7 +2033,39 @@ async function onPhotosSelected(files) {
         _renderPhotoStrip();
 
         try {
-            // ── Step 1: Charge via server API (free for paid plan users) ──
+            // ── Step 1a: Check daily image limit (server-side, free users only) ──
+            try {
+                const idToken = window._currentUser ? await window._currentUser.getIdToken() : null;
+                if (idToken) {
+                    const limitResp = await fetch('/api/limits/consume', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ idToken, type: 'image' }),
+                    });
+                    if (limitResp.status === 429) {
+                        const limitData = await limitResp.json();
+                        _pendingPhotos[idx].failed = true;
+                        _pendingPhotos[idx].uploading = false;
+                        _renderPhotoStrip();
+                        await _showModal({
+                            icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="var(--accent)" stroke-width="1.5"/><path d="M12 7v5M12 15v1" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round"/></svg>',
+                            iconBg: 'rgba(155,93,229,.08)',
+                            title: 'Daily Image Limit Reached',
+                            body: `Free users can send <strong style="color:var(--text);">1 image per day</strong>. Upgrade to a paid plan for unlimited image sending.`,
+                            actions: [
+                                { label: 'Not Now', style: 'ghost' },
+                                { label: 'Upgrade ↗', style: 'primary' }
+                            ]
+                        }).then(r => { if (r && r.index === 1) location.href = '/?upgrade=plans'; });
+                        break; // stop processing remaining files in the loop
+                    }
+                }
+            } catch (limitErr) {
+                // Network/auth error on limit check — log and continue so UX doesn't break
+                console.warn('[limits check]', limitErr);
+            }
+
+            // ── Step 1b: Charge via server API (free for paid plan users) ──
             // This atomically validates the balance server-side before we
             // waste bandwidth uploading to Imgur.
             try {
@@ -1952,7 +2161,7 @@ function _renderPhotoStrip() {
 // Override sendMessage to also send any pending photos
 const _origSendMessage = window.sendMessage;
 
-function sendMessage() {
+async function sendMessage() {
     // If there are pending photos, handle them
     if (_pendingPhotos.length > 0) {
         const stillUploading = _pendingPhotos.filter(p => p.uploading);
@@ -1973,29 +2182,112 @@ function sendMessage() {
         _renderPhotoStrip();
         // Also send any typed text alongside the photos
         const input = document.getElementById('composeInput');
-        if (input.value.trim()) _origSendTextMessage();
+        if (input.value.trim()) await _origSendTextMessage();
         return;
     }
-    _origSendTextMessage();
+    await _origSendTextMessage();
 }
 
-function _origSendTextMessage() {
+// ── URL detection helper ───────────────────────────────────────────────────
+const _URL_REGEX = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z]{2,}\b([-a-zA-Z0-9@:%_+.~#?&/=]*)/g;
+
+function _extractFirstUrl(text) {
+    const matches = text.match(_URL_REGEX);
+    return matches ? matches[0] : null;
+}
+
+// Fetch an Open Graph / meta preview via server proxy (avoids CORS)
+async function _fetchLinkPreview(url) {
+    try {
+        const resp = await fetch('/api/limits/link-preview?url=' + encodeURIComponent(url));
+        if (!resp.ok) return null;
+        return await resp.json(); // { title, description, image, favicon, hostname }
+    } catch {
+        return null;
+    }
+}
+
+// Build preview card HTML (shown inline in chat bubble)
+function _buildPreviewCardHtml(preview, url) {
+    const hostname = preview?.hostname || new URL(url).hostname.replace(/^www\./, '');
+    const title    = preview?.title       ? escapeHtml(preview.title.slice(0, 80))       : escapeHtml(hostname);
+    const desc     = preview?.description ? escapeHtml(preview.description.slice(0, 120)) : '';
+    const img      = preview?.image       ? `<img src="${escapeHtml(preview.image)}" style="width:100%;height:110px;object-fit:cover;display:block;border-radius:8px 8px 0 0;" loading="lazy" onerror="this.style.display='none'">` : '';
+    const fav      = preview?.favicon     ? `<img src="${escapeHtml(preview.favicon)}" style="width:13px;height:13px;border-radius:2px;object-fit:contain;flex-shrink:0;" loading="lazy" onerror="this.style.display='none'">` : '';
+    return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" style="display:block;margin-top:8px;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04);text-decoration:none;max-width:260px;">
+        ${img}
+        <div style="padding:9px 11px;">
+            <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px;">
+                ${fav}
+                <span style="font-size:10px;color:var(--muted);letter-spacing:.02em;">${escapeHtml(hostname)}</span>
+            </div>
+            <div style="font-size:12px;font-weight:600;color:var(--text);line-height:1.35;margin-bottom:${desc ? '4px' : '0'};">${title}</div>
+            ${desc ? `<div style="font-size:11px;color:var(--text2);line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${desc}</div>` : ''}
+        </div>
+    </a>`;
+}
+
+async function _origSendTextMessage() {
     const input = document.getElementById('composeInput');
     const text = input.value.trim();
     if (!text) return;
 
+    // ── Detect link in message ──
+    const detectedUrl = _extractFirstUrl(text);
+
+    if (detectedUrl) {
+        // ── Check & consume daily link limit server-side ──
+        try {
+            const idToken = window._currentUser ? await window._currentUser.getIdToken() : null;
+            if (idToken) {
+                const limitResp = await fetch('/api/limits/consume', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idToken, type: 'link' }),
+                });
+                if (limitResp.status === 429) {
+                    await _showModal({
+                        icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="var(--accent)" stroke-width="1.5"/><path d="M12 7v5M12 15v1" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round"/></svg>',
+                        iconBg: 'rgba(155,93,229,.08)',
+                        title: 'Daily Link Limit Reached',
+                        body: 'Free users can send <strong style="color:var(--text);">1 link per day</strong>. Upgrade to a paid plan for unlimited link sharing.',
+                        actions: [
+                            { label: 'Not Now', style: 'ghost' },
+                            { label: 'Upgrade ↗', style: 'primary' }
+                        ]
+                    }).then(r => { if (r && r.index === 1) location.href = '/?upgrade=plans'; });
+                    return; // Block the send
+                }
+                // Charge $0.10 via wallet for free users (link type)
+                try { await _walletCharge('link'); } catch (_) { /* non-fatal */ }
+            }
+        } catch (limitErr) {
+            console.warn('[link limit]', limitErr);
+            // Fall through — don't block on transient errors
+        }
+    }
+
+    // ── Send the message ──
     if (window._sendToFirebase) {
-        window._sendToFirebase(text);
+        // Pass link metadata so Firebase stores it and receiver sees preview
+        if (detectedUrl) {
+            const preview = await _fetchLinkPreview(detectedUrl);
+            window._sendToFirebase(text, { type: 'link', url: detectedUrl, preview });
+        } else {
+            window._sendToFirebase(text);
+        }
         input.value = '';
         input.style.height = 'auto';
     } else {
+        // Local fallback (no Firebase)
         const msgs = document.getElementById('chatMessages');
         const now = new Date();
         const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
         const bubble = document.createElement('div');
         bubble.className = 'msg-row own';
         bubble.style.cssText = 'opacity:0;transform:translateY(6px);transition:opacity .22s,transform .22s;';
-        bubble.innerHTML = `<div class="msg-bubble own">${escapeHtml(text)}<span class="msg-time">${timeStr}<span class="msg-ticks ticks-sent"><svg width="14" height="9" viewBox="0 0 14 9" fill="none"><path d="M1 4.5l3 3 5.5-6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 4.5l3 3 5.5-6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span></div>`;
+        const previewHtml = detectedUrl ? _buildPreviewCardHtml(null, detectedUrl) : '';
+        bubble.innerHTML = `<div class="msg-bubble own">${escapeHtml(text)}${previewHtml}<span class="msg-time">${timeStr}<span class="msg-ticks ticks-sent"><svg width="14" height="9" viewBox="0 0 14 9" fill="none"><path d="M1 4.5l3 3 5.5-6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 4.5l3 3 5.5-6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span></div>`;
         msgs.appendChild(bubble);
         input.value = '';
         input.style.height = 'auto';
@@ -2475,6 +2767,9 @@ function openFirebaseChat(threadId, otherUid, otherName, gradient, initial, thre
     _activeChatId = threadId;
     window._activeChatId = threadId;
     window._activeChatOtherUid = otherUid;
+    // Store thread context for Make Offer modal
+    window._activeThreadSellerUid = otherUid;
+    window._activeThreadListingId = threadData.listingId || '';
 
     document.getElementById('chatAvatar').textContent = initial;
     document.getElementById('chatAvatar').style.background = gradient;
@@ -2530,11 +2825,16 @@ function openFirebaseChat(threadId, otherUid, otherName, gradient, initial, thre
     });
 
     // Patch sendMessage to write to Firebase
-    window._sendToFirebase = (text) => {
+    // linkMeta (optional): { type: 'link', url, preview: { title, description, image, favicon, hostname } }
+    window._sendToFirebase = (text, linkMeta) => {
         if (!window._currentUser) return;
         const uid = window._currentUser.uid;
         const msgRef = push(ref(db, 'messages/' + threadId + '/messages'));
         const msgData = { text, senderUid: uid, ts: serverTimestamp() };
+        if (linkMeta && linkMeta.url) {
+            msgData.linkUrl     = linkMeta.url;
+            msgData.linkPreview = linkMeta.preview || null;
+        }
         set(msgRef, msgData).catch(err => console.warn('Send error', err));
         // Update thread metadata
         set(ref(db, 'messages/' + threadId + '/lastMessage'), text).catch(() => {});
@@ -2602,11 +2902,13 @@ function renderMessages(msgs, myUid, otherHasRead) {
             const chatAv = document.getElementById('chatAvatar');
             const avStyle = chatAv ? chatAv.style.background : '#555';
             const avInitial = (document.getElementById('chatName')?.textContent || '?').replace('@','').charAt(0).toUpperCase();
+            const previewHtml = m.linkUrl ? _buildPreviewCardHtml(m.linkPreview || null, m.linkUrl) : '';
             row.innerHTML = `
                 <div class="msg-avatar-sm" style="background:${avStyle};">${avInitial}</div>
-                <div class="msg-bubble ${bubbleClass}">${escapeHtml(m.text || '')}<span class="msg-time">${timeStr}</span></div>`;
+                <div class="msg-bubble ${bubbleClass}">${escapeHtml(m.text || '')}${previewHtml}<span class="msg-time">${timeStr}</span></div>`;
         } else {
-            row.innerHTML = `<div class="msg-bubble ${bubbleClass}">${escapeHtml(m.text || '')}<span class="msg-time">${timeStr}${ticksHtml}</span></div>`;
+            const previewHtml = m.linkUrl ? _buildPreviewCardHtml(m.linkPreview || null, m.linkUrl) : '';
+            row.innerHTML = `<div class="msg-bubble ${bubbleClass}">${escapeHtml(m.text || '')}${previewHtml}<span class="msg-time">${timeStr}${ticksHtml}</span></div>`;
         }
 
         msgsEl.appendChild(row);
