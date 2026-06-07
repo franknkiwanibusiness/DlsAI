@@ -2746,6 +2746,17 @@
                 // Minimal fallback — same shape as main page
                 window._fbUserData = { uid: user.uid, username: '', plan: 'Free', email: user.email || '', balance: 0, paypalSubId: null };
             });
+
+            // Load pending offer badge after a brief delay to let Firebase init settle
+            setTimeout(() => {
+                get(ref(db, 'users/' + user.uid + '/incomingOffers')).then(snap => {
+                    if (!snap.exists()) return;
+                    const pending = Object.values(snap.val()).filter(o => o && o.status === 'pending').length;
+                    const badge = document.getElementById('offersTabBadge');
+                    if (badge && pending > 0) { badge.textContent = pending; badge.style.display = ''; }
+                }).catch(() => {});
+            }, 1500);
+
         } else {
             window._fbUserData = null;
             _applyUserUI(null, null);
@@ -3218,6 +3229,10 @@ window._sellerBarIncrement = function() {
             </button>
             <button class="page-tab" onclick="switchTab('listings')">
                 My Listings
+            </button>
+            <button class="page-tab" id="tabOffers" onclick="switchTab('offers')">
+                Offers
+                <span id="offersTabBadge" style="display:none;background:rgba(251,191,36,0.85);color:#111;font-family:'Syne',sans-serif;font-size:8px;font-weight:800;border-radius:999px;padding:1px 5px;margin-left:4px;vertical-align:middle;"></span>
             </button>
         </div>
         </div>
@@ -4359,6 +4374,86 @@ window._sellerBarIncrement = function() {
 
     </div><!-- end panel-listings -->
 
+    <!--  OFFERS PANEL  -->
+    <div id="panel-offers" class="tab-panel">
+        <!-- Stats bar -->
+        <div class="stats-bar" style="margin-bottom:16px;">
+            <div class="stat-card">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                    <div class="stat-card-label" style="margin-bottom:0;">Received</div>
+                    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="opacity:0.3;"><path d="M7 1.5C4.015 1.5 1.5 3.8 1.5 6.5c0 1.1.32 2.12.87 2.97L1.5 12l2.73-.86A5.97 5.97 0 0 0 7 11.5c2.985 0 5.5-2.24 5.5-5S9.985 1.5 7 1.5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+                </div>
+                <div class="stat-card-val" id="sellOffersRcvd">—</div>
+                <div class="stat-card-change neutral" id="sellOffersPending">— pending</div>
+            </div>
+            <div class="stat-card">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                    <div class="stat-card-label" style="margin-bottom:0;">Accepted</div>
+                    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="opacity:0.3;"><path d="M2 7l3.5 3.5 6.5-6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <div class="stat-card-val" id="sellOffersAccepted" style="color:var(--green);">—</div>
+                <div class="stat-card-change neutral">deals closed</div>
+            </div>
+            <div class="stat-card">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                    <div class="stat-card-label" style="margin-bottom:0;">Highest</div>
+                    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="opacity:0.3;"><path d="M7 2v10M4 5l3-3 3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <div class="stat-card-val" id="sellOffersHighest" style="color:#fbbf24;">—</div>
+                <div class="stat-card-change neutral">best offer received</div>
+            </div>
+            <div class="stat-card">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                    <div class="stat-card-label" style="margin-bottom:0;">Sent</div>
+                    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="opacity:0.3;"><path d="M12.5 2L2 6.5l4 1.5 1.5 4 5-10z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <div class="stat-card-val" id="sellOffersSent">—</div>
+                <div class="stat-card-change neutral">offers made as buyer</div>
+            </div>
+        </div>
+
+        <!-- Filter tabs -->
+        <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;">
+            <button class="filter-chip active" id="offersFilterAll" onclick="filterOffers('all',this)">All</button>
+            <button class="filter-chip" id="offersFilterPending" onclick="filterOffers('pending',this)">Pending</button>
+            <button class="filter-chip" id="offersFilterAccepted" onclick="filterOffers('accepted',this)">Accepted</button>
+            <button class="filter-chip" id="offersFilterDeclined" onclick="filterOffers('declined',this)">Declined</button>
+            <button class="filter-chip" id="offersFilterSent" onclick="filterOffers('sent',this)">Sent by Me</button>
+        </div>
+
+        <!-- Offer cards list -->
+        <div id="offersGrid" style="display:flex;flex-direction:column;gap:10px;">
+            <!-- Skeleton -->
+            <div class="listing-row-skel" id="skelOffer0" style="border-radius:14px;padding:16px 18px;">
+                <div class="skeleton" style="width:48px;height:48px;border-radius:12px;flex-shrink:0;"></div>
+                <div class="sk-info" style="flex:1;">
+                    <div class="skeleton sk-title" style="width:55%;margin-bottom:6px;"></div>
+                    <div class="skeleton sk-url" style="width:38%;"></div>
+                </div>
+                <div class="skeleton" style="width:80px;height:32px;border-radius:10px;"></div>
+            </div>
+            <div class="listing-row-skel" id="skelOffer1" style="border-radius:14px;padding:16px 18px;">
+                <div class="skeleton" style="width:48px;height:48px;border-radius:12px;flex-shrink:0;"></div>
+                <div class="sk-info" style="flex:1;">
+                    <div class="skeleton sk-title" style="width:42%;margin-bottom:6px;"></div>
+                    <div class="skeleton sk-url" style="width:30%;"></div>
+                </div>
+                <div class="skeleton" style="width:80px;height:32px;border-radius:10px;"></div>
+            </div>
+            <!-- Empty state -->
+            <div class="empty-state" id="offersEmpty" style="display:none;">
+                <div class="empty-icon" style="width:88px;height:88px;border-radius:999px;background:rgba(251,191,36,0.07);border:1px solid rgba(251,191,36,0.15);">
+                    <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                        <path d="M20 5C11.716 5 5 11.5 5 19.5c0 2.8.8 5.4 2.2 7.6L5 35l8.3-2.2c2.1 1 4.4 1.7 6.7 1.7 8.284 0 15-6.5 15-14.5S28.284 5 20 5z" stroke="rgba(251,191,36,0.55)" stroke-width="1.8" stroke-linejoin="round"/>
+                        <path d="M13 19h14M13 23h9" stroke="rgba(251,191,36,0.55)" stroke-width="1.6" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div class="empty-title">No offers yet</div>
+                <div class="empty-sub">Offers from buyers will appear here. They can make offers directly from your listing page.</div>
+            </div>
+        </div>
+    </div><!-- end panel-offers -->
+
 </div><!-- end page-wrap -->
 
 <!-- Footer -->
@@ -4969,10 +5064,238 @@ function switchTab(tab) {
     }
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.page-tab').forEach(b => b.classList.remove('active'));
-    document.getElementById('panel-' + tab).classList.add('active');
+    const panel = document.getElementById('panel-' + tab);
+    if (panel) panel.classList.add('active');
+    // Activate the correct tab button
+    const tabMap = { list: 0, listings: 1, offers: 2 };
+    const tabIdx = tabMap[tab] ?? 0;
     const tabs = document.querySelectorAll('.page-tab');
-    tabs[tab === 'list' ? 0 : 1].classList.add('active');
+    if (tabs[tabIdx]) tabs[tabIdx].classList.add('active');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Load offers panel data when switching to it
+    if (tab === 'offers') _loadSellOffersPanel();
+}
+
+// ── SELL PAGE OFFERS PANEL ──
+let _sellOffersFilter = 'all';
+
+function filterOffers(filter, btn) {
+    _sellOffersFilter = filter;
+    document.querySelectorAll('#panel-offers .filter-chip').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    const cards = document.querySelectorAll('.sell-offer-card');
+    let visible = 0;
+    cards.forEach(card => {
+        const side   = card.dataset.side;
+        const status = card.dataset.status;
+        let show = false;
+        if (filter === 'all')      show = true;
+        if (filter === 'pending')  show = status === 'pending'  && side === 'received';
+        if (filter === 'accepted') show = status === 'accepted';
+        if (filter === 'declined') show = status === 'declined';
+        if (filter === 'sent')     show = side === 'sent';
+        card.style.display = show ? '' : 'none';
+        if (show) visible++;
+    });
+    const empty = document.getElementById('offersEmpty');
+    if (empty) empty.style.display = visible === 0 ? '' : 'none';
+}
+
+async function _loadSellOffersPanel() {
+    const user = window._fbAuth && window._fbAuth.currentUser;
+    if (!user || !window._fbDb || !window._fbDbFns) return;
+    const db = window._fbDb;
+    const { ref: fbRef, get: fbGet, set: fbSet } = window._fbDbFns;
+
+    // Hide skeletons
+    ['skelOffer0','skelOffer1'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+
+    try {
+        const [incSnap, sentSnap] = await Promise.all([
+            fbGet(fbRef(db, 'users/' + user.uid + '/incomingOffers')),
+            fbGet(fbRef(db, 'users/' + user.uid + '/sentOffers')),
+        ]);
+
+        const incoming = incSnap.exists() ? Object.values(incSnap.val()).filter(Boolean) : [];
+        const sent     = sentSnap.exists() ? Object.values(sentSnap.val()).filter(Boolean) : [];
+
+        const pendingCount = incoming.filter(o => o.status === 'pending').length;
+        const acceptedCount = incoming.filter(o => o.status === 'accepted').length;
+        const highestAmt = incoming.reduce((mx, o) => Math.max(mx, parseFloat(o.amount||0)), 0);
+
+        // Update stats
+        const rcEl = document.getElementById('sellOffersRcvd');
+        const pdEl = document.getElementById('sellOffersPending');
+        const acEl = document.getElementById('sellOffersAccepted');
+        const hiEl = document.getElementById('sellOffersHighest');
+        const stEl = document.getElementById('sellOffersSent');
+        if (rcEl) rcEl.textContent = incoming.length;
+        if (pdEl) pdEl.textContent = pendingCount + ' pending';
+        if (acEl) acEl.textContent = acceptedCount;
+        if (hiEl) hiEl.textContent = highestAmt ? '$' + highestAmt.toLocaleString() : '—';
+        if (stEl) stEl.textContent = sent.length;
+
+        // Badge on tab
+        const badge = document.getElementById('offersTabBadge');
+        if (badge) {
+            if (pendingCount > 0) { badge.textContent = pendingCount; badge.style.display = ''; }
+            else badge.style.display = 'none';
+        }
+
+        const grid = document.getElementById('offersGrid');
+        if (!grid) return;
+
+        // Remove existing cards
+        grid.querySelectorAll('.sell-offer-card').forEach(el => el.remove());
+
+        const allOffers = [
+            ...incoming.map(o => ({...o, side:'received'})),
+            ...sent.map(o => ({...o, side:'sent'}))
+        ].sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
+
+        const empty = document.getElementById('offersEmpty');
+        if (!allOffers.length) {
+            if (empty) empty.style.display = '';
+            return;
+        }
+        if (empty) empty.style.display = 'none';
+
+        const statusColors = {pending:'#fbbf24',accepted:'#34d399',declined:'rgba(248,113,113,.85)',countered:'#38bdf8',withdrawn:'rgba(139,138,168,0.5)'};
+        const statusLabels = {pending:'Pending',accepted:'Accepted',declined:'Declined',countered:'Countered',withdrawn:'Withdrawn'};
+
+        allOffers.forEach(o => {
+            const col = statusColors[o.status] || '#fbbf24';
+            const lbl = statusLabels[o.status] || o.status || 'Pending';
+            const date = o.createdAt ? new Date(o.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
+            const card = document.createElement('div');
+            card.className = 'sell-offer-card listing-row';
+            card.dataset.side   = o.side;
+            card.dataset.status = o.status || 'pending';
+            card.style.cssText = 'display:flex;align-items:center;gap:14px;background:var(--surface-card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;transition:border-color .15s;';
+            card.onmouseover = () => card.style.borderColor = 'rgba(255,255,255,0.1)';
+            card.onmouseout  = () => card.style.borderColor = '';
+
+            const isReceived = o.side === 'received';
+            const isPending  = o.status === 'pending';
+
+            card.innerHTML = `
+                <div style="width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,rgba(155,93,229,.15),rgba(232,121,160,.1));border:1px solid rgba(155,93,229,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2C6.686 2 4 4.46 4 7.5c0 1.25.46 2.4 1.24 3.3L4 14l3.4-1.06A6.14 6.14 0 0 0 10 13c3.314 0 6-2.46 6-5.5S13.314 2 10 2z" stroke="rgba(155,93,229,.6)" stroke-width="1.4" stroke-linejoin="round"/><path d="M7 7.5h6M7 9.5h4" stroke="rgba(155,93,229,.6)" stroke-width="1.3" stroke-linecap="round"/></svg>
+                </div>
+                <div style="flex:1;min-width:0;">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;flex-wrap:wrap;">
+                        <span style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;letter-spacing:-0.03em;color:var(--text);">$${Number(o.amount||0).toLocaleString()}</span>
+                        <span style="font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:${col};background:${col}18;border:1px solid ${col}30;border-radius:999px;padding:2px 8px;">${lbl}</span>
+                        <span style="font-size:9px;color:var(--muted);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:999px;padding:2px 8px;">${isReceived?'Received':'Sent'}</span>
+                    </div>
+                    <div style="font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${o.listingTitle||o.listingId||'—'} · ${date}</div>
+                    ${o.note ? `<div style="font-size:11px;color:var(--text2);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">"${o.note}"</div>` : ''}
+                </div>
+                ${isReceived && isPending ? `<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+                    <button data-offer-id="${o.offerId||''}" class="offer-accept-btn" style="padding:7px 14px;border-radius:8px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.25);color:#34d399;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;" onclick="sellAcceptOffer(this)">✓ Accept</button>
+                    <button data-offer-id="${o.offerId||''}" class="offer-decline-btn" style="padding:7px 14px;border-radius:8px;background:rgba(248,113,113,0.07);border:1px solid rgba(248,113,113,0.18);color:#f87171;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;" onclick="sellDeclineOffer(this)">✕ Decline</button>
+                </div>` : o.status==='accepted' && o.side==='sent' ? `<div style="flex-shrink:0;text-align:center;">
+                    <button data-offer-id="${o.offerId||''}" data-amount="${o.amount||0}" style="padding:9px 16px;border-radius:10px;background:linear-gradient(135deg,rgba(155,93,229,.9),rgba(232,121,160,.8));border:none;color:#fff;font-family:'Syne',sans-serif;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;" onclick="sellPayOffer(this)">💳 Pay Now</button>
+                    <div style="font-size:9px;color:var(--muted);margin-top:4px;">from wallet · escrow</div>
+                </div>` : `<div style="width:80px;"></div>`}
+            `;
+            grid.insertBefore(card, empty);
+        });
+
+        filterOffers(_sellOffersFilter, null);
+
+    } catch(e) {
+        console.error('[sellOffers]', e);
+        ['skelOffer0','skelOffer1'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+        });
+        const empty = document.getElementById('offersEmpty');
+        if (empty) empty.style.display = '';
+    }
+}
+
+async function sellAcceptOffer(btn) {
+    const offerId = btn.dataset.offerId;
+    if (!offerId) return;
+    const user = window._fbAuth && window._fbAuth.currentUser;
+    if (!user) return;
+    btn.disabled = true; btn.textContent = '…';
+    try {
+        const idToken = await user.getIdToken();
+        const r = await fetch('/api/offers/accept', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken, offerId }),
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'Accept failed');
+        _loadSellOffersPanel();
+        if (window.showToast) window.showToast('Offer accepted — buyer notified by email!');
+    } catch(e) {
+        console.error('[sellAccept]', e);
+        if (window.showToast) window.showToast('Error: ' + e.message);
+        btn.disabled = false; btn.textContent = '✓ Accept';
+    }
+}
+
+async function sellDeclineOffer(btn) {
+    const offerId = btn.dataset.offerId;
+    if (!offerId) return;
+    const user = window._fbAuth && window._fbAuth.currentUser;
+    if (!user) return;
+    btn.disabled = true; btn.textContent = '…';
+    try {
+        const idToken = await user.getIdToken();
+        const r = await fetch('/api/offers/decline', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken, offerId }),
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'Decline failed');
+        _loadSellOffersPanel();
+        if (window.showToast) window.showToast('Offer declined.');
+    } catch(e) {
+        console.error('[sellDecline]', e);
+        if (window.showToast) window.showToast('Error: ' + e.message);
+        btn.disabled = false; btn.textContent = '✕ Decline';
+    }
+}
+
+async function sellPayOffer(btn) {
+    const offerId = btn.dataset.offerId;
+    const amount  = parseFloat(btn.dataset.amount || 0);
+    if (!offerId) return;
+    const user = window._fbAuth && window._fbAuth.currentUser;
+    if (!user) return;
+    btn.disabled = true; btn.textContent = 'Processing…';
+    try {
+        const idToken = await user.getIdToken();
+        const r = await fetch('/api/offers/pay', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken, offerId }),
+        });
+        const data = await r.json();
+        if (!r.ok) {
+            if (r.status === 402) {
+                if (window.showToast) window.showToast(`Need $${data.shortfall?.toLocaleString()} more in wallet. Top up to pay.`);
+                btn.disabled = false; btn.textContent = '💳 Pay Now';
+                return;
+            }
+            throw new Error(data.error || 'Payment failed');
+        }
+        _loadSellOffersPanel();
+        if (window.showToast) window.showToast(`$${amount.toLocaleString()} paid from wallet — in escrow. Seller notified.`);
+    } catch(e) {
+        console.error('[sellPay]', e);
+        if (window.showToast) window.showToast('Error: ' + e.message);
+        btn.disabled = false; btn.textContent = '💳 Pay Now';
+    }
 }
 
 //  IMAGE UPLOADS — Imgur via Vercel env var 
