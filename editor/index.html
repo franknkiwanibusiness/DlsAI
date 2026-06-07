@@ -1,573 +1,188 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HTML Surgeon – Smart AI Editor (Fixed Merge)</title>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    background: #0a0a0f;
-    color: #e8e8f0;
-    font-family: 'Syne', sans-serif;
-    min-height: 100vh;
-  }
-  :root {
-    --bg: #0a0a0f;
-    --surface: #13131a;
-    --surface2: #1c1c27;
-    --border: #2a2a3d;
-    --accent: #7c6aff;
-    --accent2: #ff6a9b;
-    --text: #e8e8f0;
-    --muted: #6b6b8a;
-    --success: #4ade80;
-    --mono: 'JetBrains Mono', monospace;
-  }
-  header {
-    position: sticky; top: 0;
-    background: rgba(10,10,15,0.92);
-    backdrop-filter: blur(16px);
-    border-bottom: 1px solid var(--border);
-    padding: 14px 20px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    z-index: 100;
-  }
-  .logo {
-    font-size: 18px; font-weight: 800;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  }
-  .step-pill {
-    margin-left: auto;
-    font-size: 11px; font-weight: 600;
-    color: var(--muted);
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 4px 12px;
-  }
-  .steps-bar {
-    display: flex;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    overflow-x: auto;
-  }
-  .step-btn {
-    flex: 1; min-width: 80px;
-    padding: 12px 8px;
-    background: none; border: none;
-    font-family: 'Syne', sans-serif;
-    font-size: 11px; font-weight: 700;
-    text-transform: uppercase;
-    color: var(--muted);
-    border-bottom: 2px solid transparent;
-    cursor: pointer;
-    display: flex; flex-direction: column; align-items: center; gap: 4px;
-  }
-  .step-btn .snum {
-    width: 22px; height: 22px;
-    border-radius: 50%;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    display: flex;
-    align-items: center; justify-content: center;
-    font-size: 10px;
-  }
-  .step-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
-  .step-btn.active .snum { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .step-btn.done { color: var(--success); }
-  .step-btn.done .snum { background: var(--success); border-color: var(--success); color: #000; }
-  .page { display: none; padding: 20px; animation: fadeUp 0.25s ease; }
-  .page.active { display: block; }
-  @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-  .upload-zone {
-    border: 2px dashed var(--border);
-    border-radius: 16px;
-    padding: 48px 24px;
-    text-align: center;
-    background: var(--surface);
-    transition: all 0.2s;
-  }
-  .upload-zone.drag { border-color: var(--accent); background: rgba(124,106,255,0.08); }
-  .upload-icon {
-    width: 56px; height: 56px; margin: 0 auto 16px;
-    background: linear-gradient(135deg, rgba(124,106,255,0.2), rgba(255,106,155,0.2));
-    border-radius: 16px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 24px;
-  }
-  .btn-file {
-    background: var(--surface2);
-    border: 1px solid var(--accent);
-    color: var(--accent);
-    padding: 10px 24px;
-    border-radius: 40px;
-    font-family: 'Syne', sans-serif;
-    font-weight: 700;
-    font-size: 14px;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 16px;
-  }
-  .btn-file:hover { background: rgba(124,106,255,0.2); }
-  .file-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 14px 16px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-top: 16px;
-  }
-  .code-wrap {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    overflow: hidden;
-  }
-  .code-header {
-    background: var(--surface2);
-    border-bottom: 1px solid var(--border);
-    padding: 10px 14px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .code-header span { font-size: 12px; color: var(--muted); font-family: var(--mono); flex: 1; }
-  textarea.code-area {
-    width: 100%; height: 260px;
-    background: transparent; border: none; outline: none; resize: none;
-    font-family: var(--mono); font-size: 12px; line-height: 1.6;
-    color: var(--text); padding: 14px;
-  }
-  .prompt-wrap {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    overflow: hidden;
-  }
-  .prompt-wrap textarea {
-    width: 100%; height: 110px;
-    background: transparent; border: none; outline: none; resize: none;
-    font-family: 'Syne', sans-serif; font-size: 14px; padding: 14px;
-    color: var(--text);
-  }
-  .btn {
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-    width: 100%; padding: 15px;
-    border: none; border-radius: 12px; cursor: pointer;
-    font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700;
-    transition: all 0.2s;
-  }
-  .btn-primary {
-    background: linear-gradient(135deg, var(--accent), #9b6aff);
-    color: #fff;
-    box-shadow: 0 4px 24px rgba(124,106,255,0.35);
-  }
-  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
-  .loading-bar { height: 3px; background: var(--surface2); border-radius: 3px; overflow: hidden; margin: 12px 0; }
-  .loading-bar-inner {
-    height: 100%;
-    background: linear-gradient(90deg, var(--accent), var(--accent2));
-    animation: loadProgress 2s ease-in-out infinite;
-  }
-  @keyframes loadProgress { 0% { width: 0%; margin-left: 0; } 50% { width: 70%; margin-left: 15%; } 100% { width: 0%; margin-left: 100%; } }
-  .toast {
-    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
-    background: var(--surface2); border: 1px solid var(--border);
-    padding: 12px 20px; border-radius: 12px;
-    font-size: 13px; font-weight: 600;
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    z-index: 999;
-  }
-  .toast.show { transform: translateX(-50%) translateY(0); }
-  .toast.error { border-color: var(--accent2); color: var(--accent2); }
-  .toast.success { border-color: var(--success); color: var(--success); }
-  .hint {
-    font-size: 12px; color: var(--muted);
-    background: rgba(124,106,255,0.06); border: 1px solid rgba(124,106,255,0.15);
-    border-radius: 8px; padding: 10px 12px; margin-top: 12px;
-  }
-  .preview-frame { width: 100%; height: 420px; border: none; background: #fff; border-radius: 0 0 12px 12px; }
-  .mt16 { margin-top: 16px; }
-  .mt20 { margin-top: 20px; }
-  .flex-btns { display: flex; gap: 12px; margin-top: 16px; }
-  .flex-btns .btn { width: auto; flex: 1; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML Splitter & Downloader</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f7f6;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .container {
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: monospace;
+        }
+        textarea {
+            height: 300px;
+            resize: vertical;
+        }
+        .btn-group {
+            display: flex;
+            gap: 15px;
+        }
+        button {
+            flex: 1;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button.primary {
+            background-color: #3498db;
+            color: white;
+        }
+        button.primary:hover {
+            background-color: #2980b9;
+        }
+        button.success {
+            background-color: #2ecc71;
+            color: white;
+        }
+        button.success:hover {
+            background-color: #27ae60;
+        }
+        button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        #status {
+            margin-top: 15px;
+            font-weight: bold;
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
 
-<header>
-  <div class="logo">HTML<span>Surgeon</span></div>
-  <div class="step-pill">Step <b id="headerStep">1</b> of 4</div>
-</header>
-
-<div class="steps-bar">
-  <button class="step-btn active" onclick="goToStep(1)" id="sbtn1"><span class="snum">1</span>Upload</button>
-  <button class="step-btn" onclick="goToStep(2)" id="sbtn2"><span class="snum">2</span>Review</button>
-  <button class="step-btn" onclick="goToStep(3)" id="sbtn3"><span class="snum">3</span>Edit</button>
-  <button class="step-btn" onclick="goToStep(4)" id="sbtn4"><span class="snum">4</span>Preview</button>
-</div>
-
-<!-- STEP 1: UPLOAD -->
-<div class="page active" id="page1">
-  <div class="upload-zone" id="uploadZone">
-    <div class="upload-icon">📄</div>
-    <h3>Drop your file here</h3>
-    <p>Upload any HTML, CSS, or code file</p>
-    <button class="btn-file" id="selectFileBtn">📂 Choose file</button>
-    <input type="file" id="fileInput" accept=".html,.htm,.css,.js,.jsx,.vue,.php,.xml,.json,.md" style="display: none;">
-    <div class="formats" style="display: flex; gap: 6px; justify-content: center; margin-top: 16px;">
-      <span class="tag" style="font-family: monospace; background: #1c1c27; padding: 3px 8px; border-radius: 6px;">.html</span>
-      <span class="tag" style="font-family: monospace; background: #1c1c27; padding: 3px 8px; border-radius: 6px;">.css</span>
-      <span class="tag" style="font-family: monospace; background: #1c1c27; padding: 3px 8px; border-radius: 6px;">.js</span>
+<div class="container">
+    <h1>HTML Splitter & Downloader</h1>
+    
+    <label for="delimiter">Split Delimiter (The text that separates your HTML blocks):</label>
+    <input type="text" id="delimiter" value="---SPLIT---" placeholder="e.g., ---SPLIT--- or </html>">
+    
+    <label for="htmlInput">Paste your combined HTML blocks here:</label>
+    <textarea id="htmlInput" placeholder="Paste code here...&#10;Example:&#10;<!DOCTYPE html><html><body>Block 1</body></html>&#10;---SPLIT---&#10;<!DOCTYPE html><html><body>Block 2</body></html>"></textarea>
+    
+    <div class="btn-group">
+        <button type="button" class="primary" onclick="processHTML()">1. Process & Preview</button>
+        <button type="button" class="success" id="downloadBtn" onclick="downloadAll()" disabled>2. Download All (.zip)</button>
     </div>
-  </div>
-  <div id="fileCard" style="display:none">
-    <div class="file-card">
-      <div class="file-icon" id="fileEmoji">📄</div>
-      <div class="file-info"><div class="file-name" id="fileName">—</div><div class="file-size" id="fileSize">—</div></div>
-      <button class="remove-btn" onclick="clearFile()" style="background:none; border:none; color:var(--muted); font-size:18px; cursor:pointer;">✕</button>
-    </div>
-    <button class="btn btn-primary mt16" onclick="goToStep(2)">Review Code →</button>
-  </div>
+    
+    <div id="status"></div>
 </div>
-
-<!-- STEP 2: REVIEW -->
-<div class="page" id="page2">
-  <div class="section-label" style="font-size:11px; text-transform:uppercase;">Extracted Code (exact from your file)</div>
-  <div class="code-wrap">
-    <div class="code-header"><span id="codeLabel">code</span><button class="copy-btn" onclick="copyCode()">Copy</button></div>
-    <textarea class="code-area" id="codeArea" spellcheck="false"></textarea>
-  </div>
-  <div class="hint mt16">
-    <b>✂️ Smart extraction</b> – This is the exact block of code that will be sent to the AI.<br>
-    <b>📝 Edit instructions?</b> → Go to <strong>Step 3</strong>.
-  </div>
-  <div class="flex-btns">
-    <button class="btn btn-secondary" onclick="goToStep(3)">✏️ Go to Edit Instructions →</button>
-    <button class="btn btn-ghost" onclick="goToStep(1)">← Back</button>
-  </div>
-</div>
-
-<!-- STEP 3: EDIT INSTRUCTIONS -->
-<div class="page" id="page3">
-  <div class="section-label">✍️ Your Edit Instructions</div>
-  <div class="prompt-wrap">
-    <textarea id="promptArea" placeholder="Describe what you want to change...&#10;&#10;Example: &quot;Make all buttons rounded with a purple gradient and add a hover effect&quot;&#10;&#10;Example: &quot;Change the hero section background to dark gradient and make heading larger&quot;" maxlength="2000"></textarea>
-    <div class="prompt-footer" style="padding:10px 14px; border-top:1px solid var(--border); display:flex; justify-content:space-between;">
-      <span class="char-count" id="charCount">0 / 2000</span>
-      <button class="icon-btn" onclick="clearPrompt()" style="background:none; border:1px solid var(--border); border-radius:6px; padding:4px 10px; cursor:pointer;">Clear</button>
-    </div>
-  </div>
-  <div class="hint">
-    💡 <b>Be specific</b> – mention selectors (e.g., <code>.button</code>, <code>#header</code>), or describe the component you want to change.
-  </div>
-  <div id="loadingArea" style="display:none; margin-top:20px;">
-    <div class="loading-bar"><div class="loading-bar-inner"></div></div>
-    <p class="status-msg" id="statusMsg">Sending to AI...</p>
-  </div>
-  <button class="btn btn-primary mt20" id="sendBtn" onclick="sendToAI()">✦ Apply AI Edit</button>
-  <button class="btn btn-ghost mt8" onclick="goToStep(2)">← Back to Code</button>
-</div>
-
-<!-- STEP 4: PREVIEW / RESULT -->
-<div class="page" id="page4">
-  <div class="code-wrap">
-    <div style="display:flex; border-bottom:1px solid var(--border);">
-      <button class="diff-tab active" onclick="switchTab('result')">Edited Code (Full File)</button>
-      <button class="diff-tab" onclick="switchTab('original')">Original (Full File)</button>
-    </div>
-    <div id="panel-result"><div class="code-header"><span>result.html</span><button class="copy-btn" onclick="copyResult()">Copy</button></div><textarea class="code-area" id="resultArea" spellcheck="false"></textarea></div>
-    <div id="panel-original" style="display:none"><div class="code-header"><span>original</span></div><textarea class="code-area" id="origArea" spellcheck="false" readonly></textarea></div>
-  </div>
-  <div class="section-label mt20">Live Preview</div>
-  <div class="preview-container" style="background:var(--surface); border-radius:12px; overflow:hidden;">
-    <div class="preview-toolbar" style="background:var(--surface2); padding:10px; display:flex; gap:8px;">
-      <div class="preview-dots"><span></span><span></span><span></span></div>
-      <button class="icon-btn" onclick="refreshPreview()" style="background:none; border:1px solid var(--border); border-radius:6px; padding:4px 10px;">↺ Refresh</button>
-    </div>
-    <iframe class="preview-frame" id="previewFrame" sandbox="allow-scripts allow-same-origin"></iframe>
-  </div>
-  <div style="display:flex; flex-direction:column; gap:12px; margin-top:20px;">
-    <button class="btn btn-success" onclick="downloadResult()">↓ Download Edited File</button>
-    <button class="btn btn-secondary" onclick="goToStep(3)">✦ Edit Again</button>
-    <button class="btn btn-ghost" onclick="startFresh()">Start Fresh</button>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
 
 <script>
-  // ---------- STATE ----------
-  let state = {
-    file: null,
-    rawCode: '',        // full original file content
-    originalSnippet: '', // exact substring that will be sent to AI
-    fileName: '',
-    resultCode: '',     // full file after merging
-    currentStep: 1
-  };
+    let extractedFiles = [];
 
-  // ---------- HELPERS ----------
-  function showToast(msg, type = '') {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.className = 'toast show' + (type ? ' ' + type : '');
-    clearTimeout(t._timer);
-    t._timer = setTimeout(() => t.classList.remove('show'), 3000);
-  }
+    function processHTML() {
+        const input = document.getElementById('htmlInput').value;
+        let delimiter = document.getElementById('delimiter').value;
+        const statusDiv = document.getElementById('status');
+        const downloadBtn = document.getElementById('downloadBtn');
+        
+        extractedFiles = []; // Reset
+        
+        if (!input.trim()) {
+            statusDiv.style.color = 'red';
+            statusDiv.innerText = 'Please paste some HTML code first.';
+            downloadBtn.disabled = true;
+            return;
+        }
 
-  function formatSize(bytes) {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / 1024 / 1024).toFixed(1) + ' MB';
-  }
+        // Split the text based on the delimiter
+        let blocks = input.split(delimiter);
+        
+        // Clean up blocks and filter out empty strings
+        blocks = blocks.map(b => b.trim()).filter(b => b.length > 0);
 
-  function getEmoji(name) {
-    if (name.match(/\.html?$/i)) return '🌐';
-    if (name.match(/\.css$/i)) return '🎨';
-    if (name.match(/\.js$/i)) return '⚡';
-    return '📄';
-  }
+        // Special handling: If they used </html> as the delimiter, the split removes it. 
+        // We need to add it back to the end of each file.
+        if (delimiter.toLowerCase() === '</html>') {
+            blocks = blocks.map(b => b + '\n</html>');
+        }
 
-  // ---------- SMART EXTRACTION (returns exact substring from original file) ----------
-  function extractExactSnippet(fullCode, instruction) {
-    // For HTML files, try to find a relevant block using selectors from instruction
-    const isHtml = fullCode.trim().startsWith('<!DOCTYPE') || /<html/i.test(fullCode);
-    if (!isHtml) {
-      // For CSS/JS: keep only lines containing keywords
-      const keywords = instruction.toLowerCase().split(/\s+/);
-      const lines = fullCode.split('\n');
-      const relevantLines = lines.filter(line => keywords.some(kw => line.toLowerCase().includes(kw)));
-      let snippet = relevantLines.join('\n');
-      if (snippet.length === 0) snippet = fullCode.slice(0, 5000);
-      return snippet;
+        if (blocks.length === 0) {
+            statusDiv.style.color = 'red';
+            statusDiv.innerText = 'No HTML blocks found with the current delimiter.';
+            downloadBtn.disabled = true;
+            return;
+        }
+
+        // Store files in memory
+        blocks.forEach((content, index) => {
+            extractedFiles.push({
+                name: `file_${index + 1}.html`,
+                content: content
+            });
+        });
+
+        statusDiv.style.color = 'green';
+        statusDiv.innerText = `Successfully found and processed ${extractedFiles.length} file(s)!`;
+        downloadBtn.disabled = false;
     }
 
-    // Parse HTML and find elements matching instruction selectors
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(fullCode, 'text/html');
-    const lowerInst = instruction.toLowerCase();
+    function downloadAll() {
+        if (extractedFiles.length === 0) return;
+        
+        const zip = new JSZip();
+        const statusDiv = document.getElementById('status');
+        
+        statusDiv.style.color = '#3498db';
+        statusDiv.innerText = 'Generating ZIP file...';
 
-    // Extract selectors
-    const selectors = [];
-    const selectorMatches = lowerInst.match(/(?:#|\.)[a-z0-9_-]+|(?:button|div|span|header|footer|nav|section|form|input|a)/gi);
-    if (selectorMatches) selectors.push(...selectorMatches.map(s => s.toLowerCase()));
+        // Add each file to the zip structure
+        extractedFiles.forEach(file => {
+            zip.file(file.name, file.content);
+        });
 
-    let elements = [];
-    for (let sel of selectors) {
-      try {
-        const found = doc.querySelectorAll(sel);
-        elements.push(...found);
-      } catch(e) {}
+        // Generate the zip file and trigger download
+        zip.generateAsync({ type: 'blob' }).then(function(content) {
+            const element = document.createElement('a');
+            element.href = URL.createObjectURL(content);
+            element.download = "extracted_html_files.zip";
+            document.body.appendChild(element);
+            element.click();
+            document.body.removeChild(element);
+            
+            statusDiv.style.color = 'green';
+            statusDiv.innerText = 'Download completed successfully!';
+        }).catch(err => {
+            statusDiv.style.color = 'red';
+            statusDiv.innerText = 'Error generating ZIP file.';
+            console.error(err);
+        });
     }
-
-    if (elements.length === 0) {
-      // fallback: first 6000 chars
-      return fullCode.slice(0, 6000);
-    }
-
-    // Get the outerHTML of the first matching element (or combine multiple)
-    // For simplicity, we take the first element's outerHTML (most relevant)
-    // This ensures the snippet exists as a contiguous block in the original file.
-    const targetElement = elements[0];
-    const snippet = targetElement.outerHTML;
-
-    // Verify the snippet exists in the original fullCode (it should)
-    if (!fullCode.includes(snippet)) {
-      // If not found due to parsing differences, fallback to first 6000 chars
-      console.warn('Exact snippet not found in original – using fallback');
-      return fullCode.slice(0, 6000);
-    }
-    return snippet;
-  }
-
-  // ---------- AI CALL with exact snippet and frontend merging ----------
-  async function sendToAI() {
-    const prompt = document.getElementById('promptArea').value.trim();
-    if (!prompt) return showToast('Write your edit instructions first (Step 3)', 'error');
-    if (!state.rawCode) return showToast('Upload a file first', 'error');
-
-    const sendBtn = document.getElementById('sendBtn');
-    const loadingArea = document.getElementById('loadingArea');
-    const statusMsg = document.getElementById('statusMsg');
-
-    sendBtn.disabled = true;
-    loadingArea.style.display = 'block';
-    statusMsg.innerHTML = '🔍 Extracting exact code block...';
-
-    try {
-      // Extract the exact snippet from the original file
-      const exactSnippet = extractExactSnippet(state.rawCode, prompt);
-      state.originalSnippet = exactSnippet;
-      statusMsg.innerHTML = `✂️ Extracted ${exactSnippet.length.toLocaleString()} chars. Sending to AI...`;
-
-      // Send to backend (the backend does NOT need to merge)
-      const response = await fetch('/api/edit-smart', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          snippet: exactSnippet,
-          instruction: prompt,
-          fileName: state.fileName
-        })
-      });
-
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.error || `API error ${response.status}`);
-      }
-
-      const data = await response.json();
-      const editedSnippet = data.result;
-
-      // ---- FRONTEND MERGING ----
-      // Replace the exact original snippet with the edited version in the full code
-      const mergedFullCode = state.rawCode.replace(state.originalSnippet, editedSnippet);
-      state.resultCode = mergedFullCode;
-
-      // Update UI
-      document.getElementById('resultArea').value = state.resultCode;
-      document.getElementById('origArea').value = state.rawCode;
-      loadingArea.style.display = 'none';
-      sendBtn.disabled = false;
-      showToast('✅ Edit applied – full file merged!', 'success');
-      goToStep(4);
-    } catch (err) {
-      loadingArea.style.display = 'none';
-      sendBtn.disabled = false;
-      showToast(err.message || 'AI edit failed', 'error');
-    }
-  }
-
-  // ---------- UI Handlers ----------
-  function goToStep(n) {
-    if (n === 2 && !state.rawCode) return showToast('Upload a file first', 'error');
-    if (n === 3 && !state.rawCode) return showToast('Upload a file first', 'error');
-    if (n === 4 && !state.resultCode) return showToast('Run AI edit first', 'error');
-
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.getElementById('page' + n).classList.add('active');
-    document.querySelectorAll('.step-btn').forEach((b, i) => {
-      b.classList.remove('active', 'done');
-      if (i + 1 < n) b.classList.add('done');
-      if (i + 1 === n) b.classList.add('active');
-    });
-    document.getElementById('headerStep').textContent = n;
-    state.currentStep = n;
-    if (n === 4) refreshPreview();
-  }
-
-  function copyCode() { navigator.clipboard.writeText(state.rawCode).then(() => flashCopy('copyBtn')); }
-  function copyResult() { navigator.clipboard.writeText(state.resultCode).then(() => flashCopy('copyResultBtn')); }
-  function flashCopy(id) {
-    const btn = document.getElementById(id);
-    if (!btn) return;
-    const orig = btn.textContent;
-    btn.textContent = 'Copied!';
-    setTimeout(() => btn.textContent = orig, 2000);
-  }
-
-  function switchTab(tab) {
-    document.getElementById('panel-result').style.display = tab === 'result' ? 'block' : 'none';
-    document.getElementById('panel-original').style.display = tab === 'original' ? 'block' : 'none';
-  }
-
-  function refreshPreview() {
-    const code = document.getElementById('resultArea').value || state.resultCode;
-    if (!code) return;
-    const iframe = document.getElementById('previewFrame');
-    const blob = new Blob([code], { type: 'text/html' });
-    iframe.src = URL.createObjectURL(blob);
-  }
-
-  function downloadResult() {
-    const code = document.getElementById('resultArea').value;
-    if (!code) return showToast('No result yet', 'error');
-    const blob = new Blob([code], { type: 'text/html' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'edited_' + (state.fileName || 'file.html');
-    a.click();
-    showToast('Download started', 'success');
-  }
-
-  function startFresh() {
-    clearFile();
-    document.getElementById('promptArea').value = '';
-    document.getElementById('charCount').textContent = '0 / 2000';
-    document.getElementById('resultArea').value = '';
-    document.getElementById('origArea').value = '';
-    state.resultCode = '';
-    goToStep(1);
-  }
-
-  function clearFile() {
-    state = {
-      file: null,
-      rawCode: '',
-      originalSnippet: '',
-      fileName: '',
-      resultCode: '',
-      currentStep: 1
-    };
-    document.getElementById('fileInput').value = '';
-    document.getElementById('fileCard').style.display = 'none';
-  }
-
-  function clearPrompt() {
-    document.getElementById('promptArea').value = '';
-    document.getElementById('charCount').textContent = '0 / 2000';
-  }
-
-  // ---------- File upload handlers ----------
-  const fileInput = document.getElementById('fileInput');
-  const selectBtn = document.getElementById('selectFileBtn');
-  const uploadZone = document.getElementById('uploadZone');
-
-  selectBtn.addEventListener('click', () => fileInput.click());
-  uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag'); });
-  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag'));
-  uploadZone.addEventListener('drop', e => {
-    e.preventDefault(); uploadZone.classList.remove('drag');
-    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
-  });
-  fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
-
-  function handleFile(file) {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      state.rawCode = ev.target.result;
-      state.fileName = file.name;
-      state.file = file;
-      document.getElementById('fileName').textContent = file.name;
-      document.getElementById('fileSize').textContent = formatSize(file.size);
-      document.getElementById('fileEmoji').textContent = getEmoji(file.name);
-      document.getElementById('fileCard').style.display = 'block';
-      // Show full file in the "Review" textarea (user can manually edit if they want)
-      document.getElementById('codeArea').value = state.rawCode;
-      document.getElementById('origArea').value = state.rawCode;
-      document.getElementById('codeLabel').textContent = file.name;
-    };
-    reader.readAsText(file);
-  }
-
-  // Allow manual editing of the snippet in Step 2
-  document.getElementById('codeArea').addEventListener('input', e => {
-    state.originalSnippet = e.target.value;
-    state.rawCode = e.target.value;  // if user manually changes, treat as new full code
-  });
-  document.getElementById('resultArea').addEventListener('input', e => state.resultCode = e.target.value);
-  document.getElementById('promptArea').addEventListener('input', e => document.getElementById('charCount').textContent = e.target.value.length + ' / 2000');
 </script>
+
 </body>
 </html>
