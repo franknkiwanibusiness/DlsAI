@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Workspace | Mobile-First AI Pipeline</title>
+    <title>Workspace | Direct Asset Pipeline</title>
     <style>
         :root {
             --bg-main: #0d1117;
@@ -41,8 +41,7 @@
         .input-group { display: flex; flex-direction: column; gap: 8px; }
         label { font-size: 0.85rem; color: var(--text-muted); font-weight: 500; }
         
-        /* Styled Dropdown Element */
-        select { 
+        select, input[type="text"] { 
             background: var(--bg-input); 
             border: 1px solid var(--border); 
             padding: 12px; 
@@ -51,18 +50,18 @@
             font-size: 0.9rem; 
             transition: border 0.2s; 
             width: 100%;
-            cursor: pointer;
             outline: none;
         }
-        select:focus { border-color: var(--accent); }
+        select:focus, input[type="text"]:focus { border-color: var(--accent); }
+        select { cursor: pointer; }
 
         .drop-zone { border: 2px dashed var(--border); border-radius: 8px; padding: 35px 20px; text-align: center; background: var(--bg-surface); cursor: pointer; transition: background 0.2s, border-color 0.2s; }
         .drop-zone.dragover { background: rgba(47, 129, 247, 0.1); border-color: var(--accent); }
         .drop-zone p { color: var(--text-muted); font-size: 0.9rem; line-height: 1.4; }
 
-        .file-preview-box { display: none; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 6px; padding: 15px; flex-direction: column; gap: 10px; }
-        .file-badge { display: flex; justify-content: space-between; align-items: center; background: var(--bg-main); border: 1px solid var(--border); padding: 8px 12px; border-radius: 4px; font-size: 0.85rem; font-family: monospace; }
-        .badge-tag { background: #21262d; padding: 2px 6px; border-radius: 3px; font-size: 0.75rem; color: var(--accent); }
+        /* New Verification Layout Area */
+        .file-verification-box { display: none; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 6px; padding: 15px; flex-direction: column; gap: 12px; }
+        .file-display-badge { display: flex; align-items: center; background: var(--bg-main); border: 1px solid var(--border); padding: 10px 14px; border-radius: 4px; font-size: 0.85rem; font-family: monospace; color: #56d364; }
 
         .btn-push { background-color: var(--accent-success); border: none; color: white; padding: 14px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.95rem; transition: background 0.2s; width: 100%; }
         .btn-push:hover { background-color: #2ea043; }
@@ -111,18 +110,20 @@
         </div>
 
         <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-slot').click()">
-            <p>Drag & drop your single index.html file here, or click to browse</p>
-            <input type="file" id="file-slot" accept=".html" style="display: none;" onchange="processIncomingFile(this.files[0])">
+            <p>Drag & drop your code file here, or click to browse</p>
+            <input type="file" id="file-slot" style="display: none;" onchange="processIncomingFile(this.files[0])">
         </div>
 
-        <div class="file-preview-box" id="preview-box">
-            <label>Auto-Separation Architecture Pipeline:</label>
-            <div class="file-badge" id="html-badge">index.html <span class="badge-tag">Clean HTML5</span></div>
-            <div class="file-badge" id="css-badge" style="display:none;">style.css <span class="badge-tag">Extracted CSS</span></div>
-            <div class="file-badge" id="js-badge" style="display:none;">app.js <span class="badge-tag">Extracted JS</span></div>
+        <div class="file-verification-box" id="verification-box">
+            <div class="input-group">
+                <label for="file-name-input">Save File As (Include Extension):</label>
+                <input type="text" id="file-name-input" value="index.html" placeholder="e.g., index.html or index.htm">
+            </div>
+            <label>Staged File Status:</label>
+            <div class="file-display-badge" id="file-preview-status">Ready to deploy raw code structure</div>
         </div>
 
-        <button class="btn-push" onclick="deployProjectData()">Push Pipeline Manually</button>
+        <button class="btn-push" onclick="deployProjectData()">Push To Repository</button>
         <p id="status"></p>
     </div>
 
@@ -131,7 +132,7 @@
             Workspace Copilot <span>Llama 3.1 8B Active</span>
         </div>
         <div class="chat-messages" id="chat-box">
-            <div class="msg ai">Yo! Drop your structural codes or files in here. Pick your repository from the dropdown, and I can handle modifications and pushes without any manual typos! What are we building?</div>
+            <div class="msg ai">Yo! Drop your raw code files here. You have absolute control over the save destination and filenames before we push anything out. What are we hacking together?</div>
         </div>
         <div class="chat-input-area">
             <textarea id="chat-msg-input" placeholder="Tell Llama to modify or save changes..."></textarea>
@@ -140,24 +141,23 @@
     </div>
 
     <script>
-        let separatedFiles = { html: "", css: "", js: "" };
+        // Holds your code exactly as it is written—no splitting!
+        let rawCodePayload = "";
         let aiProjectContext = "No files uploaded to workspace yet.";
         
         const VERCEL_BACKEND = "/api/edit-file"; 
         const VERCEL_CHAT_BACKEND = "/api/chat-groq";
 
-        // Automatically fetch repositories as soon as the page loads
         window.addEventListener('DOMContentLoaded', fetchUserRepositories);
 
         async function fetchUserRepositories() {
             const dropdown = document.getElementById('repo-select');
             try {
-                // Request list from backend helper parameter
                 const response = await fetch(`${VERCEL_BACKEND}?fetchRepos=true`);
                 if (!response.ok) throw new Error("Failed to get repositories.");
                 
                 const repos = await response.json();
-                dropdown.innerHTML = ""; // Clear loader text
+                dropdown.innerHTML = ""; 
 
                 if (repos.length === 0) {
                     dropdown.innerHTML = '<option value="">No repositories found</option>';
@@ -166,8 +166,8 @@
 
                 repos.forEach(repo => {
                     const option = document.createElement('option');
-                    option.value = repo.full_name; // 'username/repo-name'
-                    option.innerText = repo.name;      // Clean display name
+                    option.value = repo.full_name;
+                    option.innerText = repo.name;
                     dropdown.appendChild(option);
                 });
             } catch (err) {
@@ -183,75 +183,50 @@
 
         function processIncomingFile(file) {
             if (!file) return;
-            const reader = new FileReader();
             
+            // Auto-detect dropped filename so you don't even have to type it if it matches
+            document.getElementById('file-name-input').value = file.name;
+            
+            const reader = new FileReader();
             reader.onload = function(e) {
-                const rawContent = e.target.result;
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(rawContent, 'text/html');
-
-                let cssContent = "";
-                const styles = doc.querySelectorAll('style');
-                styles.forEach(styleTag => {
-                    cssContent += styleTag.textContent + "\n";
-                    styleTag.remove();
-                });
-
-                let jsContent = "";
-                const scripts = doc.querySelectorAll('script');
-                scripts.forEach(scriptTag => {
-                    if (!scriptTag.src) { 
-                        jsContent += scriptTag.textContent + "\n";
-                        scriptTag.remove(); 
-                    }
-                });
-
-                if (cssContent.trim().length > 0) {
-                    const cssLink = doc.createElement('link');
-                    cssLink.rel = 'stylesheet';
-                    cssLink.href = 'style.css';
-                    doc.head.appendChild(cssLink);
-                    document.getElementById('css-badge').style.display = "flex";
-                } else {
-                    document.getElementById('css-badge').style.display = "none";
-                }
-                
-                if (jsContent.trim().length > 0) {
-                    const jsScript = doc.createElement('script');
-                    jsScript.src = 'app.js';
-                    doc.body.appendChild(jsScript);
-                    document.getElementById('js-badge').style.display = "flex";
-                } else {
-                    document.getElementById('js-badge').style.display = "none";
-                }
-
-                separatedFiles.html = "<!DOCTYPE html>\n" + doc.documentElement.outerHTML;
-                separatedFiles.css = cssContent;
-                separatedFiles.js = jsContent;
+                // Keep the exact code layout intact
+                rawCodePayload = e.target.result;
 
                 updateAIContext();
 
-                document.getElementById('preview-box').style.display = "flex";
-                document.getElementById('status').innerText = "File uploaded! Code split and processed contextually.";
+                document.getElementById('verification-box').style.display = "flex";
+                document.getElementById('status').innerText = "File parsed into memory successfully!";
             };
             reader.readAsText(file);
         }
 
         function updateAIContext() {
-            aiProjectContext = `\n--- index.html ---\n${separatedFiles.html}\n--- style.css ---\n${separatedFiles.css}\n--- app.js ---\n${separatedFiles.js}`;
+            const currentFileName = document.getElementById('file-name-input').value || "index.html";
+            aiProjectContext = `
+The user has loaded a project file into memory.
+
+--- Current Active Filename ---
+${currentFileName}
+
+--- File Raw Content ---
+${rawCodePayload}
+`;
         }
 
+        // Manual upload functionality execution
         async function deployProjectData() {
             const repo = document.getElementById('repo-select').value;
+            const filename = document.getElementById('file-name-input').value.trim();
             const status = document.getElementById('status');
-            if(!repo || !separatedFiles.html) { alert("Please select a repository and upload a file first."); return; }
+            
+            if(!repo || !rawCodePayload) { alert("Please select a repository and drop a file first."); return; }
+            if(!filename) { alert("Please specify what to name your file (e.g., index.html)."); return; }
 
-            status.innerText = "Deploying isolated files to GitHub...";
+            status.innerText = `Deploying ${filename} directly to GitHub...`;
             try {
-                await pushToBackend(repo, 'index.html', btoa(unescape(encodeURIComponent(separatedFiles.html))));
-                if(separatedFiles.css.trim()) await pushToBackend(repo, 'style.css', btoa(unescape(encodeURIComponent(separatedFiles.css))));
-                if(separatedFiles.js.trim()) await pushToBackend(repo, 'app.js', btoa(unescape(encodeURIComponent(separatedFiles.js))));
-                status.innerText = "Success! All files cleanly isolated and pushed directly to your repo.";
+                // Sends the file with the exact name you typed in the input box
+                await pushToBackend(repo, filename, btoa(unescape(encodeURIComponent(rawCodePayload))));
+                status.innerText = `Success! ${filename} pushed directly to your repo with zero changes to its structure.`;
             } catch (err) {
                 status.innerText = "Deployment error: " + err.message;
             }
@@ -275,9 +250,13 @@
             const txtInput = document.getElementById('chat-msg-input');
             const chatBox = document.getElementById('chat-box');
             const repo = document.getElementById('repo-select').value;
+            const filename = document.getElementById('file-name-input').value.trim() || "index.html";
             const userMsg = txtInput.value.trim();
             if(!userMsg) return;
             if(!repo) { alert("Please choose a repository from the selection dropdown first."); return; }
+
+            // Make sure context is synced with the latest typed filename before passing to AI
+            updateAIContext();
 
             const userDiv = document.createElement('div');
             userDiv.className = "msg user";
@@ -293,7 +272,7 @@
                     body: JSON.stringify({ 
                         message: userMsg,
                         repo: repo, 
-                        systemPrompt: `You are an expert workspace developer co-pilot. You have direct write access to the user's GitHub repository using your 'push_files_to_github' tool. Whenever the user asks you to update components or write structural logic, instantly save clean assets to their branch via tools. Loaded file profiles:\n${aiProjectContext}`
+                        systemPrompt: `You are an expert developer workspace copilot. You have direct write access to the user's GitHub repository. The user is currently tracking a file named '${filename}'. When they ask you to modify, add features, or update things, keep everything cleanly combined in one single file payload and save it back using the name they typed. Active file text:\n${aiProjectContext}`
                     })
                 });
                 
@@ -305,15 +284,9 @@
                 chatBox.appendChild(aiDiv);
                 chatBox.scrollTop = chatBox.scrollHeight;
 
-                if (data.updatedFiles) {
-                    separatedFiles.html = data.updatedFiles.html;
-                    separatedFiles.css = data.updatedFiles.css;
-                    separatedFiles.js = data.updatedFiles.js;
-                    
-                    document.getElementById('preview-box').style.display = "flex";
-                    document.getElementById('css-badge').style.display = separatedFiles.css.trim() ? "flex" : "none";
-                    document.getElementById('js-badge').style.display = separatedFiles.js.trim() ? "flex" : "none";
-                    
+                // Sync code data locally if Llama triggers a change
+                if (data.updatedFiles && data.updatedFiles.html) {
+                    rawCodePayload = data.updatedFiles.html;
                     updateAIContext();
                 }
             } catch(e) {
