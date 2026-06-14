@@ -7,26 +7,21 @@
 // The sender's balance is re-read from Realtime Database and atomically
 // decremented inside a transaction, so it cannot go negative and cannot be
 // spoofed by editing window._fbUserData, devtools, etc.
-//
-// Required environment variables (Firebase service-account credentials):
-//   FIREBASE_PROJECT_ID
-//   FIREBASE_DATABASE_URL
-//   FIREBASE_CLIENT_EMAIL
-//   FIREBASE_PRIVATE_KEY      (with literal \n sequences — see note below)
 
-const admin = require('firebase-admin');
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { getDatabase } from 'firebase-admin/database';
+import { getAuth } from 'firebase-admin/auth';
 
-// ── One-time Admin SDK init ──
-if (!admin.apps.length) {
-    admin.initializeApp({
-        credential: admin.credential.cert({
-            projectId: process.env.FIREBASE_PROJECT_ID,
-            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-            // Most hosts store the private key with literal "\n" — convert back to real newlines.
-            privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
-        }),
-        databaseURL: process.env.FIREBASE_DATABASE_URL,
-    });
+function initFirebase() {
+  if (getApps().length > 0) return getApps()[0];
+  return initializeApp({
+    credential: cert({
+      projectId:   process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey:  process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    }),
+    databaseURL: process.env.FIREBASE_DATABASE_URL,
+  });
 }
 
 // Keep these in sync with the DONATE_* constants in seller-7-1.html (used for the
@@ -38,7 +33,7 @@ const FEE_FIXED = 0.49;  // + $0.49 fixed, PayPal-style
 const MIN_AMOUNT = 1;
 const MAX_AMOUNT = 999;
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
     if (req.method !== 'POST') {
         res.setHeader('Allow', 'POST');
         return res.status(405).json({ success: false, error: 'Method not allowed' });
@@ -51,9 +46,12 @@ module.exports = async function handler(req, res) {
         return res.status(401).json({ success: false, error: 'Missing Authorization header' });
     }
 
+    initFirebase();
+    const db = getDatabase();
+
     let decoded;
     try {
-        decoded = await admin.auth().verifyIdToken(idToken);
+        decoded = await getAuth().verifyIdToken(idToken);
     } catch (err) {
         return res.status(401).json({ success: false, error: 'Invalid or expired session. Please sign in again.' });
     }
@@ -85,10 +83,8 @@ module.exports = async function handler(req, res) {
     const feeCents  = Math.round(sendCents * FEE_RATE + FEE_FIXED * 100);
     const recvCents = Math.max(sendCents - feeCents, 0);
 
-    const db = admin.database();
-
     // ── 3. Make sure the recipient actually exists ──
-    const recipientSnap = await db.ref(`users/${recipientUid}`).once('value');
+    const recipientSnap = await db.ref(`users/${recipientUid}`).get();
     if (!recipientSnap.exists()) {
         return res.status(404).json({ success: false, error: 'Recipient account not found.' });
     }
@@ -143,7 +139,7 @@ module.exports = async function handler(req, res) {
         amount: sendCents / 100,
         fee: feeCents / 100,
         received: recvCents / 100,
-        createdAt: admin.database.ServerValue.TIMESTAMP,
+        createdAt: Date.now(),
     }).catch(err => console.error('[transfer] failed to log transfer record', err));
 
     return res.status(200).json({
@@ -153,4 +149,4 @@ module.exports = async function handler(req, res) {
         fee: feeCents / 100,
         recipientReceived: recvCents / 100,
     });
-};
+}
