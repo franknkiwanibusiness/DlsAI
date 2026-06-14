@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Workspace | AI Cloud Pipeline</title>
+    <title>Workspace | Mobile-First AI Pipeline</title>
     <style>
         :root {
             --bg-main: #0d1117;
@@ -17,47 +17,85 @@
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
-        body { background-color: var(--bg-main); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
+        
+        body { 
+            background-color: var(--bg-main); 
+            color: var(--text-main); 
+            display: flex; 
+            flex-direction: column; 
+            min-height: 100vh;
+            overflow-y: auto; 
+        }
 
-        /* Left Side: Workspace Settings & File Processing */
-        .workspace { flex: 1; padding: 30px; display: flex; flex-direction: column; gap: 20px; border-right: 1px solid var(--border); overflow-y: auto; }
-        h2 { font-size: 1.5rem; font-weight: 600; margin-bottom: 10px; }
+        .workspace { 
+            flex: 1; 
+            padding: 20px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 20px; 
+            border-bottom: 1px solid var(--border); 
+        }
+        
+        h2 { font-size: 1.35rem; font-weight: 600; margin-bottom: 5px; }
         
         .input-group { display: flex; flex-direction: column; gap: 8px; }
         label { font-size: 0.85rem; color: var(--text-muted); font-weight: 500; }
-        input[type="text"] { background: var(--bg-input); border: 1px solid var(--border); padding: 12px; border-radius: 6px; color: white; font-size: 0.9rem; transition: border 0.2s; }
-        input[type="text"]:focus { border-color: var(--accent); outline: none; }
+        
+        /* Styled Dropdown Element */
+        select { 
+            background: var(--bg-input); 
+            border: 1px solid var(--border); 
+            padding: 12px; 
+            border-radius: 6px; 
+            color: white; 
+            font-size: 0.9rem; 
+            transition: border 0.2s; 
+            width: 100%;
+            cursor: pointer;
+            outline: none;
+        }
+        select:focus { border-color: var(--accent); }
 
-        /* Drag and Drop Box */
-        .drop-zone { border: 2px dashed var(--border); border-radius: 8px; padding: 40px; text-align: center; background: var(--bg-surface); cursor: pointer; transition: background 0.2s, border-color 0.2s; }
+        .drop-zone { border: 2px dashed var(--border); border-radius: 8px; padding: 35px 20px; text-align: center; background: var(--bg-surface); cursor: pointer; transition: background 0.2s, border-color 0.2s; }
         .drop-zone.dragover { background: rgba(47, 129, 247, 0.1); border-color: var(--accent); }
-        .drop-zone p { color: var(--text-muted); font-size: 0.95rem; }
+        .drop-zone p { color: var(--text-muted); font-size: 0.9rem; line-height: 1.4; }
 
-        /* File Architecture Output Badges */
         .file-preview-box { display: none; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 6px; padding: 15px; flex-direction: column; gap: 10px; }
         .file-badge { display: flex; justify-content: space-between; align-items: center; background: var(--bg-main); border: 1px solid var(--border); padding: 8px 12px; border-radius: 4px; font-size: 0.85rem; font-family: monospace; }
         .badge-tag { background: #21262d; padding: 2px 6px; border-radius: 3px; font-size: 0.75rem; color: var(--accent); }
 
-        .btn-push { background-color: var(--accent-success); border: none; color: white; padding: 14px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.95rem; transition: background 0.2s; }
+        .btn-push { background-color: var(--accent-success); border: none; color: white; padding: 14px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.95rem; transition: background 0.2s; width: 100%; }
         .btn-push:hover { background-color: #2ea043; }
         #status { font-size: 0.85rem; text-align: center; color: var(--text-muted); line-height: 1.4; }
 
-        /* Right Side: Premium Chat Sidebar UI */
-        .chat-sidebar { width: 420px; background-color: var(--bg-surface); display: flex; flex-direction: column; height: 100%; }
-        .chat-header { padding: 20px; border-bottom: 1px solid var(--border); font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
-        .chat-header span { font-size: 0.75rem; color: #56d364; background: rgba(56, 211, 100, 0.1); padding: 3px 8px; border-radius: 12px; }
+        .chat-sidebar { 
+            flex: 1; 
+            background-color: var(--bg-surface); 
+            display: flex; 
+            flex-direction: column; 
+            height: 500px; 
+        }
+        
+        .chat-header { padding: 15px 20px; border-bottom: 1px solid var(--border); font-weight: 600; display: flex; justify-content: space-between; align-items: center; font-size: 0.95rem; }
+        .chat-header span { font-size: 0.7rem; color: #56d364; background: rgba(56, 211, 100, 0.1); padding: 3px 8px; border-radius: 12px; }
         .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
         
         .msg { max-width: 85%; padding: 12px 16px; border-radius: 12px; font-size: 0.9rem; line-height: 1.5; word-wrap: break-word; white-space: pre-line; }
         .msg.user { background: var(--accent); color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
         .msg.ai { background: var(--bg-input); color: var(--text-main); align-self: flex-start; border-bottom-left-radius: 2px; border: 1px solid var(--border); }
-        .msg code { background: rgba(0,0,0,0.3); padding: 2px 5px; border-radius: 4px; font-family: monospace; color: #ff79c6; }
         
-        .chat-input-area { padding: 20px; border-top: 1px solid var(--border); display: flex; gap: 10px; background: var(--bg-main); }
+        .chat-input-area { padding: 15px 20px; border-top: 1px solid var(--border); display: flex; gap: 10px; background: var(--bg-main); }
         .chat-input-area textarea { flex: 1; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; padding: 12px; color: white; font-size: 0.9rem; resize: none; height: 44px; }
         .chat-input-area textarea:focus { border-color: var(--accent); outline: none; }
         .btn-send { background: var(--accent); border: none; color: white; padding: 0 18px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
         .btn-send:hover { background-color: #1f6feb; }
+
+        @media (min-width: 768px) {
+            body { flex-direction: row; height: 100vh; overflow: hidden; }
+            .workspace { flex: 1; padding: 30px; border-bottom: none; border-right: 1px solid var(--border); overflow-y: auto; }
+            .chat-sidebar { width: 420px; flex: none; height: 100%; }
+            h2 { font-size: 1.5rem; }
+        }
     </style>
 </head>
 <body>
@@ -66,8 +104,10 @@
         <h2>Production Pipeline</h2>
         
         <div class="input-group">
-            <label for="repo-input">Target Repository Path</label>
-            <input type="text" id="repo-input" placeholder="username/repository-name">
+            <label for="repo-select">Target Repository</label>
+            <select id="repo-select">
+                <option value="">Loading your repositories...</option>
+            </select>
         </div>
 
         <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-slot').click()">
@@ -91,7 +131,7 @@
             Workspace Copilot <span>Llama 3.1 8B Active</span>
         </div>
         <div class="chat-messages" id="chat-box">
-            <div class="msg ai">Yo! Drop your structural codes or files in here. Once you set your repository path, I can modify the design, add features, and save everything straight to GitHub for you automatically. What are we cooking up?</div>
+            <div class="msg ai">Yo! Drop your structural codes or files in here. Pick your repository from the dropdown, and I can handle modifications and pushes without any manual typos! What are we building?</div>
         </div>
         <div class="chat-input-area">
             <textarea id="chat-msg-input" placeholder="Tell Llama to modify or save changes..."></textarea>
@@ -100,21 +140,47 @@
     </div>
 
     <script>
-        // Track compiled code layouts globally
         let separatedFiles = { html: "", css: "", js: "" };
         let aiProjectContext = "No files uploaded to workspace yet.";
         
-        // Fixed: Directly calling clean relative endpoint mappings
         const VERCEL_BACKEND = "/api/edit-file"; 
         const VERCEL_CHAT_BACKEND = "/api/chat-groq";
 
-        // Drag & Drop UI configuration listeners
+        // Automatically fetch repositories as soon as the page loads
+        window.addEventListener('DOMContentLoaded', fetchUserRepositories);
+
+        async function fetchUserRepositories() {
+            const dropdown = document.getElementById('repo-select');
+            try {
+                // Request list from backend helper parameter
+                const response = await fetch(`${VERCEL_BACKEND}?fetchRepos=true`);
+                if (!response.ok) throw new Error("Failed to get repositories.");
+                
+                const repos = await response.json();
+                dropdown.innerHTML = ""; // Clear loader text
+
+                if (repos.length === 0) {
+                    dropdown.innerHTML = '<option value="">No repositories found</option>';
+                    return;
+                }
+
+                repos.forEach(repo => {
+                    const option = document.createElement('option');
+                    option.value = repo.full_name; // 'username/repo-name'
+                    option.innerText = repo.name;      // Clean display name
+                    dropdown.appendChild(option);
+                });
+            } catch (err) {
+                dropdown.innerHTML = '<option value="">Failed to load repositories</option>';
+                console.error(err);
+            }
+        }
+
         const dropZone = document.getElementById('drop-zone');
         ['dragenter', 'dragover'].forEach(name => dropZone.addEventListener(name, e => { e.preventDefault(); dropZone.classList.add('dragover'); }, false));
         ['dragleave', 'drop'].forEach(name => dropZone.addEventListener(name, e => { e.preventDefault(); dropZone.classList.remove('dragover'); }, false));
         dropZone.addEventListener('drop', e => processIncomingFile(e.dataTransfer.files[0]));
 
-        // Core parsing system: splits 3-in-1 layout into individual assets
         function processIncomingFile(file) {
             if (!file) return;
             const reader = new FileReader();
@@ -124,7 +190,6 @@
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(rawContent, 'text/html');
 
-                // Slice out styles
                 let cssContent = "";
                 const styles = doc.querySelectorAll('style');
                 styles.forEach(styleTag => {
@@ -132,17 +197,15 @@
                     styleTag.remove();
                 });
 
-                // Slice out script blocks
                 let jsContent = "";
                 const scripts = doc.querySelectorAll('script');
                 scripts.forEach(scriptTag => {
-                    if (!scriptTag.src) { // Ignore external CDNs like Firebase libraries
+                    if (!scriptTag.src) { 
                         jsContent += scriptTag.textContent + "\n";
                         scriptTag.remove(); 
                     }
                 });
 
-                // Inject neat production paths back into the HTML document
                 if (cssContent.trim().length > 0) {
                     const cssLink = doc.createElement('link');
                     cssLink.rel = 'stylesheet';
@@ -162,40 +225,26 @@
                     document.getElementById('js-badge').style.display = "none";
                 }
 
-                // Compile codes to globally tracked state objects
                 separatedFiles.html = "<!DOCTYPE html>\n" + doc.documentElement.outerHTML;
                 separatedFiles.css = cssContent;
                 separatedFiles.js = jsContent;
 
-                // Sync data straight to the AI context storage bank
                 updateAIContext();
 
                 document.getElementById('preview-box').style.display = "flex";
-                document.getElementById('status').innerText = "File uploaded! Structured code split and stored inside workspace context.";
+                document.getElementById('status').innerText = "File uploaded! Code split and processed contextually.";
             };
             reader.readAsText(file);
         }
 
         function updateAIContext() {
-            aiProjectContext = `
-The user has uploaded a project codebase. Here are the current individual files in memory:
-
---- index.html ---
-${separatedFiles.html}
-
---- style.css ---
-${separatedFiles.css}
-
---- app.js ---
-${separatedFiles.js}
-`;
+            aiProjectContext = `\n--- index.html ---\n${separatedFiles.html}\n--- style.css ---\n${separatedFiles.css}\n--- app.js ---\n${separatedFiles.js}`;
         }
 
-        // Manual upload functionality execution
         async function deployProjectData() {
-            const repo = document.getElementById('repo-input').value;
+            const repo = document.getElementById('repo-select').value;
             const status = document.getElementById('status');
-            if(!repo || !separatedFiles.html) { alert("Please provide a repository path and upload an HTML file first."); return; }
+            if(!repo || !separatedFiles.html) { alert("Please select a repository and upload a file first."); return; }
 
             status.innerText = "Deploying isolated files to GitHub...";
             try {
@@ -222,16 +271,14 @@ ${separatedFiles.js}
             });
         }
 
-        // Send messages to Llama 3.1 with connected file contexts
         async function sendChatMessage() {
             const txtInput = document.getElementById('chat-msg-input');
             const chatBox = document.getElementById('chat-box');
-            const repo = document.getElementById('repo-input').value;
+            const repo = document.getElementById('repo-select').value;
             const userMsg = txtInput.value.trim();
             if(!userMsg) return;
-            if(!repo) { alert("Please enter your target repository path first so the AI has routing reference data."); return; }
+            if(!repo) { alert("Please choose a repository from the selection dropdown first."); return; }
 
-            // Add user conversation bubble
             const userDiv = document.createElement('div');
             userDiv.className = "msg user";
             userDiv.innerText = userMsg;
@@ -246,20 +293,18 @@ ${separatedFiles.js}
                     body: JSON.stringify({ 
                         message: userMsg,
                         repo: repo, 
-                        systemPrompt: `You are an expert full-stack developer workspace assistant. You have direct write access to the user's GitHub repository using your 'push_files_to_github' tool. Whenever the user asks you to modify, add features, create layout alterations, or fix bugs, execute the code rewrite and immediately use your tool to push the updated files clean to GitHub. Here are the files currently loaded in the user's workspace browser:\n${aiProjectContext}`
+                        systemPrompt: `You are an expert workspace developer co-pilot. You have direct write access to the user's GitHub repository using your 'push_files_to_github' tool. Whenever the user asks you to update components or write structural logic, instantly save clean assets to their branch via tools. Loaded file profiles:\n${aiProjectContext}`
                     })
                 });
                 
                 const data = await response.json();
                 
-                // Add AI response bubble
                 const aiDiv = document.createElement('div');
                 aiDiv.className = "msg ai";
                 aiDiv.innerHTML = data.aiResponse;
                 chatBox.appendChild(aiDiv);
                 chatBox.scrollTop = chatBox.scrollHeight;
 
-                // Sync client architecture layout if the AI used tool invocation execution
                 if (data.updatedFiles) {
                     separatedFiles.html = data.updatedFiles.html;
                     separatedFiles.css = data.updatedFiles.css;
@@ -273,10 +318,6 @@ ${separatedFiles.js}
                 }
             } catch(e) {
                 console.error(e);
-                const errDiv = document.createElement('div');
-                errDiv.className = "msg ai";
-                errDiv.innerText = "Error trying to establish communications with Vercel API backend servers.";
-                chatBox.appendChild(errDiv);
             }
         }
     </script>
