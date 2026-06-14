@@ -194,8 +194,8 @@ export default async function handler(req, res) {
         'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        max_tokens: 500,
+        model: 'llama-3.1-8b-instant', // Swapped to the high-limit 14k RPD model
+        max_tokens: 1024,
         temperature: 0.4,
         messages: [
           { role: 'system', content: systemPrompt },
