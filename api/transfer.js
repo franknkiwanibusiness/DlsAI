@@ -94,11 +94,14 @@ export default async function handler(req, res) {
     let senderResult;
     try {
         senderResult = await senderBalRef.transaction(current => {
-            let balCents = Math.round(Number(current || 0) * 100);
+            // Firebase always passes null on the first run — return current
+            // unchanged so it retries with the real value before we decide.
+            if (current === null) return current;
+            let balCents = Math.round(Number(current) * 100);
             if (!isFinite(balCents)) balCents = 0;
             if (balCents < sendCents) {
                 // Returning undefined aborts the transaction without writing anything.
-                return;
+                return undefined;
             }
             return (balCents - sendCents) / 100;
         });
