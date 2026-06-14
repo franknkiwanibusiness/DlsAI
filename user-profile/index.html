@@ -657,6 +657,133 @@
         .btn-submit-donate:hover { opacity: .9; }
         .btn-submit-donate:disabled { opacity: .5; cursor: default; }
 
+
+        /* ── Success celebration overlay ── */
+        .success-overlay {
+            position: fixed; inset: 0; z-index: 2000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            pointer-events: none;
+        }
+        .success-overlay.active { pointer-events: auto; }
+
+        /* Backdrop */
+        .success-backdrop {
+            position: absolute; inset: 0;
+            background: rgba(5,5,12,0.72);
+            backdrop-filter: blur(8px);
+            opacity: 0;
+            transition: opacity .3s ease;
+        }
+        .success-overlay.active .success-backdrop { opacity: 1; }
+
+        /* Falling particles */
+        .success-particles {
+            position: absolute; inset: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        .s-particle {
+            position: absolute;
+            top: -60px;
+            font-size: 22px;
+            opacity: 0;
+            animation: fall-particle 3s ease-in forwards;
+        }
+        @keyframes fall-particle {
+            0%   { transform: translateY(0) rotate(0deg) scale(0.8); opacity: 0; }
+            10%  { opacity: 1; }
+            80%  { opacity: 1; }
+            100% { transform: translateY(110vh) rotate(720deg) scale(1.1); opacity: 0; }
+        }
+
+        /* Tick card */
+        .success-card {
+            position: relative; z-index: 1;
+            display: flex; flex-direction: column; align-items: center; gap: 14px;
+            padding: 36px 44px;
+            border-radius: 28px;
+            transform: scale(.85) translateY(20px);
+            opacity: 0;
+            transition: transform .35s cubic-bezier(.34,1.56,.64,1), opacity .3s ease;
+        }
+        .success-overlay.active .success-card {
+            transform: scale(1) translateY(0);
+            opacity: 1;
+        }
+
+        /* Donate card — green */
+        .success-card.donate-card {
+            background: linear-gradient(145deg, #0a1f14, #0d2b1a);
+            border: 1px solid rgba(45,212,160,0.35);
+            box-shadow: 0 0 60px rgba(45,212,160,0.18), 0 24px 60px rgba(0,0,0,0.5);
+        }
+        /* Report card — purple/red */
+        .success-card.report-card {
+            background: linear-gradient(145deg, #160a22, #1e0d2e);
+            border: 1px solid rgba(155,93,229,0.35);
+            box-shadow: 0 0 60px rgba(155,93,229,0.18), 0 24px 60px rgba(0,0,0,0.5);
+        }
+
+        .success-tick-ring {
+            width: 72px; height: 72px; border-radius: 999px;
+            display: flex; align-items: center; justify-content: center;
+            position: relative;
+        }
+        .donate-card .success-tick-ring {
+            background: radial-gradient(circle, rgba(45,212,160,0.2), transparent 70%);
+            border: 2px solid rgba(45,212,160,0.5);
+            box-shadow: 0 0 28px rgba(45,212,160,0.35);
+        }
+        .report-card .success-tick-ring {
+            background: radial-gradient(circle, rgba(155,93,229,0.2), transparent 70%);
+            border: 2px solid rgba(155,93,229,0.5);
+            box-shadow: 0 0 28px rgba(155,93,229,0.35);
+        }
+
+        .success-tick-svg {
+            width: 38px; height: 38px;
+        }
+        /* Animated tick/thumbs draw-on */
+        .tick-path {
+            stroke-dasharray: 60;
+            stroke-dashoffset: 60;
+        }
+        .success-overlay.active .tick-path {
+            animation: draw-tick .5s .3s ease forwards;
+        }
+        @keyframes draw-tick {
+            to { stroke-dashoffset: 0; }
+        }
+
+        .success-title {
+            font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.15rem;
+            text-align: center;
+        }
+        .donate-card .success-title { color: #2dd4a0; }
+        .report-card .success-title { color: #bf5af2; }
+
+        .success-sub {
+            font-size: 13px; color: rgba(235,235,245,0.65);
+            text-align: center; line-height: 1.5; max-width: 200px;
+        }
+
+        /* Progress bar */
+        .success-bar-wrap {
+            width: 100%; height: 3px; border-radius: 99px;
+            background: rgba(255,255,255,0.08); overflow: hidden; margin-top: 4px;
+        }
+        .success-bar {
+            height: 100%; border-radius: 99px; width: 100%;
+            transform-origin: left;
+            animation: shrink-bar 3s .15s linear forwards;
+        }
+        .donate-card .success-bar { background: linear-gradient(90deg, #2dd4a0, #38bdf8); }
+        .report-card .success-bar { background: linear-gradient(90deg, #bf5af2, #ff375f); }
+        @keyframes shrink-bar {
+            from { transform: scaleX(1); }
+            to   { transform: scaleX(0); }
+        }
+
         /* ── Skeleton shimmer ── */
         @keyframes shimmer {
             0%   { background-position: -200% 0; }
@@ -1431,7 +1558,7 @@
             console.error('[report]', err);
         }
         closeReportModal();
-        if (window._showToast) window._showToast('Report submitted');
+        if (window._showReportSuccess) window._showReportSuccess();
         btn.disabled = false;
         btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 15 15" fill="none"><path d="M1.5 2.5h12v8h-5l-3.5 3v-3h-3.5v-8Z" stroke="white" stroke-width="1.4" stroke-linejoin="round"/></svg> Send report';
     };
@@ -1741,7 +1868,7 @@ window.submitDonation = async function() {
 
     try {
         const idToken = await user.getIdToken();
-        const res = await fetch('/api/transfer', {
+        const res = await fetch('/api/transfer.js', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1768,7 +1895,7 @@ window.submitDonation = async function() {
 
         const recipientHandle = document.getElementById('donateRecipientName').textContent;
         closeDonateModal();
-        if (window._showToast) window._showToast(`Sent ${_fmtMoney(amt)} to ${recipientHandle}`);
+        if (window._showDonateSuccess) window._showDonateSuccess(`Sent ${_fmtMoney(amt)} to ${recipientHandle}`);
     } catch (err) {
         console.error('[donate]', err);
         errEl.textContent = 'Network error. Please try again.';
@@ -2049,6 +2176,89 @@ async function loadSellerProfile() {
 
 loadSellerProfile();
 loadSellerListings();
+</script>
+
+
+<!-- DONATE SUCCESS OVERLAY -->
+<div class="success-overlay" id="donateSuccessOverlay">
+    <div class="success-backdrop"></div>
+    <div class="success-particles" id="donateParticles"></div>
+    <div class="success-card donate-card">
+        <div class="success-tick-ring">
+            <svg class="success-tick-svg" viewBox="0 0 38 38" fill="none">
+                <path class="tick-path" d="M8 20l7 7 15-15" stroke="#2dd4a0" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <div class="success-title">Donation sent!</div>
+        <div class="success-sub" id="donateSuccessSub">Your funds are on their way.</div>
+        <div class="success-bar-wrap"><div class="success-bar"></div></div>
+    </div>
+</div>
+
+<!-- REPORT SUCCESS OVERLAY -->
+<div class="success-overlay" id="reportSuccessOverlay">
+    <div class="success-backdrop"></div>
+    <div class="success-particles" id="reportParticles"></div>
+    <div class="success-card report-card">
+        <div class="success-tick-ring">
+            <svg class="success-tick-svg" viewBox="0 0 38 38" fill="none">
+                <!-- thumbs down -->
+                <path class="tick-path" d="M22 6h-1a3 3 0 0 0-3 3v8l-4 6H9a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h3V6H9a4 4 0 0 0-4 4v7a4 4 0 0 0 4 4h4l3.5 5.5A1.5 1.5 0 0 0 18 28v-5h4a3 3 0 0 0 3-3V9a3 3 0 0 0-3-3z" stroke="#bf5af2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+        </div>
+        <div class="success-title">Report submitted</div>
+        <div class="success-sub">Our moderation team will review this shortly.</div>
+        <div class="success-bar-wrap"><div class="success-bar"></div></div>
+    </div>
+</div>
+
+<script>
+(function() {
+    // ── Particle emitter ──
+    const MONEY = ['💸','💰','💵','🪙','✨'];
+    const THUMBS = ['👎','⚠️','🚩','❗','🛡️'];
+
+    function spawnParticles(containerId, emojis) {
+        const c = document.getElementById(containerId);
+        c.innerHTML = '';
+        for (let i = 0; i < 18; i++) {
+            const el = document.createElement('span');
+            el.className = 's-particle';
+            el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+            el.style.left = Math.random() * 100 + '%';
+            el.style.animationDelay = (Math.random() * 1.4) + 's';
+            el.style.fontSize = (16 + Math.random() * 14) + 'px';
+            c.appendChild(el);
+        }
+    }
+
+    function showSuccessOverlay(overlayId, particlesId, emojis) {
+        spawnParticles(particlesId, emojis);
+        const overlay = document.getElementById(overlayId);
+        // Reset bar animation by cloning
+        const bar = overlay.querySelector('.success-bar');
+        const newBar = bar.cloneNode(true);
+        bar.parentNode.replaceChild(newBar, bar);
+        // Reset tick animation
+        overlay.querySelectorAll('.tick-path').forEach(p => {
+            const n = p.cloneNode(true); p.parentNode.replaceChild(n, p);
+        });
+        requestAnimationFrame(() => {
+            overlay.classList.add('active');
+        });
+        setTimeout(() => {
+            overlay.classList.remove('active');
+        }, 3150);
+    }
+
+    window._showDonateSuccess = function(subText) {
+        if (subText) document.getElementById('donateSuccessSub').textContent = subText;
+        showSuccessOverlay('donateSuccessOverlay', 'donateParticles', MONEY);
+    };
+    window._showReportSuccess = function() {
+        showSuccessOverlay('reportSuccessOverlay', 'reportParticles', THUMBS);
+    };
+})();
 </script>
 
 </body>
