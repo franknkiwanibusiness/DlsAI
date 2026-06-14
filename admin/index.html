@@ -1,2257 +1,284 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#0a0a0f">
-<meta http-equiv="X-Content-Type-Options" content="nosniff">
-<meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
-<!-- NOTE FOR DEVELOPER: If serving with custom headers, update CSP to include:
-     connect-src: https://api.imgur.com
-     img-src: https://i.imgur.com
--->
-<title>Siterifty — Admin</title>
-<link rel="icon" type="image/jpeg" href="https://i.imgur.com/8EEl86u.jpeg">
-<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<style>
-:root {
-  --bg: #0a0a0f;
-  --surface: #12121a;
-  --surface2: #1a1a26;
-  --border: rgba(255,255,255,0.07);
-  --accent: #a855f7;
-  --accent2: #f472b6;
-  --accent3: #38bdf8;
-  --green: #34d399;
-  --yellow: #fbbf24;
-  --red: #f87171;
-  --text: #f1f0ff;
-  --muted: #8b8aa8;
-  --card-border: rgba(255,255,255,0.11);
-  --sidebar-w: 220px;
-}
-*,*::before,*::after {
-  box-sizing:border-box; margin:0; padding:0;
-  font-family:'DM Sans',sans-serif;
-  -webkit-font-smoothing:antialiased;
-  -moz-osx-font-smoothing:grayscale;
-  -webkit-tap-highlight-color:transparent;
-  user-select:none; -webkit-user-select:none;
-}
-input,textarea,select { user-select:text; -webkit-user-select:text; }
-* { scrollbar-width:none; -ms-overflow-style:none; }
-*::-webkit-scrollbar { display:none; }
-html,body { background:var(--bg); color:var(--text); min-height:100vh; }
-body::after {
-  content:'';
-  position:fixed; inset:0;
-  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-  pointer-events:none; z-index:0; opacity:0.5;
-}
-input,select,textarea { -webkit-appearance:none; appearance:none; outline:none; border:none; }
-button { cursor:pointer; border:none; background:none; color:inherit; }
-button:active { transform:scale(0.97); transition:transform 0.08s; }
-button:focus-visible { outline:2px solid rgba(168,85,247,0.6); outline-offset:2px; }
-a { color:inherit; text-decoration:none; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workspace | AI Cloud Pipeline</title>
+    <style>
+        :root {
+            --bg-main: #0d1117;
+            --bg-surface: #161b22;
+            --bg-input: #21262d;
+            --accent: #2f81f7;
+            --accent-success: #238636;
+            --text-main: #c9d1d9;
+            --text-muted: #8b949e;
+            --border: #30363d;
+        }
 
-/* ── Blade animation ── */
-@keyframes blade-chase {
-  0%   { opacity:0.15; } 5%   { opacity:1; }
-  25%  { opacity:0.2; } 100% { opacity:0.15; }
-}
-.blade { animation:blade-chase 1.2s linear infinite; }
-.b-1  { animation-delay:-1.20s; } .b-2  { animation-delay:-1.08s; }
-.b-3  { animation-delay:-0.96s; } .b-4  { animation-delay:-0.84s; }
-.b-5  { animation-delay:-0.72s; } .b-6  { animation-delay:-0.60s; }
-.b-7  { animation-delay:-0.48s; } .b-8  { animation-delay:-0.36s; }
-.b-9  { animation-delay:-0.24s; } .b-10 { animation-delay:-0.12s; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+        body { background-color: var(--bg-main); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
 
-/* ── Header ── */
-@keyframes line-slide {
-  0% { transform:translateX(0); } 50% { transform:translateX(300%); } 100% { transform:translateX(0); }
-}
-header {
-  position:fixed; top:0; left:0; right:0; z-index:200;
-  height:62px; padding:0 20px;
-  display:flex; align-items:center; justify-content:space-between; gap:8px;
-  background:linear-gradient(180deg,rgba(16,16,26,0.96) 0%,rgba(12,12,20,0.92) 100%);
-  backdrop-filter:blur(28px) saturate(180%); -webkit-backdrop-filter:blur(28px) saturate(180%);
-  border-bottom:1px solid rgba(255,255,255,0.07);
-  box-shadow:0 1px 0 rgba(255,255,255,0.06) inset, 0 1px 20px rgba(0,0,0,0.3);
-  overflow:visible;
-}
-header::after {
-  content:''; position:absolute; bottom:-1px; left:0;
-  width:25%; height:1px;
-  background:linear-gradient(90deg,transparent,var(--accent),var(--accent2),transparent);
-  animation:line-slide 3.5s linear infinite;
-}
-.wordmark { font-family:'Syne',sans-serif; font-weight:800; font-size:1.05rem; letter-spacing:-0.05em; color:var(--text); white-space:nowrap; }
-.wordmark span { background:linear-gradient(135deg,var(--accent),var(--accent2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; font-weight:400; }
-.admin-badge {
-  background:linear-gradient(135deg,rgba(168,85,247,0.18),rgba(244,114,182,0.14));
-  border:1px solid rgba(168,85,247,0.32);
-  border-radius:999px; padding:4px 12px;
-  font-family:'Syne',sans-serif; font-size:10px; font-weight:700; letter-spacing:0.08em;
-  text-transform:uppercase; color:var(--accent);
-}
-.hdr-avatar {
-  width:34px; height:34px; border-radius:999px;
-  background:linear-gradient(135deg,var(--accent),var(--accent2));
-  border:1.5px solid rgba(255,255,255,0.12);
-  display:flex; align-items:center; justify-content:center;
-  font-family:'Syne',sans-serif; font-size:13px; font-weight:700; color:#fff;
-  flex-shrink:0; cursor:pointer;
-  transition:opacity 0.15s, transform 0.15s;
-}
-.hdr-avatar:hover { opacity:0.85; transform:scale(1.05); }
+        /* Left Side: Workspace Settings & File Processing */
+        .workspace { flex: 1; padding: 30px; display: flex; flex-direction: column; gap: 20px; border-right: 1px solid var(--border); overflow-y: auto; }
+        h2 { font-size: 1.5rem; font-weight: 600; margin-bottom: 10px; }
+        
+        .input-group { display: flex; flex-direction: column; gap: 8px; }
+        label { font-size: 0.85rem; color: var(--text-muted); font-weight: 500; }
+        input[type="text"] { background: var(--bg-input); border: 1px solid var(--border); padding: 12px; border-radius: 6px; color: white; font-size: 0.9rem; transition: border 0.2s; }
+        input[type="text"]:focus { border-color: var(--accent); outline: none; }
 
-/* ── Layout ── */
-.app-layout { display:flex; padding-top:62px; min-height:100vh; }
+        /* Drag and Drop Box */
+        .drop-zone { border: 2px dashed var(--border); border-radius: 8px; padding: 40px; text-align: center; background: var(--bg-surface); cursor: pointer; transition: background 0.2s, border-color 0.2s; }
+        .drop-zone.dragover { background: rgba(47, 129, 247, 0.1); border-color: var(--accent); }
+        .drop-zone p { color: var(--text-muted); font-size: 0.95rem; }
 
-/* ── Sidebar ── */
-.sidebar {
-  position:fixed; top:62px; left:0; bottom:0;
-  width:var(--sidebar-w); z-index:100;
-  background:linear-gradient(180deg,rgba(16,16,26,0.98) 0%,rgba(10,10,18,0.99) 100%);
-  backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
-  border-right:1px solid var(--border);
-  display:flex; flex-direction:column; overflow-y:auto;
-  padding:16px 12px 24px;
-}
-.sidebar-logo {
-  display:flex; align-items:center; gap:8px; padding:8px 8px 16px;
-  border-bottom:1px solid var(--border); margin-bottom:12px;
-}
-.sidebar-logo-label {
-  font-family:'Syne',sans-serif; font-size:11px; font-weight:700;
-  letter-spacing:0.08em; text-transform:uppercase; color:var(--muted);
-}
-.nav-section-label {
-  font-size:9px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase;
-  color:rgba(139,138,168,0.5); padding:0 10px; margin:12px 0 6px;
-}
-.nav-link {
-  display:flex; align-items:center; gap:10px;
-  padding:10px 10px; border-radius:10px;
-  font-size:13px; font-weight:500; color:var(--muted);
-  cursor:pointer; transition:all 0.15s; margin-bottom:2px;
-  border:1px solid transparent;
-  position:relative;
-}
-.nav-link:hover { background:rgba(255,255,255,0.04); color:var(--text); }
-.nav-link.active {
-  background:rgba(168,85,247,0.12); color:var(--accent);
-  border-color:rgba(168,85,247,0.22);
-  border-left:2px solid var(--accent);
-}
-.nav-link svg { flex-shrink:0; opacity:0.7; transition:opacity 0.15s; }
-.nav-link.active svg { opacity:1; }
-.nav-badge {
-  margin-left:auto; background:rgba(251,191,36,0.15); border:1px solid rgba(251,191,36,0.3);
-  color:var(--yellow); border-radius:999px; padding:1px 7px;
-  font-size:9px; font-weight:700; letter-spacing:0.05em;
-}
-.sidebar-footer {
-  margin-top:auto; padding-top:16px;
-  border-top:1px solid var(--border);
-}
-.sidebar-email { font-size:11px; color:var(--muted); padding:6px 10px; word-break:break-all; }
-.logout-btn {
-  display:flex; align-items:center; gap:7px;
-  width:100%; padding:9px 10px; border-radius:10px;
-  font-size:12px; font-weight:500; color:var(--red);
-  background:rgba(248,113,113,0.07); border:1px solid rgba(248,113,113,0.15);
-  cursor:pointer; transition:background 0.15s; margin-top:6px;
-}
-.logout-btn:hover { background:rgba(248,113,113,0.14); }
+        /* File Architecture Output Badges */
+        .file-preview-box { display: none; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 6px; padding: 15px; flex-direction: column; gap: 10px; }
+        .file-badge { display: flex; justify-content: space-between; align-items: center; background: var(--bg-main); border: 1px solid var(--border); padding: 8px 12px; border-radius: 4px; font-size: 0.85rem; font-family: monospace; }
+        .badge-tag { background: #21262d; padding: 2px 6px; border-radius: 3px; font-size: 0.75rem; color: var(--accent); }
 
-/* ── Main content ── */
-.main-content {
-  margin-left:var(--sidebar-w);
-  flex:1; padding:28px 28px 60px;
-  max-width:100%; position:relative; z-index:1;
-}
-.page-header { margin-bottom:24px; }
-.page-title { font-family:'Syne',sans-serif; font-size:1.45rem; font-weight:800; letter-spacing:-0.03em; }
-.page-subtitle { font-size:13px; color:var(--muted); margin-top:4px; }
+        .btn-push { background-color: var(--accent-success); border: none; color: white; padding: 14px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.95rem; transition: background 0.2s; }
+        .btn-push:hover { background-color: #2ea043; }
+        #status { font-size: 0.85rem; text-align: center; color: var(--text-muted); line-height: 1.4; }
 
-/* ── Cards ── */
-.card {
-  background:var(--surface); border:1px solid var(--card-border);
-  border-radius:16px; padding:20px;
-}
-.card-title {
-  font-family:'Syne',sans-serif; font-size:13px; font-weight:700;
-  letter-spacing:0.02em; color:var(--text); margin-bottom:16px;
-  display:flex; align-items:center; gap:8px;
-}
-
-/* ── Stat Cards ── */
-.stats-grid {
-  display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; margin-bottom:24px;
-}
-.stat-card {
-  background:var(--surface); border:1px solid var(--card-border);
-  border-radius:16px; padding:18px 16px;
-  position:relative; overflow:hidden;
-  transition:border-color 0.2s, transform 0.15s;
-  cursor:default;
-}
-.stat-card:hover { border-color:rgba(255,255,255,0.18); transform:translateY(-1px); }
-.stat-card::before {
-  content:''; position:absolute; top:0; left:0; right:0; height:2px;
-  background:var(--glow-color,linear-gradient(90deg,var(--accent),var(--accent2)));
-  opacity:0.7;
-}
-.stat-val {
-  font-family:'Syne',sans-serif; font-size:28px; font-weight:800;
-  letter-spacing:-0.04em; color:var(--text); line-height:1;
-}
-.stat-label {
-  font-size:11px; font-weight:500; letter-spacing:0.08em;
-  text-transform:uppercase; color:var(--muted); margin-top:6px;
-}
-.stat-trend { font-size:11px; margin-top:6px; }
-.stat-trend.up { color:var(--green); } .stat-trend.down { color:var(--red); }
-
-/* ── Buttons ── */
-.btn-primary {
-  display:inline-flex; align-items:center; gap:6px;
-  padding:9px 18px; border-radius:10px;
-  background:linear-gradient(135deg,var(--accent),var(--accent2));
-  color:#fff; font-family:'Syne',sans-serif; font-size:12px; font-weight:700;
-  cursor:pointer; transition:opacity 0.15s; border:none;
-}
-.btn-primary:hover { opacity:0.88; }
-.btn-danger {
-  display:inline-flex; align-items:center; gap:6px;
-  padding:7px 14px; border-radius:8px;
-  background:rgba(248,113,113,0.12); border:1px solid rgba(248,113,113,0.3);
-  color:var(--red); font-size:12px; font-weight:500; cursor:pointer;
-  transition:background 0.15s;
-}
-.btn-danger:hover { background:rgba(248,113,113,0.2); }
-.btn-ghost {
-  display:inline-flex; align-items:center; gap:6px;
-  padding:7px 14px; border-radius:8px;
-  background:rgba(255,255,255,0.05); border:1px solid var(--border);
-  color:var(--text); font-size:12px; font-weight:500; cursor:pointer;
-  transition:background 0.15s;
-}
-.btn-ghost:hover { background:rgba(255,255,255,0.09); }
-.btn-sm {
-  padding:4px 9px; border-radius:6px; font-size:11px; font-weight:600;
-  cursor:pointer; border:1px solid; display:inline-flex; align-items:center; gap:4px;
-  transition:background 0.12s; white-space:nowrap;
-}
-.btn-approve { background:rgba(52,211,153,0.1); border-color:rgba(52,211,153,0.3); color:var(--green); }
-.btn-approve:hover { background:rgba(52,211,153,0.2); }
-.btn-reject { background:rgba(248,113,113,0.1); border-color:rgba(248,113,113,0.25); color:var(--red); }
-.btn-reject:hover { background:rgba(248,113,113,0.18); }
-.btn-feature { background:rgba(251,191,36,0.1); border-color:rgba(251,191,36,0.25); color:var(--yellow); }
-.btn-feature:hover { background:rgba(251,191,36,0.18); }
-.btn-sponsor { background:rgba(56,189,248,0.1); border-color:rgba(56,189,248,0.25); color:var(--accent3); }
-.btn-sponsor:hover { background:rgba(56,189,248,0.18); }
-.btn-delete { background:rgba(248,113,113,0.08); border-color:rgba(248,113,113,0.2); color:var(--red); }
-.btn-delete:hover { background:rgba(248,113,113,0.16); }
-
-/* ── Pills/Badges ── */
-.badge {
-  display:inline-flex; align-items:center;
-  border-radius:999px; padding:3px 9px;
-  font-size:10px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase;
-  white-space:nowrap; flex-shrink:0; border:1px solid transparent;
-}
-.badge-live { background:rgba(52,211,153,0.12); border-color:rgba(52,211,153,0.3); color:var(--green); }
-.badge-pending { background:rgba(251,191,36,0.12); border-color:rgba(251,191,36,0.3); color:var(--yellow); }
-.badge-sold { background:rgba(139,138,168,0.12); border-color:rgba(139,138,168,0.25); color:var(--muted); }
-.badge-rejected { background:rgba(248,113,113,0.1); border-color:rgba(248,113,113,0.25); color:var(--red); }
-.badge-free { background:rgba(120,80,40,0.18); border-color:rgba(160,100,50,0.35); color:#b87840; }
-.badge-starter { background:rgba(168,85,247,0.12); border-color:rgba(168,85,247,0.3); color:#a855f7; }
-.badge-growth { background:rgba(244,114,182,0.12); border-color:rgba(244,114,182,0.32); color:#f472b6; }
-.badge-pro { background:rgba(56,189,248,0.12); border-color:rgba(56,189,248,0.32); color:#38bdf8; }
-.badge-banned { background:rgba(248,113,113,0.15); border-color:rgba(248,113,113,0.35); color:var(--red); }
-
-/* ── Section tabs ── */
-.section { display:none; }
-.section.active { display:block; animation:fadeIn 0.2s ease both; }
-@keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
-
-/* ── Search/Filter bar ── */
-.filter-bar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:16px; }
-.search-input {
-  flex:1; min-width:200px; padding:9px 14px;
-  background:var(--surface2); border:1px solid var(--border);
-  border-radius:10px; color:var(--text); font-size:13px;
-  transition:border-color 0.15s;
-}
-.search-input::placeholder { color:var(--muted); }
-.search-input:focus { border-color:rgba(168,85,247,0.45); outline:none; }
-.filter-chips { display:flex; gap:6px; flex-wrap:wrap; }
-.chip {
-  padding:6px 12px; border-radius:999px; font-size:11px; font-weight:600;
-  cursor:pointer; border:1px solid var(--border); color:var(--muted);
-  background:rgba(255,255,255,0.03); transition:all 0.12s;
-}
-.chip:hover { border-color:rgba(168,85,247,0.35); color:var(--text); }
-.chip.active { background:rgba(168,85,247,0.15); border-color:rgba(168,85,247,0.4); color:var(--accent); }
-.sort-select {
-  padding:8px 12px; background:var(--surface2); border:1px solid var(--border);
-  border-radius:10px; color:var(--text); font-size:12px; cursor:pointer;
-}
-
-/* ── Table ── */
-.table-wrap { overflow-x:auto; border-radius:14px; border:1px solid var(--card-border); }
-table { width:100%; border-collapse:collapse; }
-thead { background:rgba(255,255,255,0.03); }
-th {
-  padding:11px 14px; text-align:left;
-  font-size:10px; font-weight:700; letter-spacing:0.08em;
-  text-transform:uppercase; color:var(--muted);
-  border-bottom:1px solid var(--border); white-space:nowrap;
-}
-td { padding:12px 14px; font-size:13px; border-bottom:1px solid rgba(255,255,255,0.04); vertical-align:middle; }
-tr:last-child td { border-bottom:none; }
-tr:hover td { background:rgba(255,255,255,0.02); }
-.listing-thumb {
-  width:36px; height:36px; border-radius:8px; object-fit:cover;
-  background:var(--surface2); flex-shrink:0;
-}
-.thumb-fallback {
-  width:36px; height:36px; border-radius:8px;
-  background:linear-gradient(135deg,var(--accent),var(--accent2));
-  display:flex; align-items:center; justify-content:center;
-  font-family:'Syne',sans-serif; font-size:14px; font-weight:700; color:#fff;
-}
-.listing-title { font-weight:600; color:var(--text); font-size:13px; }
-.listing-url { font-size:11px; color:var(--muted); margin-top:1px; }
-.actions-cell { display:flex; gap:4px; flex-wrap:nowrap; }
-.avatar-bubble {
-  width:32px; height:32px; border-radius:999px;
-  display:flex; align-items:center; justify-content:center;
-  font-family:'Syne',sans-serif; font-size:13px; font-weight:700; color:#fff; flex-shrink:0;
-}
-
-/* ── Quick actions row ── */
-.quick-actions { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:24px; }
-
-/* ── Activity feed ── */
-.activity-item {
-  display:flex; align-items:flex-start; gap:12px;
-  padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.04);
-}
-.activity-item:last-child { border-bottom:none; }
-.activity-dot {
-  width:28px; height:28px; border-radius:999px; flex-shrink:0;
-  display:flex; align-items:center; justify-content:center;
-  font-size:12px; margin-top:1px;
-}
-.activity-text { font-size:13px; color:var(--text); line-height:1.5; }
-.activity-time { font-size:11px; color:var(--muted); margin-top:2px; }
-
-/* ── Detail Drawer ── */
-.drawer-overlay {
-  display:none; position:fixed; inset:0; z-index:300;
-  background:rgba(0,0,0,0.65); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
-}
-.drawer-overlay.open { display:flex; align-items:flex-start; justify-content:flex-end; }
-.drawer {
-  width:min(540px,100vw); height:100%; overflow-y:auto;
-  background:linear-gradient(180deg,#14141f 0%,#0f0f1a 100%);
-  border-left:1px solid var(--card-border);
-  padding:24px; display:flex; flex-direction:column; gap:20px;
-  animation:slideInRight 0.24s cubic-bezier(0.32,0.72,0,1) both;
-}
-@keyframes slideInRight { from { transform:translateX(100%); opacity:0; } to { transform:translateX(0); opacity:1; } }
-.drawer-header { display:flex; align-items:center; justify-content:space-between; }
-.drawer-title { font-family:'Syne',sans-serif; font-size:1rem; font-weight:800; }
-.drawer-close {
-  width:32px; height:32px; border-radius:999px;
-  background:rgba(255,255,255,0.06); border:1px solid var(--border);
-  display:flex; align-items:center; justify-content:center;
-  cursor:pointer; color:var(--muted); transition:all 0.15s;
-}
-.drawer-close:hover { background:rgba(255,255,255,0.11); color:var(--text); }
-.drawer-field { display:flex; flex-direction:column; gap:5px; }
-.drawer-label { font-size:10px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); }
-.drawer-input {
-  padding:9px 12px; background:var(--surface2); border:1px solid var(--border);
-  border-radius:10px; color:var(--text); font-size:13px;
-  transition:border-color 0.15s; width:100%;
-}
-.drawer-input:focus { border-color:rgba(168,85,247,0.5); outline:none; }
-.drawer-imgs { display:flex; gap:8px; flex-wrap:wrap; }
-.drawer-img {
-  width:80px; height:60px; border-radius:8px; object-fit:cover;
-  border:1px solid var(--border); cursor:pointer;
-  transition:opacity 0.15s;
-}
-.drawer-img:hover { opacity:0.8; }
-
-/* ── Modals ── */
-.modal-overlay {
-  display:none; position:fixed; inset:0; z-index:500;
-  background:rgba(0,0,0,0.72); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
-  align-items:center; justify-content:center; padding:20px;
-}
-.modal-overlay.open { display:flex; }
-.modal-card {
-  background:linear-gradient(160deg,#16162a 0%,#0f0f1c 100%);
-  border:1px solid var(--card-border);
-  border-top:1px solid rgba(255,255,255,0.15);
-  border-radius:20px; padding:28px; max-width:420px; width:100%;
-  box-shadow:0 32px 80px rgba(0,0,0,0.85),0 0 0 1px rgba(168,85,247,0.09);
-  animation:modalPop 0.26s cubic-bezier(0.34,1.2,0.64,1) both;
-}
-@keyframes modalPop { from { opacity:0; transform:scale(0.94) translateY(12px); } to { opacity:1; transform:scale(1) translateY(0); } }
-.modal-icon {
-  width:48px; height:48px; border-radius:999px;
-  display:flex; align-items:center; justify-content:center;
-  margin-bottom:16px;
-}
-.modal-title { font-family:'Syne',sans-serif; font-size:1.05rem; font-weight:800; margin-bottom:6px; }
-.modal-sub { font-size:13px; color:var(--muted); margin-bottom:20px; line-height:1.5; }
-.modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
-
-/* ── Toast ── */
-#toast {
-  position:fixed; bottom:24px; right:24px; z-index:9999;
-  padding:12px 18px; border-radius:12px;
-  font-size:13px; font-weight:500;
-  display:none; animation:toastIn 0.25s ease;
-  max-width:320px; pointer-events:none;
-  box-shadow:0 8px 24px rgba(0,0,0,0.4);
-}
-@keyframes toastIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
-#toast.success { background:rgba(52,211,153,0.15); border:1px solid rgba(52,211,153,0.35); color:var(--green); }
-#toast.error { background:rgba(248,113,113,0.15); border:1px solid rgba(248,113,113,0.35); color:var(--red); }
-#toast.info { background:rgba(56,189,248,0.12); border:1px solid rgba(56,189,248,0.3); color:var(--accent3); }
-
-/* ── Auth/Access screens ── */
-.fullscreen-center {
-  position:fixed; inset:0; z-index:1000;
-  display:flex; align-items:center; justify-content:center;
-  background:var(--bg); flex-direction:column; gap:20px; padding:24px;
-}
-.auth-card {
-  background:linear-gradient(160deg,#16162a 0%,#0f0f1c 100%);
-  border:1px solid var(--card-border);
-  border-top:1px solid rgba(255,255,255,0.14);
-  border-radius:24px; padding:32px; width:100%; max-width:380px;
-  box-shadow:0 32px 80px rgba(0,0,0,0.7),0 0 0 1px rgba(168,85,247,0.09);
-}
-.auth-title { font-family:'Syne',sans-serif; font-size:1.4rem; font-weight:800; margin-bottom:4px; }
-.auth-sub { font-size:13px; color:var(--muted); margin-bottom:24px; line-height:1.5; }
-.auth-field { display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
-.auth-label { font-size:11px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:var(--muted); }
-.auth-input {
-  padding:11px 14px; background:rgba(255,255,255,0.05); border:1px solid var(--border);
-  border-radius:12px; color:var(--text); font-size:14px; width:100%;
-  transition:border-color 0.15s;
-}
-.auth-input:focus { border-color:rgba(168,85,247,0.5); }
-.auth-btn {
-  width:100%; padding:12px; border-radius:12px;
-  background:linear-gradient(135deg,var(--accent),var(--accent2));
-  color:#fff; font-family:'Syne',sans-serif; font-size:14px; font-weight:700;
-  cursor:pointer; border:none; margin-top:8px; transition:opacity 0.15s;
-}
-.auth-btn:hover { opacity:0.88; }
-.auth-err { color:var(--red); font-size:12px; margin-top:8px; display:none; background:rgba(248,113,113,0.08); border:1px solid rgba(248,113,113,0.2); border-radius:8px; padding:8px 12px; }
-
-/* ── Charts row ── */
-.charts-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; }
-.chart-card { background:var(--surface); border:1px solid var(--card-border); border-radius:16px; padding:20px; }
-.chart-title {
-  font-family:'Syne',sans-serif; font-size:11px; font-weight:700;
-  color:var(--muted); letter-spacing:0.07em; text-transform:uppercase; margin-bottom:14px;
-}
-
-/* ── Hero/Banner panels ── */
-.hero-panels { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
-.hero-item {
-  display:flex; align-items:center; gap:10px;
-  padding:10px 12px; background:var(--surface2);
-  border-radius:10px; border:1px solid var(--border);
-  transition:border-color 0.15s;
-}
-.hero-item:hover { border-color:rgba(255,255,255,0.12); }
-.hero-thumb { width:44px; height:34px; object-fit:cover; border-radius:6px; background:var(--surface); flex-shrink:0; }
-.hero-info { flex:1; min-width:0; }
-.hero-name { font-size:12px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.hero-price { font-size:11px; color:var(--muted); margin-top:1px; }
-
-/* ── Plan radio ── */
-.plan-radio-group { display:flex; flex-direction:column; gap:8px; margin-bottom:20px; }
-.plan-radio-item {
-  display:flex; align-items:center; gap:12px;
-  padding:10px 14px; border-radius:10px;
-  border:1px solid var(--border); cursor:pointer;
-  transition:border-color 0.15s, background 0.15s;
-}
-.plan-radio-item:hover { border-color:rgba(168,85,247,0.3); }
-.plan-radio-item.selected { border-color:rgba(168,85,247,0.5); background:rgba(168,85,247,0.07); }
-.plan-radio-item input { width:14px; height:14px; accent-color:var(--accent); flex-shrink:0; }
-
-/* ── Loading spinner ── */
-.spinner {
-  width:36px; height:36px; border-radius:999px;
-  border:3px solid rgba(168,85,247,0.15);
-  border-top-color:var(--accent);
-  animation:spin 0.8s linear infinite;
-}
-@keyframes spin { to { transform:rotate(360deg); } }
-
-/* ── Mobile bottom tabs ── */
-.bottom-tabs {
-  display:none; position:fixed; bottom:0; left:0; right:0; z-index:200;
-  background:rgba(10,10,18,0.97); backdrop-filter:blur(20px);
-  border-top:1px solid var(--border);
-  padding:8px 0 max(8px,env(safe-area-inset-bottom));
-}
-.bottom-tabs-inner { display:flex; justify-content:space-around; }
-.tab-item {
-  display:flex; flex-direction:column; align-items:center; gap:3px;
-  padding:6px 12px; cursor:pointer; color:var(--muted); font-size:10px; font-weight:500;
-  border-radius:10px; transition:color 0.15s;
-}
-.tab-item.active { color:var(--accent); }
-.tab-item svg { opacity:0.7; transition:opacity 0.15s; }
-.tab-item.active svg { opacity:1; }
-
-/* ── Responsive ── */
-@media (max-width:768px) {
-  .sidebar { display:none; }
-  .main-content { margin-left:0; padding:16px 16px 80px; }
-  .bottom-tabs { display:block; }
-  .hero-panels { grid-template-columns:1fr; }
-  header { padding:0 14px; }
-  .stats-grid { grid-template-columns:repeat(2,1fr); }
-  .actions-cell { flex-wrap:wrap; }
-}
-@media (max-width:480px) {
-  .stats-grid { grid-template-columns:1fr 1fr; }
-  .quick-actions { flex-direction:column; }
-  .filter-bar { flex-direction:column; align-items:stretch; }
-  .modal-card { padding:20px; }
-}
-
-/* ── Img upload area ── */
-.upload-area {
-  border:2px dashed rgba(168,85,247,0.28); border-radius:12px; padding:20px;
-  text-align:center; cursor:pointer; transition:border-color 0.15s, background 0.15s;
-  background:rgba(168,85,247,0.03);
-}
-.upload-area:hover { border-color:rgba(168,85,247,0.55); background:rgba(168,85,247,0.06); }
-.upload-area input { display:none; }
-
-/* ── Two-col grid ── */
-.two-col { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
-@media(max-width:560px) { .two-col { grid-template-columns:1fr; } }
-
-/* ── Misc ── */
-.section-divider { height:1px; background:var(--border); margin:20px 0; }
-code {
-  background:var(--surface2); padding:2px 6px;
-  border-radius:4px; font-size:11px; font-family:monospace;
-  border:1px solid var(--border); color:var(--accent3);
-}
-</style>
+        /* Right Side: Premium Chat Sidebar UI */
+        .chat-sidebar { width: 420px; background-color: var(--bg-surface); display: flex; flex-direction: column; height: 100%; }
+        .chat-header { padding: 20px; border-bottom: 1px solid var(--border); font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+        .chat-header span { font-size: 0.75rem; color: #56d364; background: rgba(56, 211, 100, 0.1); padding: 3px 8px; border-radius: 12px; }
+        .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        
+        .msg { max-width: 85%; padding: 12px 16px; border-radius: 12px; font-size: 0.9rem; line-height: 1.5; word-wrap: break-word; white-space: pre-line; }
+        .msg.user { background: var(--accent); color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
+        .msg.ai { background: var(--bg-input); color: var(--text-main); align-self: flex-start; border-bottom-left-radius: 2px; border: 1px solid var(--border); }
+        .msg code { background: rgba(0,0,0,0.3); padding: 2px 5px; border-radius: 4px; font-family: monospace; color: #ff79c6; }
+        
+        .chat-input-area { padding: 20px; border-top: 1px solid var(--border); display: flex; gap: 10px; background: var(--bg-main); }
+        .chat-input-area textarea { flex: 1; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; padding: 12px; color: white; font-size: 0.9rem; resize: none; height: 44px; }
+        .chat-input-area textarea:focus { border-color: var(--accent); outline: none; }
+        .btn-send { background: var(--accent); border: none; color: white; padding: 0 18px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+        .btn-send:hover { background-color: #1f6feb; }
+    </style>
 </head>
 <body>
 
-<!-- ══ AUTH SCREENS ══ -->
-<div id="loadingScreen" class="fullscreen-center">
-  <div class="spinner"></div>
-  <div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-top:8px;">Loading…</div>
-</div>
-
-<div id="loginScreen" class="fullscreen-center" style="display:none;">
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
-    <svg width="28" height="28" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
-      <rect class="blade b-1" x="12.5" y="2" width="3" height="10" rx="1.5" fill="url(#sg-login)" transform="rotate(0,14,14)"/>
-      <rect class="blade b-2" x="12.5" y="2" width="3" height="10" rx="1.5" fill="url(#sg-login)" transform="rotate(36,14,14)"/>
-      <rect class="blade b-3" x="12.5" y="2" width="3" height="10" rx="1.5" fill="url(#sg-login)" transform="rotate(72,14,14)"/>
-      <rect class="blade b-4" x="12.5" y="2" width="3" height="10" rx="1.5" fill="url(#sg-login)" transform="rotate(108,14,14)"/>
-      <rect class="blade b-5" x="12.5" y="2" width="3" height="10" rx="1.5" fill="url(#sg-login)" transform="rotate(144,14,14)"/>
-      <rect class="blade b-6" x="12.5" y="2" width="3" height="10" rx="1.5" fill="url(#sg-login)" transform="rotate(180,14,14)"/>
-      <rect class="blade b-7" x="12.5" y="2" width="3" height="10" rx="1.5" fill="url(#sg-login)" transform="rotate(216,14,14)"/>
-      <rect class="blade b-8" x="12.5" y="2" width="3" height="10" rx="1.5" fill="url(#sg-login)" transform="rotate(252,14,14)"/>
-      <rect class="blade b-9" x="12.5" y="2" width="3" height="10" rx="1.5" fill="url(#sg-login)" transform="rotate(288,14,14)"/>
-      <rect class="blade b-10" x="12.5" y="2" width="3" height="10" rx="1.5" fill="url(#sg-login)" transform="rotate(324,14,14)"/>
-      <circle cx="14" cy="14" r="3" fill="#f472b6"/>
-      <defs><linearGradient id="sg-login" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#a855f7"/><stop offset="100%" stop-color="#38bdf8"/></linearGradient></defs>
-    </svg>
-    <span class="wordmark">Siterifty<span>.admin</span></span>
-  </div>
-  <div class="auth-card">
-    <div class="auth-title">Admin Sign In</div>
-    <div class="auth-sub">Sign in to access the control panel.</div>
-    <div class="auth-field">
-      <label class="auth-label">Email</label>
-      <input class="auth-input" type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email">
-    </div>
-    <div class="auth-field" id="passField">
-      <label class="auth-label" style="display:flex;align-items:center;justify-content:space-between;">
-        Password
-        <span style="font-size:10px;color:var(--muted);font-weight:400;letter-spacing:0.03em;">Super admin only</span>
-      </label>
-      <input class="auth-input" type="password" id="loginPass" placeholder="Leave blank if support admin" autocomplete="current-password">
-    </div>
-    <div id="loginErr" class="auth-err"></div>
-    <button class="auth-btn" id="loginBtn" onclick="doAdminLogin()">Sign In →</button>
-    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:6px;">
-      <div style="font-size:11px;color:var(--muted);line-height:1.6;">
-        <span style="color:var(--accent);font-weight:600;">Super admin</span> — enter email + password for full access.
-      </div>
-      <div style="font-size:11px;color:var(--muted);line-height:1.6;">
-        <span style="color:var(--accent3);font-weight:600;">Support admin</span> — enter email only, leave password blank.
-      </div>
-    </div>
-  </div>
-</div>
-
-<div id="deniedScreen" class="fullscreen-center" style="display:none;">
-  <div style="text-align:center;max-width:340px;">
-    <div style="width:64px;height:64px;border-radius:999px;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.28);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#f87171" stroke-width="1.5"/><path d="M8 8l8 8M16 8l-8 8" stroke="#f87171" stroke-width="1.6" stroke-linecap="round"/></svg>
-    </div>
-    <div style="font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;margin-bottom:8px;">Access Denied</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:28px;line-height:1.6;">You don't have admin privileges. Please sign in with the admin account.</div>
-    <button class="btn-ghost" onclick="doSignOut()" style="margin:0 auto;">← Back to Home</button>
-  </div>
-</div>
-
-<!-- ══ MAIN APP ══ -->
-<div id="appShell" style="display:none;">
-
-<!-- Header -->
-<header>
-  <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
-    <svg width="28" height="28" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">
-      <rect class="blade b-1" x="12.5" y="2" width="3" height="10" rx="1.5" fill="url(#sg-h)" transform="rotate(0,14,14)"/>
-      <rect class="blade b-2" x="12.5" y="2" width="3" height="10" rx="1.5" fill="url(#sg-h)" transform="rotate(36,14,14)"/>
-      <rect class="blade b-3" x="12.5" y="2" width="3" height="10" rx="1.5" fill="url(#sg-h)" transform="rotate(72,14,14)"/>
-      <rect class="blade b-4" x="12.5" y="2" width="3" height="10" rx="1.5" fill="url(#sg-h)" transform="rotate(108,14,14)"/>
-      <rect class="blade b-5" x="12.5" y="2" width="3" height="10" rx="1.5" fill="url(#sg-h)" transform="rotate(144,14,14)"/>
-      <rect class="blade b-6" x="12.5" y="2" width="3" height="10" rx="1.5" fill="url(#sg-h)" transform="rotate(180,14,14)"/>
-      <rect class="blade b-7" x="12.5" y="2" width="3" height="10" rx="1.5" fill="url(#sg-h)" transform="rotate(216,14,14)"/>
-      <rect class="blade b-8" x="12.5" y="2" width="3" height="10" rx="1.5" fill="url(#sg-h)" transform="rotate(252,14,14)"/>
-      <rect class="blade b-9" x="12.5" y="2" width="3" height="10" rx="1.5" fill="url(#sg-h)" transform="rotate(288,14,14)"/>
-      <rect class="blade b-10" x="12.5" y="2" width="3" height="10" rx="1.5" fill="url(#sg-h)" transform="rotate(324,14,14)"/>
-      <circle cx="14" cy="14" r="3" fill="#f472b6"/>
-      <defs><linearGradient id="sg-h" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#a855f7"/><stop offset="100%" stop-color="#38bdf8"/></linearGradient></defs>
-    </svg>
-    <span class="wordmark">Siterifty<span>.admin</span></span>
-  </div>
-  <div style="display:flex;align-items:center;gap:10px;">
-    <span id="pendingHeaderBadge" class="admin-badge" style="display:none;background:rgba(251,191,36,0.12);border-color:rgba(251,191,36,0.3);color:var(--yellow);"></span>
-    <span id="supportBadge" class="admin-badge" style="display:none;background:rgba(56,189,248,0.12);border-color:rgba(56,189,248,0.3);color:var(--accent3);">Support</span><span class="admin-badge">Admin</span>
-    <div class="hdr-avatar" id="hdrAvatar" title="Signed in as admin">A</div>
-  </div>
-</header>
-
-<!-- App layout -->
-<div class="app-layout">
-
-  <!-- Sidebar -->
-  <nav class="sidebar">
-    <div class="sidebar-logo">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="3" width="16" height="14" rx="3" stroke="var(--accent)" stroke-width="1.3"/><path d="M2 7h16" stroke="var(--accent)" stroke-width="1.3"/><circle cx="5.5" cy="5" r=".8" fill="var(--accent)"/><circle cx="8" cy="5" r=".8" fill="var(--accent)"/></svg>
-      <span class="sidebar-logo-label">Control Panel</span>
-    </div>
-    <div id="navLinks">
-      <div class="nav-section-label">Overview</div>
-      <div class="nav-link active" onclick="switchTab('dashboard')" data-tab="dashboard">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/></svg>
-        Dashboard
-      </div>
-      <div class="nav-link" onclick="switchTab('revenue')" data-tab="revenue">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M1 12l4-5 3 3 3-6 3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Revenue
-      </div>
-      <div class="nav-section-label">Manage</div>
-      <div class="nav-link" onclick="switchTab('listings')" data-tab="listings">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="2" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M4 6h8M4 9h5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-        Listings
-        <span id="sidebarPendingBadge" class="nav-badge" style="display:none;"></span>
-      </div>
-      <div class="nav-link" onclick="switchTab('users')" data-tab="users">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.3"/><path d="M2 14c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-        Users
-      </div>
-      <div class="nav-link" onclick="switchTab('hero')" data-tab="hero">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M1 9l3-3 3 3 3-4 4 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Hero / Banners
-      </div>
-      <div class="nav-section-label">System</div>
-      <div class="nav-link" onclick="switchTab('settings')" data-tab="settings">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M2.64 2.64l1.06 1.06M12.3 12.3l1.06 1.06M13.36 2.64l-1.06 1.06M3.7 12.3l-1.06 1.06" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-        Settings
-      </div>
-    </div>
-    <div class="sidebar-footer">
-      <div class="sidebar-email" id="sidebarEmail">admin@siterifty.com</div>
-      <button class="logout-btn" onclick="doSignOut()">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 7h8M10 4l3 3-3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 2H3a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-        Sign Out
-      </button>
-    </div>
-  </nav>
-
-  <!-- Main -->
-  <main class="main-content">
-
-    <!-- ══ DASHBOARD ══ -->
-    <div id="sec-dashboard" class="section active">
-      <div class="page-header">
-        <div class="page-title">Dashboard</div>
-        <div class="page-subtitle">Real-time overview of Siterifty platform activity.</div>
-      </div>
-      <div class="stats-grid">
-        <div class="stat-card" style="--glow-color:linear-gradient(90deg,#a855f7,#f472b6)">
-          <div class="stat-val" id="statUsers">—</div>
-          <div class="stat-label">Total Users</div>
-          <div class="stat-trend up">● Live sync</div>
+    <div class="workspace">
+        <h2>Production Pipeline</h2>
+        
+        <div class="input-group">
+            <label for="repo-input">Target Repository Path</label>
+            <input type="text" id="repo-input" placeholder="username/repository-name">
         </div>
-        <div class="stat-card" style="--glow-color:linear-gradient(90deg,#f472b6,#a855f7)">
-          <div class="stat-val" id="statListings">—</div>
-          <div class="stat-label">Total Listings</div>
-          <div class="stat-trend up">● Live sync</div>
-        </div>
-        <div class="stat-card" style="--glow-color:linear-gradient(90deg,#34d399,#38bdf8)">
-          <div class="stat-val" id="statLive">—</div>
-          <div class="stat-label">Live Listings</div>
-          <div class="stat-trend" style="color:var(--green);">● Active</div>
-        </div>
-        <div class="stat-card" style="--glow-color:linear-gradient(90deg,#fbbf24,#f472b6)">
-          <div class="stat-val" id="statPending">—</div>
-          <div class="stat-label">Pending Review</div>
-          <div class="stat-trend" style="color:var(--yellow);">⏳ Needs attention</div>
-        </div>
-        <div class="stat-card" style="--glow-color:linear-gradient(90deg,#8b8aa8,#a855f7)">
-          <div class="stat-val" id="statSold">—</div>
-          <div class="stat-label">Total Sold</div>
-          <div class="stat-trend" style="color:var(--muted);">Completed deals</div>
-        </div>
-        <div class="stat-card" style="--glow-color:linear-gradient(90deg,#38bdf8,#34d399)">
-          <div class="stat-val" id="statGMV">—</div>
-          <div class="stat-label">Platform GMV</div>
-          <div class="stat-trend" style="color:var(--accent3);">Gross sales value</div>
-        </div>
-        <div class="stat-card" style="--glow-color:linear-gradient(90deg,#f472b6,#fbbf24)">
-          <div class="stat-val" id="statNewUsers7d">—</div>
-          <div class="stat-label">New Users (7d)</div>
-          <div class="stat-trend" style="color:var(--accent2);">● Last 7 days</div>
-        </div>
-      </div>
 
-      <!-- Quick actions -->
-      <div class="quick-actions">
-        <button class="btn-primary" data-super-only onclick="approveAllPending()">
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 6.5l3 3 6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Approve All Pending
-        </button>
-        <button class="btn-ghost" data-super-only onclick="exportCSV('users')">
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v7M3.5 5.5l3 3 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 10h11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-          Export Users CSV
-        </button>
-        <button class="btn-ghost" data-super-only onclick="exportCSV('listings')">
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v7M3.5 5.5l3 3 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 10h11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-          Export Listings CSV
-        </button>
-        <button class="btn-ghost" onclick="refreshData()">
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M11 6.5A4.5 4.5 0 1 1 6.5 2M9.5 2H11V3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Refresh Data
-        </button>
-      </div>
+        <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-slot').click()">
+            <p>Drag & drop your single index.html file here, or click to browse</p>
+            <input type="file" id="file-slot" accept=".html" style="display: none;" onchange="processIncomingFile(this.files[0])">
+        </div>
 
-      <!-- Activity feed -->
-      <div class="card">
-        <div class="card-title">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="var(--accent)" stroke-width="1.3"/><path d="M7 4v3.5l2 1" stroke="var(--accent)" stroke-width="1.3" stroke-linecap="round"/></svg>
-          Recent Activity
+        <div class="file-preview-box" id="preview-box">
+            <label>Auto-Separation Architecture Pipeline:</label>
+            <div class="file-badge" id="html-badge">index.html <span class="badge-tag">Clean HTML5</span></div>
+            <div class="file-badge" id="css-badge" style="display:none;">style.css <span class="badge-tag">Extracted CSS</span></div>
+            <div class="file-badge" id="js-badge" style="display:none;">app.js <span class="badge-tag">Extracted JS</span></div>
         </div>
-        <div id="activityFeed">
-          <div style="color:var(--muted);font-size:13px;text-align:center;padding:24px 0;">Loading activity…</div>
-        </div>
-      </div>
+
+        <button class="btn-push" onclick="deployProjectData()">Push Pipeline Manually</button>
+        <p id="status"></p>
     </div>
 
-    <!-- ══ LISTINGS ══ -->
-    <div id="sec-listings" class="section">
-      <div class="page-header">
-        <div class="page-title">Listings Manager</div>
-        <div class="page-subtitle">Manage all website listings — approve, reject, feature, sponsor, or delete.</div>
-      </div>
-      <div class="filter-bar">
-        <input class="search-input" id="listingSearch" type="text" placeholder="Search by title, URL, seller…" oninput="renderListings()">
-        <div class="filter-chips" id="listingChips">
-          <span class="chip active" onclick="setListingFilter(this,'all')">All</span>
-          <span class="chip" onclick="setListingFilter(this,'live')">Live</span>
-          <span class="chip" onclick="setListingFilter(this,'pending')">Pending</span>
-          <span class="chip" onclick="setListingFilter(this,'sold')">Sold</span>
-          <span class="chip" onclick="setListingFilter(this,'rejected')">Rejected</span>
-          <span class="chip" onclick="setListingFilter(this,'sponsored')">Sponsored</span>
-          <span class="chip" onclick="setListingFilter(this,'featured')">Featured</span>
+    <div class="chat-sidebar">
+        <div class="chat-header">
+            Workspace Copilot <span>Llama 3.1 8B Active</span>
         </div>
-        <select class="sort-select" id="listingSort" onchange="renderListings()">
-          <option value="newest">Newest</option>
-          <option value="price-desc">Price ↓</option>
-          <option value="price-asc">Price ↑</option>
-          <option value="revenue">Revenue</option>
-        </select>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th>Listing</th>
-            <th>Category</th>
-            <th>Price</th>
-            <th>Revenue</th>
-            <th>Status</th>
-            <th>Seller</th>
-            <th>Date</th>
-            <th>Actions</th>
-          </tr></thead>
-          <tbody id="listingsBody">
-            <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:32px;">Loading listings…</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- ══ USERS ══ -->
-    <div id="sec-users" class="section">
-      <div class="page-header">
-        <div class="page-title">Users Manager</div>
-        <div class="page-subtitle">Manage all user accounts — view, upgrade plans, ban, or delete.</div>
-      </div>
-      <div class="filter-bar">
-        <input class="search-input" id="userSearch" type="text" placeholder="Search by username or email…" oninput="renderUsers()">
-        <div class="filter-chips" id="userChips">
-          <span class="chip active" onclick="setUserFilter(this,'all')">All</span>
-          <span class="chip" onclick="setUserFilter(this,'Free')">Free</span>
-          <span class="chip" onclick="setUserFilter(this,'Starter')">Starter</span>
-          <span class="chip" onclick="setUserFilter(this,'Growth')">Growth</span>
-          <span class="chip" onclick="setUserFilter(this,'Pro')">Pro</span>
-          <span class="chip" onclick="setUserFilter(this,'banned')">Banned</span>
+        <div class="chat-messages" id="chat-box">
+            <div class="msg ai">Yo! Drop your structural codes or files in here. Once you set your repository path, I can modify the design, add features, and save everything straight to GitHub for you automatically. What are we cooking up?</div>
         </div>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th>User</th>
-            <th>Plan</th>
-            <th>Balance</th>
-            <th>Joined</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr></thead>
-          <tbody id="usersBody">
-            <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:32px;">Loading users…</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- ══ HERO / BANNERS ══ -->
-    <div id="sec-hero" class="section">
-      <div class="page-header">
-        <div class="page-title">Hero / Banners</div>
-        <div class="page-subtitle">Control featured and sponsored rows on the browse page. Changes are instant — no rebuild needed.</div>
-      </div>
-
-      <!-- Hero Image config -->
-      <div class="card" style="margin-bottom:16px;">
-        <div class="card-title">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="2.5" width="12" height="9" rx="2" stroke="var(--accent3)" stroke-width="1.2"/><path d="M1 8l3-3 3 3 2.5-3.5L13 8" stroke="var(--accent3)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Homepage Hero Image
+        <div class="chat-input-area">
+            <textarea id="chat-msg-input" placeholder="Tell Llama to modify or save changes..."></textarea>
+            <button class="btn-send" onclick="sendChatMessage()">Send</button>
         </div>
-        <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
-          <div style="flex:1;min-width:200px;">
-            <div class="drawer-label" style="margin-bottom:5px;">Image URL</div>
-            <input class="drawer-input" id="heroImageUrl" type="url" placeholder="https://i.imgur.com/…" oninput="previewHeroImg()">
-          </div>
-          <button class="btn-primary" data-super-only onclick="saveHeroImage()">
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 6l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Save
-          </button>
-        </div>
-        <div id="heroImgPreview" style="margin-top:14px;display:none;">
-          <img id="heroImgTag" src="" alt="Hero preview" style="max-height:130px;border-radius:12px;border:1px solid var(--border);">
-        </div>
-      </div>
-
-      <!-- Sponsored + Featured panels -->
-      <div class="hero-panels">
-        <!-- Sponsored -->
-        <div class="card">
-          <div class="card-title">
-            💰 Sponsored Listings
-            <span id="sponsoredCount" style="font-size:10px;color:var(--muted);font-weight:400;margin-left:auto;">0 / 10</span>
-          </div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:12px;line-height:1.5;">Sponsored listings appear in the highlighted row on the browse page.</div>
-          <div id="sponsoredList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;"></div>
-          <div class="drawer-label" style="margin-bottom:6px;">Add listing to Sponsored</div>
-          <input class="search-input" id="sponsorSearch" type="text" placeholder="Search live listings…" oninput="searchSponsor()" style="margin-bottom:8px;">
-          <div id="sponsorResults" style="display:flex;flex-direction:column;gap:6px;"></div>
-        </div>
-        <!-- Featured -->
-        <div class="card">
-          <div class="card-title">
-            ⭐ Featured Listings
-            <span id="featuredCount" style="font-size:10px;color:var(--muted);font-weight:400;margin-left:auto;">0 / 10</span>
-          </div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:12px;line-height:1.5;">Featured listings get a prominent badge and appear in the featured row.</div>
-          <div id="featuredList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;"></div>
-          <div class="drawer-label" style="margin-bottom:6px;">Add listing to Featured</div>
-          <input class="search-input" id="featureSearch" type="text" placeholder="Search live listings…" oninput="searchFeature()" style="margin-bottom:8px;">
-          <div id="featureResults" style="display:flex;flex-direction:column;gap:6px;"></div>
-        </div>
-      </div>
     </div>
 
-    <!-- ══ REVENUE ══ -->
-    <div id="sec-revenue" class="section">
-      <div class="page-header">
-        <div class="page-title">Revenue & Analytics</div>
-        <div class="page-subtitle">Platform metrics and charts powered by live Firebase data.</div>
-      </div>
-      <div class="stats-grid" style="margin-bottom:24px;">
-        <div class="stat-card" style="--glow-color:linear-gradient(90deg,#a855f7,#f472b6)">
-          <div class="stat-val" id="revGMV">—</div>
-          <div class="stat-label">Gross GMV</div>
-          <div class="stat-trend" style="color:var(--muted);">Sum of sold listings</div>
-        </div>
-        <div class="stat-card" style="--glow-color:linear-gradient(90deg,#38bdf8,#34d399)">
-          <div class="stat-val" id="revAvgPrice">—</div>
-          <div class="stat-label">Avg Listing Price</div>
-          <div class="stat-trend" style="color:var(--muted);">All listings</div>
-        </div>
-        <div class="stat-card" style="--glow-color:linear-gradient(90deg,#fbbf24,#f472b6)">
-          <div class="stat-val" id="revConvRate">—</div>
-          <div class="stat-label">Conversion Rate</div>
-          <div class="stat-trend" style="color:var(--muted);">Sold / Total</div>
-        </div>
-        <div class="stat-card" style="--glow-color:linear-gradient(90deg,#34d399,#38bdf8)">
-          <div class="stat-val" id="revAvgTime">—</div>
-          <div class="stat-label">Avg Days to Sell</div>
-          <div class="stat-trend" style="color:var(--muted);">When available</div>
-        </div>
-      </div>
-      <div class="charts-grid">
-        <div class="chart-card" style="grid-column:1/-1;">
-          <div class="chart-title">Listings Over Time — last 30 days</div>
-          <canvas id="chartListingsTime" height="80"></canvas>
-        </div>
-        <div class="chart-card">
-          <div class="chart-title">Revenue by Category</div>
-          <canvas id="chartRevCat" height="200"></canvas>
-        </div>
-        <div class="chart-card">
-          <div class="chart-title">Plan Distribution</div>
-          <canvas id="chartPlans" height="200"></canvas>
-        </div>
-        <div class="chart-card">
-          <div class="chart-title">Listing Status Breakdown</div>
-          <canvas id="chartStatus" height="200"></canvas>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ SETTINGS ══ -->
-    <div id="sec-settings" class="section">
-      <div class="page-header">
-        <div class="page-title">Settings</div>
-        <div class="page-subtitle">Platform configuration and admin account management.</div>
-      </div>
-
-      <!-- Admin account card -->
-      <div class="card" style="max-width:520px;margin-bottom:16px;">
-        <div class="card-title">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="5" r="3" stroke="var(--accent)" stroke-width="1.2"/><path d="M1 13c0-3 2.686-5 6-5s6 2 6 5" stroke="var(--accent)" stroke-width="1.2" stroke-linecap="round"/></svg>
-          Admin Account
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface2);border-radius:12px;border:1px solid var(--border);margin-bottom:16px;">
-          <div class="hdr-avatar" id="settingsAvatar" style="cursor:default;width:40px;height:40px;font-size:15px;">A</div>
-          <div>
-            <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;" id="settingsEmail">—</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:2px;">Administrator · <span id="settingsRoleValue" style="color:var(--accent);">—</span></div>
-          </div>
-          <div style="margin-left:auto;"><span class="badge badge-pro">Admin</span></div>
-        </div>
-        <button class="btn-danger" onclick="doSignOut()">
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M5 6.5h7M9 4l3 2.5-3 2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.5 2H3a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-          Sign Out of Admin
-        </button>
-      </div>
-
-      <!-- Role info card -->
-      <div id="supportInfoCard" class="card" style="max-width:520px;margin-bottom:16px;border-color:rgba(56,189,248,0.25);display:none;">
-        <div class="card-title" style="color:var(--accent3);">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#38bdf8" stroke-width="1.2"/><path d="M7 6v4M7 4.5v.5" stroke="#38bdf8" stroke-width="1.3" stroke-linecap="round"/></svg>
-          Support Admin Mode
-        </div>
-        <div style="font-size:13px;color:var(--muted);line-height:1.7;">
-          You are signed in as a <strong style="color:var(--text);">Support Admin</strong>. You can view data, approve or reject listings, ban users, and add/remove sponsored &amp; featured listings.<br><br>
-          The following actions require <strong style="color:var(--accent);">Super Admin</strong> credentials:
-          <ul style="margin:10px 0 0 16px;display:flex;flex-direction:column;gap:4px;list-style:disc;">
-            <li>Delete listings or users</li>
-            <li>Change user subscription plans</li>
-            <li>Export CSV data</li>
-            <li>Bulk approve all pending</li>
-            <li>Edit or remove listing images</li>
-            <li>Update the homepage hero image</li>
-          </ul>
-        </div>
-      </div>
-
-      <!-- Admin UIDs config -->
-      <div class="card" style="max-width:520px;margin-bottom:16px;">
-        <div class="card-title">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="4" width="12" height="8" rx="2" stroke="var(--accent)" stroke-width="1.2"/><path d="M4 4V3a3 3 0 1 1 6 0v1" stroke="var(--accent)" stroke-width="1.2" stroke-linecap="round"/></svg>
-          Admin Access Control
-        </div>
-        <div style="font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:12px;">
-          Admin access is granted to emails in the <code>ADMIN_EMAILS</code> array at the top of the script block, <em>or</em> users where <code>users/{uid}/isAdmin = true</code> in Firebase.
-        </div>
-        <div style="padding:12px;background:var(--surface2);border-radius:10px;border:1px solid var(--border);">
-          <div style="font-size:11px;font-weight:600;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;">Current admin emails (hardcoded)</div>
-          <div id="settingsAdminList" style="font-size:13px;font-family:monospace;color:var(--accent3);"></div>
-        </div>
-      </div>
-
-      <!-- Imgur config -->
-      <div class="card" style="max-width:520px;margin-bottom:16px;">
-        <div class="card-title">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="2.5" width="12" height="9" rx="2" stroke="var(--accent3)" stroke-width="1.2"/><path d="M4 8.5l2-2.5 2.5 2.5 1.5-2L13 9" stroke="var(--accent3)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Imgur Image Upload
-        </div>
-        <div style="font-size:13px;color:var(--muted);line-height:1.7;">
-          The Imgur Client ID is defined in the <code>IMGUR_CLIENT_ID</code> constant at the top of the script block.<br><br>
-          Replace <code>YOUR_IMGUR_CLIENT_ID</code> with your real Client ID from
-          <a href="https://imgur.com/account/settings/apps" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;text-decoration-color:rgba(168,85,247,0.4);">imgur.com/account/settings/apps</a>.
-          Image uploads are used in the Listing detail drawer.
-        </div>
-      </div>
-
-      <!-- DB info -->
-      <div class="card" style="max-width:520px;">
-        <div class="card-title">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><ellipse cx="7" cy="4" rx="6" ry="2.5" stroke="var(--green)" stroke-width="1.2"/><path d="M1 4v3c0 1.38 2.686 2.5 6 2.5S13 8.38 13 7V4" stroke="var(--green)" stroke-width="1.2"/><path d="M1 7v3c0 1.38 2.686 2.5 6 2.5S13 11.38 13 10V7" stroke="var(--green)" stroke-width="1.2"/></svg>
-          Firebase Database
-        </div>
-        <div style="font-size:13px;color:var(--muted);line-height:1.7;">
-          Project: <code>itzhoyoo-f9f7e</code><br>
-          Database URL: <code>itzhoyoo-f9f7e-default-rtdb.firebaseio.com</code><br>
-          All data is fetched in real-time via <code>onValue</code> listeners — changes from the admin panel are reflected instantly across all connected clients.
-        </div>
-      </div>
-    </div>
-
-  </main>
-</div><!-- /app-layout -->
-</div><!-- /appShell -->
-
-<!-- ══ LISTING DETAIL DRAWER ══ -->
-<div id="listingDrawerOverlay" class="drawer-overlay" onclick="closeListingDrawer(event)">
-  <div class="drawer" onclick="event.stopPropagation()">
-    <div class="drawer-header">
-      <div class="drawer-title" id="drawerListingTitle">Listing Detail</div>
-      <button class="drawer-close" onclick="closeListingDrawer()">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-      </button>
-    </div>
-    <!-- Status badges row -->
-    <div id="drawerBadgesRow" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
-    <!-- Images -->
-    <div>
-      <div class="drawer-label" style="margin-bottom:8px;">Images</div>
-      <div class="drawer-imgs" id="drawerImgs"></div>
-      <div class="upload-area" style="margin-top:10px;" onclick="document.getElementById('imgFileInput').click()">
-        <input type="file" id="imgFileInput" accept="image/png,image/jpeg,image/gif,image/webp" onchange="handleImgUpload(event)">
-        <svg width="22" height="22" viewBox="0 0 20 20" fill="none" style="margin:0 auto 8px;display:block;opacity:0.4;"><path d="M10 14V6M7 9l3-3 3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 15h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-        <div style="font-size:12px;color:var(--muted);">Click to upload image to Imgur</div>
-        <div id="uploadStatus" style="font-size:11px;margin-top:6px;color:var(--accent);display:none;"></div>
-      </div>
-    </div>
-    <!-- Editable fields -->
-    <div class="two-col">
-      <div class="drawer-field">
-        <label class="drawer-label">Title</label>
-        <input class="drawer-input" id="drawerTitle" type="text" placeholder="Site title">
-      </div>
-      <div class="drawer-field">
-        <label class="drawer-label">URL</label>
-        <input class="drawer-input" id="drawerUrl" type="url" placeholder="https://…">
-      </div>
-    </div>
-    <div class="two-col">
-      <div class="drawer-field">
-        <label class="drawer-label">Price ($)</label>
-        <input class="drawer-input" id="drawerPrice" type="number" min="0" placeholder="0">
-      </div>
-      <div class="drawer-field">
-        <label class="drawer-label">Monthly Revenue ($)</label>
-        <input class="drawer-input" id="drawerRevenue" type="number" min="0" placeholder="0">
-      </div>
-    </div>
-    <div class="two-col">
-      <div class="drawer-field">
-        <label class="drawer-label">Status</label>
-        <select class="drawer-input" id="drawerStatus">
-          <option value="live">Live</option>
-          <option value="pending">Pending</option>
-          <option value="sold">Sold</option>
-          <option value="rejected">Rejected</option>
-        </select>
-      </div>
-      <div class="drawer-field">
-        <label class="drawer-label">Category</label>
-        <input class="drawer-input" id="drawerCategory" type="text" placeholder="SaaS, Blog, eCommerce…">
-      </div>
-    </div>
-    <div class="two-col">
-      <div class="drawer-field">
-        <label class="drawer-label">Monthly Traffic</label>
-        <input class="drawer-input" id="drawerTraffic" type="text" placeholder="e.g. 10,000">
-      </div>
-      <div class="drawer-field">
-        <label class="drawer-label">Age</label>
-        <input class="drawer-input" id="drawerAge" type="text" placeholder="e.g. 2 years">
-      </div>
-    </div>
-    <div class="drawer-field">
-      <label class="drawer-label">Description</label>
-      <textarea class="drawer-input" id="drawerDesc" rows="3" style="resize:vertical;line-height:1.5;" placeholder="Describe the listing…"></textarea>
-    </div>
-    <div class="drawer-field">
-      <label class="drawer-label" style="color:var(--yellow);">Admin Notes (internal only)</label>
-      <textarea class="drawer-input" id="drawerAdminNotes" rows="2" style="resize:vertical;line-height:1.5;border-color:rgba(251,191,36,0.2);" placeholder="Internal notes, review comments…"></textarea>
-    </div>
-    <div style="display:flex;align-items:center;gap:14px;padding:12px 14px;background:var(--surface2);border-radius:10px;border:1px solid var(--border);">
-      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;font-weight:500;">
-        <input type="checkbox" id="drawerSponsored" style="accent-color:var(--accent3);width:14px;height:14px;"> Sponsored
-      </label>
-      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;font-weight:500;">
-        <input type="checkbox" id="drawerFeatured" style="accent-color:var(--yellow);width:14px;height:14px;"> Featured
-      </label>
-    </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;">
-      <button class="btn-primary" onclick="saveListingDrawer()">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 6l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Save Changes
-      </button>
-      <button class="btn-ghost" onclick="closeListingDrawer()">Cancel</button>
-      <button class="btn-danger" data-super-only style="margin-left:auto;" onclick="promptDeleteCurrentListing()">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 3h7M5 3V2h2v1M4 5v4M8 5v4M3 3l.5 7h5L9 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Delete
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- ══ USER DETAIL DRAWER ══ -->
-<div id="userDrawerOverlay" class="drawer-overlay" onclick="closeUserDrawer(event)">
-  <div class="drawer" onclick="event.stopPropagation()">
-    <div class="drawer-header">
-      <div class="drawer-title">User Detail</div>
-      <button class="drawer-close" onclick="closeUserDrawer()">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-      </button>
-    </div>
-    <div style="display:flex;align-items:center;gap:14px;padding:14px;background:var(--surface2);border-radius:14px;border:1px solid var(--border);">
-      <div class="avatar-bubble" id="drawerUserAvatar" style="width:46px;height:46px;font-size:18px;"></div>
-      <div style="flex:1;min-width:0;">
-        <div id="drawerUserName" style="font-family:'Syne',sans-serif;font-size:15px;font-weight:800;"></div>
-        <div id="drawerUserEmail" style="font-size:12px;color:var(--muted);margin-top:2px;"></div>
-      </div>
-      <div id="drawerUserBadges" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;"></div>
-    </div>
-    <div class="two-col">
-      <div class="drawer-field">
-        <label class="drawer-label">Plan</label>
-        <select class="drawer-input" id="drawerUserPlan">
-          <option>Free</option><option>Starter</option><option>Growth</option><option>Pro</option>
-        </select>
-      </div>
-      <div class="drawer-field">
-        <label class="drawer-label">Balance ($)</label>
-        <input class="drawer-input" id="drawerUserBalance" type="number" step="0.01" min="0" placeholder="0.00">
-      </div>
-    </div>
-    <div class="drawer-field">
-      <label class="drawer-label">Banned</label>
-      <div style="display:flex;align-items:center;gap:10px;margin-top:4px;">
-        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;font-weight:500;">
-          <input type="checkbox" id="drawerUserBanned" style="accent-color:var(--red);width:15px;height:15px;"> Mark as banned
-        </label>
-        <span style="font-size:11px;color:var(--muted);">Hides user listings from browse</span>
-      </div>
-    </div>
-    <div>
-      <div class="drawer-label" style="margin-bottom:8px;">User's Listings (<span id="drawerUserListingsCount">0</span>)</div>
-      <div id="drawerUserListings" style="display:flex;flex-direction:column;gap:8px;max-height:200px;overflow-y:auto;"></div>
-    </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;">
-      <button class="btn-primary" onclick="saveUserDrawer()">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 6l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Save Changes
-      </button>
-      <button class="btn-ghost" onclick="closeUserDrawer()">Cancel</button>
-      <button class="btn-danger" data-super-only style="margin-left:auto;" onclick="promptDeleteCurrentUser()">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 3h7M5 3V2h2v1M4 5v4M8 5v4M3 3l.5 7h5L9 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Delete User
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- ══ DELETE CONFIRM MODAL ══ -->
-<div id="deleteModal" class="modal-overlay">
-  <div class="modal-card">
-    <div class="modal-icon" style="background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.25);">
-      <svg width="22" height="22" viewBox="0 0 20 20" fill="none"><path d="M4 6h12M8 6V4h4v2M7 9v6M13 9v6M5 6l1 10h8l1-10" stroke="#f87171" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </div>
-    <div class="modal-title" id="deleteModalTitle">Confirm Delete</div>
-    <div class="modal-sub" id="deleteModalSub">This action cannot be undone.</div>
-    <div class="modal-actions">
-      <button class="btn-ghost" onclick="closeDeleteModal()">Cancel</button>
-      <button class="btn-danger" onclick="confirmDelete()">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 3h7M5 3V2h2v1M4 5v4M8 5v4M3 3l.5 7h5L9 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Delete
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- ══ UPGRADE PLAN MODAL ══ -->
-<div id="planModal" class="modal-overlay">
-  <div class="modal-card">
-    <div class="modal-icon" style="background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.25);">
-      <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 2l1.8 5.5H18l-4.5 3.3 1.7 5.2L11 13l-4.2 3 1.7-5.2L4 7.5h5.2Z" stroke="#a855f7" stroke-width="1.4" stroke-linejoin="round"/></svg>
-    </div>
-    <div class="modal-title">Change Plan</div>
-    <div class="modal-sub" id="planModalSub">Select a new plan for this user.</div>
-    <div class="plan-radio-group" id="planRadioGroup">
-      <label class="plan-radio-item"><input type="radio" name="planChoice" value="Free"> <span class="badge badge-free">Free</span> <span style="font-size:12px;color:var(--muted);margin-left:auto;">Free forever</span></label>
-      <label class="plan-radio-item"><input type="radio" name="planChoice" value="Starter"> <span class="badge badge-starter">Starter</span> <span style="font-size:12px;color:var(--muted);margin-left:auto;">$20/mo</span></label>
-      <label class="plan-radio-item"><input type="radio" name="planChoice" value="Growth"> <span class="badge badge-growth">Growth</span> <span style="font-size:12px;color:var(--muted);margin-left:auto;">$40/mo</span></label>
-      <label class="plan-radio-item"><input type="radio" name="planChoice" value="Pro"> <span class="badge badge-pro">Pro</span> <span style="font-size:12px;color:var(--muted);margin-left:auto;">$50/mo</span></label>
-    </div>
-    <div class="modal-actions">
-      <button class="btn-ghost" onclick="closePlanModal()">Cancel</button>
-      <button class="btn-primary" onclick="savePlanModal()">Save Plan</button>
-    </div>
-  </div>
-</div>
-
-<!-- ══ TOAST ══ -->
-<div id="toast"></div>
-
-<!-- ══ BOTTOM TABS (mobile) ══ -->
-<div class="bottom-tabs" id="bottomTabs" style="display:none;">
-  <div class="bottom-tabs-inner">
-    <div class="tab-item active" onclick="switchTab('dashboard')" data-tab="dashboard">
-      <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/></svg>
-      Dash
-    </div>
-    <div class="tab-item" onclick="switchTab('listings')" data-tab="listings">
-      <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><rect x="1" y="2" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M4 6h8M4 9h5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-      Listings
-    </div>
-    <div class="tab-item" onclick="switchTab('users')" data-tab="users">
-      <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.3"/><path d="M2 14c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-      Users
-    </div>
-    <div class="tab-item" onclick="switchTab('hero')" data-tab="hero">
-      <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M1 9l3-3 3 3 3-4 4 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Hero
-    </div>
-    <div class="tab-item" onclick="switchTab('revenue')" data-tab="revenue">
-      <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M1 12l4-5 3 3 3-6 3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Revenue
-    </div>
-  </div>
-</div>
-
-<!-- ══ FIREBASE + APP LOGIC ══ -->
-<script type="module">
-// ══════════════════════════════════════════════════════════
-// CONSTANTS — EDIT THESE
-// ══════════════════════════════════════════════════════════
-const IMGUR_CLIENT_ID = 'YOUR_IMGUR_CLIENT_ID'; // ← replace with your real Imgur Client ID
-
-// Admin access: listed emails OR users/{uid}/isAdmin = true in Firebase
-const ADMIN_EMAILS = ['admin@siterifty.com'];
-
-// ══════════════════════════════════════════════════════════
-// FIREBASE SETUP
-// ══════════════════════════════════════════════════════════
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js';
-import {
-  getAuth, signInWithCustomToken, signOut, onAuthStateChanged
-} from 'https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js';
-import {
-  getDatabase, ref, onValue, set, update, remove, get
-} from 'https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js';
-
-const firebaseConfig = {
-  apiKey: "AIzaSyDFHskUWiyHhZke3KT9kkOtFI_gPsKfiGo",
-  authDomain: "itzhoyoo-f9f7e.firebaseapp.com",
-  databaseURL: "https://itzhoyoo-f9f7e-default-rtdb.firebaseio.com",
-  projectId: "itzhoyoo-f9f7e",
-  storageBucket: "itzhoyoo-f9f7e.filestorage.app",
-  messagingSenderId: "1094792075584",
-  appId: "1:1094792075584:web:d49e9c3f899d3cd31082a5"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getDatabase(app);
-
-// ══════════════════════════════════════════════════════════
-// STATE
-// ══════════════════════════════════════════════════════════
-let allListings = {};
-let allUsers = {};
-let listingFilter = 'all';
-let userFilter = 'all';
-let currentListingId = null;
-let currentUserId = null;
-let deleteCallback = null;
-let planModalUid = null;
-let chartRefs = {};
-
-// ══════════════════════════════════════════════════════════
-// HELPERS
-// ══════════════════════════════════════════════════════════
-const $ = id => document.getElementById(id);
-
-const fmt = n => {
-  if (n == null || n === '' || isNaN(n)) return '—';
-  const v = Number(n);
-  if (v >= 1000000) return '$' + (v/1000000).toFixed(1) + 'M';
-  if (v >= 1000) return '$' + (v/1000).toFixed(v%1000===0?0:1) + 'k';
-  return '$' + v.toLocaleString();
-};
-const fmtNum = n => (n == null ? '—' : Number(n).toLocaleString());
-const timeAgo = ts => {
-  if (!ts) return '—';
-  const s = Math.floor((Date.now() - ts) / 1000);
-  if (s < 60) return s + 's ago';
-  if (s < 3600) return Math.floor(s/60) + 'm ago';
-  if (s < 86400) return Math.floor(s/3600) + 'h ago';
-  if (s < 604800) return Math.floor(s/86400) + 'd ago';
-  return Math.floor(s/604800) + 'w ago';
-};
-const fmtDate = ts => ts
-  ? new Date(ts).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'})
-  : '—';
-
-const planBadge = p => {
-  const cls = { Free:'badge-free', Starter:'badge-starter', Growth:'badge-growth', Pro:'badge-pro' };
-  return `<span class="badge ${cls[p]||'badge-free'}">${p||'Free'}</span>`;
-};
-const statusBadge = s => {
-  const cls = { live:'badge-live', pending:'badge-pending', sold:'badge-sold', rejected:'badge-rejected' };
-  return `<span class="badge ${cls[s]||'badge-sold'}">${s||'—'}</span>`;
-};
-const catBadge = c => c
-  ? `<span style="background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.22);border-radius:999px;padding:3px 9px;font-size:10px;color:#a855f7;font-weight:600;">${c}</span>`
-  : '—';
-
-const gradColors = ['#a855f7','#f472b6','#38bdf8','#34d399','#fbbf24','#f87171','#818cf8','#a78bfa'];
-const avatarColor = str => gradColors[str.charCodeAt(0) % gradColors.length];
-
-// ══════════════════════════════════════════════════════════
-// TOAST
-// ══════════════════════════════════════════════════════════
-let toastTimer = null;
-function showToast(msg, type = 'success') {
-  const t = $('toast');
-  t.textContent = msg;
-  t.className = type;
-  t.style.display = 'block';
-  if (toastTimer) clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.style.display = 'none'; }, 3500);
-}
-
-// ══════════════════════════════════════════════════════════
-// AUTH
-// ══════════════════════════════════════════════════════════
-// ── Role helpers ────────────────────────────────────────────────────────────
-// Role is set by the API response and stored in sessionStorage.
-// 'super'   → full access (EMAIL_API_KEY credential)
-// 'support' → read + safe actions only; no destructive operations
-let currentRole = 'support'; // conservative default
-
-function isSuper() { return currentRole === 'super'; }
-
-// Block a function for support admins — show toast and bail
-function requireSuper(action) {
-  if (isSuper()) return true;
-  showToast('⛔ Super admin only: ' + action, 'error');
-  return false;
-}
-
-// Apply support-mode UI: dim / hide super-only controls
-function applySupportRestrictions() {
-  // Elements that are super-admin-only get the data-super-only attribute
-  document.querySelectorAll('[data-super-only]').forEach(el => {
-    el.style.opacity = '0.35';
-    el.style.pointerEvents = 'none';
-    el.title = 'Super admin only';
-  });
-  // Show support badge in header
-  $('supportBadge').style.display = '';
-  // Show info card in settings
-  $('supportInfoCard').style.display = '';
-}
-
-// Re-apply restrictions after table re-renders (support mode only)
-function reapplySuperOnlyInRows() {
-  if (!isSuper()) {
-    document.querySelectorAll('[data-super-only]').forEach(el => {
-      el.style.opacity = '0.35';
-      el.style.pointerEvents = 'none';
-      el.title = 'Super admin only';
-    });
-  }
-}
-
-onAuthStateChanged(auth, async user => {
-  $('loadingScreen').style.display = 'none';
-  if (!user) {
-    $('loginScreen').style.display = 'flex';
-    $('appShell').style.display = 'none';
-    sessionStorage.removeItem('adminRole');
-    return;
-  }
-  // Role was stored during login; if missing (e.g. page reload with active token)
-  // re-derive it from ID token claims set by the Admin SDK custom token.
-  const storedRole = sessionStorage.getItem('adminRole');
-  if (storedRole === 'super' || storedRole === 'support') {
-    currentRole = storedRole;
-  } else {
-    // Fallback: read claims from ID token
-    try {
-      const idToken = await user.getIdTokenResult();
-      currentRole = idToken.claims.role === 'super' ? 'super' : 'support';
-      sessionStorage.setItem('adminRole', currentRole);
-    } catch(e) { currentRole = 'support'; }
-  }
-  // Show app
-  $('appShell').style.display = 'block';
-  $('loginScreen').style.display = 'none';
-  $('deniedScreen').style.display = 'none';
-  const roleLabel = currentRole === 'super' ? 'Super Admin' : 'Support Admin';
-  const letter = (user.email || 'A')[0].toUpperCase();
-  $('hdrAvatar').textContent = letter;
-  $('hdrAvatar').title = `${user.email} · ${roleLabel}`;
-  $('sidebarEmail').textContent = user.email || '—';
-  $('settingsEmail').textContent = user.email || '—';
-  $('settingsAvatar').textContent = letter;
-  $('settingsAdminList').textContent = ADMIN_EMAILS.join(', ');
-  $('settingsRoleValue').textContent = roleLabel;
-  if (window.innerWidth <= 768) $('bottomTabs').style.display = 'block';
-  if (currentRole === 'support') applySupportRestrictions();
-  startListeners();
-});
-
-window.doAdminLogin = async () => {
-  const btn = $('loginBtn');
-  const email = $('loginEmail').value.trim();
-  const pass = $('loginPass').value;
-  const err = $('loginErr');
-  err.style.display = 'none';
-  if (!email) {
-    err.textContent = 'Please enter your email.';
-    err.style.display = 'block'; return;
-  }
-  btn.textContent = 'Signing in…'; btn.disabled = true;
-  try {
-    // ── Hit the Vercel API — credentials are validated server-side ──
-    const res = await fetch('/api/admin-login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password: pass }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Login failed.');
-    // Persist role for this session (super | support)
-    sessionStorage.setItem('adminRole', data.role);
-    // Sign into Firebase client SDK with the minted custom token
-    await signInWithCustomToken(auth, data.token);
-    // onAuthStateChanged fires → shows app shell
-  } catch(e) {
-    err.textContent = e.message;
-    err.style.display = 'block';
-    btn.textContent = 'Sign In →'; btn.disabled = false;
-  }
-};
-$('loginPass').addEventListener('keydown', e => { if (e.key === 'Enter') window.doAdminLogin(); });
-$('loginEmail').addEventListener('keydown', e => { if (e.key === 'Enter') $('loginPass').focus(); });
-
-window.doSignOut = async () => {
-  await signOut(auth);
-  $('appShell').style.display = 'none';
-  $('loginScreen').style.display = 'flex';
-  $('deniedScreen').style.display = 'none';
-};
-
-// ══════════════════════════════════════════════════════════
-// REAL-TIME LISTENERS
-// ══════════════════════════════════════════════════════════
-function startListeners() {
-  onValue(ref(db, 'websites'), snap => {
-    allListings = snap.val() || {};
-    updateDashStats();
-    renderListings();
-    renderHero();
-    if ($('sec-revenue').classList.contains('active')) renderRevenue();
-  });
-  onValue(ref(db, 'users'), snap => {
-    allUsers = snap.val() || {};
-    updateDashStats();
-    renderUsers();
-    if ($('sec-revenue').classList.contains('active')) renderRevenue();
-  });
-  onValue(ref(db, 'config/heroImage'), snap => {
-    const url = snap.val() || '';
-    $('heroImageUrl').value = url;
-    if (url) { $('heroImgTag').src = url; $('heroImgPreview').style.display = 'block'; }
-  });
-}
-
-// ══════════════════════════════════════════════════════════
-// DASHBOARD STATS
-// ══════════════════════════════════════════════════════════
-function updateDashStats() {
-  const listings = Object.values(allListings);
-  const users = Object.values(allUsers);
-  const pendingCount = listings.filter(l => l.status === 'pending').length;
-
-  $('statUsers').textContent = fmtNum(users.length);
-  $('statListings').textContent = fmtNum(listings.length);
-  $('statLive').textContent = fmtNum(listings.filter(l => l.status === 'live').length);
-  $('statPending').textContent = fmtNum(pendingCount);
-  $('statSold').textContent = fmtNum(listings.filter(l => l.status === 'sold').length);
-  const gmv = listings.filter(l => l.status === 'sold').reduce((s, l) => s + (Number(l.price)||0), 0);
-  $('statGMV').textContent = fmt(gmv);
-  const week = Date.now() - 7 * 86400000;
-  $('statNewUsers7d').textContent = fmtNum(users.filter(u => u.createdAt && u.createdAt >= week).length);
-
-  // Pending badge in header + sidebar
-  const pBadge = $('pendingHeaderBadge');
-  const sBadge = $('sidebarPendingBadge');
-  if (pendingCount > 0) {
-    pBadge.textContent = pendingCount + ' pending';
-    pBadge.style.display = '';
-    sBadge.textContent = pendingCount;
-    sBadge.style.display = '';
-  } else {
-    pBadge.style.display = 'none';
-    sBadge.style.display = 'none';
-  }
-  renderActivity();
-}
-
-// ══════════════════════════════════════════════════════════
-// ACTIVITY FEED
-// ══════════════════════════════════════════════════════════
-function renderActivity() {
-  const items = [];
-  Object.entries(allListings).forEach(([id, l]) => {
-    if (l.createdAt) items.push({
-      ts: l.createdAt, type: 'listing',
-      text: `<b>${l.username||'Unknown'}</b> submitted listing <b>${l.title||id}</b>`,
-      sub: statusBadge(l.status), color: '#a855f7', emoji: '📄'
-    });
-  });
-  Object.entries(allUsers).forEach(([uid, u]) => {
-    if (u.createdAt) items.push({
-      ts: u.createdAt, type: 'user',
-      text: `<b>${u.username||'New User'}</b> joined`,
-      sub: `<span style="color:var(--muted);font-size:11px;">${u.email||uid}</span>`,
-      color: '#38bdf8', emoji: '👤'
-    });
-  });
-  items.sort((a, b) => b.ts - a.ts);
-  const feed = $('activityFeed');
-  if (!items.length) {
-    feed.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:24px 0;">No activity yet.</div>';
-    return;
-  }
-  feed.innerHTML = items.slice(0, 20).map(i => `
-    <div class="activity-item">
-      <div class="activity-dot" style="background:rgba(${i.color==='#a855f7'?'168,85,247':'56,189,248'},0.15);">${i.emoji}</div>
-      <div style="flex:1;min-width:0;">
-        <div class="activity-text">${i.text} ${i.sub}</div>
-        <div class="activity-time">${timeAgo(i.ts)}</div>
-      </div>
-    </div>`).join('');
-}
-
-// ══════════════════════════════════════════════════════════
-// TAB SWITCHING
-// ══════════════════════════════════════════════════════════
-window.switchTab = tab => {
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.nav-link,.tab-item').forEach(n => n.classList.remove('active'));
-  $(`sec-${tab}`).classList.add('active');
-  document.querySelectorAll(`[data-tab="${tab}"]`).forEach(n => n.classList.add('active'));
-  if (tab === 'revenue') setTimeout(renderRevenue, 50);
-};
-
-// ══════════════════════════════════════════════════════════
-// LISTINGS
-// ══════════════════════════════════════════════════════════
-window.setListingFilter = (el, f) => {
-  document.querySelectorAll('#listingChips .chip').forEach(c => c.classList.remove('active'));
-  el.classList.add('active');
-  listingFilter = f;
-  renderListings();
-};
-
-window.renderListings = () => {
-  const search = ($('listingSearch').value || '').toLowerCase();
-  const sort = $('listingSort').value;
-  let entries = Object.entries(allListings);
-
-  entries = entries.filter(([, l]) => {
-    if (listingFilter === 'all') return true;
-    if (listingFilter === 'sponsored') return l.sponsored || l.isSponsored;
-    if (listingFilter === 'featured') return l.featured || l.isFeatured;
-    return l.status === listingFilter;
-  });
-  if (search) entries = entries.filter(([id, l]) =>
-    (l.title||'').toLowerCase().includes(search) ||
-    (l.url||'').toLowerCase().includes(search) ||
-    (l.username||'').toLowerCase().includes(search) ||
-    id.toLowerCase().includes(search)
-  );
-  entries.sort(([, a], [, b]) => {
-    if (sort === 'newest') return (b.createdAt||0) - (a.createdAt||0);
-    if (sort === 'price-asc') return (a.price||0) - (b.price||0);
-    if (sort === 'price-desc') return (b.price||0) - (a.price||0);
-    if (sort === 'revenue') return (b.revenue||0) - (a.revenue||0);
-    return 0;
-  });
-
-  if (!entries.length) {
-    $('listingsBody').innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:32px;">No listings found.</td></tr>`;
-    return;
-  }
-  const rows = entries.map(([id, l]) => {
-    const thumb = (l.images && l.images[0])
-      ? `<img class="listing-thumb" src="${l.images[0]}" loading="lazy" onerror="this.style.display='none'">`
-      : `<div class="thumb-fallback">${(l.title||'?')[0].toUpperCase()}</div>`;
-    const sponsoredFlag = (l.sponsored || l.isSponsored)
-      ? `<span style="font-size:9px;background:rgba(56,189,248,0.12);border:1px solid rgba(56,189,248,0.25);color:var(--accent3);border-radius:999px;padding:1px 6px;margin-left:4px;">S</span>` : '';
-    const featuredFlag = (l.featured || l.isFeatured)
-      ? `<span style="font-size:9px;background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.25);color:var(--yellow);border-radius:999px;padding:1px 6px;margin-left:2px;">F</span>` : '';
-    return `<tr onclick="openListingDrawer('${id}')">
-      <td><div style="display:flex;align-items:center;gap:10px;">${thumb}<div><div class="listing-title">${l.title||'Untitled'}${sponsoredFlag}${featuredFlag}</div><div class="listing-url">${l.url||''}</div></div></div></td>
-      <td>${catBadge(l.category)}</td>
-      <td style="font-family:'Syne',sans-serif;font-weight:700;">${fmt(l.price)}</td>
-      <td style="color:var(--green);">${l.revenue ? '$'+Number(l.revenue).toLocaleString()+'/mo' : '—'}</td>
-      <td>${statusBadge(l.status)}</td>
-      <td style="color:var(--muted);font-size:12px;">@${l.username||'?'}</td>
-      <td style="color:var(--muted);font-size:12px;white-space:nowrap;">${fmtDate(l.createdAt)}</td>
-      <td onclick="event.stopPropagation()"><div class="actions-cell">
-        <button class="btn-sm btn-approve" title="Approve" onclick="setListingStatus('${id}','live')">✓</button>
-        <button class="btn-sm btn-reject" title="Reject" onclick="setListingStatus('${id}','rejected')">✗</button>
-        <button class="btn-sm" data-super-only style="background:rgba(139,138,168,0.1);border:1px solid rgba(139,138,168,0.25);color:var(--muted);" title="Mark Sold" onclick="setListingStatus('${id}','sold')">$</button>
-        <button class="btn-sm btn-feature" title="Toggle Featured" onclick="toggleListingFlag('${id}','featured')">⭐</button>
-        <button class="btn-sm btn-sponsor" title="Toggle Sponsored" onclick="toggleListingFlag('${id}','sponsored')">💰</button>
-        <button class="btn-sm btn-delete" data-super-only title="Delete" onclick="promptDelete('listing','${id}','${escQ(l.title||'this listing')}')">🗑</button>
-      </div></td>
-    </tr>`;
-  }).join('');
-  $('listingsBody').innerHTML = rows;
-  reapplySuperOnlyInRows();
-};
-
-const escQ = s => String(s).replace(/'/g, "\\'").replace(/"/g, '&quot;');
-
-window.setListingStatus = async (id, status) => {
-  try {
-    await update(ref(db, `websites/${id}`), { status });
-    showToast(`Listing marked as ${status}`);
-  } catch(e) { showToast('Error: ' + e.message, 'error'); }
-};
-
-window.toggleListingFlag = async (id, flag) => {
-  const l = allListings[id];
-  if (!l) return;
-  const capFlag = flag.charAt(0).toUpperCase() + flag.slice(1);
-  const cur = l[flag] || l['is'+capFlag] || false;
-  try {
-    const upd = { [flag]: !cur, ['is'+capFlag]: !cur };
-    await update(ref(db, `websites/${id}`), upd);
-    showToast(`${flag} ${!cur ? 'enabled' : 'disabled'}`);
-  } catch(e) { showToast('Error: ' + e.message, 'error'); }
-};
-
-// ── Listing drawer ──
-window.openListingDrawer = id => {
-  const l = allListings[id];
-  if (!l) return;
-  currentListingId = id;
-  $('drawerListingTitle').textContent = l.title || 'Listing Detail';
-  $('drawerTitle').value = l.title || '';
-  $('drawerUrl').value = l.url || '';
-  $('drawerPrice').value = l.price || '';
-  $('drawerRevenue').value = l.revenue || '';
-  $('drawerStatus').value = l.status || 'pending';
-  $('drawerCategory').value = l.category || '';
-  $('drawerDesc').value = l.description || '';
-  $('drawerTraffic').value = l.traffic || '';
-  $('drawerAge').value = l.age || '';
-  $('drawerAdminNotes').value = l.adminNotes || '';
-  $('drawerSponsored').checked = !!(l.sponsored || l.isSponsored);
-  $('drawerFeatured').checked = !!(l.featured || l.isFeatured);
-  // Badges row
-  $('drawerBadgesRow').innerHTML = statusBadge(l.status) +
-    (l.sponsored||l.isSponsored ? '<span class="badge badge-pro">Sponsored</span>' : '') +
-    (l.featured||l.isFeatured ? '<span class="badge" style="background:rgba(251,191,36,0.12);border-color:rgba(251,191,36,0.3);color:var(--yellow);">Featured</span>' : '');
-  // Images
-  const imgs = l.images || [];
-  $('drawerImgs').innerHTML = imgs.length
-    ? imgs.map((src, i) => `
-        <div style="position:relative;display:inline-block;">
-          <img class="drawer-img" src="${src}" loading="lazy" title="Image ${i+1}" onerror="this.style.display='none'">
-          <button onclick="deleteListingImage(${i})" title="Remove image" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:999px;background:#f87171;border:none;color:#fff;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">✕</button>
-        </div>`).join('')
-    : '<span style="color:var(--muted);font-size:12px;">No images yet</span>';
-  $('uploadStatus').style.display = 'none';
-  $('listingDrawerOverlay').classList.add('open');
-  document.body.style.overflow = 'hidden';
-};
-
-window.closeListingDrawer = (e) => {
-  if (e instanceof MouseEvent && e.target !== $('listingDrawerOverlay')) return;
-  $('listingDrawerOverlay').classList.remove('open');
-  document.body.style.overflow = '';
-  currentListingId = null;
-};
-
-window.saveListingDrawer = async () => {
-  if (!currentListingId) return;
-  const sponsored = $('drawerSponsored').checked;
-  const featured = $('drawerFeatured').checked;
-  try {
-    await update(ref(db, `websites/${currentListingId}`), {
-      title: $('drawerTitle').value.trim(),
-      url: $('drawerUrl').value.trim(),
-      price: Number($('drawerPrice').value) || 0,
-      revenue: Number($('drawerRevenue').value) || 0,
-      status: $('drawerStatus').value,
-      category: $('drawerCategory').value.trim(),
-      description: $('drawerDesc').value.trim(),
-      traffic: $('drawerTraffic').value.trim(),
-      age: $('drawerAge').value.trim(),
-      adminNotes: $('drawerAdminNotes').value.trim(),
-      sponsored, isSponsored: sponsored,
-      featured, isFeatured: featured,
-    });
-    showToast('Listing saved!');
-    $('listingDrawerOverlay').classList.remove('open');
-    document.body.style.overflow = '';
-    currentListingId = null;
-  } catch(e) { showToast('Error: ' + e.message, 'error'); }
-};
-
-window.promptDeleteCurrentListing = () => {
-  if (!currentListingId) return;
-  const l = allListings[currentListingId];
-  promptDelete('listing', currentListingId, l?.title || 'this listing');
-};
-
-// ── Imgur upload ──
-window.handleImgUpload = async e => {
-  const file = e.target.files[0];
-  if (!file || !currentListingId) return;
-  const status = $('uploadStatus');
-  const l = allListings[currentListingId];
-  const existingImgs = l.images || [];
-  if (existingImgs.length >= 5) {
-    status.textContent = '✗ Max 5 images per listing.'; status.style.display = 'block';
-    e.target.value = ''; return;
-  }
-  status.textContent = '⏳ Uploading to Imgur…'; status.style.display = 'block';
-  try {
-    const url = await uploadToImgur(file);
-    const l = allListings[currentListingId];
-    const imgs = [...(l.images || []), url];
-    await update(ref(db, `websites/${currentListingId}`), { images: imgs });
-    status.textContent = '✓ Uploaded successfully!';
-    openListingDrawer(currentListingId);
-    showToast('Image uploaded!');
-  } catch(err) {
-    status.textContent = '✗ Upload failed: ' + err.message;
-    showToast('Upload failed', 'error');
-  } finally {
-    e.target.value = '';
-  }
-};
-
-async function uploadToImgur(file) {
-  const formData = new FormData();
-  formData.append('image', file);
-  const res = await fetch('https://api.imgur.com/3/image', {
-    method: 'POST',
-    headers: { Authorization: 'Client-ID ' + IMGUR_CLIENT_ID },
-    body: formData,
-  });
-  const data = await res.json();
-  if (!data.success) throw new Error(data.data?.error || 'Imgur upload failed');
-  return data.data.link;
-}
-
-window.deleteListingImage = async (index) => {
-  if (!requireSuper('Delete Image')) return;
-  if (!currentListingId) return;
-  const l = allListings[currentListingId];
-  const imgs = [...(l.images || [])];
-  imgs.splice(index, 1);
-  try {
-    await update(ref(db, `websites/${currentListingId}`), { images: imgs });
-    openListingDrawer(currentListingId);
-    showToast('Image removed.');
-  } catch(e) { showToast('Error: ' + e.message, 'error'); }
-};
-
-// ══════════════════════════════════════════════════════════
-// USERS
-// ══════════════════════════════════════════════════════════
-window.setUserFilter = (el, f) => {
-  document.querySelectorAll('#userChips .chip').forEach(c => c.classList.remove('active'));
-  el.classList.add('active');
-  userFilter = f;
-  renderUsers();
-};
-
-window.renderUsers = () => {
-  const search = ($('userSearch').value || '').toLowerCase();
-  let entries = Object.entries(allUsers);
-  if (userFilter === 'banned') entries = entries.filter(([, u]) => u.banned);
-  else if (userFilter !== 'all') entries = entries.filter(([, u]) => (u.plan||'Free') === userFilter);
-  if (search) entries = entries.filter(([uid, u]) =>
-    (u.username||'').toLowerCase().includes(search) ||
-    (u.email||'').toLowerCase().includes(search) ||
-    uid.toLowerCase().includes(search)
-  );
-  entries.sort(([, a], [, b]) => (b.createdAt||0) - (a.createdAt||0));
-  if (!entries.length) {
-    $('usersBody').innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:32px;">No users found.</td></tr>`;
-    return;
-  }
-  const userRows = entries.map(([uid, u]) => {
-    const letter = (u.username||u.email||'?')[0].toUpperCase();
-    const color = avatarColor(letter);
-    const userListingCount = Object.values(allListings).filter(l => l.userId === uid || l.username === u.username).length;
-    return `<tr onclick="openUserDrawer('${uid}')">
-      <td><div style="display:flex;align-items:center;gap:10px;">
-        <div class="avatar-bubble" style="background:${color};">${letter}</div>
-        <div>
-          <div style="font-weight:600;font-size:13px;">@${u.username||'—'}</div>
-          <div style="font-size:11px;color:var(--muted);">${u.email||uid}</div>
-        </div>
-      </div></td>
-      <td>${planBadge(u.plan)}</td>
-      <td style="font-family:'Syne',sans-serif;font-weight:700;">${u.balance!=null?'$'+Number(u.balance).toFixed(2):'$0.00'}</td>
-      <td style="color:var(--muted);font-size:12px;white-space:nowrap;">${fmtDate(u.createdAt)}</td>
-      <td>${u.banned
-        ? '<span class="badge badge-banned">Banned</span>'
-        : `<span style="font-size:12px;color:var(--green);">● Active</span>`}
-        ${userListingCount ? `<span style="font-size:10px;color:var(--muted);margin-left:6px;">${userListingCount} listing${userListingCount!==1?'s':''}</span>` : ''}
-      </td>
-      <td onclick="event.stopPropagation()"><div class="actions-cell">
-        <button class="btn-sm btn-feature" onclick="openPlanModal('${uid}','${u.plan||'Free'}')">Plan</button>
-        <button class="btn-sm ${u.banned?'btn-approve':'btn-reject'}" onclick="toggleBan('${uid}',${!!u.banned})">${u.banned?'Unban':'Ban'}</button>
-        <button class="btn-sm btn-delete" data-super-only onclick="promptDelete('user','${uid}','@${escQ(u.username||uid)}')">🗑</button>
-      </div></td>
-    </tr>`;
-  }).join('');
-  $('usersBody').innerHTML = userRows;
-  reapplySuperOnlyInRows();
-};
-
-window.toggleBan = async (uid, banned) => {
-  try {
-    await update(ref(db, `users/${uid}`), { banned: !banned });
-    showToast(banned ? 'User unbanned.' : 'User banned.');
-  } catch(e) { showToast('Error: ' + e.message, 'error'); }
-};
-
-// ── User drawer ──
-window.openUserDrawer = uid => {
-  const u = allUsers[uid];
-  if (!u) return;
-  currentUserId = uid;
-  const letter = (u.username||u.email||'?')[0].toUpperCase();
-  const color = avatarColor(letter);
-  $('drawerUserAvatar').textContent = letter;
-  $('drawerUserAvatar').style.background = color;
-  $('drawerUserName').textContent = '@' + (u.username||'—');
-  $('drawerUserEmail').textContent = u.email || uid;
-  $('drawerUserPlan').value = u.plan || 'Free';
-  $('drawerUserBalance').value = u.balance!=null ? Number(u.balance).toFixed(2) : '0.00';
-  $('drawerUserBanned').checked = !!u.banned;
-  // Badges
-  $('drawerUserBadges').innerHTML = planBadge(u.plan) + (u.banned ? '<span class="badge badge-banned">Banned</span>' : '');
-  // Listings
-  const userListings = Object.entries(allListings).filter(([, l]) => l.userId === uid || l.username === u.username);
-  $('drawerUserListingsCount').textContent = userListings.length;
-  $('drawerUserListings').innerHTML = userListings.length
-    ? userListings.map(([id, l]) => `
-      <div class="hero-item">
-        ${l.images?.[0] ? `<img class="hero-thumb" src="${l.images[0]}" loading="lazy" onerror="this.style.display='none'">` : '<div class="hero-thumb" style="background:var(--surface2);"></div>'}
-        <div class="hero-info"><div class="hero-name">${l.title||id}</div><div class="hero-price">${fmt(l.price)}</div></div>
-        ${statusBadge(l.status)}
-      </div>`).join('')
-    : '<span style="font-size:12px;color:var(--muted);">No listings</span>';
-  $('userDrawerOverlay').classList.add('open');
-  document.body.style.overflow = 'hidden';
-};
-
-window.closeUserDrawer = (e) => {
-  if (e instanceof MouseEvent && e.target !== $('userDrawerOverlay')) return;
-  $('userDrawerOverlay').classList.remove('open');
-  document.body.style.overflow = '';
-  currentUserId = null;
-};
-
-window.saveUserDrawer = async () => {
-  if (!currentUserId) return;
-  try {
-    await update(ref(db, `users/${currentUserId}`), {
-      plan: $('drawerUserPlan').value,
-      balance: Number($('drawerUserBalance').value) || 0,
-      banned: $('drawerUserBanned').checked,
-    });
-    showToast('User saved!');
-    $('userDrawerOverlay').classList.remove('open');
-    document.body.style.overflow = '';
-    currentUserId = null;
-  } catch(e) { showToast('Error: ' + e.message, 'error'); }
-};
-
-window.promptDeleteCurrentUser = () => {
-  if (!currentUserId) return;
-  const u = allUsers[currentUserId];
-  promptDelete('user', currentUserId, '@' + (u?.username || currentUserId));
-};
-
-// ══════════════════════════════════════════════════════════
-// DELETE MODAL
-// ══════════════════════════════════════════════════════════
-window.promptDelete = (type, id, name) => {
-  if (!requireSuper('Delete ' + type)) return;
-  $('deleteModalTitle').textContent = `Delete ${name}?`;
-  $('deleteModalSub').textContent = `This will permanently remove "${name}" from Firebase. This action cannot be undone.`;
-  $('deleteModal').classList.add('open');
-  deleteCallback = async () => {
-    try {
-      if (type === 'listing') await remove(ref(db, `websites/${id}`));
-      else if (type === 'user') await remove(ref(db, `users/${id}`));
-      showToast(name + ' deleted.');
-      closeDeleteModal();
-      // Close any open drawer
-      $('listingDrawerOverlay').classList.remove('open');
-      $('userDrawerOverlay').classList.remove('open');
-      document.body.style.overflow = '';
-      currentListingId = null; currentUserId = null;
-    } catch(e) { showToast('Error: ' + e.message, 'error'); }
-  };
-};
-window.closeDeleteModal = () => { $('deleteModal').classList.remove('open'); deleteCallback = null; };
-window.confirmDelete = () => { if (deleteCallback) deleteCallback(); };
-
-// ══════════════════════════════════════════════════════════
-// PLAN MODAL
-// ══════════════════════════════════════════════════════════
-window.openPlanModal = (uid, currentPlan) => {
-  if (!requireSuper('Change User Plan')) return;
-  planModalUid = uid;
-  const u = allUsers[uid];
-  $('planModalSub').textContent = `Updating plan for @${u?.username || uid}`;
-  const radios = document.querySelectorAll('input[name="planChoice"]');
-  radios.forEach(r => {
-    r.checked = r.value === (currentPlan||'Free');
-    r.closest('.plan-radio-item').classList.toggle('selected', r.checked);
-  });
-  radios.forEach(r => r.addEventListener('change', () => {
-    document.querySelectorAll('.plan-radio-item').forEach(el => el.classList.remove('selected'));
-    r.closest('.plan-radio-item').classList.add('selected');
-  }, { once: true }));
-  $('planModal').classList.add('open');
-};
-window.closePlanModal = () => { $('planModal').classList.remove('open'); planModalUid = null; };
-window.savePlanModal = async () => {
-  if (!requireSuper('Change User Plan')) return;
-  if (!planModalUid) return;
-  const sel = document.querySelector('input[name="planChoice"]:checked');
-  if (!sel) { showToast('Please select a plan', 'error'); return; }
-  try {
-    await update(ref(db, `users/${planModalUid}`), { plan: sel.value });
-    showToast(`Plan updated to ${sel.value}`);
-    closePlanModal();
-  } catch(e) { showToast('Error: ' + e.message, 'error'); }
-};
-
-// ══════════════════════════════════════════════════════════
-// HERO / BANNERS
-// ══════════════════════════════════════════════════════════
-function renderHero() {
-  const sponsored = Object.entries(allListings).filter(([, l]) => l.sponsored || l.isSponsored);
-  const featured  = Object.entries(allListings).filter(([, l]) => l.featured || l.isFeatured);
-  $('sponsoredCount').textContent = `${sponsored.length} / 10 slots`;
-  $('featuredCount').textContent  = `${featured.length} / 10 slots`;
-
-  const renderSlot = (entries, containerId, flag) => {
-    const el = $(containerId);
-    el.innerHTML = entries.length
-      ? entries.map(([id, l]) => `
-        <div class="hero-item">
-          ${l.images?.[0] ? `<img class="hero-thumb" src="${l.images[0]}" loading="lazy" onerror="this.style.display='none'">` : `<div class="hero-thumb" style="background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:#fff;">${(l.title||'?')[0]}</div>`}
-          <div class="hero-info"><div class="hero-name">${l.title||id}</div><div class="hero-price">${fmt(l.price)}</div></div>
-          <button class="btn-sm btn-delete" onclick="toggleListingFlag('${id}','${flag}')">Remove</button>
-        </div>`).join('')
-      : '<div style="font-size:12px;color:var(--muted);padding:8px 0;">None added yet.</div>';
-  };
-  renderSlot(sponsored, 'sponsoredList', 'sponsored');
-  renderSlot(featured,  'featuredList',  'featured');
-}
-
-window.saveHeroImage = async () => {
-  if (!requireSuper('Save Hero Image')) return;
-  const url = $('heroImageUrl').value.trim();
-  try {
-    await set(ref(db, 'config/heroImage'), url);
-    if (url) { $('heroImgTag').src = url; $('heroImgPreview').style.display = 'block'; }
-    else $('heroImgPreview').style.display = 'none';
-    showToast('Hero image saved!');
-  } catch(e) { showToast('Error: ' + e.message, 'error'); }
-};
-
-window.previewHeroImg = () => {
-  const url = $('heroImageUrl').value.trim();
-  if (url) { $('heroImgTag').src = url; $('heroImgPreview').style.display = 'block'; }
-  else $('heroImgPreview').style.display = 'none';
-};
-
-function searchSlot(inputId, resultId, flag) {
-  const q = $(inputId).value.toLowerCase().trim();
-  const el = $(resultId);
-  if (!q) { el.innerHTML = ''; return; }
-  const matches = Object.entries(allListings).filter(([, l]) =>
-    l.status === 'live' &&
-    ((l.title||'').toLowerCase().includes(q) || (l.url||'').toLowerCase().includes(q))
-  ).slice(0, 6);
-  el.innerHTML = matches.length
-    ? matches.map(([id, l]) => `
-      <div class="hero-item">
-        <div class="hero-info"><div class="hero-name">${l.title||id}</div><div class="hero-price">${fmt(l.price)}</div></div>
-        <button class="btn-sm btn-sponsor" onclick="toggleListingFlag('${id}','${flag}');document.getElementById('${inputId}').value='';document.getElementById('${resultId}').innerHTML='';">Add</button>
-      </div>`).join('')
-    : '<div style="font-size:12px;color:var(--muted);padding:4px 0;">No live listings found.</div>';
-}
-window.searchSponsor = () => searchSlot('sponsorSearch', 'sponsorResults', 'sponsored');
-window.searchFeature = () => searchSlot('featureSearch', 'featureResults', 'featured');
-
-// ══════════════════════════════════════════════════════════
-// REVENUE & CHARTS
-// ══════════════════════════════════════════════════════════
-function renderRevenue() {
-  const listings = Object.values(allListings);
-  const users = Object.values(allUsers);
-  const sold = listings.filter(l => l.status === 'sold');
-  const gmv = sold.reduce((s, l) => s + (Number(l.price)||0), 0);
-  const avgPrice = listings.length
-    ? listings.reduce((s, l) => s + (Number(l.price)||0), 0) / listings.length
-    : 0;
-  const convRate = listings.length ? ((sold.length / listings.length) * 100).toFixed(1) : '0';
-  const withSoldAt = sold.filter(l => l.soldAt && l.createdAt);
-  const avgDays = withSoldAt.length
-    ? Math.round(withSoldAt.reduce((s, l) => s + ((l.soldAt-l.createdAt)/86400000), 0) / withSoldAt.length)
-    : null;
-
-  $('revGMV').textContent = fmt(gmv);
-  $('revAvgPrice').textContent = fmt(Math.round(avgPrice));
-  $('revConvRate').textContent = convRate + '%';
-  $('revAvgTime').textContent = avgDays !== null ? avgDays + ' days' : '—';
-
-  const chartOpts = {
-    responsive: true,
-    plugins: {
-      legend: { labels: { color: '#8b8aa8', font: { family: 'DM Sans', size: 11 } } }
-    },
-    scales: {}
-  };
-  const darkGrid = { color: 'rgba(255,255,255,0.05)' };
-
-  // Chart 1: Listings over time (30 days)
-  const now = Date.now();
-  const days = Array.from({length:30}, (_, i) => {
-    const d = new Date(now - (29-i)*86400000);
-    d.setHours(0,0,0,0);
-    return { label: d.toLocaleDateString('en-US',{month:'short',day:'numeric'}), ts: d.getTime() };
-  });
-  const counts = days.map((d, i) => {
-    const nextTs = i < 29 ? days[i+1].ts : now + 86400000;
-    return listings.filter(l => l.createdAt >= d.ts && l.createdAt < nextTs).length;
-  });
-  destroyChart('chartListingsTime');
-  chartRefs.chartListingsTime = new Chart($('chartListingsTime'), {
-    type: 'line',
-    data: {
-      labels: days.map(d => d.label),
-      datasets: [{
-        label: 'New Listings',
-        data: counts,
-        borderColor: '#a855f7',
-        backgroundColor: 'rgba(168,85,247,0.08)',
-        borderWidth: 2, pointRadius: 2, fill: true, tension: 0.4
-      }]
-    },
-    options: {
-      ...chartOpts,
-      scales: {
-        x: { ticks: { color:'#8b8aa8', maxTicksLimit:8, font:{family:'DM Sans',size:10} }, grid: darkGrid },
-        y: { ticks: { color:'#8b8aa8', font:{family:'DM Sans',size:10} }, grid: darkGrid, beginAtZero:true }
-      }
-    }
-  });
-
-  // Chart 2: Revenue by category
-  const cats = {};
-  sold.forEach(l => { const c = l.category || 'Uncategorized'; cats[c] = (cats[c]||0) + (Number(l.price)||0); });
-  const catEntries = Object.entries(cats).sort((a, b) => b[1]-a[1]).slice(0, 8);
-  destroyChart('chartRevCat');
-  if (catEntries.length) {
-    chartRefs.chartRevCat = new Chart($('chartRevCat'), {
-      type: 'bar',
-      data: {
-        labels: catEntries.map(([c]) => c),
-        datasets: [{ label:'Revenue ($)', data: catEntries.map(([,v]) => v), backgroundColor: gradColors.slice(0, catEntries.length), borderRadius: 4 }]
-      },
-      options: {
-        ...chartOpts,
-        indexAxis: 'y',
-        scales: {
-          x: { ticks:{color:'#8b8aa8',font:{family:'DM Sans',size:10}}, grid:darkGrid, beginAtZero:true },
-          y: { ticks:{color:'#8b8aa8',font:{family:'DM Sans',size:10}}, grid:{display:false} }
+    <script>
+        // Track compiled code layouts globally
+        let separatedFiles = { html: "", css: "", js: "" };
+        let aiProjectContext = "No files uploaded to workspace yet.";
+        
+        // Fixed: Directly calling clean relative endpoint mappings
+        const VERCEL_BACKEND = "/api/edit-file"; 
+        const VERCEL_CHAT_BACKEND = "/api/chat-groq";
+
+        // Drag & Drop UI configuration listeners
+        const dropZone = document.getElementById('drop-zone');
+        ['dragenter', 'dragover'].forEach(name => dropZone.addEventListener(name, e => { e.preventDefault(); dropZone.classList.add('dragover'); }, false));
+        ['dragleave', 'drop'].forEach(name => dropZone.addEventListener(name, e => { e.preventDefault(); dropZone.classList.remove('dragover'); }, false));
+        dropZone.addEventListener('drop', e => processIncomingFile(e.dataTransfer.files[0]));
+
+        // Core parsing system: splits 3-in-1 layout into individual assets
+        function processIncomingFile(file) {
+            if (!file) return;
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const rawContent = e.target.result;
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(rawContent, 'text/html');
+
+                // Slice out styles
+                let cssContent = "";
+                const styles = doc.querySelectorAll('style');
+                styles.forEach(styleTag => {
+                    cssContent += styleTag.textContent + "\n";
+                    styleTag.remove();
+                });
+
+                // Slice out script blocks
+                let jsContent = "";
+                const scripts = doc.querySelectorAll('script');
+                scripts.forEach(scriptTag => {
+                    if (!scriptTag.src) { // Ignore external CDNs like Firebase libraries
+                        jsContent += scriptTag.textContent + "\n";
+                        scriptTag.remove(); 
+                    }
+                });
+
+                // Inject neat production paths back into the HTML document
+                if (cssContent.trim().length > 0) {
+                    const cssLink = doc.createElement('link');
+                    cssLink.rel = 'stylesheet';
+                    cssLink.href = 'style.css';
+                    doc.head.appendChild(cssLink);
+                    document.getElementById('css-badge').style.display = "flex";
+                } else {
+                    document.getElementById('css-badge').style.display = "none";
+                }
+                
+                if (jsContent.trim().length > 0) {
+                    const jsScript = doc.createElement('script');
+                    jsScript.src = 'app.js';
+                    doc.body.appendChild(jsScript);
+                    document.getElementById('js-badge').style.display = "flex";
+                } else {
+                    document.getElementById('js-badge').style.display = "none";
+                }
+
+                // Compile codes to globally tracked state objects
+                separatedFiles.html = "<!DOCTYPE html>\n" + doc.documentElement.outerHTML;
+                separatedFiles.css = cssContent;
+                separatedFiles.js = jsContent;
+
+                // Sync data straight to the AI context storage bank
+                updateAIContext();
+
+                document.getElementById('preview-box').style.display = "flex";
+                document.getElementById('status').innerText = "File uploaded! Structured code split and stored inside workspace context.";
+            };
+            reader.readAsText(file);
         }
-      }
-    });
-  }
 
-  // Chart 3: Plan distribution
-  const planCounts = { Free:0, Starter:0, Growth:0, Pro:0 };
-  users.forEach(u => { const p = u.plan||'Free'; if (planCounts[p] !== undefined) planCounts[p]++; });
-  destroyChart('chartPlans');
-  chartRefs.chartPlans = new Chart($('chartPlans'), {
-    type: 'doughnut',
-    data: {
-      labels: Object.keys(planCounts),
-      datasets: [{ data: Object.values(planCounts), backgroundColor: ['#b87840','#a855f7','#f472b6','#38bdf8'], borderWidth: 0 }]
-    },
-    options: { ...chartOpts, cutout: '60%' }
-  });
+        function updateAIContext() {
+            aiProjectContext = `
+The user has uploaded a project codebase. Here are the current individual files in memory:
 
-  // Chart 4: Status breakdown
-  const statusCounts = { live:0, pending:0, sold:0, rejected:0 };
-  listings.forEach(l => { const s = l.status||'pending'; if (statusCounts[s] !== undefined) statusCounts[s]++; });
-  destroyChart('chartStatus');
-  chartRefs.chartStatus = new Chart($('chartStatus'), {
-    type: 'doughnut',
-    data: {
-      labels: ['Live','Pending','Sold','Rejected'],
-      datasets: [{ data: Object.values(statusCounts), backgroundColor: ['#34d399','#fbbf24','#8b8aa8','#f87171'], borderWidth: 0 }]
-    },
-    options: { ...chartOpts, cutout: '60%' }
-  });
-}
+--- index.html ---
+${separatedFiles.html}
 
-function destroyChart(id) {
-  if (chartRefs[id]) { chartRefs[id].destroy(); delete chartRefs[id]; }
-}
+--- style.css ---
+${separatedFiles.css}
 
-// ══════════════════════════════════════════════════════════
-// QUICK ACTIONS
-// ══════════════════════════════════════════════════════════
-window.approveAllPending = async () => {
-  if (!requireSuper('Approve All Pending')) return;
-  const pending = Object.entries(allListings).filter(([, l]) => l.status === 'pending');
-  if (!pending.length) { showToast('No pending listings.', 'info'); return; }
-  try {
-    await Promise.all(pending.map(([id]) => update(ref(db, `websites/${id}`), { status: 'live' })));
-    showToast(`✓ Approved ${pending.length} listing${pending.length !== 1 ? 's' : ''}!`);
-  } catch(e) { showToast('Error: ' + e.message, 'error'); }
-};
+--- app.js ---
+${separatedFiles.js}
+`;
+        }
 
-window.refreshData = () => {
-  showToast('Data is live via Firebase — always up to date!', 'info');
-};
+        // Manual upload functionality execution
+        async function deployProjectData() {
+            const repo = document.getElementById('repo-input').value;
+            const status = document.getElementById('status');
+            if(!repo || !separatedFiles.html) { alert("Please provide a repository path and upload an HTML file first."); return; }
 
-window.exportCSV = type => {
-  if (!requireSuper('Export CSV')) return;
-  if (type === 'users') {
-    const rows = [['UID','Username','Email','Plan','Balance','Joined','Banned','Listings']];
-    Object.entries(allUsers).forEach(([uid, u]) => {
-      const listingCount = Object.values(allListings).filter(l => l.userId === uid || l.username === u.username).length;
-      rows.push([uid, u.username||'', u.email||'', u.plan||'Free', u.balance||0, fmtDate(u.createdAt), u.banned?'Yes':'No', listingCount]);
-    });
-    dlCSV(rows, 'siterifty-users.csv');
-  } else {
-    const rows = [['ID','Title','URL','Category','Price','Revenue','Status','Seller','Created','Sponsored','Featured','AdminNotes']];
-    Object.entries(allListings).forEach(([id, l]) => rows.push([
-      id, l.title||'', l.url||'', l.category||'',
-      l.price||0, l.revenue||0, l.status||'',
-      l.username||'', fmtDate(l.createdAt),
-      (l.sponsored||l.isSponsored)?'Yes':'No',
-      (l.featured||l.isFeatured)?'Yes':'No',
-      l.adminNotes||''
-    ]));
-    dlCSV(rows, 'siterifty-listings.csv');
-  }
-};
+            status.innerText = "Deploying isolated files to GitHub...";
+            try {
+                await pushToBackend(repo, 'index.html', btoa(unescape(encodeURIComponent(separatedFiles.html))));
+                if(separatedFiles.css.trim()) await pushToBackend(repo, 'style.css', btoa(unescape(encodeURIComponent(separatedFiles.css))));
+                if(separatedFiles.js.trim()) await pushToBackend(repo, 'app.js', btoa(unescape(encodeURIComponent(separatedFiles.js))));
+                status.innerText = "Success! All files cleanly isolated and pushed directly to your repo.";
+            } catch (err) {
+                status.innerText = "Deployment error: " + err.message;
+            }
+        }
 
-function dlCSV(rows, filename) {
-  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
-  const a = document.createElement('a');
-  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
-  a.download = filename;
-  a.click();
-  showToast('CSV exported!');
-}
+        async function pushToBackend(repo, path, b64Content) {
+            let sha = "";
+            const getRes = await fetch(`${VERCEL_BACKEND}?repo=${repo}&path=${path}`);
+            if(getRes.ok) {
+                const data = await getRes.json();
+                sha = data.sha;
+            }
+            await fetch(VERCEL_BACKEND, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ repo, path, content: b64Content, sha })
+            });
+        }
 
-// ── Close modals on overlay click ──
-$('deleteModal').addEventListener('click', e => { if (e.target === $('deleteModal')) closeDeleteModal(); });
-$('planModal').addEventListener('click', e => { if (e.target === $('planModal')) closePlanModal(); });
+        // Send messages to Llama 3.1 with connected file contexts
+        async function sendChatMessage() {
+            const txtInput = document.getElementById('chat-msg-input');
+            const chatBox = document.getElementById('chat-box');
+            const repo = document.getElementById('repo-input').value;
+            const userMsg = txtInput.value.trim();
+            if(!userMsg) return;
+            if(!repo) { alert("Please enter your target repository path first so the AI has routing reference data."); return; }
 
-// ── Escape key closes drawers/modals ──
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') {
-    closeDeleteModal();
-    closePlanModal();
-    if ($('listingDrawerOverlay').classList.contains('open')) closeListingDrawer();
-    if ($('userDrawerOverlay').classList.contains('open')) closeUserDrawer();
-  }
-});
+            // Add user conversation bubble
+            const userDiv = document.createElement('div');
+            userDiv.className = "msg user";
+            userDiv.innerText = userMsg;
+            chatBox.appendChild(userDiv);
+            txtInput.value = "";
+            chatBox.scrollTop = chatBox.scrollHeight;
 
-// ── Responsive ──
-window.addEventListener('resize', () => {
-  if (window.innerWidth <= 768) $('bottomTabs').style.display = 'block';
-  else $('bottomTabs').style.display = 'none';
-});
-</script>
+            try {
+                const response = await fetch(VERCEL_CHAT_BACKEND, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        message: userMsg,
+                        repo: repo, 
+                        systemPrompt: `You are an expert full-stack developer workspace assistant. You have direct write access to the user's GitHub repository using your 'push_files_to_github' tool. Whenever the user asks you to modify, add features, create layout alterations, or fix bugs, execute the code rewrite and immediately use your tool to push the updated files clean to GitHub. Here are the files currently loaded in the user's workspace browser:\n${aiProjectContext}`
+                    })
+                });
+                
+                const data = await response.json();
+                
+                // Add AI response bubble
+                const aiDiv = document.createElement('div');
+                aiDiv.className = "msg ai";
+                aiDiv.innerHTML = data.aiResponse;
+                chatBox.appendChild(aiDiv);
+                chatBox.scrollTop = chatBox.scrollHeight;
+
+                // Sync client architecture layout if the AI used tool invocation execution
+                if (data.updatedFiles) {
+                    separatedFiles.html = data.updatedFiles.html;
+                    separatedFiles.css = data.updatedFiles.css;
+                    separatedFiles.js = data.updatedFiles.js;
+                    
+                    document.getElementById('preview-box').style.display = "flex";
+                    document.getElementById('css-badge').style.display = separatedFiles.css.trim() ? "flex" : "none";
+                    document.getElementById('js-badge').style.display = separatedFiles.js.trim() ? "flex" : "none";
+                    
+                    updateAIContext();
+                }
+            } catch(e) {
+                console.error(e);
+                const errDiv = document.createElement('div');
+                errDiv.className = "msg ai";
+                errDiv.innerText = "Error trying to establish communications with Vercel API backend servers.";
+                chatBox.appendChild(errDiv);
+            }
+        }
+    </script>
 </body>
 </html>
