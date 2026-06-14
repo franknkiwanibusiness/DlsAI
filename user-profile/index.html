@@ -581,6 +581,82 @@
         .btn-submit-report:hover { opacity: .9; }
         .btn-submit-report:disabled { opacity: .5; cursor: default; }
 
+        /* ── Donate modal ── */
+        .donate-recipient {
+            display: flex; align-items: center; gap: 10px;
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: var(--radius-md); padding: 10px 12px;
+            margin-top: 14px;
+        }
+        .donate-recipient-pic {
+            width: 36px; height: 36px; border-radius: 999px; flex-shrink: 0;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Syne', sans-serif; font-weight: 800; font-size: 13px; color: #fff;
+            overflow: hidden;
+        }
+        .donate-recipient-pic img { width: 100%; height: 100%; object-fit: cover; }
+        .donate-recipient-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+        .donate-recipient-label { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; font-weight: 700; }
+        .donate-recipient-name { font-size: 13.5px; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        .donate-balance-row {
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+            background: rgba(45,212,160,0.08); border: 1px solid rgba(45,212,160,0.2);
+            border-radius: var(--radius-md); padding: 10px 14px; margin-top: 10px;
+        }
+        .donate-balance-label { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--text2); font-weight: 600; }
+        .donate-balance-label svg { color: var(--green); flex-shrink: 0; }
+        .donate-balance-amount { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 15px; color: var(--green); white-space: nowrap; }
+
+        .donate-amount-wrap { margin-top: 18px; }
+        .donate-input-row {
+            display: flex; align-items: center; gap: 8px;
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: var(--radius-md); padding: 0 14px;
+            transition: border-color .15s;
+        }
+        .donate-input-row:focus-within { border-color: rgba(45,212,160,.45); }
+        .donate-currency { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; color: var(--text2); }
+        .donate-input-row input {
+            flex: 1; background: none; border: none; outline: none;
+            font-family: 'Syne', sans-serif; font-weight: 800; font-size: 22px;
+            color: var(--text); padding: 13px 0;
+            font-variant-numeric: tabular-nums;
+            -moz-appearance: textfield;
+        }
+        .donate-input-row input::-webkit-outer-spin-button,
+        .donate-input-row input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .donate-input-row input::placeholder { color: var(--muted); font-weight: 700; }
+
+        .donate-fee-breakdown {
+            margin-top: 12px; display: flex; flex-direction: column; gap: 6px;
+            font-size: 12.5px; color: var(--text2);
+        }
+        .donate-fee-row { display: flex; justify-content: space-between; align-items: center; }
+        .donate-fee-row span:last-child { font-family: 'Syne', sans-serif; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+        .donate-fee-row.total { padding-top: 8px; border-top: 1px solid var(--border); font-weight: 700; color: var(--text); font-size: 13px; }
+        .donate-fee-row.total span:last-child { color: var(--green); font-size: 15px; }
+
+        .donate-error {
+            margin-top: 12px; padding: 10px 12px; border-radius: var(--radius-sm);
+            background: rgba(255,69,58,0.1); border: 1px solid rgba(255,69,58,0.25);
+            color: var(--red); font-size: 12.5px; font-weight: 600;
+            display: none;
+        }
+        .donate-error.active { display: block; }
+
+        .donate-limits-note {
+            margin-top: 10px; font-size: 11px; color: var(--muted); text-align: center;
+        }
+
+        .btn-submit-donate {
+            background: linear-gradient(135deg, var(--green), #38bdf8);
+            color: #04140f;
+        }
+        .btn-submit-donate:hover { opacity: .9; }
+        .btn-submit-donate:disabled { opacity: .5; cursor: default; }
+
         /* ── Skeleton shimmer ── */
         @keyframes shimmer {
             0%   { background-position: -200% 0; }
@@ -1206,7 +1282,91 @@
     </div>
 </div>
 
+<!-- DONATE MODAL -->
+<div class="modal-overlay" id="donateModal" onclick="if(event.target===this) closeDonateModal()">
+    <div class="modal-card">
+        <div class="modal-head">
+            <div class="modal-title" style="color:var(--text);">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style="color:var(--green);"><path d="M3 10h14M11 4l6 6-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Send a donation
+            </div>
+            <button class="modal-close" onclick="closeDonateModal()">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            </button>
+        </div>
+        <div class="modal-sub">Send money from your wallet balance directly to <strong id="donateTargetName">this seller</strong>.</div>
+
+        <div class="donate-recipient">
+            <div class="donate-recipient-pic" id="donateRecipientPic"></div>
+            <div class="donate-recipient-info">
+                <span class="donate-recipient-label">To</span>
+                <span class="donate-recipient-name" id="donateRecipientName">—</span>
+            </div>
+        </div>
+
+        <div class="donate-balance-row">
+            <span class="donate-balance-label">
+                <svg width="15" height="15" viewBox="0 0 18 18" fill="none"><rect x="1.5" y="4.5" width="15" height="10" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M1.5 7.5h15" stroke="currentColor" stroke-width="1.4"/><circle cx="13" cy="11.5" r="1" fill="currentColor"/></svg>
+                Your wallet balance
+            </span>
+            <span class="donate-balance-amount" id="donateYourBalance">$0.00</span>
+        </div>
+
+        <div class="donate-amount-wrap">
+            <div class="modal-label" style="margin-top:14px;">Amount to send</div>
+            <div class="donate-input-row">
+                <span class="donate-currency">$</span>
+                <input type="number" id="donateAmountInput" inputmode="decimal" min="1" max="999" step="0.01" placeholder="0.00" oninput="_updateDonatePreview()">
+            </div>
+            <div class="donate-fee-breakdown">
+                <div class="donate-fee-row"><span>Platform fee (<span id="donateFeePct">3</span>% + $<span id="donateFeeFixed">0.49</span>)</span><span id="donateFeeAmount">$0.00</span></div>
+                <div class="donate-fee-row total"><span id="donateRecipientLabel">Seller receives</span><span id="donateRecipientAmount">$0.00</span></div>
+            </div>
+            <div class="donate-error" id="donateError"></div>
+        </div>
+        <div class="donate-limits-note" id="donateLimitsNote">Minimum $1.00 · Maximum $999.00 per transaction</div>
+
+        <div class="modal-actions">
+            <button class="btn btn-cancel" onclick="closeDonateModal()">Cancel</button>
+            <button class="btn btn-submit-donate" id="submitDonateBtn" onclick="submitDonation()">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 12.5s-5-3.1-5-6.6A2.9 2.9 0 0 1 7 4.2 2.9 2.9 0 0 1 12 5.9c0 3.5-5 6.6-5 6.6Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+                Send donation
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
+    // ── Scroll lock — prevents background scroll while a modal is open ──
+    // Counter-based so nested/overlapping opens don't unlock too early.
+    let _scrollLockCount = 0, _scrollLockY = 0;
+    function lockScroll() {
+        if (_scrollLockCount === 0) {
+            _scrollLockY = window.scrollY || window.pageYOffset || 0;
+            document.body.style.position = 'fixed';
+            document.body.style.top      = '-' + _scrollLockY + 'px';
+            document.body.style.left     = '0';
+            document.body.style.right    = '0';
+            document.body.style.width    = '100%';
+            document.body.style.overflow = 'hidden';
+        }
+        _scrollLockCount++;
+    }
+    function unlockScroll() {
+        _scrollLockCount = Math.max(0, _scrollLockCount - 1);
+        if (_scrollLockCount === 0) {
+            document.body.style.position = '';
+            document.body.style.top      = '';
+            document.body.style.left     = '';
+            document.body.style.right    = '';
+            document.body.style.width    = '';
+            document.body.style.overflow = '';
+            window.scrollTo({ top: _scrollLockY, behavior: 'instant' });
+        }
+    }
+    window.lockScroll = lockScroll;
+    window.unlockScroll = unlockScroll;
+
     function switchTab(tab) {
         document.getElementById('tabListings').classList.toggle('active', tab === 'listings');
         document.getElementById('tabAbout').classList.toggle('active', tab === 'about');
@@ -1234,9 +1394,11 @@
         });
         document.getElementById('reportDetails').value = REASON_TEMPLATES[_reportReason] + `Reported user: @${_reportTargetName.replace(/^@/,'')}.`;
         document.getElementById('reportModal').classList.add('active');
+        lockScroll();
     }
     function closeReportModal() {
         document.getElementById('reportModal').classList.remove('active');
+        unlockScroll();
     }
     document.getElementById('reasonGrid').addEventListener('click', e => {
         const chip = e.target.closest('.reason-chip');
@@ -1277,7 +1439,7 @@
 
 <script type="module">
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
-import { getDatabase, ref, get, query, orderByChild, equalTo, limitToFirst } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -1429,6 +1591,193 @@ function applyOwnerMode() {
     document.getElementById('profileActions').style.display = isOwner ? 'none' : 'flex';
 }
 
+// ── Donate modal ──
+// NOTE: these constants are for the live preview only. The real fee/limits
+// are computed and enforced server-side in /api/transfer.js — keep both in sync.
+const DONATE_FEE_RATE  = 0.03;  // 3%
+const DONATE_FEE_FIXED = 0.49;  // + $0.49, PayPal-style
+const DONATE_MIN       = 1.00;
+const DONATE_MAX       = 999.00;
+let _donateTargetUid = '', _donateTargetName = '', _donateBalance = 0;
+
+function _fmtMoney(n) {
+    if (!isFinite(n) || n < 0) n = 0;
+    return '$' + n.toFixed(2);
+}
+
+function _donateFee(amt) {
+    if (amt <= 0) return 0;
+    return Math.round((amt * DONATE_FEE_RATE + DONATE_FEE_FIXED) * 100) / 100;
+}
+
+function _updateDonatePreview() {
+    const input = document.getElementById('donateAmountInput');
+    let amt = parseFloat(input.value);
+    if (!isFinite(amt) || amt < 0) amt = 0;
+    const fee  = _donateFee(amt);
+    const recv = Math.max(amt - fee, 0);
+
+    document.getElementById('donateFeeAmount').textContent = _fmtMoney(fee);
+    document.getElementById('donateRecipientAmount').textContent = _fmtMoney(recv);
+
+    const errEl = document.getElementById('donateError');
+    const btn   = document.getElementById('submitDonateBtn');
+    if (amt > 0 && amt > _donateBalance) {
+        errEl.textContent = 'Amount exceeds your wallet balance.';
+        errEl.classList.add('active');
+        btn.disabled = true;
+    } else if (amt > 0 && amt < DONATE_MIN) {
+        errEl.textContent = `Minimum donation is ${_fmtMoney(DONATE_MIN)}.`;
+        errEl.classList.add('active');
+        btn.disabled = true;
+    } else if (amt > DONATE_MAX) {
+        errEl.textContent = `Maximum donation is ${_fmtMoney(DONATE_MAX)}.`;
+        errEl.classList.add('active');
+        btn.disabled = true;
+    } else {
+        errEl.classList.remove('active');
+        btn.disabled = false;
+    }
+}
+
+async function openDonateModal(uid, name, photoURL) {
+    if (!window._currentUid) {
+        if (window._showToast) window._showToast('Please sign in to send a donation');
+        return;
+    }
+    if (uid === window._currentUid) {
+        if (window._showToast) window._showToast("You can't donate to yourself");
+        return;
+    }
+
+    _donateTargetUid  = uid || '';
+    _donateTargetName = name || 'this seller';
+    const handle = '@' + _donateTargetName.replace(/^@/, '');
+
+    document.getElementById('donateTargetName').textContent = handle;
+    document.getElementById('donateRecipientName').textContent = handle;
+    document.getElementById('donateRecipientLabel').textContent = handle + ' receives';
+
+    const picEl = document.getElementById('donateRecipientPic');
+    if (photoURL) {
+        picEl.innerHTML = `<img src="${_esc(photoURL)}" alt="${_esc(_donateTargetName)}">`;
+    } else {
+        picEl.innerHTML = '';
+        picEl.textContent = _donateTargetName.slice(0, 2).toUpperCase();
+        const [c1, c2] = avatarGrad(uid);
+        picEl.style.background = `linear-gradient(135deg,${c1},${c2})`;
+    }
+
+    // Reset form
+    document.getElementById('donateAmountInput').value = '';
+    document.getElementById('donateFeeAmount').textContent = '$0.00';
+    document.getElementById('donateRecipientAmount').textContent = '$0.00';
+    document.getElementById('donateError').classList.remove('active');
+    const btn = document.getElementById('submitDonateBtn');
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 12.5s-5-3.1-5-6.6A2.9 2.9 0 0 1 7 4.2 2.9 2.9 0 0 1 12 5.9c0 3.5-5 6.6-5 6.6Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg> Send donation';
+
+    document.getElementById('donateModal').classList.add('active');
+    window.lockScroll();
+
+    // Always pull a fresh balance — never trust a cached/displayed value
+    try {
+        const snap = await get(ref(db, 'users/' + window._currentUid + '/balance'));
+        _donateBalance = parseFloat(snap.val() || 0);
+        if (!isFinite(_donateBalance)) _donateBalance = 0;
+    } catch (e) {
+        _donateBalance = 0;
+    }
+    document.getElementById('donateYourBalance').textContent = _fmtMoney(_donateBalance);
+}
+
+function closeDonateModal() {
+    document.getElementById('donateModal').classList.remove('active');
+    window.unlockScroll();
+}
+
+window.openDonateModal     = openDonateModal;
+window.closeDonateModal    = closeDonateModal;
+window._updateDonatePreview = _updateDonatePreview;
+
+window.submitDonation = async function() {
+    const input = document.getElementById('donateAmountInput');
+    const amt   = parseFloat(input.value);
+    const errEl = document.getElementById('donateError');
+    const btn   = document.getElementById('submitDonateBtn');
+
+    if (!isFinite(amt) || amt <= 0) {
+        errEl.textContent = 'Enter a valid amount.';
+        errEl.classList.add('active');
+        return;
+    }
+    if (amt < DONATE_MIN) {
+        errEl.textContent = `Minimum donation is ${_fmtMoney(DONATE_MIN)}.`;
+        errEl.classList.add('active');
+        return;
+    }
+    if (amt > DONATE_MAX) {
+        errEl.textContent = `Maximum donation is ${_fmtMoney(DONATE_MAX)}.`;
+        errEl.classList.add('active');
+        return;
+    }
+    if (amt > _donateBalance) {
+        errEl.textContent = 'Amount exceeds your wallet balance.';
+        errEl.classList.add('active');
+        return;
+    }
+
+    const user = auth.currentUser;
+    if (!user) {
+        errEl.textContent = 'Please sign in to send a donation.';
+        errEl.classList.add('active');
+        return;
+    }
+
+    errEl.classList.remove('active');
+    btn.disabled = true;
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = 'Sending…';
+
+    try {
+        const idToken = await user.getIdToken();
+        const res = await fetch('/api/transfer.js', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + idToken
+            },
+            body: JSON.stringify({ recipientUid: _donateTargetUid, amount: amt })
+        });
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok || !data.success) {
+            errEl.textContent = data.error || 'Transfer failed. Please try again.';
+            errEl.classList.add('active');
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
+            return;
+        }
+
+        // Reflect the server-confirmed balance everywhere it's shown
+        if (typeof data.newBalance === 'number') {
+            _donateBalance = data.newBalance;
+            const pillAmt = document.getElementById('walletPillAmount');
+            if (pillAmt) pillAmt.textContent = '$' + data.newBalance.toFixed(2);
+        }
+
+        const recipientHandle = document.getElementById('donateRecipientName').textContent;
+        closeDonateModal();
+        if (window._showToast) window._showToast(`Sent ${_fmtMoney(amt)} to ${recipientHandle}`);
+    } catch (err) {
+        console.error('[donate]', err);
+        errEl.textContent = 'Network error. Please try again.';
+        errEl.classList.add('active');
+    }
+    btn.disabled = false;
+    btn.innerHTML = originalHTML;
+};
+
 const params = new URLSearchParams(location.search);
 const sellerUid = params.get('uid') || params.get('seller') || '';
 
@@ -1445,17 +1794,11 @@ window.loadSellerListings = async function() {
     if (btn) { btn.disabled = true; btn.textContent = 'Loading…'; }
 
     try {
-        const nextLimit = _loadedCount + PAGE_SIZE;
-        // Try both 'listings' and 'websites' nodes
-        const q1 = query(ref(db, 'listings'), orderByChild('uid'), equalTo(sellerUid), limitToFirst(nextLimit));
-        const snap1 = await get(q1);
-        let val = snap1.val() || {};
-        if (!Object.keys(val).length) {
-            const q2 = query(ref(db, 'websites'), orderByChild('uid'), equalTo(sellerUid), limitToFirst(nextLimit));
-            const snap2 = await get(q2);
-            val = snap2.val() || {};
-        }
-        const entries = Object.entries(val);
+        // Listings are saved directly under users/{uid}/listings — read that path
+        const snap = await get(ref(db, 'users/' + sellerUid + '/listings'));
+        const val = snap.val() || {};
+        const entries = Object.entries(val)
+            .sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
 
         if (skel) skel.style.display = 'none';
 
@@ -1468,15 +1811,16 @@ window.loadSellerListings = async function() {
         }
 
         grid.style.display = 'grid';
-        const newEntries = entries.slice(_loadedCount);
+        const nextLimit = _loadedCount + PAGE_SIZE;
+        const newEntries = entries.slice(_loadedCount, nextLimit);
         newEntries.forEach(([key, d]) => {
             grid.insertAdjacentHTML('beforeend', renderListingCard(key, d));
         });
 
-        _loadedCount = entries.length;
+        _loadedCount += newEntries.length;
 
         if (btn) {
-            if (entries.length < nextLimit) {
+            if (_loadedCount >= entries.length) {
                 btn.style.display = 'none';
             } else {
                 btn.style.display = 'block';
@@ -1589,12 +1933,8 @@ async function loadSellerProfile() {
         } else {
             // Fetch count from listings node
             try {
-                const cSnap1 = await get(query(ref(db, 'listings'), orderByChild('uid'), equalTo(sellerUid)));
-                let cVal = cSnap1.val() || {};
-                if (!Object.keys(cVal).length) {
-                    const cSnap2 = await get(query(ref(db, 'websites'), orderByChild('uid'), equalTo(sellerUid)));
-                    cVal = cSnap2.val() || {};
-                }
+                const cSnap = await get(ref(db, 'users/' + sellerUid + '/listings'));
+                const cVal = cSnap.val() || {};
                 const all = Object.values(cVal);
                 document.getElementById('statTotal').textContent = all.length || '0';
                 const soldN = all.filter(x => (x.status||'').toLowerCase() === 'sold').length;
@@ -1650,16 +1990,11 @@ async function loadSellerProfile() {
 
         // Recent activity (from latest listings)
         try {
-            const actSnap1 = await get(query(ref(db, 'listings'), orderByChild('uid'), equalTo(sellerUid), limitToFirst(5)));
-            let actVal0 = actSnap1.val();
-            if (!actVal0 || !Object.keys(actVal0).length) {
-                const actSnap2 = await get(query(ref(db, 'websites'), orderByChild('uid'), equalTo(sellerUid), limitToFirst(5)));
-                actVal0 = actSnap2.val();
-            }
-            const actSnapFake = { val: () => actVal0, exists: () => !!actVal0 };
-            const actSnap = actSnapFake;
+            const actSnap = await get(ref(db, 'users/' + sellerUid + '/listings'));
             const actVal = actSnap.val() || {};
-            const acts = Object.entries(actVal);
+            const acts = Object.entries(actVal)
+                .sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0))
+                .slice(0, 5);
             if (acts.length) {
                 document.getElementById('activityList').innerHTML = acts.slice(0,5).map(([key, d]) => {
                     const status = (d.status||'').toLowerCase();
@@ -1695,9 +2030,9 @@ async function loadSellerProfile() {
         const msgBtn = document.getElementById('messageBtn');
         msgBtn.onclick = () => { if (window.openContactModal) window.openContactModal(username, u.photoURL, '', '', sellerUid); };
 
-        // Donate button (placeholder)
+        // Donate button
         const donateBtn = document.getElementById('donateBtn');
-        donateBtn.onclick = () => {};
+        donateBtn.onclick = () => openDonateModal(sellerUid, username, u.photoURL);
 
         // Report button
         const reportBtn = document.getElementById('reportBtn');
