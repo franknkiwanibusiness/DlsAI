@@ -3845,10 +3845,6 @@ window._sellerBarIncrement = function() {
             </div><!-- end realProgress -->
         </div>
 
-        <div class="form-layout">
-            <!-- LEFT COLUMN -->
-            <div>
-
                 <!--  STEP 1: SITE DETAILS  -->
                 <div style="position:relative;" id="formStep1Wrap">
                     <div class="skel-layer" id="skelStep1" style="border-radius:20px;overflow:hidden;background:linear-gradient(160deg,#16162a 0%,#0f0f1c 100%);border:1px solid rgba(255,255,255,0.08);">
@@ -4582,6 +4578,7 @@ window._sellerBarIncrement = function() {
 
                 <div class="section-gap"></div>
 
+        <div class="form-layout">
                 <!--  STEP 4: TERMS & SUBMIT  -->
                 <div style="position:relative;" id="formStep4Wrap">
                     <div class="skel-layer" id="skelStep4" style="border-radius:20px;overflow:hidden;background:linear-gradient(160deg,#16162a 0%,#0f0f1c 100%);border:1px solid rgba(255,255,255,0.08);">
@@ -4646,8 +4643,6 @@ window._sellerBarIncrement = function() {
                 </div>
                     </div><!-- end realStep4 -->
                 </div><!-- end formStep4Wrap -->
-
-            </div><!-- end left col -->
 
             <!-- RIGHT SIDEBAR -->
             <div class="sidebar">
@@ -5597,6 +5592,7 @@ window.submitListing = async function submitListing_secure() {
             ? `WHOIS: registrar="${whoisData.registrar || 'unknown'}", domainAgeDays=${whoisData.domainAgeDays ?? 'unknown'}, expiry="${whoisData.expiryDate || 'unknown'}". ${whoisFlag === 'too_new' ? `Domain is less than ${SEC.MIN_DOMAIN_AGE_DAYS} days old — you MUST return status=pending_admin.` : 'Domain age acceptable.'}`
             : 'WHOIS data unavailable — treat domain age as unknown.',
         listingPayload.__junkTld ? 'WARNING: Free/junk TLD detected. Return status=pending_admin unless there is overwhelming evidence of legitimacy.' : '',
+        hasMetaProof ? 'Ownership has been verified instantly via meta tag (server-side check). Treat ownership as confirmed regardless of fingerprint/code-file/domain-age signals — do not return pending_admin solely for ownership-verification reasons.' : '',
         'AUTO-APPROVE only when ALL are true: (A) liveSiteMeta present, (B) fingerprint confidence=high (if code uploaded), (C) domain age >= 90 days, (D) title/desc matches live site, (E) no policy violations, (F) TLD is not junk.',
         'REJECT if: adult content, illegal services, brand impersonation, or AI-generated spam with no real product.',
         'PRIVACY RULE — CRITICAL: Your reason MUST NOT include the site URL, domain name, or any code snippet. Write only a general policy explanation.',
@@ -5634,7 +5630,17 @@ window.submitListing = async function submitListing_secure() {
             _notifyEvent('listing-event', 'listing_rejected', { title: listingPayload.title, reason: aiReason });
             return;
         }
-        if (aiStatus === 'pending_admin') _spinner('Saving…');
+
+        //  Verified ownership = instant approval, even if the AI flagged it for admin review 
+        if (listingPayload.status === 'pending_admin' && hasMetaProof) {
+            listingPayload.status         = 'live';
+            listingPayload.aiReviewStatus = 'live';
+            listingPayload.aiReviewReason = aiReason
+                ? aiReason + ' (Auto-approved: ownership verified via meta tag.)'
+                : 'Auto-approved: ownership verified via meta tag.';
+        }
+
+        if (listingPayload.status === 'pending_admin') _spinner('Saving…');
 
     } catch (aiErr) {
         console.warn('[SecMod] AI Review failed, defaulting to pending_admin:', aiErr);
@@ -5644,6 +5650,13 @@ window.submitListing = async function submitListing_secure() {
         listingPayload.reviewedAt      = Date.now();
         listingPayload.proofMethod     = hasCodeProof ? 'code' : hasDomainProof ? 'domain' : hasHostingProof ? 'hosting' : 'metatag';
         listingPayload.liveSiteChecked = !!liveSiteMeta;
+
+        //  Verified ownership = instant approval, even if automated review failed 
+        if (hasMetaProof) {
+            listingPayload.status         = 'live';
+            listingPayload.aiReviewStatus = 'live';
+            listingPayload.aiReviewReason = 'Auto-approved: ownership verified via meta tag.';
+        }
         _spinner('Saving…');
     }
 
