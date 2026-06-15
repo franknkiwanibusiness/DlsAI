@@ -2979,9 +2979,15 @@
                 }).catch(() => {});
             }, 1500);
 
+            // Check for a saved listing draft tied to this account (synced across devices)
+            if (typeof window._checkForDraft === 'function') window._checkForDraft(user);
+            else window._pendingDraftUser = user;
+
         } else {
             window._fbUserData = null;
             _applyUserUI(null, null);
+            // Signed out — hide any draft banner from a previous session
+            if (typeof window._hideDraftBanner === 'function') window._hideDraftBanner();
         }
     });
 
@@ -3299,6 +3305,350 @@
     };
 
     console.log('[Firebase] Sell-My-Site module ready — project: itzhoyoo-f9f7e');
+</script>
+
+<!--  DRAFT PERSISTENCE — Firebase-synced across devices  -->
+<script>
+// Save listing draft to Firebase under users/{uid}/listingDraft
+// Contains all form fields + images + proof file refs (not actual file contents)
+window.saveDraft = async function() {
+    const user = window._fbAuth && window._fbAuth.currentUser;
+    if (!user) {
+        return showErr('Please sign in to save a draft.');
+    }
+
+    const uid = user.uid;
+    const db = window._fbDb;
+    const { ref: fbRef, set: fbSet } = window._fbDbFns;
+    
+    if (!db || !fbSet) {
+        return showErr('Draft system not ready. Please refresh the page.');
+    }
+
+    try {
+        // Read all form fields from the main listing form
+        const titleRaw    = document.getElementById('siteTitle')?.value.trim() || '';
+        const urlRaw      = document.getElementById('siteUrl')?.value.trim() || '';
+        const descRaw     = document.getElementById('siteDesc')?.value.trim() || '';
+        const priceRaw    = document.getElementById('sitePrice')?.value.trim() || '';
+        const cat         = document.getElementById('siteCategory')?.value || '';
+        const age         = document.getElementById('siteAge')?.value || '';
+        const monetization = document.getElementById('siteMonetization')?.value || '';
+        const siteLocation = document.getElementById('siteLocation')?.value || '';
+        const revenueRaw  = document.getElementById('siteRevenue')?.value.trim() || '';
+        const trafficRaw  = document.getElementById('siteTraffic')?.value.trim() || '';
+        const expensesRaw = document.getElementById('siteExpenses')?.value.trim() || '';
+        const reason      = document.getElementById('siteReason')?.value || '';
+        const tech        = document.getElementById('siteTech')?.value || '';
+        const negotiable  = document.getElementById('siteNegotiable')?.value || 'no';
+        const businessType = document.getElementById('siteBusinessType')?.value || '';
+        const tradingName = document.getElementById('siteTradingName')?.value.trim() || '';
+        const partnerCount = document.getElementById('sitePartnerCount')?.value || '';
+        const phone       = document.getElementById('sitePhone')?.value.trim() || '';
+
+        // Snapshot of uploaded images (Imgur URLs only — not raw file data)
+        const imageURLs = window.state ? window.state.images.filter(Boolean) : [];
+
+        // Snapshot of which proof method was selected
+        const currentProof = window.state ? window.state.currentProof : 'metatag';
+
+        // Track which checkboxes are checked
+        const chk1 = document.getElementById('chk1')?.checked || false;
+        const chk2 = document.getElementById('chk2')?.checked || false;
+        const chk3 = document.getElementById('chk3')?.checked || false;
+
+        const draftPayload = {
+            title: titleRaw,
+            url: urlRaw,
+            description: descRaw,
+            price: priceRaw ? parseFloat(priceRaw) : null,
+            category: cat,
+            age: age,
+            monetization: monetization,
+            location: siteLocation,
+            revenue: revenueRaw ? parseFloat(revenueRaw) : null,
+            traffic: trafficRaw ? parseInt(trafficRaw, 10) : null,
+            expenses: expensesRaw ? parseFloat(expensesRaw) : null,
+            reason: reason,
+            tech: tech,
+            negotiable: negotiable,
+            businessType: businessType,
+            tradingName: tradingName,
+            partnerCount: partnerCount,
+            phone: phone,
+            imageURLs: imageURLs,
+            currentProof: currentProof,
+            checkedTerms: { chk1, chk2, chk3 },
+            // Track meta verification status if user has verified
+            metaVerified: !!window._metaVerified,
+            metaVerifyToken: window._metaVerifyToken || null,
+            savedAt: Date.now(),
+        };
+
+        // Save to Firebase under users/{uid}/listingDraft (overwrites if exists)
+        await fbSet(fbRef(db, 'users/' + uid + '/listingDraft'), draftPayload);
+
+        showOk('Draft saved. You can continue editing anytime.');
+        setTimeout(hideOk, 3000);
+
+    } catch (err) {
+        console.error('[Draft Save] Error:', err);
+        showErr('Failed to save draft: ' + (err.message || 'Please try again.'));
+    }
+};
+
+// Check for existing draft and offer restore option
+window._checkForDraft = async function(user) {
+    if (!user) return;
+    const uid = user.uid;
+    const db = window._fbDb;
+    const { ref: fbRef, get: fbGet } = window._fbDbFns;
+
+    if (!db || !fbGet) return;
+
+    try {
+        const snap = await fbGet(fbRef(db, 'users/' + uid + '/listingDraft'));
+        if (snap.exists()) {
+            const draft = snap.val();
+            const savedDate = draft.savedAt ? new Date(draft.savedAt).toLocaleDateString() : 'previously';
+            _showDraftBanner(draft, savedDate);
+        }
+    } catch (err) {
+        console.warn('[Draft Check] Could not load draft:', err.message);
+    }
+};
+
+// Show banner with "Restore Draft" and "Discard" buttons
+window._showDraftBanner = function(draft, savedDate) {
+    // Remove existing banner if any
+    const existing = document.getElementById('draftBanner');
+    if (existing) existing.remove();
+
+    const banner = document.createElement('div');
+    banner.id = 'draftBanner';
+    banner.style.cssText = `
+        position: fixed;
+        top: 52px;
+        left: 0;
+        right: 0;
+        background: linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(99, 102, 241, 0.1) 100%);
+        border-bottom: 1px solid rgba(168, 85, 247, 0.3);
+        padding: 14px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        z-index: 999;
+        backdrop-filter: blur(4px);
+    `;
+
+    banner.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink: 0; color: #a855f7;">
+                <path d="M8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12z" stroke="currentColor" stroke-width="1.2" fill="none"/>
+                <path d="M8 4v4l3 1.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div style="font-size: 13px; line-height: 1.4;">
+                <div style="color: rgba(255, 255, 255, 0.95); font-weight: 500;">Draft from ${savedDate}</div>
+                <div style="color: rgba(255, 255, 255, 0.6); font-size: 12px; margin-top: 2px;">
+                    "${draft.title ? draft.title.substring(0, 60) + (draft.title.length > 60 ? '…' : '') : 'Untitled listing'}"
+                </div>
+            </div>
+        </div>
+        <div style="display: flex; gap: 8px; flex-shrink: 0;">
+            <button onclick="window._restoreDraft()" style="
+                padding: 8px 14px;
+                border-radius: 7px;
+                border: 1px solid rgba(168, 85, 247, 0.5);
+                background: rgba(168, 85, 247, 0.2);
+                color: #c084fc;
+                font-size: 12px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.15s;
+            " onmouseover="this.style.background='rgba(168, 85, 247, 0.3)'" onmouseout="this.style.background='rgba(168, 85, 247, 0.2)'">
+                Restore Draft
+            </button>
+            <button onclick="window._discardDraft()" style="
+                padding: 8px 12px;
+                border-radius: 7px;
+                border: none;
+                background: transparent;
+                color: rgba(255, 255, 255, 0.5);
+                font-size: 12px;
+                cursor: pointer;
+                transition: color 0.15s;
+            " onmouseover="this.style.color='rgba(255, 255, 255, 0.7)'" onmouseout="this.style.color='rgba(255, 255, 255, 0.5)'">
+                Discard
+            </button>
+        </div>
+    `;
+
+    // Store draft in window for restore
+    window._currentDraft = draft;
+
+    // Insert after header
+    const header = document.querySelector('header');
+    if (header && header.nextSibling) {
+        header.parentNode.insertBefore(banner, header.nextSibling);
+    } else if (document.body.firstChild) {
+        document.body.insertBefore(banner, document.body.firstChild);
+    }
+};
+
+// Restore draft: fill form with saved values
+window._restoreDraft = function() {
+    const draft = window._currentDraft;
+    if (!draft) return;
+
+    const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el && val != null) el.value = val;
+    };
+
+    const setSelect = (id, val) => {
+        const el = document.getElementById(id);
+        if (!el || !val) return;
+        el.value = val;
+        // Sync custom-select label if it exists
+        const lbl = document.getElementById('csel_label_' + id);
+        const trg = document.getElementById('csel_' + id);
+        if (lbl) {
+            const opt = Array.from(el.options || []).find(o => o.value === val);
+            if (opt) {
+                lbl.textContent = opt.text;
+                if (trg) trg.classList.add('has-value');
+            }
+        }
+    };
+
+    // Populate all text/number/select fields
+    setVal('siteTitle', draft.title);
+    setVal('siteUrl', draft.url);
+    setVal('siteDesc', draft.description);
+    setVal('sitePrice', draft.price);
+    setVal('siteRevenue', draft.revenue);
+    setVal('siteTraffic', draft.traffic);
+    setVal('siteExpenses', draft.expenses);
+    setVal('sitePhone', draft.phone);
+    setVal('siteTradingName', draft.tradingName);
+
+    setSelect('siteCategory', draft.category);
+    setSelect('siteAge', draft.age);
+    setSelect('siteMonetization', draft.monetization);
+    setSelect('siteLocation', draft.location);
+    setSelect('siteReason', draft.reason);
+    setSelect('siteBusinessType', draft.businessType);
+    setSelect('sitePartnerCount', draft.partnerCount);
+
+    // Restore tech stack
+    if (draft.tech && typeof loadTechFromString === 'function') {
+        loadTechFromString(draft.tech, 'main');
+    }
+
+    // Restore negotiation toggle
+    const negTog = document.getElementById('negotiateToggle');
+    if (negTog && draft.negotiable === 'yes') {
+        negTog.classList.add('on');
+        const negHid = document.getElementById('siteNegotiable');
+        if (negHid) negHid.value = 'yes';
+    }
+
+    // Restore business type visibility
+    if (draft.businessType && typeof toggleBusinessTypeExtra === 'function') {
+        toggleBusinessTypeExtra(draft.businessType);
+    }
+
+    // Restore images (Imgur URLs are permanent, just re-display them)
+    if (draft.imageURLs && draft.imageURLs.length > 0) {
+        draft.imageURLs.forEach((url, idx) => {
+            if (url && typeof _applySlotPreview === 'function') {
+                if (window.state) window.state.images[idx] = url;
+                _applySlotPreview(idx, url, false);
+            }
+        });
+    }
+
+    // Restore checkbox states
+    if (draft.checkedTerms) {
+        if (draft.checkedTerms.chk1) document.getElementById('chk1') && (document.getElementById('chk1').checked = true);
+        if (draft.checkedTerms.chk2) document.getElementById('chk2') && (document.getElementById('chk2').checked = true);
+        if (draft.checkedTerms.chk3) document.getElementById('chk3') && (document.getElementById('chk3').checked = true);
+    }
+
+    // Restore proof method selection
+    if (draft.currentProof && typeof switchProof === 'function') {
+        if (window.state) window.state.currentProof = draft.currentProof;
+        switchProof(draft.currentProof);
+    }
+
+    // Update UI components (counts, previews, etc.)
+    if (typeof updateChecklist === 'function') updateChecklist();
+    if (typeof liveTitleCount === 'function') {
+        const titleEl = document.getElementById('siteTitle');
+        if (titleEl) liveTitleCount(titleEl);
+    }
+    if (typeof updateDescCount === 'function') {
+        const descEl = document.getElementById('siteDesc');
+        if (descEl) updateDescCount(descEl);
+    }
+    if (typeof updatePreviewUrl === 'function') {
+        updatePreviewUrl(draft.url || '');
+    }
+    if (typeof updatePreviewPrice === 'function') {
+        updatePreviewPrice(draft.price);
+    }
+
+    // Hide draft banner and scroll to form
+    window._hideDraftBanner();
+    showOk('Draft restored!');
+    setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        // Switch to list tab if not already there
+        if (typeof switchTab === 'function') switchTab('list');
+    }, 300);
+};
+
+// Discard draft from Firebase
+window._discardDraft = async function() {
+    const user = window._fbAuth && window._fbAuth.currentUser;
+    if (!user) return;
+
+    const uid = user.uid;
+    const db = window._fbDb;
+    const { ref: fbRef, set: fbSet } = window._fbDbFns;
+
+    if (!db) return;
+
+    try {
+        // Set to null to delete
+        await fbSet(fbRef(db, 'users/' + uid + '/listingDraft'), null);
+        window._hideDraftBanner();
+        showOk('Draft discarded.');
+    } catch (err) {
+        console.warn('[Draft Discard] Error:', err);
+        window._hideDraftBanner();
+    }
+};
+
+// Hide the draft banner
+window._hideDraftBanner = function() {
+    const banner = document.getElementById('draftBanner');
+    if (banner) {
+        banner.style.opacity = '0';
+        banner.style.transform = 'translateY(-10px)';
+        banner.style.transition = 'all 0.2s ease-out';
+        setTimeout(() => banner.remove(), 200);
+    }
+    window._currentDraft = null;
+};
+
+// Check for draft when page loads if user is already signed in
+document.addEventListener('DOMContentLoaded', () => {
+    if (window._pendingDraftUser && typeof window._checkForDraft === 'function') {
+        window._checkForDraft(window._pendingDraftUser);
+    }
+});
 </script>
 
 <!--  SELLER BAR  -->
@@ -5324,6 +5674,15 @@ window.submitListing = async function submitListing_secure() {
             }
             lockScroll();
             document.getElementById('successModal').classList.add('open');
+            
+            // Clear the draft from Firebase since listing was submitted
+            const uid = window._fbAuth?.currentUser?.uid;
+            if (uid && window._fbDb && window._fbDbFns) {
+                try {
+                    const { ref: fbRef, set: fbSet } = window._fbDbFns;
+                    fbSet(fbRef(window._fbDb, 'users/' + uid + '/listingDraft'), null).catch(() => {});
+                } catch (_) {}
+            }
         }).catch(err => {
             submitBtn && (submitBtn.disabled = false); _resetBtn();
             showErr('Failed to submit: ' + (err.message || 'Unknown error. Please try again.'));
