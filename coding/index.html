@@ -3,14 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>groq/compound Mobile Dev</title>
+  <title>groq/compound Mobile Companion</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
-    /* Clean scrollbar reduction for phone layouts */
+    /* Prevent overall screen jumping and optimize inner mobile elements */
     ::-webkit-scrollbar { width: 4px; height: 4px; }
     ::-webkit-scrollbar-track { background: #0a0a0a; }
     ::-webkit-scrollbar-thumb { background: #262626; border-radius: 2px; }
+    body { -webkit-tap-highlight-color: transparent; }
   </style>
 </head>
 <body class="bg-neutral-950 text-neutral-100 font-sans antialiased selection:bg-emerald-500/30">
@@ -22,34 +23,34 @@
         <h1 class="text-sm font-black text-emerald-400 flex items-center gap-1.5 tracking-wide">
           ⚡ groq/compound
         </h1>
-        <p class="text-[11px] text-neutral-400 font-mono">sandbox interpreter active</p>
+        <p class="text-[11px] text-neutral-400 font-mono">sandbox code executor</p>
       </div>
-      <div class="bg-neutral-800 px-2 py-0.5 rounded text-[10px] text-neutral-400 font-mono" id="quota-badge">
+      <div class="bg-neutral-800 px-2 py-0.5 rounded text-[10px] text-neutral-400 font-mono shadow" id="quota-badge">
         250 / 250 REQS
       </div>
     </header>
 
-    <div id="status-strip" class="hidden bg-emerald-950/20 border-b border-emerald-900/40 text-emerald-400 text-xs px-4 py-2 flex items-center gap-2 animate-pulse">
+    <div id="status-strip" class="hidden bg-emerald-950/40 border-b border-emerald-900/40 text-emerald-400 text-xs px-4 py-2 flex items-center gap-2 animate-pulse">
       <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
-      <span id="status-text">Executing sandboxed environments...</span>
+      <span id="status-text">Processing agent tools & loops...</span>
     </div>
 
     <div id="chat-flow" class="flex-1 overflow-y-auto p-4 space-y-4">
       <div class="flex flex-col items-start w-full">
-        <div class="w-full text-xs text-neutral-300 bg-neutral-900/30 p-3 rounded-xl border border-neutral-900 leading-relaxed">
-          Compound live environment initialized. Toss any file code below or ask for structural logic fixes.
+        <div class="w-full text-xs text-neutral-400 bg-neutral-900/30 p-3 rounded-xl border border-neutral-900 leading-relaxed">
+          Platform initialized. Attach a code file snippet below or type out your debugging logic to execute.
         </div>
       </div>
     </div>
 
-    <footer class="p-3 bg-neutral-900/50 border-t border-neutral-800 sticky bottom-0 z-50 space-y-2 backdrop-blur-md">
+    <footer class="p-3 bg-neutral-900/60 border-t border-neutral-800 sticky bottom-0 z-50 space-y-2 backdrop-blur-md">
       
       <div id="file-pill" class="hidden flex items-center justify-between bg-neutral-800 text-[11px] text-neutral-200 px-2.5 py-1.5 rounded-lg border border-neutral-700 font-mono">
         <div class="flex items-center gap-1.5 truncate">
           <i data-lucide="file-code" class="w-3.5 h-3.5 text-emerald-400"></i>
-          <span id="pill-filename" class="truncate max-w-[200px]">script.js</span>
+          <span id="pill-filename" class="truncate max-w-[200px]"></span>
         </div>
-        <button onclick="clearUploadedFile()" class="p-0.5 hover:bg-neutral-700 rounded">
+        <button onclick="clearUploadedFile()" class="p-0.5 hover:bg-neutral-700 rounded transition">
           <i data-lucide="x" class="w-3.5 h-3.5 text-neutral-400"></i>
         </button>
       </div>
@@ -57,11 +58,11 @@
       <div class="flex items-center gap-2">
         <input type="file" id="file-picker" class="hidden" onchange="processLocalFile(this)">
         
-        <button onclick="document.getElementById('file-picker').click()" class="p-3 bg-neutral-800 hover:bg-neutral-700 active:scale-95 transition rounded-xl border border-neutral-700">
+        <button onclick="document.getElementById('file-picker').click()" class="p-3 bg-neutral-800 hover:bg-neutral-700 active:scale-95 transition rounded-xl border border-neutral-700 shadow-sm">
           <i data-lucide="paperclip" class="w-5 h-5 text-neutral-300"></i>
         </button>
 
-        <div class="flex-1 flex items-center bg-neutral-800 rounded-xl px-3 border border-neutral-700 focus-within:border-emerald-500 transition">
+        <div class="flex-1 flex items-center bg-neutral-800 rounded-xl px-3 border border-neutral-700 focus-within:border-emerald-500 transition shadow-inner">
           <input 
             type="text" 
             id="user-input" 
@@ -71,7 +72,7 @@
           >
         </div>
 
-        <button onclick="triggerMessage()" id="send-btn" class="p-3 bg-emerald-500 hover:bg-emerald-600 active:scale-95 transition rounded-xl text-neutral-950 font-bold">
+        <button onclick="triggerMessage()" id="send-btn" class="p-3 bg-emerald-500 hover:bg-emerald-600 active:scale-95 transition rounded-xl text-neutral-950 font-bold shadow-md shadow-emerald-950/20">
           <i data-lucide="send" class="w-5 h-5"></i>
         </button>
       </div>
@@ -80,10 +81,9 @@
   </div>
 
   <script>
-    // System Local Variables
     let activeFile = null;
 
-    // Initialize layout vector icons
+    // Build default vector icons
     lucide.createIcons();
 
     function processLocalFile(input) {
@@ -113,14 +113,12 @@
       const text = inputEl.value.trim();
       if (!text && !activeFile) return;
 
-      // Update UI with User bubble parameters
       appendUserBubble(text, activeFile?.name);
       inputEl.value = '';
-
-      // Toggle Engine Running view state
       setSystemLoadingState(true);
 
       try {
+        // Points natively to clean routing structure
         const response = await fetch('/api/coding', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -131,6 +129,11 @@
           })
         });
 
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          throw new Error(`The platform server rejected this endpoint with an internal 404/500 routing layout. Double-check your api folder path placement.`);
+        }
+
         const data = await response.json();
         if (data.error) throw new Error(data.error);
 
@@ -140,8 +143,8 @@
         }
 
       } catch (err) {
-        appendAssistantBubble(`System Error encountered: ${err.message}`);
-      } finally {
+        appendAssistantBubble(`System Error: ${err.message}`);
+      } {
         setSystemLoadingState(false);
         clearUploadedFile();
       }
@@ -190,7 +193,6 @@
       const wrapper = document.createElement('div');
       wrapper.className = "w-full text-xs text-neutral-200 bg-neutral-900/40 p-3 rounded-xl border border-neutral-900 space-y-3";
       
-      // Parse markdown segments safely across backticks
       const components = rawMarkdownText.split(/(```[\s\S]*?```)/g);
       
       components.forEach(part => {
@@ -198,18 +200,17 @@
           const lines = part.split('\n');
           const declaration = lines[0].replace('```', '').trim() || 'code';
           const codeBody = lines.slice(1, lines.length - 1).join('\n');
-          
           const uniqueId = 'code-' + Math.random().toString(36).substr(2, 9);
 
           const codeBlockNode = document.createElement('div');
-          codeBlockNode.className = "border border-neutral-800 bg-black rounded-lg overflow-hidden my-2";
+          codeBlockNode.className = "border border-neutral-800 bg-black rounded-lg overflow-hidden my-2 shadow-inner";
           codeBlockNode.innerHTML = `
-            <div class="flex justify-between items-center bg-neutral-900/80 px-2.5 py-1.5 border-b border-neutral-800 text-[10px] font-mono text-neutral-400">
+            <div class="flex justify-between items-center bg-neutral-900 px-2.5 py-1.5 border-b border-neutral-800 text-[10px] font-mono text-neutral-400">
               <span>${declaration}</span>
               <div class="flex items-center gap-2.5">
                 <button onclick="copyCodeSnippet('${uniqueId}')" class="hover:text-white transition flex items-center gap-0.5"><i data-lucide="copy" class="w-2.5 h-2.5"></i> Copy</button>
                 <button onclick="downloadCodeSnippet('${uniqueId}', '${declaration}')" class="hover:text-white transition flex items-center gap-0.5"><i data-lucide="download" class="w-2.5 h-2.5"></i> Save</button>
-                <button onclick="previewCodeSnippet('${uniqueId}')" class="hover:text-white transition flex items-center gap-0.5"><i data-lucide="eye" class="w-2.5 h-2.5"></i> Preview</button>
+                <button onclick="previewCodeSnippet('${uniqueId}')" class="hover:text-white transition flex items-center gap-0.5"><i data-lucide="eye" class="w-2.5 h-2.5"></i> Live</button>
               </div>
             </div>
             <div class="max-h-40 overflow-auto p-2.5 font-mono text-[11px] text-emerald-400 bg-neutral-950">
@@ -231,7 +232,6 @@
       container.scrollTop = container.scrollHeight;
     }
 
-    // Interactive Action Block Methods
     window.copyCodeSnippet = function(id) {
       const code = document.getElementById(id).innerText;
       navigator.clipboard.writeText(code);
