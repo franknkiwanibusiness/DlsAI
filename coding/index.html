@@ -3,57 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Code Replacer - Smart File Editor with Live Preview</title>
+    <title>Code Replacer - Working Find & Replace</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        /* PINK BACKGROUND - FIXED */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
         html, body {
             background: linear-gradient(135deg, #ff2e63, #ff6b9d, #ff2e63) !important;
             background-attachment: fixed !important;
             min-height: 100vh;
         }
-
-        /* Remove noise overlay completely */
-        body::after {
-            display: none !important;
-        }
-
+        
+        body::after { display: none !important; }
+        
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
             padding: 20px;
         }
-
-        .container {
-            max-width: 1600px;
-            margin: 0 auto;
-        }
-
-        /* Header */
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .header h1 {
-            font-size: 2rem;
-            background: white;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 8px;
-        }
-
-        .header p {
-            color: rgba(255,255,255,0.9);
-            font-size: 0.85rem;
-        }
-
-        /* Drop Zone */
+        
+        .container { max-width: 1600px; margin: 0 auto; }
+        
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h1 { font-size: 2rem; background: white; -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
+        .header p { color: rgba(255,255,255,0.9); font-size: 0.85rem; }
+        
         .drop-zone {
             background: rgba(255,255,255,0.15);
             backdrop-filter: blur(10px);
@@ -62,37 +34,14 @@
             padding: 40px;
             text-align: center;
             cursor: pointer;
-            transition: all 0.2s ease;
             margin-bottom: 24px;
+            transition: 0.2s;
         }
-
-        .drop-zone:hover {
-            border-color: white;
-            background: rgba(255,255,255,0.25);
-        }
-
-        .drop-zone.drag-over {
-            border-color: white;
-            background: rgba(255,255,255,0.3);
-        }
-
-        .drop-icon {
-            font-size: 48px;
-            margin-bottom: 12px;
-        }
-
-        .drop-text {
-            color: white;
-            font-size: 1rem;
-            margin-bottom: 8px;
-        }
-
-        .drop-sub {
-            color: rgba(255,255,255,0.7);
-            font-size: 0.75rem;
-        }
-
-        /* File Info */
+        .drop-zone:hover { border-color: white; background: rgba(255,255,255,0.25); }
+        .drop-icon { font-size: 48px; margin-bottom: 12px; }
+        .drop-text { color: white; font-size: 1rem; margin-bottom: 8px; }
+        .drop-sub { color: rgba(255,255,255,0.7); font-size: 0.75rem; }
+        
         .file-info {
             background: rgba(255,255,255,0.15);
             backdrop-filter: blur(10px);
@@ -100,57 +49,18 @@
             padding: 12px 16px;
             margin-bottom: 20px;
             display: flex;
-            align-items: center;
             justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 10px;
+            align-items: center;
             border: 1px solid rgba(255,255,255,0.2);
         }
-
-        .file-name {
-            color: white;
-            font-size: 0.875rem;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .file-size {
-            color: rgba(255,255,255,0.7);
-            font-size: 0.75rem;
-        }
-
-        .clear-btn {
-            background: rgba(0,0,0,0.3);
-            border: none;
-            padding: 6px 14px;
-            border-radius: 8px;
-            color: white;
-            font-size: 0.75rem;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .clear-btn:hover {
-            background: rgba(0,0,0,0.5);
-        }
-
-        /* Layout Grid */
-        .editor-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        @media (max-width: 900px) {
-            .editor-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Panels */
+        .file-name { color: white; display: flex; align-items: center; gap: 8px; }
+        .file-size { color: rgba(255,255,255,0.7); font-size: 0.75rem; }
+        .clear-btn { background: rgba(0,0,0,0.3); border: none; padding: 6px 14px; border-radius: 8px; color: white; cursor: pointer; }
+        .clear-btn:hover { background: rgba(0,0,0,0.5); }
+        
+        .editor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        @media (max-width: 900px) { .editor-grid { grid-template-columns: 1fr; } }
+        
         .panel {
             background: rgba(0,0,0,0.7);
             backdrop-filter: blur(10px);
@@ -158,7 +68,6 @@
             border: 1px solid rgba(255,255,255,0.2);
             overflow: hidden;
         }
-
         .panel-header {
             background: rgba(0,0,0,0.5);
             padding: 12px 16px;
@@ -167,29 +76,10 @@
             justify-content: space-between;
             align-items: center;
         }
-
-        .panel-title {
-            color: white;
-            font-size: 0.875rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .panel-badge {
-            background: rgba(255,255,255,0.2);
-            padding: 2px 8px;
-            border-radius: 20px;
-            font-size: 0.65rem;
-            color: #ff6b9d;
-        }
-
-        .char-count {
-            color: rgba(255,255,255,0.6);
-            font-size: 0.7rem;
-        }
-
+        .panel-title { color: white; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .panel-badge { background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 20px; font-size: 0.65rem; color: #ff6b9d; }
+        .char-count { color: rgba(255,255,255,0.6); font-size: 0.7rem; }
+        
         textarea {
             width: 100%;
             min-height: 280px;
@@ -197,22 +87,15 @@
             border: none;
             padding: 16px;
             color: white;
-            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+            font-family: monospace;
             font-size: 12px;
             line-height: 1.5;
             resize: vertical;
             outline: none;
         }
-
-        textarea:focus {
-            background: rgba(0,0,0,0.7);
-        }
-
-        textarea::placeholder {
-            color: rgba(255,255,255,0.4);
-        }
-
-        /* Preview Panel */
+        textarea:focus { background: rgba(0,0,0,0.7); }
+        textarea::placeholder { color: rgba(255,255,255,0.4); }
+        
         .preview-panel {
             background: rgba(0,0,0,0.7);
             backdrop-filter: blur(10px);
@@ -220,7 +103,6 @@
             border: 1px solid rgba(255,255,255,0.2);
             margin-bottom: 20px;
         }
-
         .preview-header {
             background: rgba(0,0,0,0.5);
             padding: 12px 16px;
@@ -231,12 +113,7 @@
             flex-wrap: wrap;
             gap: 10px;
         }
-
-        .preview-tabs {
-            display: flex;
-            gap: 8px;
-        }
-
+        .preview-tabs { display: flex; gap: 8px; }
         .preview-tab {
             background: rgba(255,255,255,0.1);
             border: none;
@@ -245,43 +122,22 @@
             color: rgba(255,255,255,0.7);
             font-size: 0.7rem;
             cursor: pointer;
-            transition: all 0.2s;
         }
-
-        .preview-tab.active {
-            background: #ff2e63;
-            color: white;
-        }
-
+        .preview-tab.active { background: #ff2e63; color: white; }
         .preview-content {
             padding: 16px;
             max-height: 400px;
             overflow: auto;
             background: rgba(0,0,0,0.3);
             border-radius: 0 0 12px 12px;
-        }
-
-        .preview-diff {
-            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
-            font-size: 12px;
-            line-height: 1.5;
-            white-space: pre-wrap;
-            word-break: break-word;
             color: white;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
         }
-
-        .diff-added {
-            background: rgba(16, 185, 129, 0.3);
-            color: #10b981;
-        }
-
-        .diff-removed {
-            background: rgba(239, 68, 68, 0.3);
-            color: #ef4444;
-            text-decoration: line-through;
-        }
-
-        /* Actions - STACKED VERTICALLY 100% WIDTH */
+        .diff-added { background: rgba(16,185,129,0.3); color: #10b981; }
+        .diff-removed { background: rgba(239,68,68,0.3); color: #ef4444; text-decoration: line-through; }
+        
         .actions {
             display: flex;
             flex-direction: column;
@@ -289,52 +145,26 @@
             width: 100%;
             margin-top: 24px;
         }
-
         .btn {
             width: 100%;
             padding: 14px 24px;
-            border: none;
             border-radius: 10px;
             font-size: 0.875rem;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
+            transition: 0.2s;
         }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #ff2e63, #ff6b9d);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(255, 46, 99, 0.4);
-        }
-
-        .btn-secondary {
-            background: rgba(255,255,255,0.1);
-            color: white;
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-
-        .btn-secondary:hover {
-            background: rgba(255,255,255,0.2);
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: white;
-        }
-
-        .btn-success:hover {
-            transform: translateY(-1px);
-        }
-
-        /* Quick Options */
+        .btn-primary { background: linear-gradient(135deg, #ff2e63, #ff6b9d); color: white; border: none; }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(255,46,99,0.4); }
+        .btn-secondary { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); }
+        .btn-secondary:hover { background: rgba(255,255,255,0.2); }
+        .btn-success { background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; }
+        .btn-success:hover { transform: translateY(-1px); }
+        
         .quick-options {
             display: flex;
             gap: 10px;
@@ -342,7 +172,6 @@
             justify-content: center;
             flex-wrap: wrap;
         }
-
         .quick-option {
             background: rgba(255,255,255,0.1);
             border: 1px solid rgba(255,255,255,0.2);
@@ -351,15 +180,9 @@
             font-size: 0.7rem;
             color: rgba(255,255,255,0.8);
             cursor: pointer;
-            transition: all 0.2s;
         }
-
-        .quick-option:hover {
-            background: rgba(255,255,255,0.2);
-            color: white;
-        }
-
-        /* Status */
+        .quick-option:hover { background: rgba(255,255,255,0.2); color: white; }
+        
         .status {
             position: fixed;
             bottom: 20px;
@@ -373,447 +196,201 @@
             transition: transform 0.3s ease;
             z-index: 1000;
         }
-
-        .status.show {
-            transform: translateX(0);
-        }
-
-        .status.success {
-            background: #059669;
-        }
-
-        .status.error {
-            background: #dc2626;
-        }
+        .status.show { transform: translateX(0); }
+        .status.success { background: #059669; }
+        .status.error { background: #dc2626; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🔧 Code Replacer</h1>
-            <p>Find & Replace · Live Preview · Diff View · HTML Render</p>
-        </div>
+<div class="container">
+    <div class="header">
+        <h1>🔧 Code Replacer</h1>
+        <p>Find & Replace · Live Preview · Diff View · HTML Render</p>
+    </div>
 
-        <!-- Drop Zone -->
-        <div class="drop-zone" id="dropZone">
-            <div class="drop-icon">📁</div>
-            <div class="drop-text">Drop HTML/JS/CSS file or click to browse</div>
-            <div class="drop-sub">Supports .html, .htm, .js, .css, .txt, .xml, .json, .md</div>
-            <input type="file" id="fileInput" style="display: none;" accept=".html,.htm,.js,.css,.txt,.json,.xml,.md,.php">
-        </div>
+    <div class="drop-zone" id="dropZone">
+        <div class="drop-icon">📁</div>
+        <div class="drop-text">Drop HTML/JS/CSS file or click to browse</div>
+        <div class="drop-sub">Supports .html, .htm, .js, .css, .txt, .xml, .json, .md</div>
+        <input type="file" id="fileInput" style="display: none;" accept=".html,.htm,.js,.css,.txt,.json,.xml,.md,.php">
+    </div>
 
-        <!-- File Info -->
-        <div class="file-info" id="fileInfo" style="display: none;">
-            <div class="file-name">
-                <span>📄</span>
-                <span id="fileName"></span>
-                <span class="file-size" id="fileSize"></span>
+    <div class="file-info" id="fileInfo" style="display: none;">
+        <div class="file-name"><span>📄</span> <span id="fileName"></span> <span class="file-size" id="fileSize"></span></div>
+        <button class="clear-btn" id="clearBtn">✕ Clear</button>
+    </div>
+
+    <div class="editor-grid" id="editorGrid" style="display: none;">
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">🔍 Find <span class="panel-badge">Before</span></div>
+                <div class="char-count" id="beforeCount">0 chars</div>
             </div>
-            <button class="clear-btn" id="clearBtn">✕ Clear</button>
+            <textarea id="beforeText" placeholder="Enter text/code to find..."></textarea>
         </div>
-
-        <!-- Editor Grid -->
-        <div class="editor-grid" id="editorGrid" style="display: none;">
-            <!-- Find Panel -->
-            <div class="panel">
-                <div class="panel-header">
-                    <div class="panel-title">
-                        🔍 Find
-                        <span class="panel-badge">Before</span>
-                    </div>
-                    <div class="char-count" id="beforeCount">0 chars</div>
-                </div>
-                <textarea id="beforeText" placeholder="Enter the text/code to find..."></textarea>
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">✨ Replace With <span class="panel-badge">After</span></div>
+                <div class="char-count" id="afterCount">0 chars</div>
             </div>
-
-            <!-- Replace Panel -->
-            <div class="panel">
-                <div class="panel-header">
-                    <div class="panel-title">
-                        ✨ Replace With
-                        <span class="panel-badge">After</span>
-                    </div>
-                    <div class="char-count" id="afterCount">0 chars</div>
-                </div>
-                <textarea id="afterText" placeholder="Enter the replacement text/code..."></textarea>
-            </div>
-        </div>
-
-        <!-- Preview Panel -->
-        <div class="preview-panel" id="previewPanel" style="display: none;">
-            <div class="preview-header">
-                <div class="panel-title">👁️ Live Preview</div>
-                <div class="preview-tabs">
-                    <button class="preview-tab active" data-tab="diff">Diff View</button>
-                    <button class="preview-tab" data-tab="code">Code View</button>
-                    <button class="preview-tab" data-tab="render">Render HTML</button>
-                </div>
-                <div class="char-count" id="resultCount">0 chars</div>
-            </div>
-            <div class="preview-content" id="previewContent">
-                <div class="preview-diff" id="previewResult"></div>
-            </div>
-        </div>
-
-        <!-- Actions - STACKED VERTICALLY -->
-        <div class="actions" id="actions" style="display: none;">
-            <button class="btn btn-secondary" id="resetBtn">🔄 Reset to Original</button>
-            <button class="btn btn-primary" id="applyBtn">⚡ Apply Replacement</button>
-            <button class="btn btn-success" id="downloadBtn">💾 Download Result</button>
-        </div>
-
-        <div class="quick-options" id="quickOptions" style="display: none;">
-            <span class="quick-option" onclick="toggleCaseSensitive()">🔤 Case Sensitive: OFF</span>
-            <span class="quick-option" onclick="useRegexMode()">🔧 Regex Mode: OFF</span>
-            <span class="quick-option" onclick="preserveIndent()">📐 Preserve Indent: OFF</span>
+            <textarea id="afterText" placeholder="Enter replacement text/code..."></textarea>
         </div>
     </div>
 
-    <div class="status" id="status">Ready</div>
+    <div class="preview-panel" id="previewPanel" style="display: none;">
+        <div class="preview-header">
+            <div class="panel-title">👁️ Live Preview</div>
+            <div class="preview-tabs">
+                <button class="preview-tab active" data-tab="diff">Diff View</button>
+                <button class="preview-tab" data-tab="code">Code View</button>
+                <button class="preview-tab" data-tab="render">Render HTML</button>
+            </div>
+            <div class="char-count" id="resultCount">0 chars</div>
+        </div>
+        <div class="preview-content" id="previewContent"></div>
+    </div>
 
-    <script>
-        let originalContent = '';
-        let currentContent = '';
-        let caseSensitive = false;
-        let regexMode = false;
-        let preserveIndentMode = false;
-        let currentTab = 'diff';
+    <div class="actions" id="actions" style="display: none;">
+        <button class="btn btn-secondary" id="resetBtn">🔄 Reset to Original</button>
+        <button class="btn btn-primary" id="applyBtn">⚡ Apply Replacement</button>
+        <button class="btn btn-success" id="downloadBtn">💾 Download Result</button>
+    </div>
 
-        // DOM Elements
-        const dropZone = document.getElementById('dropZone');
-        const fileInput = document.getElementById('fileInput');
-        const fileInfo = document.getElementById('fileInfo');
-        const editorGrid = document.getElementById('editorGrid');
-        const previewPanel = document.getElementById('previewPanel');
-        const actions = document.getElementById('actions');
-        const quickOptions = document.getElementById('quickOptions');
-        const beforeText = document.getElementById('beforeText');
-        const afterText = document.getElementById('afterText');
-        const previewResult = document.getElementById('previewResult');
-        const previewContent = document.getElementById('previewContent');
-        const fileNameSpan = document.getElementById('fileName');
-        const fileSizeSpan = document.getElementById('fileSize');
-        const beforeCount = document.getElementById('beforeCount');
-        const afterCount = document.getElementById('afterCount');
-        const resultCount = document.getElementById('resultCount');
-        const clearBtn = document.getElementById('clearBtn');
-        const resetBtn = document.getElementById('resetBtn');
-        const applyBtn = document.getElementById('applyBtn');
-        const downloadBtn = document.getElementById('downloadBtn');
-        const statusDiv = document.getElementById('status');
+    <div class="quick-options" id="quickOptions" style="display: none;">
+        <span class="quick-option" id="caseToggle">🔤 Case Sensitive: OFF</span>
+        <span class="quick-option" id="regexToggle">🔧 Regex Mode: OFF</span>
+        <span class="quick-option" id="indentToggle">📐 Preserve Indent: OFF</span>
+    </div>
+</div>
+<div class="status" id="status">Ready</div>
 
-        function showStatus(message, type = 'success') {
-            statusDiv.textContent = message;
-            statusDiv.className = `status ${type} show`;
-            setTimeout(() => statusDiv.classList.remove('show'), 3000);
+<script>
+    // State
+    let originalContent = '';
+    let workingContent = '';   // This gets updated after each replace
+    let caseSensitive = false;
+    let regexMode = false;
+    let preserveIndentMode = false;
+    let currentTab = 'diff';
+
+    // DOM elements
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileInfo = document.getElementById('fileInfo');
+    const editorGrid = document.getElementById('editorGrid');
+    const previewPanel = document.getElementById('previewPanel');
+    const actions = document.getElementById('actions');
+    const quickOptions = document.getElementById('quickOptions');
+    const beforeText = document.getElementById('beforeText');
+    const afterText = document.getElementById('afterText');
+    const previewContent = document.getElementById('previewContent');
+    const fileNameSpan = document.getElementById('fileName');
+    const fileSizeSpan = document.getElementById('fileSize');
+    const beforeCount = document.getElementById('beforeCount');
+    const afterCount = document.getElementById('afterCount');
+    const resultCount = document.getElementById('resultCount');
+    const clearBtn = document.getElementById('clearBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const applyBtn = document.getElementById('applyBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const statusDiv = document.getElementById('status');
+
+    function showStatus(msg, type = 'success') {
+        statusDiv.textContent = msg;
+        statusDiv.className = `status ${type} show`;
+        setTimeout(() => statusDiv.classList.remove('show'), 3000);
+    }
+
+    function updateCounts() {
+        if (beforeText) beforeCount.textContent = beforeText.value.length + ' chars';
+        if (afterText) afterCount.textContent = afterText.value.length + ' chars';
+        if (workingContent) resultCount.textContent = workingContent.length + ' chars';
+    }
+
+    function escapeRegex(str) {
+        return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Perform the replacement on the WORKING content (not original)
+    function performReplacement() {
+        if (!originalContent) {
+            showStatus('No file loaded', 'error');
+            return;
+        }
+        let findText = beforeText.value;
+        let replaceText = afterText.value;
+        if (!findText) {
+            showStatus('Please enter text to find', 'error');
+            return;
         }
 
-        function updateCounts() {
-            if (beforeText) beforeCount.textContent = beforeText.value.length + ' chars';
-            if (afterText) afterCount.textContent = afterText.value.length + ' chars';
-            if (currentContent) resultCount.textContent = currentContent.length + ' chars';
-        }
-
-        function escapeRegex(str) {
-            return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        function preserveIndentation(findText, replaceText, originalBlock) {
-            if (!preserveIndentMode) return replaceText;
-            
-            const lines = originalBlock.split('\n');
-            const findLines = findText.split('\n');
-            const replaceLines = replaceText.split('\n');
-            
-            if (findLines.length === replaceLines.length && findLines.length > 1) {
-                for (let i = 0; i < lines.length; i++) {
-                    const line = lines[i];
-                    const indent = line.match(/^\s*/)[0];
-                    if (line.includes(findLines[0]) && replaceLines[0]) {
-                        replaceLines[0] = indent + replaceLines[0].trimStart();
-                    }
-                }
-                return replaceLines.join('\n');
-            }
-            return replaceText;
-        }
-
-        function performReplacement() {
-            if (!originalContent) {
-                showStatus('No file loaded', 'error');
-                return;
-            }
-            
-            let findText = beforeText.value;
-            let replaceText = afterText.value;
-            
-            if (!findText) {
-                showStatus('Please enter text to find', 'error');
-                return;
-            }
-            
-            replaceText = preserveIndentation(findText, replaceText, originalContent);
-            
-            try {
-                let result;
-                if (regexMode) {
-                    const flags = 'g' + (caseSensitive ? '' : 'i');
-                    const regex = new RegExp(findText, flags);
-                    result = originalContent.replace(regex, replaceText);
-                } else {
-                    const flags = 'g' + (caseSensitive ? '' : 'i');
-                    const regex = new RegExp(escapeRegex(findText), flags);
-                    result = originalContent.replace(regex, replaceText);
-                }
-                
-                currentContent = result;
-                updatePreview();
-                showStatus(`Replaced "${findText.substring(0, 50)}${findText.length > 50 ? '...' : ''}"`, 'success');
-            } catch (e) {
-                showStatus('Error: ' + e.message, 'error');
-            }
-        }
-
-        function updatePreview() {
-            if (!originalContent) return;
-            
-            const findText = beforeText.value;
-            const replaceText = afterText.value;
-            
-            if (!findText) {
-                renderCurrentTab(originalContent, originalContent);
-                updateCounts();
-                return;
-            }
-            
+        try {
             let flags = 'g';
             if (!caseSensitive) flags += 'i';
-            
-            try {
-                const pattern = regexMode ? findText : escapeRegex(findText);
-                const regex = new RegExp(pattern, flags);
-                const result = originalContent.replace(regex, replaceText);
-                currentContent = result;
-                renderCurrentTab(originalContent, result, findText, replaceText);
-                updateCounts();
-            } catch (e) {
-                previewResult.innerHTML = `<span style="color: #ef4444;">Error: ${e.message}</span>`;
+            let pattern;
+            if (regexMode) {
+                pattern = new RegExp(findText, flags);
+            } else {
+                pattern = new RegExp(escapeRegex(findText), flags);
             }
-        }
-
-        function renderCurrentTab(original, modified, findText = '', replaceText = '') {
-            if (currentTab === 'diff') {
-                renderDiffView(original, modified, findText, replaceText);
-            } else if (currentTab === 'code') {
-                previewContent.innerHTML = `<div class="preview-diff"><pre style="white-space: pre-wrap; font-family: monospace; font-size: 12px; color: white;">${escapeHtml(modified)}</pre></div>`;
-            } else if (currentTab === 'render') {
-                renderHtmlView(modified);
-            }
-        }
-
-        function renderDiffView(original, modified, findText, replaceText) {
-            if (!findText) {
-                previewResult.innerHTML = `<div class="preview-diff">${escapeHtml(modified)}</div>`;
+            const newContent = workingContent.replace(pattern, replaceText);
+            if (newContent === workingContent) {
+                showStatus('No matches found', 'error');
                 return;
             }
-            
-            let html = '';
-            let lastIndex = 0;
-            let flags = 'gi';
-            if (caseSensitive) flags = 'g';
-            
-            try {
-                const pattern = regexMode ? findText : escapeRegex(findText);
-                const regex = new RegExp(pattern, flags);
-                let match;
-                let searchText = original;
-                
-                while ((match = regex.exec(searchText)) !== null) {
-                    html += escapeHtml(searchText.substring(lastIndex, match.index));
-                    html += `<span class="diff-removed">${escapeHtml(match[0])}</span>`;
-                    html += `<span class="diff-added">${escapeHtml(replaceText)}</span>`;
-                    
-                    lastIndex = match.index + match[0].length;
-                }
-                html += escapeHtml(searchText.substring(lastIndex));
-                
-                previewResult.innerHTML = `<div class="preview-diff">${html}</div>`;
-            } catch (e) {
-                previewResult.innerHTML = `<div class="preview-diff">${escapeHtml(modified)}</div>`;
-            }
-        }
-
-        function renderHtmlView(htmlContent) {
-            const iframe = document.createElement('iframe');
-            iframe.srcdoc = htmlContent;
-            iframe.style.width = '100%';
-            iframe.style.minHeight = '400px';
-            iframe.style.border = 'none';
-            iframe.style.borderRadius = '8px';
-            iframe.style.background = 'white';
-            
-            previewContent.innerHTML = '';
-            previewContent.appendChild(iframe);
-        }
-
-        function loadFile(file) {
-            if (!file) return;
-            
-            fileNameSpan.textContent = file.name;
-            fileSizeSpan.textContent = `(${(file.size / 1024).toFixed(1)} KB)`;
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                originalContent = e.target.result;
-                currentContent = originalContent;
-                
-                fileInfo.style.display = 'flex';
-                editorGrid.style.display = 'grid';
-                previewPanel.style.display = 'block';
-                actions.style.display = 'flex';
-                quickOptions.style.display = 'flex';
-                
-                beforeText.value = '';
-                afterText.value = '';
-                
-                updatePreview();
-                showStatus(`Loaded "${file.name}"`, 'success');
-            };
-            
-            reader.onerror = function() {
-                showStatus('Error reading file', 'error');
-            };
-            
-            reader.readAsText(file);
-        }
-
-        function clearAll() {
-            originalContent = '';
-            currentContent = '';
-            fileInput.value = '';
-            fileInfo.style.display = 'none';
-            editorGrid.style.display = 'none';
-            previewPanel.style.display = 'none';
-            actions.style.display = 'none';
-            quickOptions.style.display = 'none';
-            beforeText.value = '';
-            afterText.value = '';
-            previewResult.innerHTML = '';
-            showStatus('Cleared', 'success');
-        }
-
-        function downloadResult() {
-            if (!currentContent) {
-                showStatus('No content to download', 'error');
-                return;
-            }
-            
-            const fileName = fileNameSpan.textContent || 'result';
-            const baseName = fileName.replace(/\(.*\)/, '').trim();
-            const blob = new Blob([currentContent], { type: 'text/html;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = baseName || 'modified_file.html';
-            a.click();
-            URL.revokeObjectURL(url);
-            showStatus('Downloaded!', 'success');
-        }
-
-        function resetToOriginal() {
-            if (originalContent) {
-                currentContent = originalContent;
-                updatePreview();
-                showStatus('Reset to original', 'success');
-            }
-        }
-
-        function toggleCaseSensitive() {
-            caseSensitive = !caseSensitive;
-            const btn = document.querySelector('.quick-option:first-child');
-            if (btn) btn.textContent = `🔤 Case Sensitive: ${caseSensitive ? 'ON' : 'OFF'}`;
+            workingContent = newContent;
             updatePreview();
+            showStatus(`Replaced "${findText.substring(0, 50)}${findText.length > 50 ? '...' : ''}"`, 'success');
+        } catch (e) {
+            showStatus('Error: ' + e.message, 'error');
+        }
+    }
+
+    // Update the live preview based on current working content and find/replace
+    function updatePreview() {
+        if (!originalContent) return;
+        const findText = beforeText.value;
+        const replaceText = afterText.value;
+        if (!findText) {
+            renderCurrentTab(workingContent, workingContent);
+            updateCounts();
+            return;
         }
 
-        function useRegexMode() {
-            regexMode = !regexMode;
-            const btn = document.querySelector('.quick-option:nth-child(2)');
-            if (btn) btn.textContent = `🔧 Regex Mode: ${regexMode ? 'ON' : 'OFF'}`;
-            updatePreview();
+        try {
+            let flags = 'g';
+            if (!caseSensitive) flags += 'i';
+            let pattern;
+            if (regexMode) {
+                pattern = new RegExp(findText, flags);
+            } else {
+                pattern = new RegExp(escapeRegex(findText), flags);
+            }
+            // Show what WOULD happen if we applied to current working content
+            const previewResult = workingContent.replace(pattern, replaceText);
+            renderCurrentTab(workingContent, previewResult, findText, replaceText);
+            updateCounts();
+        } catch (e) {
+            previewContent.innerHTML = `<span style="color:#ef4444;">Error: ${e.message}</span>`;
         }
+    }
 
-        function preserveIndent() {
-            preserveIndentMode = !preserveIndentMode;
-            const btn = document.querySelector('.quick-option:nth-child(3)');
-            if (btn) btn.textContent = `📐 Preserve Indent: ${preserveIndentMode ? 'ON' : 'OFF'}`;
+    function renderCurrentTab(originalForDiff, modifiedForDiff, findText = '', replaceText = '') {
+        if (currentTab === 'diff') {
+            renderDiffView(originalForDiff, modifiedForDiff, findText, replaceText);
+        } else if (currentTab === 'code') {
+            previewContent.innerHTML = `<pre style="white-space:pre-wrap;font-family:monospace;font-size:12px;color:white;">${escapeHtml(modifiedForDiff)}</pre>`;
+        } else if (currentTab === 'render') {
+            renderHtmlView(modifiedForDiff);
         }
+    }
 
-        // Tab switching
-        document.querySelectorAll('.preview-tab').forEach(tab => {
-            tab.addEventListener('click', () => {
-                document.querySelectorAll('.preview-tab').forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                currentTab = tab.dataset.tab;
-                updatePreview();
-            });
-        });
-
-        // Event Listeners
-        dropZone.addEventListener('click', () => fileInput.click());
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('drag-over');
-        });
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('drag-over');
-        });
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('drag-over');
-            const file = e.dataTransfer.files[0];
-            if (file) loadFile(file);
-        });
-        
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files[0]) loadFile(e.target.files[0]);
-        });
-        
-        clearBtn.addEventListener('click', clearAll);
-        resetBtn.addEventListener('click', resetToOriginal);
-        applyBtn.addEventListener('click', performReplacement);
-        downloadBtn.addEventListener('click', downloadResult);
-        
-        beforeText.addEventListener('input', updatePreview);
-        afterText.addEventListener('input', updatePreview);
-        
-        // Keyboard Shortcuts
-        document.addEventListener('keydown', (e) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                e.preventDefault();
-                performReplacement();
-            }
-            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-                e.preventDefault();
-                downloadResult();
-            }
-            if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
-                e.preventDefault();
-                resetToOriginal();
-            }
-        });
-        
-        // Expose functions globally
-        window.toggleCaseSensitive = toggleCaseSensitive;
-        window.useRegexMode = useRegexMode;
-        window.preserveIndent = preserveIndent;
-        
-        updateCounts();
-    </script>
-</body>
-</html>
+    function renderDiffView(original, modified, findText, replaceText) {
+        if (!findText) {
+            previewContent.innerHTML = `<pre style="white-space:pre-wrap;font-family:monospace;color:white;">${
