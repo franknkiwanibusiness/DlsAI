@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Code Replacer - Smart File Editor with Preview</title>
+    <title>Code Replacer - Working Version</title>
     <style>
         * {
             margin: 0;
@@ -12,119 +12,91 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
-            background: #0a0a0a;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
             min-height: 100vh;
             padding: 20px;
         }
 
         .container {
-            max-width: 1600px;
+            max-width: 1400px;
             margin: 0 auto;
         }
 
-        /* Header */
-        .header {
+        h1 {
             text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .header h1 {
+            color: #fff;
+            margin-bottom: 10px;
             font-size: 2rem;
-            background: linear-gradient(135deg, #10b981, #3b82f6);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 8px;
         }
 
-        .header p {
-            color: #6b7280;
-            font-size: 0.85rem;
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+            font-size: 0.9rem;
         }
 
         /* Drop Zone */
         .drop-zone {
-            background: #111827;
-            border: 2px dashed #374151;
+            background: #16213e;
+            border: 2px dashed #0f3460;
             border-radius: 16px;
             padding: 40px;
             text-align: center;
             cursor: pointer;
-            transition: all 0.2s ease;
-            margin-bottom: 24px;
+            transition: all 0.3s;
+            margin-bottom: 20px;
         }
 
         .drop-zone:hover {
-            border-color: #10b981;
-            background: #1a2332;
+            border-color: #e94560;
+            background: #1a1a4e;
         }
 
         .drop-zone.drag-over {
-            border-color: #10b981;
-            background: rgba(16, 185, 129, 0.1);
-        }
-
-        .drop-icon {
-            font-size: 48px;
-            margin-bottom: 12px;
-        }
-
-        .drop-text {
-            color: #e5e7eb;
-            font-size: 1rem;
-            margin-bottom: 8px;
-        }
-
-        .drop-sub {
-            color: #6b7280;
-            font-size: 0.75rem;
+            border-color: #00ff88;
+            background: #1a3a2e;
         }
 
         /* File Info */
         .file-info {
-            background: #111827;
+            background: #16213e;
             border-radius: 12px;
-            padding: 12px 16px;
+            padding: 15px;
             margin-bottom: 20px;
             display: flex;
-            align-items: center;
             justify-content: space-between;
+            align-items: center;
             flex-wrap: wrap;
             gap: 10px;
-            border: 1px solid #1f2937;
         }
 
         .file-name {
-            color: #e5e7eb;
-            font-size: 0.875rem;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            color: #fff;
+            font-size: 14px;
         }
 
         .file-size {
-            color: #6b7280;
-            font-size: 0.75rem;
+            color: #888;
+            font-size: 12px;
+            margin-left: 10px;
         }
 
         .clear-btn {
-            background: #1f2937;
+            background: #e94560;
+            color: white;
             border: none;
-            padding: 6px 14px;
+            padding: 8px 16px;
             border-radius: 8px;
-            color: #ef4444;
-            font-size: 0.75rem;
             cursor: pointer;
-            transition: all 0.2s;
         }
 
         .clear-btn:hover {
-            background: #374151;
+            background: #ff6b8a;
         }
 
-        /* Layout Grid */
+        /* Editor Grid */
         .editor-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -132,7 +104,7 @@
             margin-bottom: 20px;
         }
 
-        @media (max-width: 900px) {
+        @media (max-width: 768px) {
             .editor-grid {
                 grid-template-columns: 1fr;
             }
@@ -140,73 +112,65 @@
 
         /* Panels */
         .panel {
-            background: #111827;
+            background: #16213e;
             border-radius: 12px;
-            border: 1px solid #1f2937;
             overflow: hidden;
         }
 
         .panel-header {
-            background: #0f172a;
+            background: #0f3460;
             padding: 12px 16px;
-            border-bottom: 1px solid #1f2937;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
         .panel-title {
-            color: #e5e7eb;
-            font-size: 0.875rem;
+            color: #fff;
             font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
         }
 
         .panel-badge {
-            background: #1e293b;
+            background: #e94560;
             padding: 2px 8px;
             border-radius: 20px;
-            font-size: 0.65rem;
-            color: #10b981;
+            font-size: 11px;
+            margin-left: 8px;
         }
 
         .char-count {
-            color: #6b7280;
-            font-size: 0.7rem;
+            color: #888;
+            font-size: 11px;
         }
 
         textarea {
             width: 100%;
-            min-height: 280px;
-            background: #0f172a;
+            min-height: 300px;
+            background: #0f3460;
             border: none;
             padding: 16px;
-            color: #e5e7eb;
-            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
-            font-size: 12px;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
             line-height: 1.5;
             resize: vertical;
             outline: none;
         }
 
         textarea:focus {
-            background: #0a0f1c;
+            background: #1a4a7a;
         }
 
-        /* Preview Panel */
+        /* Preview */
         .preview-panel {
-            background: #111827;
+            background: #16213e;
             border-radius: 12px;
-            border: 1px solid #1f2937;
             margin-bottom: 20px;
         }
 
         .preview-header {
-            background: #0f172a;
+            background: #0f3460;
             padding: 12px 16px;
-            border-bottom: 1px solid #1f2937;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -219,61 +183,29 @@
             gap: 8px;
         }
 
-        .preview-tab {
-            background: #1e293b;
-            border: none;
-            padding: 4px 12px;
+        .tab-btn {
+            background: #0f3460;
+            border: 1px solid #e94560;
+            padding: 5px 12px;
             border-radius: 6px;
-            color: #9ca3af;
-            font-size: 0.7rem;
+            color: #fff;
             cursor: pointer;
-            transition: all 0.2s;
         }
 
-        .preview-tab.active {
-            background: #10b981;
-            color: white;
+        .tab-btn.active {
+            background: #e94560;
         }
 
         .preview-content {
             padding: 16px;
             max-height: 400px;
             overflow: auto;
-            background: #0f172a;
+            background: #0f3460;
             border-radius: 0 0 12px 12px;
-        }
-
-        .preview-diff {
-            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
-            font-size: 12px;
-            line-height: 1.5;
-            white-space: pre-wrap;
-            word-break: break-word;
-        }
-
-        .preview-html {
+            color: #fff;
             font-family: monospace;
             font-size: 12px;
-            line-height: 1.5;
-        }
-
-        .preview-html iframe {
-            width: 100%;
-            min-height: 350px;
-            border: none;
-            background: white;
-            border-radius: 8px;
-        }
-
-        .diff-added {
-            background: rgba(16, 185, 129, 0.2);
-            color: #10b981;
-        }
-
-        .diff-removed {
-            background: rgba(239, 68, 68, 0.2);
-            color: #ef4444;
-            text-decoration: line-through;
+            white-space: pre-wrap;
         }
 
         /* Actions */
@@ -284,42 +216,42 @@
             flex-wrap: wrap;
         }
 
-        .btn {
-            padding: 10px 24px;
+        button {
+            padding: 12px 24px;
             border: none;
-            border-radius: 10px;
-            font-size: 0.875rem;
+            border-radius: 8px;
+            font-size: 14px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #10b981, #059669);
+            background: #e94560;
             color: white;
         }
 
         .btn-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            background: #ff6b8a;
+            transform: translateY(-2px);
         }
 
         .btn-secondary {
-            background: #1f2937;
-            color: #e5e7eb;
-            border: 1px solid #374151;
+            background: #0f3460;
+            color: white;
         }
 
         .btn-secondary:hover {
-            background: #374151;
+            background: #1a4a7a;
         }
 
         .btn-success {
-            background: linear-gradient(135deg, #3b82f6, #2563eb);
-            color: white;
+            background: #00ff88;
+            color: #1a1a2e;
+        }
+
+        .btn-success:hover {
+            background: #55ffaa;
         }
 
         /* Status */
@@ -327,13 +259,12 @@
             position: fixed;
             bottom: 20px;
             right: 20px;
-            background: #1f2937;
-            padding: 10px 18px;
-            border-radius: 10px;
+            background: #333;
+            padding: 10px 20px;
+            border-radius: 8px;
             color: white;
-            font-size: 0.8rem;
             transform: translateX(400px);
-            transition: transform 0.3s ease;
+            transition: transform 0.3s;
             z-index: 1000;
         }
 
@@ -342,58 +273,43 @@
         }
 
         .status.success {
-            background: #059669;
+            background: #00ff88;
+            color: #1a1a2e;
         }
 
         .status.error {
-            background: #dc2626;
+            background: #e94560;
         }
 
-        /* Quick Options */
-        .quick-options {
-            display: flex;
-            gap: 10px;
-            margin-top: 16px;
-            justify-content: center;
+        /* Diff highlighting */
+        .diff-added {
+            background: rgba(0, 255, 136, 0.3);
+            color: #00ff88;
         }
 
-        .quick-option {
-            background: #1e293b;
-            border: 1px solid #334155;
-            padding: 5px 12px;
-            border-radius: 6px;
-            font-size: 0.7rem;
-            color: #94a3b8;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .quick-option:hover {
-            background: #334155;
-            color: white;
+        .diff-removed {
+            background: rgba(233, 69, 96, 0.3);
+            color: #ff6b8a;
+            text-decoration: line-through;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>🔧 Code Replacer</h1>
-            <p>Find & Replace · Live Preview · HTML Render · Diff View</p>
-        </div>
+        <h1>🔧 Code Replacer</h1>
+        <div class="subtitle">Find & Replace • Live Preview • Diff View</div>
 
         <!-- Drop Zone -->
         <div class="drop-zone" id="dropZone">
-            <div class="drop-icon">📁</div>
-            <div class="drop-text">Drop HTML/JS/CSS file or click to browse</div>
-            <div class="drop-sub">Supports .html, .htm, .js, .css, .txt, .xml, .json, .md</div>
-            <input type="file" id="fileInput" style="display: none;" accept=".html,.htm,.js,.css,.txt,.json,.xml,.md,.php">
+            📁 Drop file here or click to browse<br>
+            <small style="color: #888;">Supports .html, .js, .css, .txt, .json</small>
         </div>
+        <input type="file" id="fileInput" style="display: none;" accept=".html,.htm,.js,.css,.txt,.json,.xml,.md">
 
         <!-- File Info -->
         <div class="file-info" id="fileInfo" style="display: none;">
-            <div class="file-name">
-                <span>📄</span>
-                <span id="fileName"></span>
+            <div>
+                📄 <span id="fileName"></span>
                 <span class="file-size" id="fileSize"></span>
             </div>
             <button class="clear-btn" id="clearBtn">✕ Clear</button>
@@ -401,82 +317,66 @@
 
         <!-- Editor Grid -->
         <div class="editor-grid" id="editorGrid" style="display: none;">
-            <!-- Find Panel -->
             <div class="panel">
                 <div class="panel-header">
-                    <div class="panel-title">
-                        🔍 Find
-                        <span class="panel-badge">Before</span>
-                    </div>
+                    <div class="panel-title">🔍 Find <span class="panel-badge">Before</span></div>
                     <div class="char-count" id="beforeCount">0 chars</div>
                 </div>
-                <textarea id="beforeText" placeholder="Enter the text/code to find..."></textarea>
+                <textarea id="beforeText" placeholder="Enter text to find..."></textarea>
             </div>
-
-            <!-- Replace Panel -->
             <div class="panel">
                 <div class="panel-header">
-                    <div class="panel-title">
-                        ✨ Replace With
-                        <span class="panel-badge">After</span>
-                    </div>
+                    <div class="panel-title">✨ Replace With <span class="panel-badge">After</span></div>
                     <div class="char-count" id="afterCount">0 chars</div>
                 </div>
-                <textarea id="afterText" placeholder="Enter the replacement text/code..."></textarea>
+                <textarea id="afterText" placeholder="Enter replacement text..."></textarea>
             </div>
         </div>
 
-        <!-- Preview Panel -->
+        <!-- Preview -->
         <div class="preview-panel" id="previewPanel" style="display: none;">
             <div class="preview-header">
-                <div class="panel-title">👁️ Live Preview</div>
+                <div class="panel-title">👁️ Preview</div>
                 <div class="preview-tabs">
-                    <button class="preview-tab active" data-tab="diff">Diff View</button>
-                    <button class="preview-tab" data-tab="code">Code View</button>
-                    <button class="preview-tab" data-tab="render">Render HTML</button>
+                    <button class="tab-btn active" data-tab="diff">Diff View</button>
+                    <button class="tab-btn" data-tab="code">Code View</button>
                 </div>
                 <div class="char-count" id="resultCount">0 chars</div>
             </div>
-            <div class="preview-content" id="previewContent">
-                <div class="preview-diff" id="previewResult"></div>
-            </div>
+            <div class="preview-content" id="previewContent"></div>
         </div>
 
         <!-- Actions -->
         <div class="actions" id="actions" style="display: none;">
-            <button class="btn btn-secondary" id="resetBtn">🔄 Reset</button>
-            <button class="btn btn-primary" id="applyBtn">⚡ Apply Replacement</button>
-            <button class="btn btn-success" id="downloadBtn">💾 Download</button>
+            <button class="btn-secondary" id="resetBtn">🔄 Reset</button>
+            <button class="btn-primary" id="applyBtn">⚡ Apply</button>
+            <button class="btn-success" id="downloadBtn">💾 Download</button>
         </div>
 
-        <div class="quick-options" id="quickOptions" style="display: none;">
-            <span class="quick-option" onclick="toggleCaseSensitive()">🔤 Case Sensitive: OFF</span>
-            <span class="quick-option" onclick="useRegexMode()">🔧 Regex Mode</span>
-            <span class="quick-option" onclick="preserveIndent()">📐 Preserve Indentation</span>
+        <div class="actions" style="margin-top: 10px;">
+            <button class="btn-secondary" id="caseBtn">🔤 Case Sensitive: OFF</button>
         </div>
     </div>
 
     <div class="status" id="status">Ready</div>
 
     <script>
+        // State
         let originalContent = '';
         let currentContent = '';
         let caseSensitive = false;
-        let regexMode = false;
-        let preserveIndentMode = false;
         let currentTab = 'diff';
 
-        // DOM Elements
+        // DOM elements
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
         const fileInfo = document.getElementById('fileInfo');
         const editorGrid = document.getElementById('editorGrid');
         const previewPanel = document.getElementById('previewPanel');
         const actions = document.getElementById('actions');
-        const quickOptions = document.getElementById('quickOptions');
         const beforeText = document.getElementById('beforeText');
         const afterText = document.getElementById('afterText');
-        const previewResult = document.getElementById('previewResult');
+        const previewContent = document.getElementById('previewContent');
         const fileNameSpan = document.getElementById('fileName');
         const fileSizeSpan = document.getElementById('fileSize');
         const beforeCount = document.getElementById('beforeCount');
@@ -486,17 +386,18 @@
         const resetBtn = document.getElementById('resetBtn');
         const applyBtn = document.getElementById('applyBtn');
         const downloadBtn = document.getElementById('downloadBtn');
+        const caseBtn = document.getElementById('caseBtn');
         const statusDiv = document.getElementById('status');
 
-        function showStatus(message, type = 'success') {
-            statusDiv.textContent = message;
+        function showStatus(msg, type = 'success') {
+            statusDiv.textContent = msg;
             statusDiv.className = `status ${type} show`;
-            setTimeout(() => statusDiv.classList.remove('show'), 3000);
+            setTimeout(() => statusDiv.classList.remove('show'), 2500);
         }
 
         function updateCounts() {
-            if (beforeText) beforeCount.textContent = beforeText.value.length + ' chars';
-            if (afterText) afterCount.textContent = afterText.value.length + ' chars';
+            beforeCount.textContent = beforeText.value.length + ' chars';
+            afterCount.textContent = afterText.value.length + ' chars';
             if (currentContent) resultCount.textContent = currentContent.length + ' chars';
         }
 
@@ -504,156 +405,101 @@
             return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         }
 
-        function preserveIndentation(findText, replaceText, originalBlock) {
-            if (!preserveIndentMode) return replaceText;
-            
-            const lines = originalBlock.split('\n');
-            const findLines = findText.split('\n');
-            const replaceLines = replaceText.split('\n');
-            
-            if (findLines.length === replaceLines.length && findLines.length > 1) {
-                for (let i = 0; i < lines.length; i++) {
-                    const line = lines[i];
-                    const indent = line.match(/^\s*/)[0];
-                    if (line.includes(findLines[0]) && replaceLines[0]) {
-                        replaceLines[0] = indent + replaceLines[0].trimStart();
-                    }
-                }
-                return replaceLines.join('\n');
-            }
-            return replaceText;
-        }
-
         function performReplacement() {
-            if (!originalContent) return;
-            
-            let findText = beforeText.value;
-            let replaceText = afterText.value;
-            
-            if (!findText) {
-                showStatus('Please enter text to find', 'error');
+            if (!originalContent) {
+                showStatus('No file loaded', 'error');
                 return;
             }
-            
-            replaceText = preserveIndentation(findText, replaceText, originalContent);
-            
+
+            let findText = beforeText.value;
+            let replaceText = afterText.value;
+
+            if (!findText) {
+                showStatus('Enter text to find', 'error');
+                return;
+            }
+
             try {
-                let result;
-                if (regexMode) {
-                    const flags = 'g' + (caseSensitive ? '' : 'i');
-                    const regex = new RegExp(findText, flags);
-                    result = originalContent.replace(regex, replaceText);
-                } else {
-                    const flags = 'g' + (caseSensitive ? '' : 'i');
-                    const regex = new RegExp(escapeRegex(findText), flags);
-                    result = originalContent.replace(regex, replaceText);
-                }
-                
+                let flags = 'g';
+                if (!caseSensitive) flags += 'i';
+                const regex = new RegExp(escapeRegex(findText), flags);
+                const result = originalContent.replace(regex, replaceText);
                 currentContent = result;
                 updatePreview();
-                showStatus(`Replaced "${findText.substring(0, 50)}${findText.length > 50 ? '...' : ''}"`, 'success');
+                showStatus('Replacement applied!', 'success');
             } catch (e) {
                 showStatus('Error: ' + e.message, 'error');
             }
         }
 
         function updatePreview() {
-            if (!originalContent) return;
-            
+            if (!originalContent) {
+                previewContent.innerHTML = 'No file loaded';
+                return;
+            }
+
             const findText = beforeText.value;
             const replaceText = afterText.value;
-            
+
             if (!findText) {
-                renderCurrentTab(originalContent, originalContent);
+                if (currentTab === 'diff') {
+                    previewContent.innerHTML = `<div style="white-space: pre-wrap;">${escapeHtml(originalContent)}</div>`;
+                } else {
+                    previewContent.innerHTML = `<pre style="white-space: pre-wrap;">${escapeHtml(originalContent)}</pre>`;
+                }
+                currentContent = originalContent;
+                updateCounts();
                 return;
             }
-            
-            let flags = 'g';
-            if (!caseSensitive) flags += 'i';
-            
+
             try {
-                const pattern = regexMode ? findText : escapeRegex(findText);
-                const regex = new RegExp(pattern, flags);
+                let flags = 'g';
+                if (!caseSensitive) flags += 'i';
+                const regex = new RegExp(escapeRegex(findText), flags);
                 const result = originalContent.replace(regex, replaceText);
                 currentContent = result;
-                renderCurrentTab(originalContent, result, findText, replaceText);
+
+                if (currentTab === 'diff') {
+                    // Show diff
+                    let html = '';
+                    let lastIndex = 0;
+                    let searchText = originalContent;
+                    let match;
+                    const testRegex = new RegExp(escapeRegex(findText), flags);
+                    
+                    while ((match = testRegex.exec(searchText)) !== null) {
+                        html += escapeHtml(searchText.substring(lastIndex, match.index));
+                        html += `<span class="diff-removed">${escapeHtml(match[0])}</span>`;
+                        html += `<span class="diff-added">${escapeHtml(replaceText)}</span>`;
+                        lastIndex = match.index + match[0].length;
+                    }
+                    html += escapeHtml(searchText.substring(lastIndex));
+                    previewContent.innerHTML = `<div style="white-space: pre-wrap; font-family: monospace; font-size: 12px;">${html}</div>`;
+                } else {
+                    previewContent.innerHTML = `<pre style="white-space: pre-wrap;">${escapeHtml(result)}</pre>`;
+                }
+
                 updateCounts();
             } catch (e) {
-                previewResult.innerHTML = `<span style="color: #ef4444;">Error: ${e.message}</span>`;
+                previewContent.innerHTML = `<span style="color: #e94560;">Error: ${e.message}</span>`;
             }
-        }
-
-        function renderCurrentTab(original, modified, findText = '', replaceText = '') {
-            const container = document.getElementById('previewContent');
-            
-            if (currentTab === 'diff') {
-                renderDiffView(original, modified, findText, replaceText);
-            } else if (currentTab === 'code') {
-                container.innerHTML = `<div class="preview-diff"><pre style="white-space: pre-wrap; font-family: monospace; font-size: 12px;">${escapeHtml(modified)}</pre></div>`;
-            } else if (currentTab === 'render') {
-                renderHtmlView(modified);
-            }
-        }
-
-        function renderDiffView(original, modified, findText, replaceText) {
-            if (!findText) {
-                previewResult.innerHTML = `<div class="preview-diff">${escapeHtml(modified)}</div>`;
-                return;
-            }
-            
-            let html = '';
-            let lastIndex = 0;
-            let flags = 'gi';
-            if (caseSensitive) flags = 'g';
-            
-            try {
-                const pattern = regexMode ? findText : escapeRegex(findText);
-                const regex = new RegExp(pattern, flags);
-                let match;
-                let searchText = original;
-                
-                while ((match = regex.exec(searchText)) !== null) {
-                    // Add unchanged text
-                    html += escapeHtml(searchText.substring(lastIndex, match.index));
-                    // Add removed text
-                    html += `<span class="diff-removed">${escapeHtml(match[0])}</span>`;
-                    
-                    lastIndex = match.index + match[0].length;
-                }
-                html += escapeHtml(searchText.substring(lastIndex));
-                
-                previewResult.innerHTML = `<div class="preview-diff">${html}</div>`;
-            } catch (e) {
-                previewResult.innerHTML = `<div class="preview-diff">${escapeHtml(modified)}</div>`;
-            }
-        }
-
-        function renderHtmlView(htmlContent) {
-            const container = document.getElementById('previewContent');
-            const iframe = document.createElement('iframe');
-            iframe.srcdoc = htmlContent;
-            iframe.style.width = '100%';
-            iframe.style.minHeight = '400px';
-            iframe.style.border = 'none';
-            iframe.style.borderRadius = '8px';
-            iframe.style.background = 'white';
-            
-            container.innerHTML = '';
-            container.appendChild(iframe);
         }
 
         function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+            return text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
         }
 
         function loadFile(file) {
             if (!file) return;
-            
+
             fileNameSpan.textContent = file.name;
             fileSizeSpan.textContent = `(${(file.size / 1024).toFixed(1)} KB)`;
-            
+
             const reader = new FileReader();
             reader.onload = function(e) {
                 originalContent = e.target.result;
@@ -663,7 +509,6 @@
                 editorGrid.style.display = 'grid';
                 previewPanel.style.display = 'block';
                 actions.style.display = 'flex';
-                quickOptions.style.display = 'flex';
                 
                 beforeText.value = '';
                 afterText.value = '';
@@ -671,11 +516,9 @@
                 updatePreview();
                 showStatus(`Loaded "${file.name}"`, 'success');
             };
-            
             reader.onerror = function() {
                 showStatus('Error reading file', 'error');
             };
-            
             reader.readAsText(file);
         }
 
@@ -687,10 +530,9 @@
             editorGrid.style.display = 'none';
             previewPanel.style.display = 'none';
             actions.style.display = 'none';
-            quickOptions.style.display = 'none';
             beforeText.value = '';
             afterText.value = '';
-            previewResult.innerHTML = '';
+            previewContent.innerHTML = '';
             showStatus('Cleared', 'success');
         }
 
@@ -699,13 +541,11 @@
                 showStatus('No content to download', 'error');
                 return;
             }
-            
-            const fileName = fileNameSpan.textContent || 'result';
             const blob = new Blob([currentContent], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = fileName.replace(/\(.*\)/, '').trim() || 'modified_file.html';
+            a.download = 'modified_file.txt';
             a.click();
             URL.revokeObjectURL(url);
             showStatus('Downloaded!', 'success');
@@ -721,35 +561,21 @@
 
         function toggleCaseSensitive() {
             caseSensitive = !caseSensitive;
-            const btn = document.querySelector('.quick-option:first-child');
-            if (btn) btn.textContent = `🔤 Case Sensitive: ${caseSensitive ? 'ON' : 'OFF'}`;
+            caseBtn.textContent = `🔤 Case Sensitive: ${caseSensitive ? 'ON' : 'OFF'}`;
             updatePreview();
-        }
-
-        function useRegexMode() {
-            regexMode = !regexMode;
-            const btn = document.querySelector('.quick-option:nth-child(2)');
-            if (btn) btn.textContent = `🔧 Regex Mode: ${regexMode ? 'ON' : 'OFF'}`;
-            updatePreview();
-        }
-
-        function preserveIndent() {
-            preserveIndentMode = !preserveIndentMode;
-            const btn = document.querySelector('.quick-option:nth-child(3)');
-            if (btn) btn.textContent = `📐 Preserve Indent: ${preserveIndentMode ? 'ON' : 'OFF'}`;
         }
 
         // Tab switching
-        document.querySelectorAll('.preview-tab').forEach(tab => {
-            tab.addEventListener('click', () => {
-                document.querySelectorAll('.preview-tab').forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                currentTab = tab.dataset.tab;
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentTab = btn.dataset.tab;
                 updatePreview();
             });
         });
 
-        // Event Listeners
+        // Event listeners
         dropZone.addEventListener('click', () => fileInput.click());
         dropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
@@ -764,20 +590,21 @@
             const file = e.dataTransfer.files[0];
             if (file) loadFile(file);
         });
-        
+
         fileInput.addEventListener('change', (e) => {
             if (e.target.files[0]) loadFile(e.target.files[0]);
         });
-        
+
         clearBtn.addEventListener('click', clearAll);
         resetBtn.addEventListener('click', resetToOriginal);
         applyBtn.addEventListener('click', performReplacement);
         downloadBtn.addEventListener('click', downloadResult);
+        caseBtn.addEventListener('click', toggleCaseSensitive);
         
         beforeText.addEventListener('input', updatePreview);
         afterText.addEventListener('input', updatePreview);
-        
-        // Keyboard Shortcuts
+
+        // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
             if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
                 e.preventDefault();
@@ -787,17 +614,8 @@
                 e.preventDefault();
                 downloadResult();
             }
-            if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
-                e.preventDefault();
-                resetToOriginal();
-            }
         });
-        
-        // Expose functions globally
-        window.toggleCaseSensitive = toggleCaseSensitive;
-        window.useRegexMode = useRegexMode;
-        window.preserveIndent = preserveIndent;
-        
+
         updateCounts();
     </script>
 </body>
