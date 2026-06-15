@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Code Replacer - Working Version</title>
+    <title>Code Replacer - Smart File Editor with Live Preview</title>
     <style>
         * {
             margin: 0;
@@ -11,92 +11,132 @@
             box-sizing: border-box;
         }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #1a1a2e;
+        /* PINK BACKGROUND - FIXED */
+        html, body {
+            background: linear-gradient(135deg, #ff2e63, #ff6b9d, #ff2e63) !important;
+            background-attachment: fixed !important;
             min-height: 100vh;
+        }
+
+        /* Remove noise overlay completely */
+        body::after {
+            display: none !important;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
             padding: 20px;
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
         }
 
-        h1 {
+        /* Header */
+        .header {
             text-align: center;
-            color: #fff;
-            margin-bottom: 10px;
-            font-size: 2rem;
+            margin-bottom: 30px;
         }
 
-        .subtitle {
-            text-align: center;
-            color: #888;
-            margin-bottom: 30px;
-            font-size: 0.9rem;
+        .header h1 {
+            font-size: 2rem;
+            background: white;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: rgba(255,255,255,0.9);
+            font-size: 0.85rem;
         }
 
         /* Drop Zone */
         .drop-zone {
-            background: #16213e;
-            border: 2px dashed #0f3460;
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border: 2px dashed rgba(255,255,255,0.4);
             border-radius: 16px;
             padding: 40px;
             text-align: center;
             cursor: pointer;
-            transition: all 0.3s;
-            margin-bottom: 20px;
+            transition: all 0.2s ease;
+            margin-bottom: 24px;
         }
 
         .drop-zone:hover {
-            border-color: #e94560;
-            background: #1a1a4e;
+            border-color: white;
+            background: rgba(255,255,255,0.25);
         }
 
         .drop-zone.drag-over {
-            border-color: #00ff88;
-            background: #1a3a2e;
+            border-color: white;
+            background: rgba(255,255,255,0.3);
+        }
+
+        .drop-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .drop-text {
+            color: white;
+            font-size: 1rem;
+            margin-bottom: 8px;
+        }
+
+        .drop-sub {
+            color: rgba(255,255,255,0.7);
+            font-size: 0.75rem;
         }
 
         /* File Info */
         .file-info {
-            background: #16213e;
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
             border-radius: 12px;
-            padding: 15px;
+            padding: 12px 16px;
             margin-bottom: 20px;
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            justify-content: space-between;
             flex-wrap: wrap;
             gap: 10px;
+            border: 1px solid rgba(255,255,255,0.2);
         }
 
         .file-name {
-            color: #fff;
-            font-size: 14px;
+            color: white;
+            font-size: 0.875rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .file-size {
-            color: #888;
-            font-size: 12px;
-            margin-left: 10px;
+            color: rgba(255,255,255,0.7);
+            font-size: 0.75rem;
         }
 
         .clear-btn {
-            background: #e94560;
-            color: white;
+            background: rgba(0,0,0,0.3);
             border: none;
-            padding: 8px 16px;
+            padding: 6px 14px;
             border-radius: 8px;
+            color: white;
+            font-size: 0.75rem;
             cursor: pointer;
+            transition: all 0.2s;
         }
 
         .clear-btn:hover {
-            background: #ff6b8a;
+            background: rgba(0,0,0,0.5);
         }
 
-        /* Editor Grid */
+        /* Layout Grid */
         .editor-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -104,7 +144,7 @@
             margin-bottom: 20px;
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 900px) {
             .editor-grid {
                 grid-template-columns: 1fr;
             }
@@ -112,65 +152,79 @@
 
         /* Panels */
         .panel {
-            background: #16213e;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(10px);
             border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.2);
             overflow: hidden;
         }
 
         .panel-header {
-            background: #0f3460;
+            background: rgba(0,0,0,0.5);
             padding: 12px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
         .panel-title {
-            color: #fff;
+            color: white;
+            font-size: 0.875rem;
             font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .panel-badge {
-            background: #e94560;
+            background: rgba(255,255,255,0.2);
             padding: 2px 8px;
             border-radius: 20px;
-            font-size: 11px;
-            margin-left: 8px;
+            font-size: 0.65rem;
+            color: #ff6b9d;
         }
 
         .char-count {
-            color: #888;
-            font-size: 11px;
+            color: rgba(255,255,255,0.6);
+            font-size: 0.7rem;
         }
 
         textarea {
             width: 100%;
-            min-height: 300px;
-            background: #0f3460;
+            min-height: 280px;
+            background: rgba(0,0,0,0.5);
             border: none;
             padding: 16px;
-            color: #fff;
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
+            color: white;
+            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+            font-size: 12px;
             line-height: 1.5;
             resize: vertical;
             outline: none;
         }
 
         textarea:focus {
-            background: #1a4a7a;
+            background: rgba(0,0,0,0.7);
         }
 
-        /* Preview */
+        textarea::placeholder {
+            color: rgba(255,255,255,0.4);
+        }
+
+        /* Preview Panel */
         .preview-panel {
-            background: #16213e;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(10px);
             border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.2);
             margin-bottom: 20px;
         }
 
         .preview-header {
-            background: #0f3460;
+            background: rgba(0,0,0,0.5);
             padding: 12px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -183,75 +237,126 @@
             gap: 8px;
         }
 
-        .tab-btn {
-            background: #0f3460;
-            border: 1px solid #e94560;
-            padding: 5px 12px;
+        .preview-tab {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            padding: 4px 12px;
             border-radius: 6px;
-            color: #fff;
+            color: rgba(255,255,255,0.7);
+            font-size: 0.7rem;
             cursor: pointer;
+            transition: all 0.2s;
         }
 
-        .tab-btn.active {
-            background: #e94560;
+        .preview-tab.active {
+            background: #ff2e63;
+            color: white;
         }
 
         .preview-content {
             padding: 16px;
             max-height: 400px;
             overflow: auto;
-            background: #0f3460;
+            background: rgba(0,0,0,0.3);
             border-radius: 0 0 12px 12px;
-            color: #fff;
-            font-family: monospace;
-            font-size: 12px;
-            white-space: pre-wrap;
         }
 
-        /* Actions */
+        .preview-diff {
+            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: white;
+        }
+
+        .diff-added {
+            background: rgba(16, 185, 129, 0.3);
+            color: #10b981;
+        }
+
+        .diff-removed {
+            background: rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+            text-decoration: line-through;
+        }
+
+        /* Actions - STACKED VERTICALLY 100% WIDTH */
         .actions {
             display: flex;
+            flex-direction: column;
             gap: 12px;
-            justify-content: center;
-            flex-wrap: wrap;
+            width: 100%;
+            margin-top: 24px;
         }
 
-        button {
-            padding: 12px 24px;
+        .btn {
+            width: 100%;
+            padding: 14px 24px;
             border: none;
-            border-radius: 8px;
-            font-size: 14px;
+            border-radius: 10px;
+            font-size: 0.875rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
         .btn-primary {
-            background: #e94560;
+            background: linear-gradient(135deg, #ff2e63, #ff6b9d);
             color: white;
         }
 
         .btn-primary:hover {
-            background: #ff6b8a;
-            transform: translateY(-2px);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(255, 46, 99, 0.4);
         }
 
         .btn-secondary {
-            background: #0f3460;
+            background: rgba(255,255,255,0.1);
             color: white;
+            border: 1px solid rgba(255,255,255,0.2);
         }
 
         .btn-secondary:hover {
-            background: #1a4a7a;
+            background: rgba(255,255,255,0.2);
         }
 
         .btn-success {
-            background: #00ff88;
-            color: #1a1a2e;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
         }
 
         .btn-success:hover {
-            background: #55ffaa;
+            transform: translateY(-1px);
+        }
+
+        /* Quick Options */
+        .quick-options {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .quick-option {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.8);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quick-option:hover {
+            background: rgba(255,255,255,0.2);
+            color: white;
         }
 
         /* Status */
@@ -259,12 +364,13 @@
             position: fixed;
             bottom: 20px;
             right: 20px;
-            background: #333;
-            padding: 10px 20px;
-            border-radius: 8px;
+            background: rgba(0,0,0,0.8);
+            padding: 10px 18px;
+            border-radius: 10px;
             color: white;
+            font-size: 0.8rem;
             transform: translateX(400px);
-            transition: transform 0.3s;
+            transition: transform 0.3s ease;
             z-index: 1000;
         }
 
@@ -273,43 +379,34 @@
         }
 
         .status.success {
-            background: #00ff88;
-            color: #1a1a2e;
+            background: #059669;
         }
 
         .status.error {
-            background: #e94560;
-        }
-
-        /* Diff highlighting */
-        .diff-added {
-            background: rgba(0, 255, 136, 0.3);
-            color: #00ff88;
-        }
-
-        .diff-removed {
-            background: rgba(233, 69, 96, 0.3);
-            color: #ff6b8a;
-            text-decoration: line-through;
+            background: #dc2626;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🔧 Code Replacer</h1>
-        <div class="subtitle">Find & Replace • Live Preview • Diff View</div>
+        <div class="header">
+            <h1>🔧 Code Replacer</h1>
+            <p>Find & Replace · Live Preview · Diff View · HTML Render</p>
+        </div>
 
         <!-- Drop Zone -->
         <div class="drop-zone" id="dropZone">
-            📁 Drop file here or click to browse<br>
-            <small style="color: #888;">Supports .html, .js, .css, .txt, .json</small>
+            <div class="drop-icon">📁</div>
+            <div class="drop-text">Drop HTML/JS/CSS file or click to browse</div>
+            <div class="drop-sub">Supports .html, .htm, .js, .css, .txt, .xml, .json, .md</div>
+            <input type="file" id="fileInput" style="display: none;" accept=".html,.htm,.js,.css,.txt,.json,.xml,.md,.php">
         </div>
-        <input type="file" id="fileInput" style="display: none;" accept=".html,.htm,.js,.css,.txt,.json,.xml,.md">
 
         <!-- File Info -->
         <div class="file-info" id="fileInfo" style="display: none;">
-            <div>
-                📄 <span id="fileName"></span>
+            <div class="file-name">
+                <span>📄</span>
+                <span id="fileName"></span>
                 <span class="file-size" id="fileSize"></span>
             </div>
             <button class="clear-btn" id="clearBtn">✕ Clear</button>
@@ -317,65 +414,82 @@
 
         <!-- Editor Grid -->
         <div class="editor-grid" id="editorGrid" style="display: none;">
+            <!-- Find Panel -->
             <div class="panel">
                 <div class="panel-header">
-                    <div class="panel-title">🔍 Find <span class="panel-badge">Before</span></div>
+                    <div class="panel-title">
+                        🔍 Find
+                        <span class="panel-badge">Before</span>
+                    </div>
                     <div class="char-count" id="beforeCount">0 chars</div>
                 </div>
-                <textarea id="beforeText" placeholder="Enter text to find..."></textarea>
+                <textarea id="beforeText" placeholder="Enter the text/code to find..."></textarea>
             </div>
+
+            <!-- Replace Panel -->
             <div class="panel">
                 <div class="panel-header">
-                    <div class="panel-title">✨ Replace With <span class="panel-badge">After</span></div>
+                    <div class="panel-title">
+                        ✨ Replace With
+                        <span class="panel-badge">After</span>
+                    </div>
                     <div class="char-count" id="afterCount">0 chars</div>
                 </div>
-                <textarea id="afterText" placeholder="Enter replacement text..."></textarea>
+                <textarea id="afterText" placeholder="Enter the replacement text/code..."></textarea>
             </div>
         </div>
 
-        <!-- Preview -->
+        <!-- Preview Panel -->
         <div class="preview-panel" id="previewPanel" style="display: none;">
             <div class="preview-header">
-                <div class="panel-title">👁️ Preview</div>
+                <div class="panel-title">👁️ Live Preview</div>
                 <div class="preview-tabs">
-                    <button class="tab-btn active" data-tab="diff">Diff View</button>
-                    <button class="tab-btn" data-tab="code">Code View</button>
+                    <button class="preview-tab active" data-tab="diff">Diff View</button>
+                    <button class="preview-tab" data-tab="code">Code View</button>
+                    <button class="preview-tab" data-tab="render">Render HTML</button>
                 </div>
                 <div class="char-count" id="resultCount">0 chars</div>
             </div>
-            <div class="preview-content" id="previewContent"></div>
+            <div class="preview-content" id="previewContent">
+                <div class="preview-diff" id="previewResult"></div>
+            </div>
         </div>
 
-        <!-- Actions -->
+        <!-- Actions - STACKED VERTICALLY -->
         <div class="actions" id="actions" style="display: none;">
-            <button class="btn-secondary" id="resetBtn">🔄 Reset</button>
-            <button class="btn-primary" id="applyBtn">⚡ Apply</button>
-            <button class="btn-success" id="downloadBtn">💾 Download</button>
+            <button class="btn btn-secondary" id="resetBtn">🔄 Reset to Original</button>
+            <button class="btn btn-primary" id="applyBtn">⚡ Apply Replacement</button>
+            <button class="btn btn-success" id="downloadBtn">💾 Download Result</button>
         </div>
 
-        <div class="actions" style="margin-top: 10px;">
-            <button class="btn-secondary" id="caseBtn">🔤 Case Sensitive: OFF</button>
+        <div class="quick-options" id="quickOptions" style="display: none;">
+            <span class="quick-option" onclick="toggleCaseSensitive()">🔤 Case Sensitive: OFF</span>
+            <span class="quick-option" onclick="useRegexMode()">🔧 Regex Mode: OFF</span>
+            <span class="quick-option" onclick="preserveIndent()">📐 Preserve Indent: OFF</span>
         </div>
     </div>
 
     <div class="status" id="status">Ready</div>
 
     <script>
-        // State
         let originalContent = '';
         let currentContent = '';
         let caseSensitive = false;
+        let regexMode = false;
+        let preserveIndentMode = false;
         let currentTab = 'diff';
 
-        // DOM elements
+        // DOM Elements
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
         const fileInfo = document.getElementById('fileInfo');
         const editorGrid = document.getElementById('editorGrid');
         const previewPanel = document.getElementById('previewPanel');
         const actions = document.getElementById('actions');
+        const quickOptions = document.getElementById('quickOptions');
         const beforeText = document.getElementById('beforeText');
         const afterText = document.getElementById('afterText');
+        const previewResult = document.getElementById('previewResult');
         const previewContent = document.getElementById('previewContent');
         const fileNameSpan = document.getElementById('fileName');
         const fileSizeSpan = document.getElementById('fileSize');
@@ -386,18 +500,17 @@
         const resetBtn = document.getElementById('resetBtn');
         const applyBtn = document.getElementById('applyBtn');
         const downloadBtn = document.getElementById('downloadBtn');
-        const caseBtn = document.getElementById('caseBtn');
         const statusDiv = document.getElementById('status');
 
-        function showStatus(msg, type = 'success') {
-            statusDiv.textContent = msg;
+        function showStatus(message, type = 'success') {
+            statusDiv.textContent = message;
             statusDiv.className = `status ${type} show`;
-            setTimeout(() => statusDiv.classList.remove('show'), 2500);
+            setTimeout(() => statusDiv.classList.remove('show'), 3000);
         }
 
         function updateCounts() {
-            beforeCount.textContent = beforeText.value.length + ' chars';
-            afterCount.textContent = afterText.value.length + ' chars';
+            if (beforeText) beforeCount.textContent = beforeText.value.length + ' chars';
+            if (afterText) afterCount.textContent = afterText.value.length + ' chars';
             if (currentContent) resultCount.textContent = currentContent.length + ' chars';
         }
 
@@ -405,101 +518,156 @@
             return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         }
 
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function preserveIndentation(findText, replaceText, originalBlock) {
+            if (!preserveIndentMode) return replaceText;
+            
+            const lines = originalBlock.split('\n');
+            const findLines = findText.split('\n');
+            const replaceLines = replaceText.split('\n');
+            
+            if (findLines.length === replaceLines.length && findLines.length > 1) {
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    const indent = line.match(/^\s*/)[0];
+                    if (line.includes(findLines[0]) && replaceLines[0]) {
+                        replaceLines[0] = indent + replaceLines[0].trimStart();
+                    }
+                }
+                return replaceLines.join('\n');
+            }
+            return replaceText;
+        }
+
         function performReplacement() {
             if (!originalContent) {
                 showStatus('No file loaded', 'error');
                 return;
             }
-
+            
             let findText = beforeText.value;
             let replaceText = afterText.value;
-
+            
             if (!findText) {
-                showStatus('Enter text to find', 'error');
+                showStatus('Please enter text to find', 'error');
                 return;
             }
-
+            
+            replaceText = preserveIndentation(findText, replaceText, originalContent);
+            
             try {
-                let flags = 'g';
-                if (!caseSensitive) flags += 'i';
-                const regex = new RegExp(escapeRegex(findText), flags);
-                const result = originalContent.replace(regex, replaceText);
+                let result;
+                if (regexMode) {
+                    const flags = 'g' + (caseSensitive ? '' : 'i');
+                    const regex = new RegExp(findText, flags);
+                    result = originalContent.replace(regex, replaceText);
+                } else {
+                    const flags = 'g' + (caseSensitive ? '' : 'i');
+                    const regex = new RegExp(escapeRegex(findText), flags);
+                    result = originalContent.replace(regex, replaceText);
+                }
+                
                 currentContent = result;
                 updatePreview();
-                showStatus('Replacement applied!', 'success');
+                showStatus(`Replaced "${findText.substring(0, 50)}${findText.length > 50 ? '...' : ''}"`, 'success');
             } catch (e) {
                 showStatus('Error: ' + e.message, 'error');
             }
         }
 
         function updatePreview() {
-            if (!originalContent) {
-                previewContent.innerHTML = 'No file loaded';
-                return;
-            }
-
+            if (!originalContent) return;
+            
             const findText = beforeText.value;
             const replaceText = afterText.value;
-
+            
             if (!findText) {
-                if (currentTab === 'diff') {
-                    previewContent.innerHTML = `<div style="white-space: pre-wrap;">${escapeHtml(originalContent)}</div>`;
-                } else {
-                    previewContent.innerHTML = `<pre style="white-space: pre-wrap;">${escapeHtml(originalContent)}</pre>`;
-                }
-                currentContent = originalContent;
+                renderCurrentTab(originalContent, originalContent);
                 updateCounts();
                 return;
             }
-
+            
+            let flags = 'g';
+            if (!caseSensitive) flags += 'i';
+            
             try {
-                let flags = 'g';
-                if (!caseSensitive) flags += 'i';
-                const regex = new RegExp(escapeRegex(findText), flags);
+                const pattern = regexMode ? findText : escapeRegex(findText);
+                const regex = new RegExp(pattern, flags);
                 const result = originalContent.replace(regex, replaceText);
                 currentContent = result;
-
-                if (currentTab === 'diff') {
-                    // Show diff
-                    let html = '';
-                    let lastIndex = 0;
-                    let searchText = originalContent;
-                    let match;
-                    const testRegex = new RegExp(escapeRegex(findText), flags);
-                    
-                    while ((match = testRegex.exec(searchText)) !== null) {
-                        html += escapeHtml(searchText.substring(lastIndex, match.index));
-                        html += `<span class="diff-removed">${escapeHtml(match[0])}</span>`;
-                        html += `<span class="diff-added">${escapeHtml(replaceText)}</span>`;
-                        lastIndex = match.index + match[0].length;
-                    }
-                    html += escapeHtml(searchText.substring(lastIndex));
-                    previewContent.innerHTML = `<div style="white-space: pre-wrap; font-family: monospace; font-size: 12px;">${html}</div>`;
-                } else {
-                    previewContent.innerHTML = `<pre style="white-space: pre-wrap;">${escapeHtml(result)}</pre>`;
-                }
-
+                renderCurrentTab(originalContent, result, findText, replaceText);
                 updateCounts();
             } catch (e) {
-                previewContent.innerHTML = `<span style="color: #e94560;">Error: ${e.message}</span>`;
+                previewResult.innerHTML = `<span style="color: #ef4444;">Error: ${e.message}</span>`;
             }
         }
 
-        function escapeHtml(text) {
-            return text
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#39;');
+        function renderCurrentTab(original, modified, findText = '', replaceText = '') {
+            if (currentTab === 'diff') {
+                renderDiffView(original, modified, findText, replaceText);
+            } else if (currentTab === 'code') {
+                previewContent.innerHTML = `<div class="preview-diff"><pre style="white-space: pre-wrap; font-family: monospace; font-size: 12px; color: white;">${escapeHtml(modified)}</pre></div>`;
+            } else if (currentTab === 'render') {
+                renderHtmlView(modified);
+            }
+        }
+
+        function renderDiffView(original, modified, findText, replaceText) {
+            if (!findText) {
+                previewResult.innerHTML = `<div class="preview-diff">${escapeHtml(modified)}</div>`;
+                return;
+            }
+            
+            let html = '';
+            let lastIndex = 0;
+            let flags = 'gi';
+            if (caseSensitive) flags = 'g';
+            
+            try {
+                const pattern = regexMode ? findText : escapeRegex(findText);
+                const regex = new RegExp(pattern, flags);
+                let match;
+                let searchText = original;
+                
+                while ((match = regex.exec(searchText)) !== null) {
+                    html += escapeHtml(searchText.substring(lastIndex, match.index));
+                    html += `<span class="diff-removed">${escapeHtml(match[0])}</span>`;
+                    html += `<span class="diff-added">${escapeHtml(replaceText)}</span>`;
+                    
+                    lastIndex = match.index + match[0].length;
+                }
+                html += escapeHtml(searchText.substring(lastIndex));
+                
+                previewResult.innerHTML = `<div class="preview-diff">${html}</div>`;
+            } catch (e) {
+                previewResult.innerHTML = `<div class="preview-diff">${escapeHtml(modified)}</div>`;
+            }
+        }
+
+        function renderHtmlView(htmlContent) {
+            const iframe = document.createElement('iframe');
+            iframe.srcdoc = htmlContent;
+            iframe.style.width = '100%';
+            iframe.style.minHeight = '400px';
+            iframe.style.border = 'none';
+            iframe.style.borderRadius = '8px';
+            iframe.style.background = 'white';
+            
+            previewContent.innerHTML = '';
+            previewContent.appendChild(iframe);
         }
 
         function loadFile(file) {
             if (!file) return;
-
+            
             fileNameSpan.textContent = file.name;
             fileSizeSpan.textContent = `(${(file.size / 1024).toFixed(1)} KB)`;
-
+            
             const reader = new FileReader();
             reader.onload = function(e) {
                 originalContent = e.target.result;
@@ -509,6 +677,7 @@
                 editorGrid.style.display = 'grid';
                 previewPanel.style.display = 'block';
                 actions.style.display = 'flex';
+                quickOptions.style.display = 'flex';
                 
                 beforeText.value = '';
                 afterText.value = '';
@@ -516,9 +685,11 @@
                 updatePreview();
                 showStatus(`Loaded "${file.name}"`, 'success');
             };
+            
             reader.onerror = function() {
                 showStatus('Error reading file', 'error');
             };
+            
             reader.readAsText(file);
         }
 
@@ -530,9 +701,10 @@
             editorGrid.style.display = 'none';
             previewPanel.style.display = 'none';
             actions.style.display = 'none';
+            quickOptions.style.display = 'none';
             beforeText.value = '';
             afterText.value = '';
-            previewContent.innerHTML = '';
+            previewResult.innerHTML = '';
             showStatus('Cleared', 'success');
         }
 
@@ -541,11 +713,14 @@
                 showStatus('No content to download', 'error');
                 return;
             }
-            const blob = new Blob([currentContent], { type: 'text/plain' });
+            
+            const fileName = fileNameSpan.textContent || 'result';
+            const baseName = fileName.replace(/\(.*\)/, '').trim();
+            const blob = new Blob([currentContent], { type: 'text/html;charset=utf-8' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'modified_file.txt';
+            a.download = baseName || 'modified_file.html';
             a.click();
             URL.revokeObjectURL(url);
             showStatus('Downloaded!', 'success');
@@ -561,21 +736,35 @@
 
         function toggleCaseSensitive() {
             caseSensitive = !caseSensitive;
-            caseBtn.textContent = `🔤 Case Sensitive: ${caseSensitive ? 'ON' : 'OFF'}`;
+            const btn = document.querySelector('.quick-option:first-child');
+            if (btn) btn.textContent = `🔤 Case Sensitive: ${caseSensitive ? 'ON' : 'OFF'}`;
             updatePreview();
         }
 
+        function useRegexMode() {
+            regexMode = !regexMode;
+            const btn = document.querySelector('.quick-option:nth-child(2)');
+            if (btn) btn.textContent = `🔧 Regex Mode: ${regexMode ? 'ON' : 'OFF'}`;
+            updatePreview();
+        }
+
+        function preserveIndent() {
+            preserveIndentMode = !preserveIndentMode;
+            const btn = document.querySelector('.quick-option:nth-child(3)');
+            if (btn) btn.textContent = `📐 Preserve Indent: ${preserveIndentMode ? 'ON' : 'OFF'}`;
+        }
+
         // Tab switching
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                currentTab = btn.dataset.tab;
+        document.querySelectorAll('.preview-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.preview-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                currentTab = tab.dataset.tab;
                 updatePreview();
             });
         });
 
-        // Event listeners
+        // Event Listeners
         dropZone.addEventListener('click', () => fileInput.click());
         dropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
@@ -590,21 +779,20 @@
             const file = e.dataTransfer.files[0];
             if (file) loadFile(file);
         });
-
+        
         fileInput.addEventListener('change', (e) => {
             if (e.target.files[0]) loadFile(e.target.files[0]);
         });
-
+        
         clearBtn.addEventListener('click', clearAll);
         resetBtn.addEventListener('click', resetToOriginal);
         applyBtn.addEventListener('click', performReplacement);
         downloadBtn.addEventListener('click', downloadResult);
-        caseBtn.addEventListener('click', toggleCaseSensitive);
         
         beforeText.addEventListener('input', updatePreview);
         afterText.addEventListener('input', updatePreview);
-
-        // Keyboard shortcuts
+        
+        // Keyboard Shortcuts
         document.addEventListener('keydown', (e) => {
             if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
                 e.preventDefault();
@@ -614,8 +802,17 @@
                 e.preventDefault();
                 downloadResult();
             }
+            if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+                e.preventDefault();
+                resetToOriginal();
+            }
         });
-
+        
+        // Expose functions globally
+        window.toggleCaseSensitive = toggleCaseSensitive;
+        window.useRegexMode = useRegexMode;
+        window.preserveIndent = preserveIndent;
+        
         updateCounts();
     </script>
 </body>
