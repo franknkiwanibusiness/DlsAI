@@ -393,4 +393,163 @@
 
     function renderDiffView(original, modified, findText, replaceText) {
         if (!findText) {
-            previewContent.innerHTML = `<pre style="white-space:pre-wrap;font-family:monospace;color:white;">${
+            previewContent.innerHTML = `<pre style="white-space:pre-wrap;font-family:monospace;color:white;">${escapeHtml(modified)}</pre>`;
+            return;
+        }
+        // Simple diff: highlight removed (red) and added (green)
+        let html = '';
+        let lastIndex = 0;
+        let flags = 'gi';
+        if (caseSensitive) flags = 'g';
+        try {
+            const pattern = regexMode ? findText : escapeRegex(findText);
+            const regex = new RegExp(pattern, flags);
+            let match;
+            const text = original;
+            while ((match = regex.exec(text)) !== null) {
+                html += escapeHtml(text.substring(lastIndex, match.index));
+                html += `<span class="diff-removed">${escapeHtml(match[0])}</span>`;
+                html += `<span class="diff-added">${escapeHtml(replaceText)}</span>`;
+                lastIndex = match.index + match[0].length;
+            }
+            html += escapeHtml(text.substring(lastIndex));
+            previewContent.innerHTML = `<div class="preview-content" style="padding:0;">${html}</div>`;
+        } catch(e) {
+            previewContent.innerHTML = `<pre style="white-space:pre-wrap;">${escapeHtml(modified)}</pre>`;
+        }
+    }
+
+    function renderHtmlView(htmlContent) {
+        const iframe = document.createElement('iframe');
+        iframe.srcdoc = htmlContent;
+        iframe.style.width = '100%';
+        iframe.style.minHeight = '400px';
+        iframe.style.border = 'none';
+        iframe.style.borderRadius = '8px';
+        iframe.style.background = 'white';
+        previewContent.innerHTML = '';
+        previewContent.appendChild(iframe);
+    }
+
+    function loadFile(file) {
+        if (!file) return;
+        fileNameSpan.textContent = file.name;
+        fileSizeSpan.textContent = `(${(file.size / 1024).toFixed(1)} KB)`;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            originalContent = e.target.result;
+            workingContent = originalContent;
+            fileInfo.style.display = 'flex';
+            editorGrid.style.display = 'grid';
+            previewPanel.style.display = 'block';
+            actions.style.display = 'flex';
+            quickOptions.style.display = 'flex';
+            beforeText.value = '';
+            afterText.value = '';
+            updatePreview();
+            showStatus(`Loaded "${file.name}"`, 'success');
+        };
+        reader.onerror = () => showStatus('Error reading file', 'error');
+        reader.readAsText(file);
+    }
+
+    function clearAll() {
+        originalContent = '';
+        workingContent = '';
+        fileInput.value = '';
+        fileInfo.style.display = 'none';
+        editorGrid.style.display = 'none';
+        previewPanel.style.display = 'none';
+        actions.style.display = 'none';
+        quickOptions.style.display = 'none';
+        beforeText.value = '';
+        afterText.value = '';
+        previewContent.innerHTML = '';
+        showStatus('Cleared', 'success');
+    }
+
+    function downloadResult() {
+        if (!workingContent) {
+            showStatus('No content to download', 'error');
+            return;
+        }
+        const fileName = fileNameSpan.textContent || 'result';
+        const baseName = fileName.replace(/\(.*\)/, '').trim();
+        const blob = new Blob([workingContent], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = baseName || 'modified_file.html';
+        a.click();
+        URL.revokeObjectURL(url);
+        showStatus('Downloaded!', 'success');
+    }
+
+    function resetToOriginal() {
+        if (originalContent) {
+            workingContent = originalContent;
+            updatePreview();
+            showStatus('Reset to original', 'success');
+        }
+    }
+
+    // Toggle functions
+    function toggleCase() {
+        caseSensitive = !caseSensitive;
+        document.getElementById('caseToggle').textContent = `🔤 Case Sensitive: ${caseSensitive ? 'ON' : 'OFF'}`;
+        updatePreview();
+    }
+    function toggleRegex() {
+        regexMode = !regexMode;
+        document.getElementById('regexToggle').textContent = `🔧 Regex Mode: ${regexMode ? 'ON' : 'OFF'}`;
+        updatePreview();
+    }
+    function toggleIndent() {
+        preserveIndentMode = !preserveIndentMode;
+        document.getElementById('indentToggle').textContent = `📐 Preserve Indent: ${preserveIndentMode ? 'ON' : 'OFF'}`;
+        // Indent preservation is a more complex feature; for simplicity we just store the flag.
+        updatePreview();
+    }
+
+    // Event listeners
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        const file = e.dataTransfer.files[0];
+        if (file) loadFile(file);
+    });
+    fileInput.addEventListener('change', (e) => { if (e.target.files[0]) loadFile(e.target.files[0]); });
+    clearBtn.addEventListener('click', clearAll);
+    resetBtn.addEventListener('click', resetToOriginal);
+    applyBtn.addEventListener('click', performReplacement);
+    downloadBtn.addEventListener('click', downloadResult);
+    beforeText.addEventListener('input', updatePreview);
+    afterText.addEventListener('input', updatePreview);
+
+    document.getElementById('caseToggle').addEventListener('click', toggleCase);
+    document.getElementById('regexToggle').addEventListener('click', toggleRegex);
+    document.getElementById('indentToggle').addEventListener('click', toggleIndent);
+
+    document.querySelectorAll('.preview-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.preview-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            currentTab = tab.dataset.tab;
+            updatePreview();
+        });
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); performReplacement(); }
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); downloadResult(); }
+        if ((e.ctrlKey || e.metaKey) && e.key === 'r') { e.preventDefault(); resetToOriginal(); }
+    });
+
+    updateCounts();
+</script>
+</body>
+</html>
