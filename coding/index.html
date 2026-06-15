@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>groq/compound Mobile Companion</title>
+  <title>groq/compound Smart Mapper</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
@@ -22,7 +22,7 @@
         <h1 class="text-sm font-black text-emerald-400 flex items-center gap-1.5 tracking-wide">
           ⚡ groq/compound
         </h1>
-        <p class="text-[11px] text-neutral-400 font-mono">sandbox code executor</p>
+        <p class="text-[11px] text-neutral-400 font-mono">intelligent dependency mapper</p>
       </div>
       <div class="bg-neutral-800 px-2 py-0.5 rounded text-[10px] text-neutral-400 font-mono shadow" id="quota-badge">
         250 / 250 REQS
@@ -31,34 +31,30 @@
 
     <div id="status-strip" class="hidden bg-emerald-950/40 border-b border-emerald-900/40 text-emerald-400 text-xs px-4 py-2 flex items-center gap-2 animate-pulse">
       <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
-      <span id="status-text">Processing agent tools & loops...</span>
+      <span id="status-text">Mapping visual asset blocks...</span>
     </div>
 
     <div id="chat-flow" class="flex-1 overflow-y-auto p-4 space-y-4">
       <div class="flex flex-col items-start w-full">
         <div class="w-full text-xs text-neutral-400 bg-neutral-900/30 p-3 rounded-xl border border-neutral-900 leading-relaxed">
-          Platform initialized. Select an extraction target filter below before attaching heavy text scopes to keep payloads under limits.
+          Upload your file. Selecting the HTML section will automatically look up its corresponding CSS rules and JS functions behind the scenes.
         </div>
       </div>
     </div>
 
     <footer class="p-3 bg-neutral-900/60 border-t border-neutral-800 sticky bottom-0 z-50 space-y-2 backdrop-blur-md">
       
-      <div class="flex items-center justify-between bg-neutral-950 p-1 rounded-lg border border-neutral-800 text-[10px] font-mono font-bold tracking-wider">
-        <span class="text-neutral-500 pl-1">TARGET CODE:</span>
-        <div class="flex gap-1">
-          <button onclick="setFilter('all')" id="btn-all" class="px-2 py-1 rounded bg-emerald-500 text-neutral-950 transition">ALL</button>
-          <button onclick="setFilter('html')" id="btn-html" class="px-2 py-1 rounded bg-neutral-900 text-neutral-400 transition">HTML</button>
-          <button onclick="setFilter('css')" id="btn-css" class="px-2 py-1 rounded bg-neutral-900 text-neutral-400 transition">CSS</button>
-          <button onclick="setFilter('js')" id="btn-js" class="px-2 py-1 rounded bg-neutral-900 text-neutral-400 transition">JS</button>
-        </div>
+      <div id="segment-deck" class="hidden flex flex-col space-y-1 bg-neutral-950 p-2 rounded-lg border border-neutral-800">
+        <label class="text-[9px] text-neutral-500 font-bold tracking-wider font-mono">TARGET WORK BLOCK:</label>
+        <select id="segment-selector" onchange="updateSelectedSegment()" class="w-full bg-neutral-900 border border-neutral-700 rounded p-1.5 text-xs text-neutral-200 font-mono focus:outline-none focus:border-emerald-500">
+          </select>
       </div>
 
       <div id="file-pill" class="hidden flex items-center justify-between bg-neutral-800 text-[11px] text-neutral-200 px-2.5 py-1.5 rounded-lg border border-neutral-700 font-mono">
         <div class="flex items-center gap-1.5 truncate">
           <i data-lucide="file-code" class="w-3.5 h-3.5 text-emerald-400"></i>
           <span id="pill-filename" class="truncate max-w-[150px]"></span>
-          <span id="pill-filter-status" class="text-[9px] text-emerald-400 bg-black/40 px-1 rounded"></span>
+          <span id="pill-token-status" class="text-[9px] text-neutral-400 bg-black/40 px-1 rounded font-bold"></span>
         </div>
         <button onclick="clearUploadedFile()" class="p-0.5 hover:bg-neutral-700 rounded transition">
           <i data-lucide="x" class="w-3.5 h-3.5 text-neutral-400"></i>
@@ -66,7 +62,7 @@
       </div>
 
       <div class="flex items-center gap-2">
-        <input type="file" id="file-picker" class="hidden" onchange="processLocalFile(this)">
+        <input type="file" id="file-picker" class="hidden" onchange="loadAndSliceFile(this)">
         
         <button onclick="document.getElementById('file-picker').click()" class="p-3 bg-neutral-800 hover:bg-neutral-700 active:scale-95 transition rounded-xl border border-neutral-700 shadow-sm">
           <i data-lucide="paperclip" class="w-5 h-5 text-neutral-300"></i>
@@ -76,13 +72,13 @@
           <input 
             type="text" 
             id="user-input" 
-            placeholder="Ask compound to build or edit..." 
+            placeholder="Tell groq how to edit this section..." 
             class="w-full py-3 bg-transparent text-xs text-white focus:outline-none placeholder-neutral-500"
             onkeydown="if(event.key === 'Enter') triggerMessage()"
           >
         </div>
 
-        <button onclick="triggerMessage()" id="send-btn" class="p-3 bg-emerald-500 hover:bg-emerald-600 active:scale-95 transition rounded-xl text-neutral-950 font-bold shadow-md shadow-emerald-950/20">
+        <button onclick="triggerMessage()" id="send-btn" class="p-3 bg-emerald-500 hover:bg-emerald-600 active:scale-95 transition rounded-xl text-neutral-950 font-bold shadow-md">
           <i data-lucide="send" class="w-5 h-5"></i>
         </button>
       </div>
@@ -91,112 +87,170 @@
   </div>
 
   <script>
-    let rawFile = null; 
-    let activeFile = null; 
-    let selectedFilter = 'all'; // Default token ingestion structure
+    let fileMemory = { name: '', rawContent: '', HTMLBlock: '', CSSBlocks: [], JSBlocks: [], segments: [] };
+    let currentActiveSegment = null;
 
     lucide.createIcons();
 
-    // Toggle filter targets dynamically straight from state selectors
-    function setFilter(type) {
-      selectedFilter = type;
-      const filters = ['all', 'html', 'css', 'js'];
-      filters.forEach(f => {
-        const btn = document.getElementById(`btn-${f}`);
-        if (f === type) {
-          btn.className = "px-2 py-1 rounded bg-emerald-500 text-neutral-950 transition";
-        } else {
-          btn.className = "px-2 py-1 rounded bg-neutral-900 text-neutral-400 transition";
-        }
-      });
-
-      // Recalculate file limits instantly if context was already open
-      if (rawFile) {
-        applyExtractionFilter();
-      }
-    }
-
-    function processLocalFile(input) {
-      const selected = input.files[0];
-      if (!selected) return;
+    function loadAndSliceFile(input) {
+      const file = input.files[0];
+      if (!file) return;
 
       const reader = new FileReader();
       reader.onload = function(e) {
-        rawFile = {
-          name: selected.name,
-          content: e.target.result
-        };
-        applyExtractionFilter();
+        const text = e.target.result;
+        fileMemory.name = file.name;
+        fileMemory.rawContent = text;
+        fileMemory.segments = [];
+        fileMemory.CSSBlocks = [];
+        fileMemory.JSBlocks = [];
+
+        // Extract and collect all raw CSS sections
+        const styleMatches = [...text.matchAll(/<style[\s\S]*?>([\s\S]*?)<\/style>/gi)];
+        styleMatches.forEach((match, index) => {
+          const rawCSS = match[1].trim();
+          fileMemory.CSSBlocks.push(rawCSS);
+          fileMemory.segments.push({
+            id: `css-block-${index + 1}`,
+            label: `🎨 Isolated CSS Block #${index + 1}`,
+            type: 'CSS',
+            content: rawCSS
+          });
+        });
+
+        // Extract and collect all raw JS sections
+        const scriptMatches = [...text.matchAll(/<script[\s\S]*?>([\s\S]*?)<\/script>/gi)];
+        scriptMatches.forEach((match, index) => {
+          const rawJS = match[1].trim();
+          fileMemory.JSBlocks.push(rawJS);
+          fileMemory.segments.push({
+            id: `js-block-${index + 1}`,
+            label: `⚡ Isolated Script Block #${index + 1}`,
+            type: 'JavaScript',
+            content: rawJS
+          });
+        });
+
+        // Extract main HTML layout skeleton
+        const bodyMatch = text.match(/<body[\s\S]*?>([\s\S]*?)<\/body>/i);
+        fileMemory.HTMLBlock = bodyMatch ? bodyMatch[1].trim() : text;
+
+        // Push the dynamic smart block option to the top list
+        fileMemory.segments.unshift({
+          id: 'smart-html-mapped',
+          label: '🧱 Smart HTML + Auto-Mapped Assets',
+          type: 'SMART_HTML',
+          content: fileMemory.HTMLBlock
+        });
+
+        buildSegmentSelectorUI();
       };
-      reader.readAsText(selected);
+      reader.readAsText(file);
     }
 
-    // RegEx block scanner to strip payloads down under limits
-    function applyExtractionFilter() {
-      if (!rawFile) return;
+    function buildSegmentSelectorUI() {
+      const selector = document.getElementById('segment-selector');
+      selector.innerHTML = '';
 
-      let processedContent = rawFile.content;
-      let label = 'ALL DATA';
+      fileMemory.segments.forEach(seg => {
+        const opt = document.createElement('option');
+        opt.value = seg.id;
+        opt.innerText = seg.label;
+        selector.appendChild(opt);
+      });
 
-      if (selectedFilter === 'html') {
-        label = 'HTML Only';
-        // Strips everything except layout code parameters
-        const matches = rawFile.content.match(/<html[\s\S]*?<\/html>/i) || rawFile.content.match(/<body[\s\S]*?<\/body>/i);
-        processedContent = matches ? matches[0] : "";
-      } 
-      else if (selectedFilter === 'css') {
-        label = 'CSS Only';
-        // Pulls style block content sections out of raw data strings
-        const styleBlocks = [...rawFile.content.matchAll(/<style[\s\S]*?>([\s\S]*?)<\/style>/gi)].map(m => m[1]).join('\n\n');
-        processedContent = styleBlocks.trim() ? styleBlocks : "/* No structural <style> containers detected inside this asset code */";
-      } 
-      else if (selectedFilter === 'js') {
-        label = 'JS Only';
-        // Grabs pure script tag content assets
-        const scriptBlocks = [...rawFile.content.matchAll(/<script[\s\S]*?>([\s\S]*?)<\/script>/gi)].map(m => m[1]).join('\n\n');
-        processedContent = scriptBlocks.trim() ? scriptBlocks : "// No explicit execution client-side <script> logical markers found";
-      }
-
-      activeFile = {
-        name: rawFile.name,
-        content: processedContent
-      };
-
-      document.getElementById('pill-filename').innerText = rawFile.name;
-      document.getElementById('pill-filter-status').innerText = label;
+      document.getElementById('pill-filename').innerText = fileMemory.name;
+      document.getElementById('pill-token-status').innerText = `${fileMemory.segments.length} BLOCKS`;
+      
       document.getElementById('file-pill').classList.remove('hidden');
+      document.getElementById('segment-deck').classList.remove('hidden');
+      
+      updateSelectedSegment();
+    }
+
+    function updateSelectedSegment() {
+      const selector = document.getElementById('segment-selector');
+      currentActiveSegment = fileMemory.segments.find(s => s.id === selector.value);
+    }
+
+    // Dynamic extraction engine that isolates matching selectors
+    function resolveSmartDependencies(htmlText) {
+      // 1. Scan the HTML string for all class="..." and id="..." patterns
+      const classMatches = [...htmlText.matchAll(/class=["']([\s\S]*?)["']/gi)].flatMap(m => m[1].split(/\s+/));
+      const idMatches = [...htmlText.matchAll(/id=["']([\s\S]*?)["']/gi)].map(m => m[1]);
+      
+      const uniqueSelectors = [...new Set([...classMatches, ...idMatches])].filter(Boolean);
+      
+      // 2. Scan for matching CSS declarations
+      let relevantCSS = '';
+      fileMemory.CSSBlocks.forEach(block => {
+        uniqueSelectors.forEach(selector => {
+          // Captures CSS selectors matching class, ID, or component attributes
+          const escapedSelector = selector.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+          const regex = new RegExp(`(?:\\.|\\#)?${escapedSelector}\\b[^{]*\\{[^}]*\\}`, 'gi');
+          const matches = block.match(regex);
+          if (matches) relevantCSS += matches.join('\n') + '\n';
+        });
+      });
+
+      // 3. Scan for matching JS event handling signatures or function references
+      let relevantJS = '';
+      const functionMatches = [...htmlText.matchAll(/(?:on\w+|=)["'](\w+)\(/gi)].map(m => m[1]);
+      const uniqueFunctions = [...new Set(functionMatches)];
+
+      fileMemory.JSBlocks.forEach(block => {
+        uniqueFunctions.forEach(funcName => {
+          const regex = new RegExp(`(?:function\\s+${funcName}\\b|const\\s+${funcName}\\s*=)[\\s\s]*?\\n\\}`, 'g');
+          const matches = block.match(regex);
+          if (matches) relevantJS += matches.join('\n\n') + '\n';
+        });
+      });
+
+      return { css: relevantCSS.trim(), js: relevantJS.trim() };
     }
 
     function clearUploadedFile() {
-      rawFile = null;
-      activeFile = null;
+      fileMemory = { name: '', rawContent: '', HTMLBlock: '', CSSBlocks: [], JSBlocks: [], segments: [] };
+      currentActiveSegment = null;
       document.getElementById('file-picker').value = '';
       document.getElementById('file-pill').classList.add('hidden');
+      document.getElementById('segment-deck').classList.add('hidden');
     }
 
     async function triggerMessage() {
       const inputEl = document.getElementById('user-input');
       const text = inputEl.value.trim();
-      if (!text && !activeFile) return;
+      if (!text && !currentActiveSegment) return;
 
-      appendUserBubble(text, activeFile ? `${activeFile.name} (${selectedFilter.toUpperCase()})` : null);
+      const contextualLabel = currentActiveSegment ? `${fileMemory.name} -> [${currentActiveSegment.id}]` : null;
+      appendUserBubble(text, contextualLabel);
       inputEl.value = '';
       setSystemLoadingState(true);
+
+      let dynamicPayloadMessage = text;
+
+      if (currentActiveSegment) {
+        if (currentActiveSegment.type === 'SMART_HTML') {
+          // Execute background mapper lookup
+          const mapped = resolveSmartDependencies(currentActiveSegment.content);
+          
+          dynamicPayloadMessage = `Context Mode: Smart HTML Map\n\n[HTML Target Section]:\n\`\`\`html\n${currentActiveSegment.content}\n\`\`\`\n\n[Auto-Mapped Relevant CSS Styles Found]:\n\`\`\`css\n${mapped.css || '/* No matching class/id style rules detected */'}\n\`\`\`\n\n[Auto-Mapped Relevant JS Functions Found]:\n\`\`\`javascript\n${mapped.js || '// No explicit event function bindings matching layout hooks detected'}\n\`\`\`\n\nTask Instructions: ${text}`;
+        } else {
+          // Fallback structure for isolated code blocks
+          dynamicPayloadMessage = `Context Section Type: ${currentActiveSegment.type}\nBlock ID Tag: ${currentActiveSegment.id}\n\n[Isolated Code Target Area]:\n\`\`\`\n${currentActiveSegment.content}\n\`\`\`\n\nTask: ${text}`;
+        }
+      }
 
       try {
         const response = await fetch('/api/coding', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            message: text,
-            fileContent: activeFile?.content || null,
-            fileName: activeFile?.name || null
-          })
+          body: JSON.stringify({ message: dynamicPayloadMessage })
         });
 
         const contentType = response.headers.get("content-type");
         if (!contentType || !contentType.includes("application/json")) {
-          throw new Error(`Platform dropped your proxy data stream connection. Verify file path structure.`);
+          throw new Error("Server rejected proxy routing stream rules.");
         }
 
         const data = await response.json();
@@ -211,7 +265,6 @@
         appendAssistantBubble(`System Error: ${err.message}`);
       } finally {
         setSystemLoadingState(false);
-        clearUploadedFile();
       }
     }
 
@@ -229,22 +282,22 @@
       }
     }
 
-    function appendUserBubble(text, filename) {
+    function appendUserBubble(text, targetBlock) {
       const container = document.getElementById('chat-flow');
       const bubble = document.createElement('div');
       bubble.className = "flex flex-col items-end w-full space-y-1";
       
-      let fileBadge = '';
-      if (filename) {
-        fileBadge = `
-          <div class="flex items-center gap-1 text-[10px] bg-neutral-900 text-neutral-300 p-1 px-2 rounded border border-neutral-700 font-mono mb-1">
-            <i data-lucide="file-code" class="w-3 h-3 text-emerald-400"></i> ${filename}
+      let blockBadge = '';
+      if (targetBlock) {
+        blockBadge = `
+          <div class="flex items-center gap-1 text-[9px] bg-neutral-900 text-neutral-300 p-1 px-2 rounded border border-neutral-700 font-mono mb-1">
+            <i data-lucide="target" class="w-2.5 h-2.5 text-emerald-400"></i> ${targetBlock}
           </div>`;
       }
 
       bubble.innerHTML = `
         <div class="bg-neutral-800 text-white p-3 rounded-2xl rounded-tr-none text-xs max-w-[85%] shadow-sm">
-          ${fileBadge}
+          ${blockBadge}
           <p class="whitespace-pre-wrap">${text}</p>
         </div>`;
       
@@ -268,7 +321,7 @@
           const uniqueId = 'code-' + Math.random().toString(36).substr(2, 9);
 
           const codeBlockNode = document.createElement('div');
-          codeBlockNode.className = "border border-neutral-800 bg-black rounded-lg overflow-hidden my-2 shadow-inner";
+          codeBlockNode.className = "border border-neutral-800 bg-black rounded-lg overflow-hidden my-2";
           codeBlockNode.innerHTML = `
             <div class="flex justify-between items-center bg-neutral-900 px-2.5 py-1.5 border-b border-neutral-800 text-[10px] font-mono text-neutral-400">
               <span>${declaration}</span>
