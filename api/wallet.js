@@ -1,0 +1,299 @@
+// /api/wallet.js
+//
+// Server-side wallet operations — transfer (donate) and promote (ad campaign).
+//
+// All balance math happens here, never on the client. The client sends a
+// Firebase ID token proving who the sender is, plus an `action` field:
+//
+//   action: 'transfer' — wallet-to-wallet donation between users
+//   action: 'promote'  — deduct budget and activate a sponsored listing
+//
+// All deductions use Firebase Realtime Database transactions so they are
+// atomic, cannot go negative, and cannot be spoofed via devtools /
+// window._fbUserData manipulation.
+
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { getDatabase }                   from 'firebase-admin/database';
+import { getAuth }                       from 'firebase-admin/auth';
+
+function initFirebase() {
+    if (getApps().length > 0) return getApps()[0];
+    return initializeApp({
+        credential: cert({
+            projectId:   process.env.FIREBASE_PROJECT_ID,
+            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+            privateKey:  process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        }),
+        databaseURL: process.env.FIREBASE_DATABASE_URL,
+    });
+}
+
+// ── Transfer (donate) constants ──────────────────────────────────────────────
+// Keep FEE_RATE / FEE_FIXED in sync with the DONATE_* constants in your
+// seller page HTML (used for live preview only — these are the enforced values).
+const FEE_RATE  = 0.03;   // 3 % platform fee
+const FEE_FIXED = 0.49;   // + $0.49 fixed
+
+const MIN_TRANSFER = 1;
+const MAX_TRANSFER = 999;
+
+// ── Promote constants ────────────────────────────────────────────────────────
+// Keep in sync with the _pmCpm options shown in the promote modal HTML.
+const VALID_CPM_VALUES  = [2.5, 3.5, 5.0];   // allowed CPM tiers
+const MIN_PROMOTE_BUDGET = 5;                  // $5 minimum spend
+const MAX_PROMOTE_BUDGET = 500;                // $500 maximum spend
+
+// ── Main handler ─────────────────────────────────────────────────────────────
+export default async function handler(req, res) {
+    if (req.method !== 'POST') {
+        res.setHeader('Allow', 'POST');
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
+    }
+
+    // 1. Authenticate sender via Firebase ID token
+    const authHeader = req.headers.authorization || '';
+    const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    if (!idToken) {
+        return res.status(401).json({ success: false, error: 'Missing Authorization header' });
+    }
+
+    initFirebase();
+    const db = getDatabase();
+
+    let decoded;
+    try {
+        decoded = await getAuth().verifyIdToken(idToken);
+    } catch {
+        return res.status(401).json({ success: false, error: 'Invalid or expired session. Please sign in again.' });
+    }
+    const senderUid = decoded.uid;
+
+    // 2. Route by action
+    const { action } = req.body || {};
+
+    if (action === 'transfer') {
+        return handleTransfer(req, res, db, senderUid);
+    }
+    if (action === 'promote') {
+        return handlePromote(req, res, db, senderUid);
+    }
+
+    return res.status(400).json({ success: false, error: 'Invalid action. Use "transfer" or "promote".' });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ACTION: transfer
+// Body: { action, recipientUid, amount }
+// ─────────────────────────────────────────────────────────────────────────────
+async function handleTransfer(req, res, db, senderUid) {
+    const { recipientUid, amount } = req.body || {};
+
+    if (typeof recipientUid !== 'string' || !recipientUid) {
+        return res.status(400).json({ success: false, error: 'Missing recipient.' });
+    }
+    if (recipientUid === senderUid) {
+        return res.status(400).json({ success: false, error: "You can't donate to yourself." });
+    }
+
+    const amt = Number(amount);
+    if (!isFinite(amt) || amt <= 0) {
+        return res.status(400).json({ success: false, error: 'Enter a valid amount.' });
+    }
+    if (amt < MIN_TRANSFER) {
+        return res.status(400).json({ success: false, error: `Minimum donation is $${MIN_TRANSFER.toFixed(2)}.` });
+    }
+    if (amt > MAX_TRANSFER) {
+        return res.status(400).json({ success: false, error: `Maximum donation is $${MAX_TRANSFER.toFixed(2)}.` });
+    }
+
+    const sendCents = Math.round(amt * 100);
+    const feeCents  = Math.round(sendCents * FEE_RATE + FEE_FIXED * 100);
+    const recvCents = Math.max(sendCents - feeCents, 0);
+
+    // Make sure the recipient exists
+    const recipientSnap = await db.ref(`users/${recipientUid}`).get();
+    if (!recipientSnap.exists()) {
+        return res.status(404).json({ success: false, error: 'Recipient account not found.' });
+    }
+
+    // Atomically deduct from sender
+    const senderBalRef = db.ref(`users/${senderUid}/balance`);
+    let senderResult;
+    try {
+        senderResult = await senderBalRef.transaction(current => {
+            if (current === null) return current; // retry
+            let balCents = Math.round(Number(current) * 100);
+            if (!isFinite(balCents)) balCents = 0;
+            if (balCents < sendCents) return undefined; // abort — insufficient
+            return (balCents - sendCents) / 100;
+        });
+    } catch (err) {
+        console.error('[wallet/transfer] sender transaction error', err);
+        return res.status(500).json({ success: false, error: 'Transfer failed. Please try again.' });
+    }
+
+    if (!senderResult.committed) {
+        return res.status(400).json({ success: false, error: 'Insufficient balance.' });
+    }
+    const newSenderBalance = senderResult.snapshot.val();
+
+    // Credit recipient
+    const recipientBalRef = db.ref(`users/${recipientUid}/balance`);
+    try {
+        await recipientBalRef.transaction(current => {
+            let balCents = Math.round(Number(current || 0) * 100);
+            if (!isFinite(balCents)) balCents = 0;
+            return (balCents + recvCents) / 100;
+        });
+    } catch (err) {
+        // Sender already debited — roll back so funds aren't lost
+        console.error('[wallet/transfer] recipient credit failed, rolling back', err);
+        await senderBalRef.transaction(current => {
+            let balCents = Math.round(Number(current || 0) * 100);
+            if (!isFinite(balCents)) balCents = 0;
+            return (balCents + sendCents) / 100;
+        }).catch(e2 => console.error('[wallet/transfer] rollback failed', e2));
+        return res.status(500).json({ success: false, error: 'Transfer failed. Please try again.' });
+    }
+
+    // Log transfer record
+    await db.ref('transfers').push({
+        type:      'donation',
+        from:      senderUid,
+        to:        recipientUid,
+        amount:    sendCents / 100,
+        fee:       feeCents / 100,
+        received:  recvCents / 100,
+        createdAt: Date.now(),
+    }).catch(err => console.error('[wallet/transfer] failed to log record', err));
+
+    return res.status(200).json({
+        success:           true,
+        newBalance:        newSenderBalance,
+        amountSent:        sendCents / 100,
+        fee:               feeCents / 100,
+        recipientReceived: recvCents / 100,
+    });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ACTION: promote
+// Body: { action, listingId, budget, cpm }
+// ─────────────────────────────────────────────────────────────────────────────
+async function handlePromote(req, res, db, senderUid) {
+    const { listingId, budget, cpm } = req.body || {};
+
+    // Validate inputs
+    if (typeof listingId !== 'string' || !listingId) {
+        return res.status(400).json({ success: false, error: 'Missing listingId.' });
+    }
+
+    const budgetAmt = Number(budget);
+    if (!isFinite(budgetAmt) || budgetAmt <= 0) {
+        return res.status(400).json({ success: false, error: 'Enter a valid budget.' });
+    }
+    if (budgetAmt < MIN_PROMOTE_BUDGET) {
+        return res.status(400).json({ success: false, error: `Minimum budget is $${MIN_PROMOTE_BUDGET}.` });
+    }
+    if (budgetAmt > MAX_PROMOTE_BUDGET) {
+        return res.status(400).json({ success: false, error: `Maximum budget is $${MAX_PROMOTE_BUDGET}.` });
+    }
+
+    const cpmAmt = Number(cpm);
+    if (!VALID_CPM_VALUES.includes(cpmAmt)) {
+        return res.status(400).json({ success: false, error: 'Invalid CPM value.' });
+    }
+
+    // Verify the listing exists and belongs to this user
+    const listingSnap = await db.ref(`websites/${listingId}`).get();
+    if (!listingSnap.exists()) {
+        return res.status(404).json({ success: false, error: 'Listing not found.' });
+    }
+    const listing = listingSnap.val();
+
+    if (listing.uid !== senderUid) {
+        return res.status(403).json({ success: false, error: 'You do not own this listing.' });
+    }
+
+    // Listing must be approved/live — not pending, rejected, or sold
+    const allowedStatuses = ['live', 'approved', 'active'];
+    const listingStatus   = (listing.status || '').toLowerCase();
+    if (!allowedStatuses.includes(listingStatus)) {
+        return res.status(400).json({
+            success: false,
+            error: `Listing must be approved before promoting. Current status: ${listingStatus}.`,
+        });
+    }
+
+    const budgetCents   = Math.round(budgetAmt * 100);
+    const estimatedViews = Math.round((budgetAmt / cpmAmt) * 1000);
+
+    // Atomically deduct budget from user's wallet
+    const balRef = db.ref(`users/${senderUid}/balance`);
+    let deductResult;
+    try {
+        deductResult = await balRef.transaction(current => {
+            if (current === null) return current; // retry
+            let balCents = Math.round(Number(current) * 100);
+            if (!isFinite(balCents)) balCents = 0;
+            if (balCents < budgetCents) return undefined; // abort — insufficient
+            return (balCents - budgetCents) / 100;
+        });
+    } catch (err) {
+        console.error('[wallet/promote] balance transaction error', err);
+        return res.status(500).json({ success: false, error: 'Promotion failed. Please try again.' });
+    }
+
+    if (!deductResult.committed) {
+        return res.status(400).json({ success: false, error: 'Insufficient balance.' });
+    }
+    const newBalance = deductResult.snapshot.val();
+
+    // Mark listing as sponsored in websites/<id>
+    const now = Date.now();
+    const sponsorData = {
+        sponsored:        true,
+        isSponsored:      true,
+        promoteViews:     estimatedViews,
+        promoteViewsUsed: 0,
+        promoteBudget:    budgetAmt,
+        promoteCpm:       cpmAmt,
+        promoteStart:     now,
+        promoteStatus:    'active',
+    };
+
+    try {
+        await db.ref(`websites/${listingId}`).update(sponsorData);
+        // Mirror to user's own listing node
+        await db.ref(`users/${senderUid}/listings/${listingId}`).update(sponsorData);
+    } catch (err) {
+        // Budget was deducted but listing not marked — roll back wallet
+        console.error('[wallet/promote] listing update failed, rolling back', err);
+        await balRef.transaction(current => {
+            let balCents = Math.round(Number(current || 0) * 100);
+            if (!isFinite(balCents)) balCents = 0;
+            return (balCents + budgetCents) / 100;
+        }).catch(e2 => console.error('[wallet/promote] rollback failed', e2));
+        return res.status(500).json({ success: false, error: 'Promotion failed. Please try again.' });
+    }
+
+    // Log campaign record
+    await db.ref(`users/${senderUid}/campaigns`).push({
+        listingId,
+        siteTitle:      listing.title    || '',
+        siteUrl:        listing.url      || '',
+        category:       listing.category || '',
+        budget:         budgetAmt,
+        cpm:            cpmAmt,
+        estimatedViews,
+        status:         'active',
+        createdAt:      now,
+    }).catch(err => console.error('[wallet/promote] failed to log campaign', err));
+
+    return res.status(200).json({
+        success:        true,
+        newBalance,
+        budget:         budgetAmt,
+        estimatedViews,
+    });
+}
