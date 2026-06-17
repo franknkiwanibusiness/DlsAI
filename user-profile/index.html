@@ -1566,7 +1566,7 @@
 
 <script type="module">
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
-import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+import { getDatabase, ref, get, onValue } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -1684,10 +1684,16 @@ function startBannerRotation() {
 
 // ── Auth state (header avatar/wallet + owner detection) ──
 window._currentUid = null;
+let _sellerPageUserUnsub = null;
 onAuthStateChanged(auth, user => {
+    window._fbAuth = auth;
     const av = document.getElementById('avatarBtn');
     window._currentUid = user ? user.uid : null;
     applyOwnerMode();
+
+    // Tear down previous realtime user listener
+    if (_sellerPageUserUnsub) { try { _sellerPageUserUnsub(); } catch(e){} _sellerPageUserUnsub = null; }
+
     if (user) {
         if (av) {
             av.style.display = 'flex';
@@ -1700,14 +1706,19 @@ onAuthStateChanged(auth, user => {
             sp.textContent = (user.displayName || user.email || '?').charAt(0).toUpperCase();
             av.appendChild(sp);
         }
-        get(ref(db, 'users/' + user.uid)).then(snap => {
+        // Realtime listener: updates wallet AND checks ban status live
+        // (so an admin unban lifts the gate without a page refresh)
+        _sellerPageUserUnsub = onValue(ref(db, 'users/' + user.uid), snap => {
             const data = snap.val() || {};
             const bal = parseFloat(data.balance || 0);
             const pillAmt = document.getElementById('walletPillAmount');
             if (pillAmt) pillAmt.textContent = '$' + bal.toFixed(2);
-        }).catch(() => {});
-    } else if (av) {
-        av.style.display = 'none';
+            // Ban gate check — shows full-page block if suspended
+            if (typeof window._checkBanGate === 'function') window._checkBanGate(data, user.uid);
+        }, () => {});
+    } else {
+        if (av) av.style.display = 'none';
+        if (typeof window._resetBanGate === 'function') window._resetBanGate();
     }
 });
 
@@ -2046,27 +2057,38 @@ async function loadSellerProfile() {
         // Description
         document.getElementById('sellerDesc').textContent = u.bio || u.description || 'This seller hasn\'t added a description yet.';
 
+        // Ratings live per-listing (e.g. { uid: score }), not on the user node,
+        // so pool ratings across all of this seller's listings to get one
+        // combined average + count for the profile.
+        let sellerListings = [];
+        try {
+            const lSnap = await get(ref(db, 'users/' + sellerUid + '/listings'));
+            sellerListings = Object.values(lSnap.val() || {});
+        } catch(e) { console.warn('[seller-listings]', e); }
+
+        const pooledRatingVals = sellerListings
+            .flatMap(l => l.ratings && typeof l.ratings === 'object' ? Object.values(l.ratings) : [])
+            .map(Number)
+            .filter(n => !isNaN(n) && n >= 1 && n <= 5);
+        const pooledRatings = pooledRatingVals.length
+            ? pooledRatingVals.reduce((acc, v, i) => ({ ...acc, ['r' + i]: v }), {})
+            : (u.ratings && typeof u.ratings === 'object' ? u.ratings : null);
+
         // Rating
-        document.getElementById('sellerRating').innerHTML = _stars(u.ratings);
+        document.getElementById('sellerRating').innerHTML = _stars(pooledRatings);
 
         // Joined date
         const joinedTxt = _joinedDate(u.createdAt || u.joinedAt);
         document.getElementById('statJoined').textContent = joinedTxt;
         document.getElementById('metaJoinedText').textContent = joinedTxt !== '—' ? 'Joined ' + joinedTxt : 'Joined recently';
 
-        // Listing counts — read from user node OR compute from listings
+        // Listing counts — read from user node OR compute from listings already fetched above
         if (u.listingsCount != null) {
             document.getElementById('statTotal').textContent = u.listingsCount;
         } else {
-            // Fetch count from listings node
-            try {
-                const cSnap = await get(ref(db, 'users/' + sellerUid + '/listings'));
-                const cVal = cSnap.val() || {};
-                const all = Object.values(cVal);
-                document.getElementById('statTotal').textContent = all.length || '0';
-                const soldN = all.filter(x => (x.status||'').toLowerCase() === 'sold').length;
-                document.getElementById('statSold').textContent = soldN || '0';
-            } catch(e) { console.warn('[counts]', e); }
+            document.getElementById('statTotal').textContent = sellerListings.length || '0';
+            const soldN = sellerListings.filter(x => (x.status||'').toLowerCase() === 'sold').length;
+            document.getElementById('statSold').textContent = soldN || '0';
         }
         if (u.soldCount != null) document.getElementById('statSold').textContent = u.soldCount;
 
@@ -2090,8 +2112,8 @@ async function loadSellerProfile() {
         const badges = [];
         const sold = parseInt(u.soldCount || 0);
         const avgRating = (() => {
-            if (u.ratings && typeof u.ratings === 'object') {
-                const vals = Object.values(u.ratings).map(Number).filter(n => !isNaN(n));
+            if (pooledRatings && typeof pooledRatings === 'object') {
+                const vals = Object.values(pooledRatings).map(Number).filter(n => !isNaN(n));
                 return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
             }
             return 0;
@@ -2115,15 +2137,13 @@ async function loadSellerProfile() {
             `).join('');
         }
 
-        // Recent activity (from latest listings)
+        // Recent activity (from latest listings, reusing the listings already fetched above)
         try {
-            const actSnap = await get(ref(db, 'users/' + sellerUid + '/listings'));
-            const actVal = actSnap.val() || {};
-            const acts = Object.entries(actVal)
-                .sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0))
+            const acts = [...sellerListings]
+                .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
                 .slice(0, 5);
             if (acts.length) {
-                document.getElementById('activityList').innerHTML = acts.slice(0,5).map(([key, d]) => {
+                document.getElementById('activityList').innerHTML = acts.map(d => {
                     const status = (d.status||'').toLowerCase();
                     let cls = 'live', icon = '<path d="M3 9h12M9 3v12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>', label = `Listed ${d.title||d.url||'a site'}`;
                     if (status === 'sold') { cls = 'sold'; icon = '<path d="M3 9l4 4 8-9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>'; label = `Sold ${d.title||d.url||'a site'}`; }
@@ -2139,18 +2159,20 @@ async function loadSellerProfile() {
             }
         } catch (e) { console.error('[seller-activity]', e); }
 
-        // Social links
-        if (u.socials && typeof u.socials === 'object') {
-            const entries = Object.entries(u.socials).filter(([,v]) => v);
-            if (entries.length) {
-                const row = document.getElementById('socialRow');
-                row.innerHTML = entries.map(([k,v]) => `
-                    <a class="social-pill" href="${_esc(socialUrl(k,v))}" target="_blank" rel="noopener">
-                        ${socialIcon(k)}
-                        <span>${_esc(String(v).replace(/^https?:\/\//,''))}</span>
-                    </a>
-                `).join('');
-            }
+        // Social links (homepage saves these as flat 'social_<platform>' fields,
+        // e.g. social_facebook, social_twitter, social_linkedin — full URLs)
+        const socialKeys = ['facebook', 'twitter', 'linkedin', 'instagram', 'dribbble', 'youtube'];
+        const socialEntries = socialKeys
+            .map(k => [k, u['social_' + k] || (u.socials && u.socials[k])])
+            .filter(([, v]) => v);
+        if (socialEntries.length) {
+            const row = document.getElementById('socialRow');
+            row.innerHTML = socialEntries.map(([k, v]) => `
+                <a class="social-pill" href="${_esc(socialUrl(k, v))}" target="_blank" rel="noopener">
+                    ${socialIcon(k)}
+                    <span>${_esc(String(v).replace(/^https?:\/\//, '').replace(/^www\./, ''))}</span>
+                </a>
+            `).join('');
         }
 
         // Message button
@@ -2261,5 +2283,339 @@ loadSellerListings();
 })();
 </script>
 
+<!-- ═══════════════════════════════════════════════════════
+     BAN GATE — full-page overlay, injected before </body>
+     Reads: users/{uid}/banStatus, bannedUntil, banReason
+     Realtime via onValue → lifts instantly if admin unbans
+     Appeal → POST /api/appeals  (AI-reviewed, auto-unban
+     for low-severity, human-queue for serious)
+═══════════════════════════════════════════════════════ -->
+<style>
+/* ── Ban gate overlay ── */
+#banGateOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: rgba(0,0,0,0.92);
+    backdrop-filter: blur(18px) saturate(1.6);
+    -webkit-backdrop-filter: blur(18px) saturate(1.6);
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    overflow-y: auto;
+}
+#banGateOverlay.visible {
+    display: flex;
+}
+.ban-card {
+    background: rgba(28,28,30,0.85);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 24px;
+    padding: 40px 36px 36px;
+    max-width: 520px;
+    width: 100%;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04) inset;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+.ban-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #bf5af2, #ff375f);
+    border-radius: 24px 24px 0 0;
+}
+.ban-card::after {
+    content: '';
+    position: absolute;
+    top: -60px; left: 50%;
+    transform: translateX(-50%);
+    width: 240px; height: 240px;
+    background: radial-gradient(circle, rgba(255,55,95,0.12) 0%, transparent 70%);
+    pointer-events: none;
+}
+.ban-icon {
+    width: 64px; height: 64px;
+    margin: 0 auto 20px;
+    background: rgba(255,55,95,0.12);
+    border: 1px solid rgba(255,55,95,0.25);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+}
+.ban-icon svg { width: 28px; height: 28px; }
+.ban-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #ff375f;
+    background: rgba(255,55,95,0.10);
+    border: 1px solid rgba(255,55,95,0.22);
+    border-radius: 999px;
+    padding: 4px 10px;
+    margin-bottom: 14px;
+}
+.ban-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.55rem; font-weight: 800;
+    letter-spacing: -0.04em;
+    color: #fff;
+    margin-bottom: 10px;
+    line-height: 1.2;
+}
+.ban-subtitle {
+    font-size: 13px; color: rgba(235,235,245,0.55);
+    line-height: 1.6; margin-bottom: 24px;
+}
+.ban-reason-box {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    padding: 16px 18px;
+    text-align: left;
+    margin-bottom: 24px;
+}
+.ban-reason-label {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.1em;
+    text-transform: uppercase; color: rgba(235,235,245,0.35);
+    margin-bottom: 7px;
+}
+.ban-reason-text {
+    font-size: 13.5px; color: rgba(235,235,245,0.85); line-height: 1.6;
+}
+.ban-meta-row {
+    display: flex; gap: 10px; margin-bottom: 26px;
+}
+.ban-meta-chip {
+    flex: 1;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 12px 14px;
+    text-align: left;
+}
+.ban-meta-chip-label {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.1em;
+    text-transform: uppercase; color: rgba(235,235,245,0.35);
+    margin-bottom: 4px;
+}
+.ban-meta-chip-val {
+    font-size: 13px; font-weight: 600; color: rgba(235,235,245,0.9);
+}
+.ban-appeal-section {
+    border-top: 1px solid rgba(255,255,255,0.07);
+    padding-top: 24px;
+    margin-top: 4px;
+}
+.ban-appeal-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem; font-weight: 700;
+    color: #fff; margin-bottom: 6px;
+    letter-spacing: -0.02em;
+}
+.ban-appeal-sub {
+    font-size: 12px; color: rgba(235,235,245,0.45);
+    margin-bottom: 16px; line-height: 1.5;
+}
+.ban-appeal-textarea {
+    width: 100%;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 13px;
+    padding: 14px 15px;
+    font-size: 13.5px; color: #fff;
+    font-family: 'DM Sans', sans-serif;
+    resize: vertical; min-height: 110px;
+    outline: none; box-sizing: border-box;
+    transition: border-color .2s, background .2s;
+    line-height: 1.55;
+}
+.ban-appeal-textarea:focus {
+    border-color: rgba(191,90,242,0.55);
+    background: rgba(255,255,255,0.07);
+}
+.ban-appeal-textarea::placeholder { color: rgba(235,235,245,0.25); }
+.ban-appeal-btn {
+    width: 100%; margin-top: 12px;
+    padding: 14px;
+    border: none; border-radius: 13px; cursor: pointer;
+    background: linear-gradient(135deg, #bf5af2, #ff375f);
+    color: #fff;
+    font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700;
+    letter-spacing: 0.01em;
+    transition: opacity .15s, transform .1s;
+}
+.ban-appeal-btn:hover:not(:disabled) { opacity: .88; }
+.ban-appeal-btn:active:not(:disabled) { transform: scale(0.97); opacity: .85; }
+.ban-appeal-btn:disabled { opacity: .4; cursor: default; transform: none; }
+.ban-appeal-status {
+    margin-top: 12px; font-size: 12.5px;
+    border-radius: 10px; padding: 10px 14px;
+    display: none; text-align: left; line-height: 1.5;
+}
+.ban-appeal-status.ok  { color: #30d158; background: rgba(48,209,88,0.08); border: 1px solid rgba(48,209,88,0.2); }
+.ban-appeal-status.err { color: #ff453a; background: rgba(255,69,58,0.08); border: 1px solid rgba(255,69,58,0.2); }
+.ban-appeal-status.pending { color: #ffd60a; background: rgba(255,214,10,0.08); border: 1px solid rgba(255,214,10,0.2); }
+.ban-signout-link {
+    display: block; margin-top: 20px;
+    font-size: 12px; color: rgba(235,235,245,0.35);
+    cursor: pointer; text-decoration: none;
+    transition: color .15s;
+}
+.ban-signout-link:hover { color: rgba(235,235,245,0.65); }
+@media (max-width: 540px) {
+    .ban-card { padding: 30px 20px 28px; border-radius: 20px; }
+    .ban-title { font-size: 1.3rem; }
+    .ban-meta-row { flex-direction: column; }
+}
+</style>
+
+<div id="banGateOverlay" role="alertdialog" aria-modal="true" aria-labelledby="banGateTitle">
+    <div class="ban-card">
+        <div class="ban-icon">
+            <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="14" cy="14" r="12" stroke="#ff375f" stroke-width="2"/>
+                <path d="M5.5 5.5l17 17" stroke="#ff375f" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+        </div>
+        <div class="ban-badge">
+            <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#ff375f"/></svg>
+            Account Suspended
+        </div>
+        <div class="ban-title" id="banGateTitle">Your account has been suspended</div>
+        <div class="ban-subtitle" id="banGateSubtitle">
+            Access to Siterifty has been restricted. See the details below.
+        </div>
+
+        <div class="ban-reason-box">
+            <div class="ban-reason-label">Reason for suspension</div>
+            <div class="ban-reason-text" id="banGateReason">Violation of community guidelines.</div>
+        </div>
+
+        <div class="ban-meta-row">
+            <div class="ban-meta-chip">
+                <div class="ban-meta-chip-label">Type</div>
+                <div class="ban-meta-chip-val" id="banGateType">Temporary</div>
+            </div>
+            <div class="ban-meta-chip">
+                <div class="ban-meta-chip-label">Expires</div>
+                <div class="ban-meta-chip-val" id="banGateExpiry">—</div>
+            </div>
+        </div>
+
+        <div class="ban-appeal-section">
+            <div class="ban-appeal-title">Think this is a mistake?</div>
+            <div class="ban-appeal-sub" id="banAppealSub">Write your appeal below. Our AI moderation system will review it and may lift the suspension immediately if the case is clear.</div>
+            <textarea
+                id="banAppealText"
+                class="ban-appeal-textarea"
+                placeholder="Explain why you believe this suspension was issued in error. Be specific — reference any context the review system may have missed."
+                maxlength="2000"
+            ></textarea>
+            <button class="ban-appeal-btn" id="banAppealBtn" onclick="submitBanAppeal()">
+                Submit Appeal →
+            </button>
+            <div class="ban-appeal-status" id="banAppealStatus"></div>
+        </div>
+
+        <a class="ban-signout-link" onclick="banGateSignOut()">Sign out of this account</a>
+    </div>
+</div>
+
+<script>
+(function() {
+    let _banUid = null;
+    let _appealSubmitted = false;
+
+    function showBanGate(banData) {
+        const isPermanent = !banData.bannedUntil;
+        document.getElementById('banGateTitle').textContent =
+            isPermanent ? 'Your account has been permanently suspended' : 'Your account has been temporarily suspended';
+        document.getElementById('banGateSubtitle').textContent =
+            isPermanent
+                ? 'This account has been permanently removed from Siterifty due to a serious violation.'
+                : 'Access to Siterifty has been temporarily restricted. You may appeal below.';
+        document.getElementById('banGateReason').textContent =
+            banData.banReason || 'Violation of community guidelines.';
+        document.getElementById('banGateType').textContent = isPermanent ? 'Permanent' : 'Temporary';
+        const expiryMs = banData.bannedUntil || null;
+        if (isPermanent) {
+            document.getElementById('banGateExpiry').textContent = 'Never';
+        } else if (expiryMs) {
+            document.getElementById('banGateExpiry').textContent = new Date(expiryMs).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        } else {
+            document.getElementById('banGateExpiry').textContent = '—';
+        }
+        const appealSub = document.getElementById('banAppealSub');
+        if (isPermanent && appealSub) appealSub.textContent = 'You may still submit an appeal for review by our moderation team, though permanent suspensions are reserved for the most serious violations.';
+        document.getElementById('banGateOverlay').classList.add('visible');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function hideBanGate() {
+        document.getElementById('banGateOverlay').classList.remove('visible');
+        document.body.style.overflow = '';
+    }
+
+    function isBanActive(data) {
+        const s = data.banStatus;
+        if (!s || s === 'none') return false;
+        if (s === 'permanent') return true;
+        if (s === 'suspended') { const u = data.bannedUntil; return !u || Date.now() < u; }
+        return false;
+    }
+
+    window._checkBanGate = function(data, uid) {
+        _banUid = uid;
+        if (isBanActive(data)) showBanGate(data);
+        else hideBanGate();
+    };
+
+    window._resetBanGate = function() {
+        _banUid = null; _appealSubmitted = false; hideBanGate();
+        const s = document.getElementById('banAppealStatus');
+        if (s) { s.style.display = 'none'; s.className = 'ban-appeal-status'; }
+        const b = document.getElementById('banAppealBtn');
+        if (b) { b.disabled = false; b.textContent = 'Submit Appeal →'; }
+        const t = document.getElementById('banAppealText');
+        if (t) t.value = '';
+    };
+
+    window.submitBanAppeal = async function() {
+        if (_appealSubmitted) return;
+        const ta = document.getElementById('banAppealText');
+        const btn = document.getElementById('banAppealBtn');
+        const msg = (ta ? ta.value : '').trim();
+        if (!msg || msg.length < 20) { _showStatus('err', 'Please write at least a sentence explaining your situation.'); return; }
+        if (!_banUid) { _showStatus('err', 'Something went wrong — please refresh and try again.'); return; }
+        btn.disabled = true; btn.textContent = 'Submitting…';
+        _showStatus('pending', 'Sending your appeal to our moderation system…');
+        try {
+            const res = await fetch('/api/security?mode=appeal', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ uid: _banUid, message: msg }) });
+            const json = await res.json().catch(() => ({}));
+            if (res.ok) {
+                if (json.unbanned) { _appealSubmitted = true; btn.textContent = 'Appeal approved ✓'; _showStatus('ok', '✓ Appeal approved — your suspension has been lifted. Refreshing…'); setTimeout(() => window.location.reload(), 2200); }
+                else if (json.queued) { _appealSubmitted = true; btn.textContent = 'Appeal submitted ✓'; _showStatus('ok', '✓ Your appeal has been submitted and will be reviewed by our team within 24–48 hours.'); }
+                else { btn.disabled = false; btn.textContent = 'Submit Appeal →'; _showStatus('err', json.error || 'Unexpected response. Please try again.'); }
+            } else { btn.disabled = false; btn.textContent = 'Submit Appeal →'; _showStatus('err', json.error || 'Server error. Please try again in a moment.'); }
+        } catch(e) { btn.disabled = false; btn.textContent = 'Submit Appeal →'; _showStatus('err', 'Network error. Please check your connection and try again.'); }
+    };
+
+    function _showStatus(type, msg) {
+        const el = document.getElementById('banAppealStatus');
+        if (!el) return;
+        el.className = 'ban-appeal-status ' + type;
+        el.textContent = msg;
+        el.style.display = 'block';
+    }
+
+    window.banGateSignOut = async function() {
+        try { const a = window._fbAuth || (window._auth && window._auth()); if (a && a.signOut) await a.signOut(); } catch(e) {}
+        window.location.reload();
+    };
+})();
+</script>
 </body>
 </html>
