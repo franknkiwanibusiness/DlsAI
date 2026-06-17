@@ -1,513 +1,549 @@
-/**
- * /api/listing.js  —  Siterifty Listing Services
- *
- * Single endpoint handling all listing-related operations, routed by `action`:
- *
- *   action: "verify-meta"  — checks the seller's site for the Siterifty meta verification tag
- *   action: "verify"       — AI vision verification of domain/hosting ownership screenshots
- *   action: "autofill-meta"    — fetches a URL and extracts meta tags
- *   action: "autofill-enhance" — takes raw meta and returns AI-written listing copy
- *
- * Required env variables:
- *   GROQ_API_KEY  —  Groq API key (set in Vercel project settings)
- */
+// /api/listing.js
+//
+// Handles everything the "Sell My Site" form's AI AutoFill + Ownership
+// Verification UI calls on a single endpoint:
+//
+//   POST /api/listing   action=autofill-meta     { url }                 -> { meta }
+//   POST /api/listing   action=autofill-enhance  { url, meta }           -> { title, description }
+//   POST /api/listing   action=verify-meta       { url, token }          -> { verified, error? }
+//   POST /api/listing   action=verify (multipart){ file, type, domain, email } -> { approved, reason? }
+//
+// Auth: autofill-meta / autofill-enhance / verify-meta require a Firebase ID
+// token (Authorization: Bearer <token>) so this can't be used as an open
+// SSRF/AI-cost proxy by anonymous callers. verify-meta additionally re-reads
+// the *real* stored token from Firebase for that uid+domain rather than
+// trusting the token the client sends, so a caller cannot pass an arbitrary
+// token and self-certify a domain they don't actually have a record for.
+//
+// Required env vars:
+//   FIREBASE_PROJECT_ID, FIREBASE_DATABASE_URL, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY
+//   GROQ_API_KEY        (text — autofill-enhance)
+//   GROQ_VISION_API_KEY (optional override; falls back to GROQ_API_KEY — doc screenshot review)
 
-import { IncomingForm } from 'formidable';
-import fs               from 'fs';
-
-// ─── Vercel config ────────────────────────────────────────────────────────────
-// bodyParser must be off so formidable can handle multipart (verify action).
-// For JSON-only actions (verify-meta, autofill-*) we manually parse req.body below.
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { getDatabase } from 'firebase-admin/database';
+import { getAuth } from 'firebase-admin/auth';
+import formidable from 'formidable';
+import fs from 'fs';
 
 export const config = {
-    api: {
-        bodyParser: false,
-        responseLimit: '2mb',
-    },
+  api: { bodyParser: false }, // we parse JSON and multipart ourselves below
 };
 
-// ─── Shared constants ─────────────────────────────────────────────────────────
+// ── Config ───────────────────────────────────────────────────────────────
+const GROQ_TEXT_MODEL   = 'llama-3.3-70b-versatile';
+const GROQ_VISION_MODEL = 'llama-3.2-90b-vision-preview';
+const FETCH_TIMEOUT_MS  = 8000;
+const MAX_HTML_BYTES    = 2 * 1024 * 1024;   // don't read more than 2MB of HTML
+const MAX_IMAGE_BYTES   = 8 * 1024 * 1024;   // 8MB cap on proof screenshots
 
-const GROQ_API_URL   = 'https://api.groq.com/openai/v1/chat/completions';
-const FETCH_TIMEOUT  = 10_000;
-const MAX_BODY_CHARS = 60_000;
-const MAX_FILE_SIZE  = 10 * 1024 * 1024;
-const ALLOWED_TYPES  = ['image/jpeg', 'image/png', 'image/webp'];
+// Per-uid rate limiting (in-memory; fine for a single serverless instance,
+// resets on cold start — good enough to blunt accidental loops/abuse without
+// needing a separate datastore). Keyed by `${uid}:${action}`.
+const RATE_LIMITS = {
+  'autofill-meta':    { max: 20, windowMs: 60 * 60 * 1000 },
+  'autofill-enhance': { max: 20, windowMs: 60 * 60 * 1000 },
+  'verify-meta':      { max: 30, windowMs: 60 * 60 * 1000 },
+  'verify':           { max: 20, windowMs: 60 * 60 * 1000 },
+};
+const _rateBuckets = new Map(); // key -> [timestamps]
 
-// ─── Main handler ─────────────────────────────────────────────────────────────
-
-export default async function handler(req, res) {
-    res.setHeader('Access-Control-Allow-Origin',  '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-    if (req.method === 'OPTIONS') return res.status(200).end();
-    if (req.method !== 'POST') {
-        res.setHeader('Allow', 'POST');
-        return res.status(405).json({ error: 'Method not allowed' });
-    }
-
-    // Detect multipart (verify/screenshot upload) vs JSON
-    const contentType = req.headers['content-type'] || '';
-    const isMultipart = contentType.includes('multipart/form-data');
-
-    let body = {};
-    let files = {};
-
-    if (isMultipart) {
-        const parsed = await parseForm(req);
-        // Flatten formidable field arrays
-        for (const [k, v] of Object.entries(parsed.fields)) {
-            body[k] = Array.isArray(v) ? v[0] : v;
-        }
-        files = parsed.files;
-    } else {
-        body = await parseJson(req);
-    }
-
-    const { action } = body;
-
-    switch (action) {
-        case 'verify-meta':      return handleVerifyMeta(req, res, body);
-        case 'verify':           return handleVerify(req, res, body, files);
-        case 'autofill-meta':    return handleAutofillMeta(req, res, body);
-        case 'autofill-enhance': return handleAutofillEnhance(req, res, body);
-        default:
-            return res.status(400).json({
-                error: 'Invalid action. Use "verify-meta", "verify", "autofill-meta", or "autofill-enhance".',
-            });
-    }
+function isRateLimited(uid, action) {
+  const cfg = RATE_LIMITS[action];
+  if (!cfg) return false;
+  const key = uid + ':' + action;
+  const now = Date.now();
+  const arr = (_rateBuckets.get(key) || []).filter(t => now - t < cfg.windowMs);
+  if (arr.length >= cfg.max) {
+    _rateBuckets.set(key, arr);
+    return true;
+  }
+  arr.push(now);
+  _rateBuckets.set(key, arr);
+  return false;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ACTION: verify-meta
-// Body (JSON): { action, url, token }
-// Fetches the seller's site and checks for the Siterifty meta verification tag.
-// ─────────────────────────────────────────────────────────────────────────────
-
-async function handleVerifyMeta(req, res, body) {
-    const { url, token } = body;
-
-    if (!url || !token) {
-        return res.status(400).json({ verified: false, error: 'Missing url or token.' });
-    }
-
-    let parsedUrl;
-    try {
-        parsedUrl = new URL(url);
-        if (!['http:', 'https:'].includes(parsedUrl.protocol)) throw new Error('bad protocol');
-    } catch {
-        return res.status(400).json({ verified: false, error: 'Invalid URL.' });
-    }
-
-    const hostname = parsedUrl.hostname;
-    const blocked  = ['localhost', '127.0.0.1', '0.0.0.0', '::1'];
-    if (blocked.includes(hostname) || hostname.endsWith('.local') || hostname.endsWith('.internal')) {
-        return res.status(400).json({ verified: false, error: 'URL must be a publicly accessible site.' });
-    }
-
-    try {
-        const controller = new AbortController();
-        const timeout    = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
-
-        const response = await fetch(parsedUrl.href, {
-            signal:   controller.signal,
-            headers:  {
-                'User-Agent': 'Siterifty-Verifier/1.0 (+https://siterifty.com)',
-                'Accept':     'text/html',
-            },
-            redirect: 'follow',
-        });
-        clearTimeout(timeout);
-
-        if (!response.ok) {
-            return res.status(200).json({
-                verified: false,
-                error: `Site returned HTTP ${response.status}. Make sure it's publicly accessible.`,
-            });
-        }
-
-        // Read only the first 20 KB — the <head> is always near the top
-        const reader = response.body.getReader();
-        let html = '', bytesRead = 0;
-        while (bytesRead < 20_000) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            html      += new TextDecoder().decode(value);
-            bytesRead += value.length;
-            if (html.toLowerCase().includes('</head>')) break;
-        }
-        reader.cancel();
-
-        const metaPattern = new RegExp(
-            `<meta[^>]+name=["']siterifty-site-verification["'][^>]+content=["']${escapeRegex(token)}["'][^>]*>` +
-            `|<meta[^>]+content=["']${escapeRegex(token)}["'][^>]+name=["']siterifty-site-verification["'][^>]*>`,
-            'i'
-        );
-
-        return res.status(200).json({ verified: metaPattern.test(html) });
-
-    } catch (err) {
-        if (err.name === 'AbortError') {
-            return res.status(200).json({ verified: false, error: 'Request timed out. Make sure your site is live.' });
-        }
-        console.error('[listing/verify-meta]', err.message);
-        return res.status(200).json({ verified: false, error: 'Could not reach your site. Please check the URL.' });
-    }
+// ── Firebase admin init (reuse across invocations) ──────────────────────
+function initFirebase() {
+  if (getApps().length > 0) return getApps()[0];
+  return initializeApp({
+    credential: cert({
+      projectId:   process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey:  process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    }),
+    databaseURL: process.env.FIREBASE_DATABASE_URL,
+  });
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ACTION: verify
-// Multipart body: { action, type, domain, email, file }
-// AI vision check of a domain registrar or hosting dashboard screenshot.
-// ─────────────────────────────────────────────────────────────────────────────
-
-async function handleVerify(req, res, body, files) {
-    const type   = body.type   || 'domain';
-    const domain = normaliseDomain(body.domain || '');
-    const email  = normaliseEmail(body.email   || '');
-
-    const uploadedFile = Array.isArray(files.file) ? files.file[0] : files.file;
-    let tempFilePath   = uploadedFile?.filepath || uploadedFile?.path || null;
-
-    try {
-        if (!uploadedFile) {
-            return res.status(400).json({ approved: false, reason: 'No file uploaded.' });
-        }
-        if (!domain) {
-            return res.status(400).json({ approved: false, reason: 'Domain is required.' });
-        }
-        if (!email) {
-            return res.status(400).json({ approved: false, reason: 'Email is required.' });
-        }
-
-        const mimeType = uploadedFile.mimetype || uploadedFile.type || '';
-        if (!ALLOWED_TYPES.includes(mimeType)) {
-            return res.status(400).json({
-                approved: false,
-                reason: `Unsupported file type "${mimeType}". Please upload a JPG, PNG, or WebP screenshot.`,
-            });
-        }
-
-        const base64Image = fs.readFileSync(tempFilePath).toString('base64');
-
-        const { systemPrompt, userPrompt } =
-            type === 'hosting'
-                ? buildHostingPrompts(domain, email)
-                : buildDomainPrompts(domain, email);
-
-        const rawResponse = await callGroqVision(base64Image, mimeType, systemPrompt, userPrompt);
-        const parsed      = parseModelJson(rawResponse);
-
-        if (!parsed || typeof parsed.approved !== 'boolean') {
-            console.error('[listing/verify] Unexpected model response:', rawResponse);
-            return res.status(200).json({
-                approved: false,
-                reason: 'Could not read the screenshot clearly. Please upload a clearer image.',
-            });
-        }
-
-        return res.status(200).json({
-            approved: parsed.approved,
-            reason:   parsed.reason || (parsed.approved ? 'Verified' : 'Could not verify ownership'),
-        });
-
-    } catch (err) {
-        console.error('[listing/verify]', err);
-        return res.status(500).json({ approved: false, reason: 'Verification service error. Please try again.' });
-    } finally {
-        if (tempFilePath) {
-            try { fs.unlinkSync(tempFilePath); } catch (_) {}
-        }
-    }
+async function requireAuth(req) {
+  const authHeader = req.headers.authorization || '';
+  const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (!idToken) return null;
+  initFirebase();
+  try {
+    const decoded = await getAuth().verifyIdToken(idToken);
+    return decoded.uid;
+  } catch (err) {
+    return null;
+  }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ACTION: autofill-meta
-// Body (JSON): { action, url }
-// Fetches the URL and extracts all useful meta signals.
-// ─────────────────────────────────────────────────────────────────────────────
+// ── URL helpers ──────────────────────────────────────────────────────────
 
-async function handleAutofillMeta(req, res, body) {
-    const { url } = body;
-    if (!url || typeof url !== 'string') {
-        return res.status(400).json({ error: 'url is required' });
-    }
-
-    let parsedUrl;
-    try {
-        parsedUrl = new URL(url.startsWith('http') ? url : 'https://' + url);
-    } catch {
-        return res.status(400).json({ error: 'Invalid URL format' });
-    }
-
-    const host = parsedUrl.hostname;
-    if (/^(localhost|127\.|192\.168\.|10\.|0\.0\.0\.0)/.test(host)) {
-        return res.status(400).json({ error: 'Private URLs are not allowed' });
-    }
-
-    let html;
-    try {
-        html = await fetchHtml(parsedUrl.href);
-    } catch (err) {
-        return res.status(400).json({ error: `Could not reach that URL: ${err.message}` });
-    }
-
-    const meta = {
-        title:         getTitle(html),
-        ogTitle:       getMeta(html, 'og:title'),
-        description:   getMeta(html, 'description'),
-        ogDescription: getMeta(html, 'og:description'),
-        twitterTitle:  getMeta(html, 'twitter:title'),
-        twitterDesc:   getMeta(html, 'twitter:description'),
-        ogSiteName:    getMeta(html, 'og:site_name'),
-        ogType:        getMeta(html, 'og:type'),
-        h1:            getH1(html),
-    };
-
-    return res.status(200).json({ meta });
+function normalizeUrl(raw) {
+  let s = (raw || '').trim();
+  if (!s) return null;
+  if (!/^https?:\/\//i.test(s)) s = 'https://' + s;
+  try {
+    const u = new URL(s);
+    return u;
+  } catch (e) {
+    return null;
+  }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ACTION: autofill-enhance
-// Body (JSON): { action, url, meta }
-// Sends raw meta to GROQ and returns polished listing title + description.
-// ─────────────────────────────────────────────────────────────────────────────
+// Block requests aimed at internal/private network ranges so this endpoint
+// can't be used as an SSRF pivot against internal infrastructure or cloud
+// metadata endpoints. Best-effort hostname/IP literal check — not a substitute
+// for network-level egress controls, but stops the obvious cases.
+function isBlockedHost(hostname) {
+  const h = hostname.toLowerCase();
+  if (h === 'localhost' || h.endsWith('.localhost')) return true;
+  if (h === '169.254.169.254') return true; // cloud metadata
+  if (h === '::1' || h === '0.0.0.0') return true;
+  const ipMatch = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (ipMatch) {
+    const a = parseInt(ipMatch[1], 10);
+    const b = parseInt(ipMatch[2], 10);
+    if (a === 127) return true;                       // loopback
+    if (a === 10) return true;                         // 10.0.0.0/8
+    if (a === 172 && b >= 16 && b <= 31) return true;   // 172.16.0.0/12
+    if (a === 192 && b === 168) return true;            // 192.168.0.0/16
+    if (a === 169 && b === 254) return true;            // link-local
+  }
+  return false;
+}
 
-async function handleAutofillEnhance(req, res, body) {
-    const { url, meta } = body;
+async function fetchWithTimeout(url, opts = {}, timeoutMs = FETCH_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...opts, signal: controller.signal, redirect: 'follow' });
+  } finally {
+    clearTimeout(t);
+  }
+}
 
-    if (!meta) return res.status(400).json({ error: 'No meta data provided.' });
+// Read up to maxBytes of a response body as text (avoids pulling down huge pages).
+async function readTextCapped(resp, maxBytes) {
+  const reader = resp.body?.getReader ? resp.body.getReader() : null;
+  if (!reader) return await resp.text(); // environments without streaming body
 
-    const signals = [
-        meta.ogTitle       && `OG Title: ${meta.ogTitle}`,
-        meta.title         && `Page Title: ${meta.title}`,
-        meta.twitterTitle  && `Twitter Title: ${meta.twitterTitle}`,
-        meta.ogSiteName    && `Site Name: ${meta.ogSiteName}`,
-        meta.h1            && `H1 Heading: ${meta.h1}`,
-        meta.ogDescription && `OG Description: ${meta.ogDescription}`,
-        meta.description   && `Meta Description: ${meta.description}`,
-        meta.twitterDesc   && `Twitter Description: ${meta.twitterDesc}`,
-        meta.ogType        && `Type: ${meta.ogType}`,
-        url                && `URL: ${url}`,
-    ].filter(Boolean).join('\n');
+  const decoder = new TextDecoder();
+  let received = 0;
+  let out = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    received += value.length;
+    out += decoder.decode(value, { stream: true });
+    if (received >= maxBytes) {
+      try { await reader.cancel(); } catch (_) {}
+      break;
+    }
+  }
+  return out;
+}
 
-    const systemPrompt = `You are an expert marketplace copywriter for Siterifty, a website-flipping marketplace.
-Your job is to write persuasive, buyer-focused listing copy for a website being sold.
+// ── Meta tag extraction ─────────────────────────────────────────────────
+
+function extractMeta(html) {
+  const get = (re) => {
+    const m = html.match(re);
+    return m ? m[1].trim() : null;
+  };
+
+  const title =
+    get(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']*)["']/i) ||
+    get(/<meta[^>]+content=["']([^"']*)["'][^>]+property=["']og:title["']/i) ||
+    get(/<title[^>]*>([^<]*)<\/title>/i);
+
+  const description =
+    get(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']*)["']/i) ||
+    get(/<meta[^>]+content=["']([^"']*)["'][^>]+property=["']og:description["']/i) ||
+    get(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']*)["']/i) ||
+    get(/<meta[^>]+content=["']([^"']*)["'][^>]+name=["']description["']/i);
+
+  const siteName =
+    get(/<meta[^>]+property=["']og:site_name["'][^>]+content=["']([^"']*)["']/i);
+
+  const image =
+    get(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']*)["']/i);
+
+  const decodeEntities = (s) => s
+    ? s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+       .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    : s;
+
+  return {
+    title:       decodeEntities(title),
+    description: decodeEntities(description),
+    siteName:    decodeEntities(siteName),
+    image,
+  };
+}
+
+// Find our own ownership-verification meta tag in raw HTML.
+function findVerificationToken(html) {
+  const m = html.match(
+    /<meta[^>]+name=["']siterifty-site-verification["'][^>]+content=["']([a-f0-9]+)["']/i
+  ) || html.match(
+    /<meta[^>]+content=["']([a-f0-9]+)["'][^>]+name=["']siterifty-site-verification["']/i
+  );
+  return m ? m[1].trim().toLowerCase() : null;
+}
+
+// ── action: autofill-meta ───────────────────────────────────────────────
+
+async function handleAutofillMeta(body, res) {
+  const target = normalizeUrl(body?.url);
+  if (!target) return res.status(400).json({ error: 'Please enter a valid URL.' });
+  if (isBlockedHost(target.hostname)) {
+    return res.status(400).json({ error: 'That URL cannot be fetched.' });
+  }
+
+  let resp;
+  try {
+    resp = await fetchWithTimeout(target.toString(), {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SiteriftyBot/1.0; +https://siterifty.com)' },
+    });
+  } catch (err) {
+    const reason = err?.name === 'AbortError' ? 'The site took too long to respond.' : 'Could not reach this URL.';
+    return res.status(502).json({ error: reason });
+  }
+
+  if (!resp.ok) {
+    return res.status(502).json({ error: `Site responded with ${resp.status}. Make sure it's public.` });
+  }
+
+  const contentType = resp.headers.get('content-type') || '';
+  if (!contentType.includes('text/html')) {
+    return res.status(400).json({ error: 'URL does not appear to be a webpage.' });
+  }
+
+  const html = await readTextCapped(resp, MAX_HTML_BYTES);
+  const meta = extractMeta(html);
+
+  if (!meta.title && !meta.description) {
+    return res.status(200).json({
+      meta: { title: null, description: null, siteName: null, image: null },
+      warning: 'No meta title/description found on this page — AI enhancement will work from the URL alone.',
+    });
+  }
+
+  return res.status(200).json({ meta });
+}
+
+// ── action: autofill-enhance ────────────────────────────────────────────
+
+async function handleAutofillEnhance(body, res) {
+  const target = normalizeUrl(body?.url);
+  if (!target) return res.status(400).json({ error: 'Please enter a valid URL.' });
+
+  const meta = body?.meta || {};
+  const rawTitle = (meta.title || '').slice(0, 300);
+  const rawDesc  = (meta.description || '').slice(0, 1000);
+
+  if (!rawTitle && !rawDesc) {
+    // Nothing to enhance — fall back to a generic skeleton based on the domain.
+    const domain = target.hostname.replace(/^www\./, '');
+    return res.status(200).json({
+      title: domain,
+      description: `A website at ${domain}. Add a few sentences about what it does, who it's for, and why it's a good acquisition.`,
+    });
+  }
+
+  const systemPrompt = `You write concise, honest marketplace listing copy for websites being sold on Siterifty. You are given the raw meta title/description scraped from a site's homepage and must turn it into compelling but accurate listing copy.
 
 Rules:
-- LISTING TITLE: max 80 characters, punchy, specific, mention what the site does + a key metric if possible (e.g. "Profitable SaaS Tool — 800 MRR · 2yr Old · Fully Automated"). No fluff.
-- DESCRIPTION: between 420 and 500 characters exactly. Rich, enticing, honest. Cover: what the site does, who the audience is, why it's a good buy, and a brief value proposition. End with a compelling hook. No bullet points — flowing prose only. Do NOT pad with meaningless filler.
-- If the meta signals are sparse, infer from the URL and make sensible, honest claims.
-- Respond ONLY with a JSON object, no markdown, no explanation:
-{"title":"...","description":"..."}`;
+- Do not invent revenue, traffic, or financial figures — those are entered separately by the seller.
+- Do not make unverifiable claims ("#1 in its niche", "guaranteed income").
+- Title: max 80 characters, no quotes, sounds like a marketplace listing title (not a marketing slogan).
+- Description: 2-4 sentences, max 500 characters, written for a buyer evaluating an acquisition — what the site does, who uses it, what's included.
+- Output ONLY valid JSON, no markdown, no commentary: {"title": "...", "description": "..."}`;
 
-    const userMessage = `Here are the raw signals from the website being listed:\n\n${signals}\n\nWrite the listing title and description now. Remember: description must be 420–500 characters.`;
+  const userPrompt = JSON.stringify({ url: target.toString(), scraped_title: rawTitle, scraped_description: rawDesc });
 
-    let rawResponse;
-    try {
-        rawResponse = await callGroqChat(systemPrompt, userMessage);
-    } catch (err) {
-        return res.status(500).json({ error: `AI error: ${err.message}` });
-    }
+  let aiResp;
+  try {
+    aiResp = await fetchWithTimeout('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: GROQ_TEXT_MODEL,
+        temperature: 0.5,
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+      }),
+    }, 15000);
+  } catch (err) {
+    return res.status(502).json({ error: 'AI enhancement timed out. Please try again.' });
+  }
 
-    const parsed = parseModelJson(rawResponse);
-    if (!parsed || !parsed.title || !parsed.description) {
-        console.warn('[listing/autofill-enhance] Could not parse AI JSON:', rawResponse.slice(0, 300));
-        return res.status(500).json({ error: 'AI returned an unexpected format. Please try again.' });
-    }
+  if (!aiResp.ok) {
+    console.error('[listing/autofill-enhance] Groq error', aiResp.status, await aiResp.text().catch(() => ''));
+    return res.status(502).json({ error: 'AI enhancement failed. Please try again.' });
+  }
 
-    return res.status(200).json({
-        title:       parsed.title.slice(0, 80).trim(),
-        description: parsed.description.slice(0, 500).trim(),
+  const data = await aiResp.json();
+  let parsed;
+  try {
+    parsed = JSON.parse(data.choices?.[0]?.message?.content || '{}');
+  } catch (e) {
+    return res.status(502).json({ error: 'AI returned an unexpected response. Please try again.' });
+  }
+
+  const title = (parsed.title || rawTitle || '').slice(0, 80);
+  const description = (parsed.description || rawDesc || '').slice(0, 500);
+
+  return res.status(200).json({ title, description });
+}
+
+// ── action: verify-meta ─────────────────────────────────────────────────
+
+async function handleVerifyMeta(uid, body, res) {
+  const target = normalizeUrl(body?.url);
+  if (!target) return res.status(400).json({ verified: false, error: 'Please enter a valid URL.' });
+  if (isBlockedHost(target.hostname)) {
+    return res.status(400).json({ verified: false, error: 'That URL cannot be verified.' });
+  }
+
+  // Re-derive the domain key the same way the frontend does, and look up the
+  // *server-trusted* token for this uid+domain in Firebase — never trust a
+  // token value the client sends, since otherwise anyone could pass any
+  // token string and "verify" a domain they don't have a record for.
+  const domainKey = target.hostname.replace(/^www\./, '').replace(/[.#$\[\]/]/g, '_');
+  const db = getDatabase();
+  const path = `users/${uid}/metaVerify/${domainKey}`;
+  const snap = await db.ref(path).get();
+
+  if (!snap.exists() || !snap.val()?.token) {
+    return res.status(400).json({ verified: false, error: 'No verification token found for this domain. Reload the form and try again.' });
+  }
+  const record = snap.val();
+  const expectedToken = String(record.token).toLowerCase();
+
+  // Defense in depth: if the client did send a token, it must match the
+  // server-stored one. If it sent none, we still proceed using the stored token.
+  if (body?.token && String(body.token).toLowerCase() !== expectedToken) {
+    return res.status(400).json({ verified: false, error: 'Verification token mismatch. Reload the form and try again.' });
+  }
+
+  let resp;
+  try {
+    resp = await fetchWithTimeout(target.toString(), {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SiteriftyBot/1.0; +https://siterifty.com)' },
     });
+  } catch (err) {
+    const reason = err?.name === 'AbortError' ? 'The site took too long to respond.' : 'Could not reach this URL.';
+    return res.status(200).json({ verified: false, error: reason });
+  }
+
+  if (!resp.ok) {
+    return res.status(200).json({ verified: false, error: `Site responded with ${resp.status}.` });
+  }
+
+  const html = await readTextCapped(resp, MAX_HTML_BYTES);
+  const foundToken = findVerificationToken(html);
+
+  if (!foundToken || foundToken !== expectedToken) {
+    return res.status(200).json({ verified: false, error: "Tag not found. Make sure it's in <head> and the site is live." });
+  }
+
+  // Persist verified status server-side too (source of truth), even though
+  // the frontend also writes this to Firebase directly after a true response.
+  await db.ref(path).update({ status: 'verified', verifiedAt: Date.now() }).catch(err => {
+    console.warn('[listing/verify-meta] failed to persist verified status', err);
+  });
+
+  return res.status(200).json({ verified: true });
 }
 
-// ─── Shared helpers ───────────────────────────────────────────────────────────
+// ── action: verify (domain/hosting ownership screenshot) ──────────────────
 
-function parseForm(req) {
-    return new Promise((resolve, reject) => {
-        const form = new IncomingForm({ maxFileSize: MAX_FILE_SIZE, keepExtensions: true });
-        form.parse(req, (err, fields, files) => {
-            if (err) reject(err);
-            else resolve({ fields, files });
-        });
-    });
+async function readUploadedFile(filePart) {
+  const filepath = filePart.filepath || filePart.path;
+  const buf = await fs.promises.readFile(filepath);
+  return buf;
 }
 
-function parseJson(req) {
-    return new Promise((resolve, reject) => {
-        let raw = '';
-        req.on('data', chunk => { raw += chunk; });
-        req.on('end',  () => {
-            try { resolve(JSON.parse(raw || '{}')); }
-            catch { resolve({}); }
-        });
-        req.on('error', reject);
-    });
-}
+async function handleVerifyScreenshot(fields, filePart, res) {
+  const type = (fields.type || '').toString();   // 'domain' | 'hosting'
+  const domain = (fields.domain || '').toString().trim().toLowerCase();
+  const email = (fields.email || '').toString().trim().toLowerCase();
 
-function escapeRegex(str) {
-    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
+  if (!['domain', 'hosting'].includes(type)) {
+    return res.status(400).json({ approved: false, reason: 'Invalid verification type.' });
+  }
+  if (!filePart) {
+    return res.status(400).json({ approved: false, reason: 'No file uploaded.' });
+  }
+  if (filePart.size > MAX_IMAGE_BYTES) {
+    return res.status(400).json({ approved: false, reason: 'File too large (max 8MB).' });
+  }
+  const mime = filePart.mimetype || filePart.type || '';
+  if (!mime.startsWith('image/')) {
+    return res.status(400).json({ approved: false, reason: 'Please upload an image (screenshot), not a document.' });
+  }
 
-function normaliseDomain(raw) {
-    if (!raw) return '';
-    return raw.trim().toLowerCase()
-        .replace(/^https?:\/\//i, '')
-        .replace(/^www\./i, '')
-        .split('/')[0].split('?')[0].split('#')[0];
-}
+  const buf = await readUploadedFile(filePart);
+  const b64 = buf.toString('base64');
 
-function normaliseEmail(raw) {
-    return raw ? raw.trim().toLowerCase() : '';
-}
+  const promptByType = {
+    domain: `This is a screenshot of a domain registrar account page (e.g. GoDaddy, Namecheap, Cloudflare, Google Domains). Verify ALL of the following are visibly true in the image:
+1. The domain shown matches: "${domain}"
+2. An account email or contact email visible in the screenshot matches: "${email}" (or the screenshot otherwise clearly belongs to an account using that email)
+3. The screenshot looks like a genuine registrar dashboard, not an edited image or unrelated screenshot.`,
+    hosting: `This is a screenshot of a hosting/server dashboard (e.g. Vercel, Netlify, AWS, DigitalOcean, cPanel). Verify ALL of the following are visibly true in the image:
+1. The domain or project shown is associated with: "${domain}"
+2. An account email visible in the screenshot matches: "${email}" (or the screenshot otherwise clearly belongs to an account using that email)
+3. The screenshot looks like a genuine hosting dashboard, not an edited image or unrelated screenshot.`,
+  };
 
-async function fetchHtml(url) {
-    const controller = new AbortController();
-    const timer      = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
-    try {
-        const res = await fetch(url, {
-            signal:   controller.signal,
-            headers:  {
-                'User-Agent': 'Mozilla/5.0 (compatible; SiteriftyBot/1.0; +https://siterifty.com)',
-                'Accept':     'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5',
-            },
-            redirect: 'follow',
-        });
-        if (!res.ok) throw new Error(`Site returned HTTP ${res.status}`);
-        const ct = res.headers.get('content-type') || '';
-        if (!ct.includes('html')) throw new Error(`URL does not return HTML (got: ${ct})`);
-        const text = await res.text();
-        return text.slice(0, MAX_BODY_CHARS);
-    } finally {
-        clearTimeout(timer);
-    }
-}
+  const systemPrompt = `You are a strict fraud-review assistant verifying proof-of-ownership screenshots for a website marketplace (Siterifty). Sellers upload a screenshot to prove they control a domain or hosting account. Be skeptical — sellers are financially motivated to pass this check.
 
-function decodeHtml(str) {
-    if (!str) return '';
-    return str
-        .replace(/&amp;/g,  '&').replace(/&lt;/g,   '<').replace(/&gt;/g,   '>')
-        .replace(/&quot;/g, '"').replace(/&#39;/g,  "'").replace(/&nbsp;/g, ' ')
-        .replace(/&#(\d+);/g, (_, c) => String.fromCharCode(parseInt(c, 10)))
-        .trim();
-}
+Respond with ONLY valid JSON, no markdown:
+{"approved": true|false, "reason": "short explanation, especially if rejected", "confidence": "low"|"medium"|"high"}
 
-function getMeta(html, nameOrProp) {
-    const re = new RegExp(
-        `<meta[^>]+(?:name|property)=['"]${nameOrProp}['"][^>]+content=['"]([^'"]*)['"']` +
-        `|<meta[^>]+content=['"]([^'"]*)['"'][^>]+(?:name|property)=['"]${nameOrProp}['"]`,
-        'i'
-    );
-    const m = html.match(re);
-    return m ? decodeHtml(m[1] || m[2] || '') : '';
-}
+Reject if: the domain/email doesn't match, the image looks edited/cropped to hide details, it's not actually a registrar/hosting dashboard, or you cannot clearly confirm the required details.`;
 
-function getTitle(html) {
-    const m = html.match(/<title[^>]*>([^<]*)<\/title>/i);
-    return m ? decodeHtml(m[1]) : '';
-}
-
-function getH1(html) {
-    const m = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
-    if (!m) return '';
-    return decodeHtml(m[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
-}
-
-function parseModelJson(raw) {
-    const clean = raw
-        .replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
-    const match = clean.match(/\{[\s\S]*?\}/);
-    if (!match) return null;
-    try { return JSON.parse(match[0]); } catch { return null; }
-}
-
-async function callGroqVision(base64Image, mimeType, systemPrompt, userPrompt) {
-    const apiKey = process.env.GROQ_API_KEY;
-    if (!apiKey) throw new Error('GROQ_API_KEY environment variable is not set.');
-
-    const res = await fetch(GROQ_API_URL, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify({
-            model:       'meta-llama/llama-4-scout-17b-16e-instruct',
-            max_tokens:  512,
-            temperature: 0,
-            messages: [
-                { role: 'system', content: systemPrompt },
-                {
-                    role: 'user',
-                    content: [
-                        { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64Image}` } },
-                        { type: 'text',      text: userPrompt },
-                    ],
-                },
+  let aiResp;
+  try {
+    aiResp = await fetchWithTimeout('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.GROQ_VISION_API_KEY || process.env.GROQ_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: GROQ_VISION_MODEL,
+        temperature: 0.1,
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: systemPrompt },
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: promptByType[type] },
+              { type: 'image_url', image_url: { url: `data:${mime};base64,${b64}` } },
             ],
-        }),
+          },
+        ],
+      }),
+    }, 20000);
+  } catch (err) {
+    return res.status(502).json({ approved: false, reason: 'Verification timed out. Please try again.' });
+  }
+
+  if (!aiResp.ok) {
+    console.error('[listing/verify-screenshot] Groq error', aiResp.status, await aiResp.text().catch(() => ''));
+    return res.status(502).json({ approved: false, reason: 'Verification failed. Please try again.' });
+  }
+
+  const data = await aiResp.json();
+  let parsed;
+  try {
+    parsed = JSON.parse(data.choices?.[0]?.message?.content || '{}');
+  } catch (e) {
+    return res.status(502).json({ approved: false, reason: 'Verification returned an unexpected response.' });
+  }
+
+  return res.status(200).json({
+    approved: !!parsed.approved,
+    reason: parsed.reason || null,
+    confidence: parsed.confidence || null,
+  });
+}
+
+// ── Body parsing helpers ────────────────────────────────────────────────
+
+async function readJsonBody(req) {
+  const chunks = [];
+  for await (const chunk of req) chunks.push(chunk);
+  const raw = Buffer.concat(chunks).toString('utf8');
+  if (!raw) return {};
+  return JSON.parse(raw);
+}
+
+function parseMultipart(req) {
+  return new Promise((resolve, reject) => {
+    const form = formidable({ maxFileSize: MAX_IMAGE_BYTES });
+    form.parse(req, (err, fields, files) => {
+      if (err) return reject(err);
+      const flat = {};
+      for (const [k, v] of Object.entries(fields)) flat[k] = Array.isArray(v) ? v[0] : v;
+      const fileEntry = files.file ? (Array.isArray(files.file) ? files.file[0] : files.file) : null;
+      resolve({ fields: flat, file: fileEntry });
     });
-    if (!res.ok) throw new Error(`GROQ API error ${res.status}: ${await res.text()}`);
-    const json = await res.json();
-    return json.choices?.[0]?.message?.content || '';
+  });
 }
 
-async function callGroqChat(systemPrompt, userMessage) {
-    const apiKey = process.env.GROQ_API_KEY;
-    if (!apiKey) throw new Error('GROQ_API_KEY is not configured.');
+// ── HTTP handler ─────────────────────────────────────────────────────────
 
-    const res = await fetch(GROQ_API_URL, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify({
-            model:       'llama-3.1-8b-instant',
-            max_tokens:  700,
-            temperature: 0.72,
-            messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user',   content: userMessage  },
-            ],
-        }),
-    });
-    if (!res.ok) throw new Error(`GROQ API ${res.status}: ${(await res.text()).slice(0, 200)}`);
-    const json = await res.json();
-    return json.choices?.[0]?.message?.content?.trim() || '';
-}
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
-// ─── Verify prompts ───────────────────────────────────────────────────────────
+  const contentType = req.headers['content-type'] || '';
 
-function buildDomainPrompts(domain, email) {
-    const systemPrompt = `You are a strict ownership verification AI for Siterifty, a website marketplace.
-Examine a screenshot of a domain registrar account or WHOIS record and confirm:
-1. The domain shown matches the seller's claimed domain.
-2. The account email shown matches what the seller provided.
-Respond ONLY with JSON: {"approved": true|false, "reason": "..."}`;
+  try {
+    // ── multipart branch: action=verify (screenshot upload) ──
+    if (contentType.includes('multipart/form-data')) {
+      const uid = await requireAuth(req);
+      if (!uid) return res.status(401).json({ approved: false, reason: 'Please sign in.' });
 
-    const userPrompt = `Seller claims to own: "${domain}" with account email: "${email}"
-Check if BOTH appear in this screenshot.
-If both match → {"approved": true, "reason": "Domain and email verified"}
-If email wrong → {"approved": false, "reason": "Email does not match — found [X] but expected ${email}"}
-If domain wrong → {"approved": false, "reason": "Domain does not match — found [X] but expected ${domain}"}
-If wrong screenshot type → {"approved": false, "reason": "Screenshot does not appear to be a domain registrar or WHOIS record"}
-Respond with JSON only.`;
+      const { fields, file } = await parseMultipart(req);
+      if (fields.action !== 'verify') {
+        return res.status(400).json({ error: 'Unknown action for multipart request.' });
+      }
+      if (isRateLimited(uid, 'verify')) {
+        return res.status(429).json({ approved: false, reason: 'Too many verification attempts. Please wait a bit and try again.' });
+      }
+      return await handleVerifyScreenshot(fields, file, res);
+    }
 
-    return { systemPrompt, userPrompt };
-}
+    // ── JSON branch: autofill-meta / autofill-enhance / verify-meta ──
+    const body = await readJsonBody(req);
+    const action = body?.action;
 
-function buildHostingPrompts(domain, email) {
-    const systemPrompt = `You are a strict ownership verification AI for Siterifty, a website marketplace.
-Examine a screenshot of a hosting provider dashboard (Vercel, Netlify, AWS, DigitalOcean, Cloudflare Pages, etc.) and confirm:
-1. The domain or project shown matches the seller's claimed domain.
-2. The account email shown matches what the seller provided.
-Respond ONLY with JSON: {"approved": true|false, "reason": "..."}`;
+    if (!['autofill-meta', 'autofill-enhance', 'verify-meta'].includes(action)) {
+      return res.status(400).json({ error: 'Unknown or missing action.' });
+    }
 
-    const userPrompt = `Seller claims to own: "${domain}" with hosting account email: "${email}"
-Check if BOTH appear in this hosting dashboard screenshot.
-If both match → {"approved": true, "reason": "Domain and email verified in hosting dashboard"}
-If email wrong → {"approved": false, "reason": "Email does not match — found [X] but expected ${email}"}
-If domain missing → {"approved": false, "reason": "Domain not found — expected ${domain} but saw [X]"}
-If wrong screenshot type → {"approved": false, "reason": "Screenshot does not appear to be a hosting provider dashboard"}
-Respond with JSON only.`;
+    const uid = await requireAuth(req);
+    if (!uid) return res.status(401).json({ error: 'Please sign in to use this feature.' });
 
-    return { systemPrompt, userPrompt };
+    if (isRateLimited(uid, action)) {
+      return res.status(429).json({ error: 'Too many requests. Please wait a bit and try again.' });
+    }
+
+    if (action === 'autofill-meta')    return await handleAutofillMeta(body, res);
+    if (action === 'autofill-enhance') return await handleAutofillEnhance(body, res);
+    if (action === 'verify-meta') {
+      initFirebase();
+      return await handleVerifyMeta(uid, body, res);
+    }
+  } catch (err) {
+    console.error('[api/listing]', err);
+    return res.status(500).json({ error: err.message || 'Internal error' });
+  }
 }
