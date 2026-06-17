@@ -38,10 +38,35 @@ const MIN_TRANSFER = 1;
 const MAX_TRANSFER = 999;
 
 // ── Promote constants ────────────────────────────────────────────────────────
-// Keep in sync with the _pmCpm options shown in the promote modal HTML.
-const VALID_CPM_VALUES  = [2.5, 3.5, 5.0];   // allowed CPM tiers
-const MIN_PROMOTE_BUDGET = 5;                  // $5 minimum spend
-const MAX_PROMOTE_BUDGET = 500;                // $500 maximum spend
+// CPM is computed dynamically per-listing by /api/sellmypage (AI + deterministic
+// estimator, scaled by country ad-market tier), not a fixed set of tiers — so
+// we validate it as a range here, the same way budget is range-validated below.
+// Keep MIN/MAX in sync with the CPM guide in sellmypage.js's review_ad handler
+// (currently $0.80–$8.00).
+const MIN_CPM = 0.80;
+const MAX_CPM = 8.00;
+
+// Minimum ad spend scales with the listing's own price (richer listings can
+// reasonably afford a bigger floor, but not a flat percentage — see comment
+// on minPromoteBudgetForPrice). Keep this curve identical to minPromoteBudget()
+// in sellmypage.js, which computes the same number for display purposes.
+const PROMOTE_MIN_BUDGET_FLOOR   = 5;   // platform-wide absolute floor
+const MAX_PROMOTE_BUDGET         = 500; // platform-wide absolute ceiling
+
+function minPromoteBudgetForPrice(price) {
+    const p = Number(price) || 0;
+    let pct;
+    if (p < 100)        pct = null; // flat floor only, no percentage math at this size
+    else if (p < 500)   pct = 5;
+    else if (p < 2000)  pct = 4;
+    else if (p < 10000) pct = 2.5;
+    else if (p < 50000) pct = 1.5;
+    else                pct = 1;
+
+    if (pct === null) return PROMOTE_MIN_BUDGET_FLOOR;
+    const amount = (p * pct) / 100;
+    return Math.min(MAX_PROMOTE_BUDGET, Math.max(PROMOTE_MIN_BUDGET_FLOOR, Math.round(amount * 100) / 100));
+}
 
 // ── Main handler ─────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
@@ -192,16 +217,16 @@ async function handlePromote(req, res, db, senderUid) {
     if (!isFinite(budgetAmt) || budgetAmt <= 0) {
         return res.status(400).json({ success: false, error: 'Enter a valid budget.' });
     }
-    if (budgetAmt < MIN_PROMOTE_BUDGET) {
-        return res.status(400).json({ success: false, error: `Minimum budget is $${MIN_PROMOTE_BUDGET}.` });
-    }
     if (budgetAmt > MAX_PROMOTE_BUDGET) {
         return res.status(400).json({ success: false, error: `Maximum budget is $${MAX_PROMOTE_BUDGET}.` });
     }
 
     const cpmAmt = Number(cpm);
-    if (!VALID_CPM_VALUES.includes(cpmAmt)) {
+    if (!isFinite(cpmAmt) || cpmAmt <= 0) {
         return res.status(400).json({ success: false, error: 'Invalid CPM value.' });
+    }
+    if (cpmAmt < MIN_CPM || cpmAmt > MAX_CPM) {
+        return res.status(400).json({ success: false, error: `CPM must be between $${MIN_CPM.toFixed(2)} and $${MAX_CPM.toFixed(2)}.` });
     }
 
     // Verify the listing exists and belongs to this user
@@ -223,6 +248,18 @@ async function handlePromote(req, res, db, senderUid) {
             success: false,
             error: `Listing must be approved before promoting. Current status: ${listingStatus}.`,
         });
+    }
+
+    // Minimum spend scales with the listing's own asking price (read from the
+    // trusted Firebase record, never from client input — the client's
+    // suggested min_budget from /api/sellmypage is UX-only, this is the
+    // actual enforced floor). Keep this curve identical to minPromoteBudget()
+    // in sellmypage.js so the UI's suggested minimum never disagrees with
+    // what launch will actually accept.
+    const listingPrice = Number(listing.price) || 0;
+    const minBudgetAmt = minPromoteBudgetForPrice(listingPrice);
+    if (budgetAmt < minBudgetAmt) {
+        return res.status(400).json({ success: false, error: `Minimum budget for this listing is $${minBudgetAmt.toFixed(2)}.` });
     }
 
     const budgetCents   = Math.round(budgetAmt * 100);
