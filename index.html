@@ -3708,7 +3708,253 @@
         .chat-bubble:hover { background: var(--surface); border-color: rgba(255,255,255,0.18); transform: scale(1.08); }
         .chat-bubble.open { background: var(--surface); border-color: rgba(168,85,247,0.35); }
 
+        /*  Floating Messages pill — bottom left  */
+        .msgs-fab {
+            position: fixed;
+            bottom: 24px;
+            left: 16px;
+            z-index: 200;
+            display: none;
+            align-items: center;
+            gap: 9px;
+            padding: 10px 16px 10px 12px;
+            border-radius: 999px;
+            background: var(--surface2);
+            border: 1px solid rgba(255,255,255,0.1);
+            cursor: pointer;
+            box-shadow: 0 8px 28px rgba(0,0,0,0.35);
+            transition: background 0.18s, border-color 0.18s, transform 0.15s;
+        }
+        .msgs-fab:hover { background: var(--surface); border-color: rgba(168,85,247,0.3); transform: translateY(-1px); }
+        .msgs-fab-icon {
+            width: 30px; height: 30px; border-radius: 999px; flex-shrink: 0;
+            background: linear-gradient(135deg,#a855f7,#818cf8);
+            display: flex; align-items: center; justify-content: center;
+            position: relative;
+        }
+        .msgs-fab-label {
+            font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700;
+            letter-spacing: .02em; color: var(--text); white-space: nowrap;
+        }
+        .msgs-fab-sub {
+            font-size: 10px; color: var(--muted); margin-top: 1px; white-space: nowrap;
+        }
+        .msgs-fab-badge {
+            position: absolute; top: -4px; right: -4px; min-width: 16px; height: 16px;
+            border-radius: 999px; background: #818cf8; color: #fff; font-size: 9px;
+            font-weight: 800; display: none; align-items: center; justify-content: center;
+            padding: 0 4px; border: 2px solid var(--surface2); font-family: 'Syne', sans-serif;
+        }
+        @media (max-width: 480px) {
+            .msgs-fab { left: 12px; bottom: 80px; padding: 10px; }
+            .msgs-fab-text { display: none; }
+        }
 
+        /*  MESSAGES MODAL  */
+
+/* ════════ MESSAGES MODAL (Inbox + Chat) ════════ */
+#messagesOverlay {
+    display: none;
+    position: fixed; inset: 0; z-index: 7000;
+    align-items: center; justify-content: center;
+    background: linear-gradient(180deg,#06140d,#020b06 60%,#000);
+    padding: 0;
+}
+#messagesOverlay.open { display: flex; }
+@media (min-width: 640px) { #messagesOverlay { padding: 16px; } }
+
+#messagesModal {
+    position: relative;
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    background: linear-gradient(155deg, rgba(168,255,107,0.05) 0%, rgba(255,255,255,0.01) 50%, rgba(168,255,107,0.05) 100%);
+    border: 0; border-radius: 0;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.85);
+    overflow: hidden;
+    animation: modalPop 0.26s cubic-bezier(0.34,1.2,0.64,1) both;
+}
+@media (min-width: 640px) {
+    #messagesModal {
+        max-width: 420px; height: 820px;
+        border: 1px solid rgba(52,211,153,0.2);
+        border-radius: 2.5rem;
+    }
+}
+
+.imsg-hidden { display: none !important; }
+
+/* ── Inbox view ── */
+#imsgInboxView { display: flex; flex-direction: column; height: 100%; width: 100%; }
+
+.imsg-inbox-header {
+    position: relative;
+    border-bottom: 1px solid rgba(52,211,153,0.1);
+    padding: 24px 24px 16px;
+    background-size: cover; background-position: center; background-repeat: no-repeat;
+    background-image: url('https://i.pinimg.com/originals/0b/fe/94/0bfe94a9416ec150cc7912d9172561ab.gif');
+    flex-shrink: 0;
+}
+.imsg-inbox-header-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(6,20,13,0.85) 0%, rgba(2,11,6,0.9) 60%, rgba(2,11,6,0.98) 100%);
+    backdrop-filter: blur(1px); -webkit-backdrop-filter: blur(1px);
+}
+.imsg-inbox-header-content { position: relative; z-index: 1; }
+
+.imsg-row-between { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
+.imsg-user-block { display: flex; align-items: center; gap: 12px; }
+.imsg-avatar-ring {
+    height: 48px; width: 48px; border-radius: 50%;
+    border: 1px solid rgba(52,211,153,0.3);
+    background: linear-gradient(135deg, #059669, #a3e635);
+    padding: 2px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    flex-shrink: 0;
+}
+.imsg-avatar-ring-inner {
+    width: 100%; height: 100%; border-radius: 50%;
+    background: #020b06;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 700; font-size: 13px;
+}
+.imsg-name-row { display: flex; align-items: center; gap: 8px; }
+.imsg-name { font-size: 15px; font-weight: 800; color: #fff; letter-spacing: -0.01em; }
+.imsg-tier-badge {
+    font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 5px;
+    background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.3);
+    color: #58f278; letter-spacing: 0.08em; text-transform: uppercase;
+}
+.imsg-upgrade-btn {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; font-weight: 800; padding: 2px 7px 2px 6px; border-radius: 5px;
+    background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.35);
+    color: #fbbf24; letter-spacing: 0.04em; text-transform: uppercase;
+    cursor: pointer; transition: background 0.15s;
+}
+.imsg-upgrade-btn:hover { background: rgba(251,191,36,0.22); }
+.imsg-close-btn {
+    height: 36px; width: 36px; border-radius: 50%; flex-shrink: 0;
+    background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: rgba(255,255,255,0.7);
+    transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.12s;
+}
+.imsg-close-btn:hover { background: rgba(52,211,153,0.1); border-color: rgba(52,211,153,0.3); color: #fff; }
+.imsg-close-btn:active { transform: scale(0.92); }
+
+.imsg-quota-card {
+    background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 16px; padding: 12px; margin-bottom: 16px;
+}
+.imsg-sim-label { color: rgba(255,255,255,0.4); }
+.imsg-quota-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 11px; font-weight: 700; }
+.imsg-quota-track { width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 999px; overflow: hidden; }
+.imsg-quota-fill { height: 100%; background: linear-gradient(90deg, #10b981, #a3e635); border-radius: 999px; transition: width 0.3s; }
+
+/* ── Plan comparison panel ── */
+.imsg-plans-toggle {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 10px; padding-top: 9px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    cursor: pointer; user-select: none;
+}
+.imsg-plans-toggle-label { font-size: 10px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: rgba(255,255,255,0.35); }
+.imsg-plans-toggle-chevron { color: rgba(255,255,255,0.25); transition: transform .2s; }
+.imsg-plans-toggle-chevron.open { transform: rotate(180deg); }
+.imsg-plans-panel { overflow: hidden; max-height: 0; transition: max-height .28s ease; }
+.imsg-plans-panel.open { max-height: 260px; }
+.imsg-plans-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 10px; }
+.imsg-plan-col {
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px; padding: 8px 6px; display: flex; flex-direction: column; gap: 7px;
+}
+.imsg-plan-col.highlight { border-color: rgba(129,140,248,0.35); background: rgba(129,140,248,0.06); }
+.imsg-plan-col-name { font-size: 9px; font-weight: 900; letter-spacing: .07em; text-transform: uppercase; text-align: center; color: rgba(255,255,255,0.5); margin-bottom: 2px; }
+.imsg-plan-col.highlight .imsg-plan-col-name { color: #818cf8; }
+.imsg-plan-stat { display: flex; flex-direction: column; gap: 2px; }
+.imsg-plan-stat-bar-wrap { width: 100%; height: 3px; background: rgba(255,255,255,0.08); border-radius: 99px; overflow: hidden; }
+.imsg-plan-stat-bar { height: 100%; border-radius: 99px; }
+.imsg-plan-stat-label { font-size: 8.5px; color: rgba(255,255,255,0.3); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.imsg-plan-stat-val { font-size: 10.5px; font-weight: 800; color: #fff; }
+
+.imsg-tab-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 4px; }
+.imsg-tab {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 10px 12px; border-radius: 8px; cursor: pointer;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+    color: rgba(255,255,255,0.4); background: transparent; border: 1px solid transparent;
+    transition: color 0.15s, background 0.15s;
+}
+.imsg-tab.active { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.1); color: #fff; }
+.imsg-tab:hover:not(.active) { color: rgba(255,255,255,0.7); }
+.imsg-tab-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 2px 6px; font-size: 10px; font-weight: 900; border-radius: 5px;
+    background: rgba(239,68,68,0.2); color: #f87171; border: 1px solid rgba(239,68,68,0.3);
+    min-width: 16px;
+}
+
+.imsg-thread-list { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.imsg-thread-list::-webkit-scrollbar { display: none; }
+.imsg-thread-row {
+    display: flex; align-items: center; gap: 12px; padding: 14px;
+    border-radius: 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);
+    cursor: pointer; transition: border-color 0.15s, background 0.15s;
+}
+.imsg-thread-row:hover { border-color: rgba(52,211,153,0.2); background: rgba(52,211,153,0.03); }
+.imsg-thread-avatar-wrap { position: relative; flex-shrink: 0; }
+.imsg-thread-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+.imsg-thread-dot { position: absolute; bottom: 0; right: 0; display: block; height: 12px; width: 12px; border-radius: 50%; background: #34d399; border: 2px solid #020b06; }
+.imsg-thread-body { flex: 1; min-width: 0; }
+.imsg-thread-top { display: flex; align-items: center; justify-content: space-between; }
+.imsg-thread-name { font-size: 13px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.01em; transition: color 0.15s; }
+.imsg-thread-row:hover .imsg-thread-name { color: #58f278; }
+.imsg-thread-time { font-size: 11px; font-weight: 500; color: rgba(255,255,255,0.3); flex-shrink: 0; margin-left: 8px; }
+.imsg-thread-preview { font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.5); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.imsg-thread-unread {
+    display: flex; align-items: center; justify-content: center;
+    height: 20px; min-width: 20px; padding: 0 6px; border-radius: 999px;
+    background: rgba(52,211,153,0.2); border: 1px solid rgba(52,211,153,0.3);
+    font-size: 12px; font-weight: 700; color: #58f278; flex-shrink: 0;
+}
+
+/* ── Chat view ── */
+#imsgChatView {
+    display: none; position: absolute; inset: 0; z-index: 20;
+    flex-direction: column; height: 100%; width: 100%;
+    background: rgba(2,11,6,0.95);
+    backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px);
+}
+#imsgChatView.open { display: flex; }
+
+.imsg-chat-header {
+    position: relative; border-bottom: 1px solid rgba(52,211,153,0.1);
+    padding: 16px; background-size: cover; background-position: center; background-repeat: no-repeat;
+    background-image: url('https://i.pinimg.com/originals/0b/fe/94/0bfe94a9416ec150cc7912d9172561ab.gif');
+    flex-shrink: 0;
+}
+.imsg-chat-header-overlay { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(6,20,13,0.9) 0%, rgba(2,11,6,0.95) 60%, #020b06 100%); }
+.imsg-chat-header-content { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 12px; }
+.imsg-chat-back {
+    height: 36px; width: 36px; border-radius: 50%; flex-shrink: 0;
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+    display: flex; align-items: center; justify-content: center;
+    color: rgba(255,255,255,0.8); cursor: pointer; transition: color 0.15s, transform 0.12s;
+}
+.imsg-chat-back:hover { color: #fff; }
+.imsg-chat-back:active { transform: scale(0.92); }
+.imsg-chat-target { display: flex; align-items: center; gap: 10px; }
+.imsg-chat-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255,255,255,0.1); box-shadow: inset 0 1px 0 rgba(255,255,255,0.1); flex-shrink: 0; }
+.imsg-chat-name-row { display: flex; align-items: center; gap: 8px; }
+.imsg-chat-name { font-size: 13px; font-weight: 700; color: #fff; letter-spacing: -0.01em; }
+.imsg-chat-online-dot { height: 8px; width: 8px; border-radius: 50%; background: #58f278; box-shadow: 0 0 8px #58f278; }
+.imsg-chat-status { font-size: 10px; font-weight: 700; color: rgba(88,242,120,0.7); text-transform: uppercase; letter-spacing: 0.04em; }
+.imsg-donate-btn {
+    height: 32px; padding: 0 12px; border-radius: 8px; flex-shrink: 0;
+    background: linear-gradient(135deg, #f59e0b, #f97316); border: none;
+    font-size: 10px; font-weight: 900; color: #000; text-transform: uppercase; letter-spacing: 0.04em;
+    cursor: pointer; transition: filter 0.15s;
+}
+.imsg-donate-btn:hover { filter: brightness(1.08); }
 
 /* ── Donate modal (mirrored from seller page) ── */
 .donate-modal-overlay {
@@ -4428,7 +4674,7 @@
 
         .tu-min-text { text-align: center; font-size: 10px; color: rgba(255,255,255,0.18); margin-top: 12px; }
 
-        #topupResult {
+
             display: none;
             position: fixed;
             inset: 0;
@@ -7865,6 +8111,336 @@
         }
     })();
     </script>
+<!--  MESSAGES FAB — bottom left  -->
+    <div class="msgs-fab" id="msgsFab" onclick="openMessagesModal()" title="Messages">
+        <div class="msgs-fab-icon">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M2 3.5h12v7.5a1.5 1.5 0 0 1-1.5 1.5H5.5L2 15.5V3.5Z" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg>
+            <span class="msgs-fab-badge" id="msgsFabBadge"></span>
+        </div>
+        <div class="msgs-fab-text">
+            <div class="msgs-fab-label">Messages</div>
+            <div class="msgs-fab-sub" id="msgsFabSub">Buyer inquiries &amp; deals</div>
+        </div>
+    </div>
+
+    <!--  MESSAGES MODAL (Inbox + Chat)  -->
+    <div id="messagesOverlay">
+        <div id="messagesModal">
+            <input type="file" id="photoInput" accept="image/*" class="imsg-hidden" onchange="processFileSelection(this, 'image')">
+            <input type="file" id="genericFileInput" accept="application/pdf, text/html" class="imsg-hidden" onchange="processFileSelection(this, 'document')">
+
+            <!-- ── Inbox view ── -->
+            <div id="imsgInboxView">
+                <div class="imsg-inbox-header">
+                    <div class="imsg-inbox-header-overlay"></div>
+                    <div class="imsg-inbox-header-content">
+                        <div class="imsg-row-between">
+                            <div class="imsg-user-block">
+                                <div class="imsg-avatar-ring">
+                                    <div class="imsg-avatar-ring-inner" id="imsgMyAvatar">U</div>
+                                </div>
+                                <div style="display:flex;flex-direction:column;gap:5px;">
+                                    <div class="imsg-name-row">
+                                        <span class="imsg-name" id="imsgMyUsername">@user</span>
+                                        <span id="userTierBadge" class="imsg-tier-badge">Free Plan</span>
+                                    </div>
+                                    <button id="imsgUpgradeBtn" class="imsg-upgrade-btn" onclick="closeMessagesModal();openPlansPickerModal();" style="display:none;align-self:flex-start;">
+                                        <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><path d="M7 11V3M3.5 6.5 7 3l3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                        Upgrade
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="imsg-close-btn" onclick="closeMessagesModal()">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+                            </div>
+                        </div>
+
+                        <div class="imsg-quota-card">
+                            <div class="imsg-quota-row">
+                                <span class="imsg-sim-label">Daily Message Quota</span>
+                                <span style="color:#fff;"><span id="msgCounterDisplay" style="color:#58f278;">32</span> / <span id="msgLimitDisplay">50</span></span>
+                            </div>
+                            <div class="imsg-quota-track"><div id="msgProgressBar" class="imsg-quota-fill" style="width:64%;"></div></div>
+
+                            <!-- View plan limits toggle -->
+                            <div class="imsg-plans-toggle" onclick="(function(){var p=document.getElementById('imsgPlansPanel');var c=document.getElementById('imsgPlansChevron');p.classList.toggle('open');c.classList.toggle('open');})()">
+                                <span class="imsg-plans-toggle-label">View plan limits</span>
+                                <svg id="imsgPlansChevron" class="imsg-plans-toggle-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </div>
+
+                            <div class="imsg-plans-panel" id="imsgPlansPanel">
+                                <div class="imsg-plans-grid" style="grid-template-columns:1fr 1fr 1fr 1fr;">
+
+                                    <!-- Free -->
+                                    <div class="imsg-plan-col">
+                                        <div class="imsg-plan-col-name">Free</div>
+                                        <div class="imsg-plan-stat">
+                                            <div class="imsg-plan-stat-label">Messages</div>
+                                            <div class="imsg-plan-stat-val">50/day</div>
+                                            <div class="imsg-plan-stat-bar-wrap"><div class="imsg-plan-stat-bar" style="width:1%;background:linear-gradient(90deg,#10b981,#a3e635);"></div></div>
+                                        </div>
+                                        <div class="imsg-plan-stat">
+                                            <div class="imsg-plan-stat-label">Images</div>
+                                            <div class="imsg-plan-stat-val">3/hr</div>
+                                            <div class="imsg-plan-stat-bar-wrap"><div class="imsg-plan-stat-bar" style="width:10%;background:linear-gradient(90deg,#38bdf8,#818cf8);"></div></div>
+                                        </div>
+                                        <div class="imsg-plan-stat">
+                                            <div class="imsg-plan-stat-label">File size</div>
+                                            <div class="imsg-plan-stat-val">1 MB</div>
+                                            <div class="imsg-plan-stat-bar-wrap"><div class="imsg-plan-stat-bar" style="width:33%;background:linear-gradient(90deg,#f59e0b,#fbbf24);"></div></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Starter -->
+                                    <div class="imsg-plan-col">
+                                        <div class="imsg-plan-col-name">Starter</div>
+                                        <div class="imsg-plan-stat">
+                                            <div class="imsg-plan-stat-label">Messages</div>
+                                            <div class="imsg-plan-stat-val">500/day</div>
+                                            <div class="imsg-plan-stat-bar-wrap"><div class="imsg-plan-stat-bar" style="width:10%;background:linear-gradient(90deg,#10b981,#a3e635);"></div></div>
+                                        </div>
+                                        <div class="imsg-plan-stat">
+                                            <div class="imsg-plan-stat-label">Images</div>
+                                            <div class="imsg-plan-stat-val">10/hr</div>
+                                            <div class="imsg-plan-stat-bar-wrap"><div class="imsg-plan-stat-bar" style="width:33%;background:linear-gradient(90deg,#38bdf8,#818cf8);"></div></div>
+                                        </div>
+                                        <div class="imsg-plan-stat">
+                                            <div class="imsg-plan-stat-label">File size</div>
+                                            <div class="imsg-plan-stat-val">3 MB</div>
+                                            <div class="imsg-plan-stat-bar-wrap"><div class="imsg-plan-stat-bar" style="width:100%;background:linear-gradient(90deg,#f59e0b,#fbbf24);"></div></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Growth (highlighted) -->
+                                    <div class="imsg-plan-col highlight">
+                                        <div class="imsg-plan-col-name">Growth</div>
+                                        <div class="imsg-plan-stat">
+                                            <div class="imsg-plan-stat-label">Messages</div>
+                                            <div class="imsg-plan-stat-val">1,500/day</div>
+                                            <div class="imsg-plan-stat-bar-wrap"><div class="imsg-plan-stat-bar" style="width:60%;background:linear-gradient(90deg,#10b981,#a3e635);"></div></div>
+                                        </div>
+                                        <div class="imsg-plan-stat">
+                                            <div class="imsg-plan-stat-label">Images</div>
+                                            <div class="imsg-plan-stat-val">20/hr</div>
+                                            <div class="imsg-plan-stat-bar-wrap"><div class="imsg-plan-stat-bar" style="width:66%;background:linear-gradient(90deg,#38bdf8,#818cf8);"></div></div>
+                                        </div>
+                                        <div class="imsg-plan-stat">
+                                            <div class="imsg-plan-stat-label">File size</div>
+                                            <div class="imsg-plan-stat-val">3 MB</div>
+                                            <div class="imsg-plan-stat-bar-wrap"><div class="imsg-plan-stat-bar" style="width:100%;background:linear-gradient(90deg,#f59e0b,#fbbf24);"></div></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Pro -->
+                                    <div class="imsg-plan-col">
+                                        <div class="imsg-plan-col-name">Pro</div>
+                                        <div class="imsg-plan-stat">
+                                            <div class="imsg-plan-stat-label">Messages</div>
+                                            <div class="imsg-plan-stat-val">5,000/day</div>
+                                            <div class="imsg-plan-stat-bar-wrap"><div class="imsg-plan-stat-bar" style="width:100%;background:linear-gradient(90deg,#10b981,#a3e635);"></div></div>
+                                        </div>
+                                        <div class="imsg-plan-stat">
+                                            <div class="imsg-plan-stat-label">Images</div>
+                                            <div class="imsg-plan-stat-val">30/hr</div>
+                                            <div class="imsg-plan-stat-bar-wrap"><div class="imsg-plan-stat-bar" style="width:100%;background:linear-gradient(90deg,#38bdf8,#818cf8);"></div></div>
+                                        </div>
+                                        <div class="imsg-plan-stat">
+                                            <div class="imsg-plan-stat-label">File size</div>
+                                            <div class="imsg-plan-stat-val">3 MB</div>
+                                            <div class="imsg-plan-stat-bar-wrap"><div class="imsg-plan-stat-bar" style="width:100%;background:linear-gradient(90deg,#f59e0b,#fbbf24);"></div></div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="imsg-tab-bar">
+                            <button class="imsg-tab active" id="imsgTabSeller">
+                                SELLER MESSAGES
+                                <span class="imsg-tab-badge">3</span>
+                            </button>
+                            <button class="imsg-tab" id="imsgTabBuyer">
+                                BUYER MESSAGES
+                                <span class="imsg-tab-badge">0</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="imsg-thread-list">
+                    <div onclick="openChat('Alex Vance', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80', 'Active', 'alex-vance-uid')" class="imsg-thread-row">
+                        <div class="imsg-thread-avatar-wrap">
+                            <img class="imsg-thread-avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="Alex">
+                            <span class="imsg-thread-dot"></span>
+                        </div>
+                        <div class="imsg-thread-body">
+                            <div class="imsg-thread-top">
+                                <h4 class="imsg-thread-name">Alex Vance</h4>
+                                <span class="imsg-thread-time">14:32</span>
+                            </div>
+                            <p class="imsg-thread-preview">Is the SaaS application bundle listing still negotiable at $450?</p>
+                        </div>
+                        <div class="imsg-thread-unread">4</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Chat view ── -->
+            <div id="imsgChatView">
+                <div class="imsg-chat-header">
+                    <div class="imsg-chat-header-overlay"></div>
+                    <div class="imsg-chat-header-content">
+                        <div class="imsg-row-between" style="margin-bottom:0;">
+                            <div class="imsg-chat-target">
+                                <button onclick="closeChat()" class="imsg-chat-back">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
+                                </button>
+                                <img id="chatAvatar" class="imsg-chat-avatar" src="" alt="">
+                                <div>
+                                    <div class="imsg-chat-name-row">
+                                        <h4 id="chatTargetName" class="imsg-chat-name"></h4>
+                                        <div class="imsg-chat-online-dot"></div>
+                                    </div>
+                                    <span id="chatTargetStatus" class="imsg-chat-status"></span>
+                                </div>
+                            </div>
+                            <button onclick="openDonateModal(_currentChatUid, _currentChatName, _currentChatPhoto)" class="imsg-donate-btn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:3px;vertical-align:-1px;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8.25v13.5m0-13.5a2.25 2.25 0 1 0-2.25-2.25v.75M12 8.25a2.25 2.25 0 1 0 2.25-2.25v.75M5.106 8.25H18.894a1.5 1.5 0 0 1 1.5 1.5v1.5a1.5 1.5 0 0 1-1.5 1.5H5.106a1.5 1.5 0 0 1-1.5-1.5v-1.5a1.5 1.5 0 0 1 1.5-1.5Zm.394 4.5h12v8.25a1.5 1.5 0 0 1-1.5 1.5h-9a1.5 1.5 0 0 1-1.5-1.5V12.75Z"/></svg> DONATE</button>
+                        </div>
+                        <div class="imsg-merchant-row">
+                            <span class="imsg-merchant-label">Verified Marketplace Merchant</span>
+                            <button onclick="viewChatSeller()" class="imsg-view-seller-btn">VIEW SELLER</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="chatMessagesContent">
+                    <div class="imsg-bubble-in">
+                        <div class="imsg-bubble-in-content">Hey frank! Was looking over your newest listing on Siterifty. Let me know if that asset package price has any flex.</div>
+                    </div>
+                </div>
+
+                <div class="imsg-action-bar">
+                    <button onclick="openDealSelectionModal('send')" class="imsg-action-btn send-deal"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:4px;vertical-align:-1px;"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.1a2 2 0 0 1-2 2H5.75a2 2 0 0 1-2-2v-4.1M16 6.5l-4-4-4 4m4-4v12.5"/></svg>SEND A DEAL</button>
+                    <button onclick="openDealSelectionModal('request')" class="imsg-action-btn request-deal"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:4px;vertical-align:-1px;"><path stroke-linecap="round" stroke-linejoin="round" d="M8 17.5v-12.5l4 4 4-4v12.5M4 19.5h16"/></svg>REQUEST DEAL</button>
+                </div>
+
+                <div id="dropUpMenu" class="imsg-dropup-menu">
+                    <button onclick="triggerInput('photoInput')" class="imsg-dropup-item">
+                        <span>UPLOAD PHOTO</span>
+                        <span class="imsg-dropup-item-sub">Images Stream Tracker</span>
+                    </button>
+                    <button onclick="openModernLinkModal()" class="imsg-dropup-item">
+                        <span>SHARE LINK PREVIEW</span>
+                        <span class="imsg-dropup-item-sub">Live Hyperlink Embed</span>
+                    </button>
+                    <button onclick="triggerInput('genericFileInput')" class="imsg-dropup-item">
+                        <span>UPLOAD DOCUMENT / PAGE</span>
+                        <span class="imsg-dropup-item-sub">PDF or .HTML Files</span>
+                    </button>
+                </div>
+
+                <div class="imsg-composer">
+                    <button onclick="toggleDropUp()" class="imsg-plus-btn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+                    </button>
+                    <input type="text" id="chatTextMessageInput" placeholder="Type a message secure..." class="imsg-text-input">
+                    <button onclick="sendStandardTextMessage()" class="imsg-send-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ── Deal selection sheet ── -->
+            <div id="listingSelectionModal" class="imsg-sheet-overlay">
+                <div class="imsg-sheet">
+                    <div class="imsg-sheet-head">
+                        <div>
+                            <h3 id="dealModalTitle" class="imsg-sheet-title">Select Deal Item</h3>
+                            <p class="imsg-sheet-sub">Choose an active asset marketplace listing</p>
+                        </div>
+                        <button onclick="closeDealSelectionModal()" class="imsg-sheet-close">Close</button>
+                    </div>
+                    <div class="imsg-sheet-list" id="mockListingsContainer"></div>
+                </div>
+            </div>
+
+            <!-- ── Payment confirm modal ── -->
+            <div id="paymentProcessingModal" class="imsg-center-modal">
+                <div class="imsg-pay-card">
+                    <div class="imsg-pay-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-4-3a4 4 0 0 0 4 3c2.21 0 4-1.343 4-3s-1.79-3-4-3-4-1.343-4-3 1.79-3 4-3a4 4 0 0 1 4 3"/></svg>
+                    </div>
+                    <div>
+                        <h3 class="imsg-pay-title">Confirm Payment</h3>
+                        <p id="paymentDescription" class="imsg-pay-desc">Authorize allocation transaction from balance</p>
+                    </div>
+                    <div class="imsg-pay-box">
+                        <span class="imsg-pay-box-label">Price Matrix</span>
+                        <span id="paymentValueDisplay" class="imsg-pay-box-value">$0.00</span>
+                    </div>
+                    <div class="imsg-pay-actions">
+                        <button onclick="closePaymentModal()" class="imsg-pay-btn cancel">CANCEL</button>
+                        <button onclick="executeWalletDeduction()" class="imsg-pay-btn confirm">CONFIRM PAY</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Link embed sheet ── -->
+            <div id="modernLinkModal" class="imsg-sheet-overlay">
+                <div class="imsg-sheet" style="max-height:none;">
+                    <div class="imsg-sheet-head">
+                        <h3 class="imsg-sheet-title">Embed Link Card</h3>
+                        <button onclick="closeModernLinkModal()" class="imsg-sheet-close">CANCEL</button>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:8px;">
+                        <input type="text" id="modalLinkTitle" placeholder="Link Title (e.g., Siterifty)" class="imsg-link-input">
+                        <input type="text" id="modalLinkUrl" oninput="updateLiveLinkPreview()" placeholder="Target URL" class="imsg-link-input">
+                    </div>
+                    <div class="imsg-link-preview-wrap">
+                        <span class="imsg-link-preview-label">Live Dynamic Preview</span>
+                        <div class="imsg-link-preview-card">
+                            <div style="min-width:0;flex:1;">
+                                <h5 id="previewTitle" style="font-size:12px;font-weight:700;color:#fff;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Link Attachment Title</h5>
+                                <p id="previewUrl" style="font-size:10px;font-weight:500;color:#58f278;margin:2px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">https://yoururl.com</p>
+                            </div>
+                            <div class="imsg-link-preview-icon">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"/></svg>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="sendEmbeddedLinkMessage()" class="imsg-send-link-btn">SEND EMBEDDED LINK</button>
+                </div>
+            </div>
+
+            <!-- ── Fullscreen image viewer ── -->
+            <div id="fullscreenImageModal" class="imsg-center-modal" style="background:rgba(0,0,0,0.95);">
+                <button onclick="closeFullscreenImage()" class="imsg-img-popup-close">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+                </button>
+                <div class="imsg-img-popup-card">
+                    <div class="imsg-img-popup-frame"><img id="popupTargetImage" src="" alt="Fullscreen view"></div>
+                    <div class="imsg-img-popup-meta">
+                        <p id="popupImageName" class="imsg-img-popup-name"></p>
+                        <span class="imsg-img-popup-tag">Secure Blob Runtime Sandbox View</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Alert modal ── -->
+            <div id="alertModal" class="imsg-center-modal">
+                <div class="imsg-alert-card">
+                    <div class="imsg-alert-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
+                    </div>
+                    <h3 class="imsg-alert-title">System Response</h3>
+                    <p id="alertMessage" class="imsg-alert-msg"></p>
+                    <button onclick="closeAlert()" class="imsg-alert-dismiss">DISMISS</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
 
 <!--  CHAT BUBBLE  -->
     <div class="chat-bubble" id="chatBubble" onclick="toggleChat()" title="Chat with us" aria-label="Open support chat">
@@ -10816,7 +11392,7 @@
     }
   </style>
 
-  <div id="dmFloatMsg" title="Messages" onclick="window.closeDash&&window.closeDash();">
+  <div id="dmFloatMsg" title="Messages" onclick="window.closeDash&&window.closeDash();openMessagesModal();">
     <div class="dmfm-icon">
       <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
         <path d="M18 2H2a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h4l3.5 3 3.5-3H18a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1Z" stroke="#a8ff6b" stroke-width="1.6" stroke-linejoin="round"/>
@@ -11522,6 +12098,8 @@
             if (_userDataUnsubscribe) { _userDataUnsubscribe(); _userDataUnsubscribe = null; }
 
             if (user) {
+                const fab = document.getElementById('msgsFab');
+                if (fab) fab.style.display = 'flex';
                 //  Check for pending message conversation (from details page redirect) 
                 try {
                     const raw = sessionStorage.getItem('siterifty_pending_conv');
@@ -11600,7 +12178,9 @@
                 }
             } else {
                 window._fbUserData = null;
-                
+                const fab = document.getElementById('msgsFab');
+                if (fab) fab.style.display = 'none';
+                if (typeof closeMessagesModal === 'function') closeMessagesModal();
                 const walletEl = document.getElementById('walletPillAmount');
                 if (walletEl) { walletEl.classList.remove('skel'); walletEl.textContent = '$0.00'; walletEl.title = ''; }
                 const labelEl = document.querySelector('#walletPill .credit-label');
@@ -11617,7 +12197,9 @@
         //  (real logic now lives in the new messages modal script below)
         // ============================================================
         window.updateMsgBadge = function(n) {
+            const fabBadge = document.getElementById('msgsFabBadge');
             const navBadge = document.getElementById('msgNavBadge');
+            const subText  = document.getElementById('msgsFabSub');
             [fabBadge, navBadge].forEach(el => {
                 if (!el) return;
                 if (n > 0) { el.textContent = n > 9 ? '9+' : String(n); el.style.display = 'flex'; }
@@ -11627,7 +12209,7 @@
         };
         // Legacy resume-conversation hook (login redirect flow) — opens the new inbox instead of writing to Firebase
         window.startConversation = async function(otherUid, prefillMsg) {
-            
+            if (typeof window.openMessagesModal === 'function') window.openMessagesModal();
         };
 
 
@@ -12794,7 +13376,7 @@
                 }
             });
             if (sub === 'dashboard') { window.location.href = '/dashboard'; return; }
-            
+            if (sub === 'messages')  { if (typeof openMessagesModal === 'function') openMessagesModal(); return; }
             // Hide all sub-panels first
             ['acSubAccount','acSubOffers'].forEach(id => {
                 const el = $(id);
@@ -19272,6 +19854,649 @@ if (document.readyState === 'loading') {
 
         </script>
 
+    <script>
+        //  Messages modal open/close 
+        window.openMessagesModal = function(){
+            const overlay = document.getElementById('messagesOverlay');
+            overlay.classList.add('open');
+            if (window._lockBodyScroll) window._lockBodyScroll();
+            const username = (window._fbUserData && window._fbUserData.username) || (window._fbAuth && window._fbAuth.currentUser && window._fbAuth.currentUser.email ? window._fbAuth.currentUser.email.split('@')[0] : 'user');
+            const unameEl = document.getElementById('imsgMyUsername');
+            const avEl = document.getElementById('imsgMyAvatar');
+            if (unameEl) unameEl.textContent = '@' + username;
+            if (avEl) avEl.textContent = username.charAt(0).toUpperCase();
+            refreshPlanUI();
+        };
+        window.closeMessagesModal = function(){
+            document.getElementById('messagesOverlay').classList.remove('open');
+            if (window._unlockBodyScroll) window._unlockBodyScroll();
+        };
+
+        // ── Real daily message counter persisted in localStorage ──
+        function _msgDayKey(uid) {
+            const d = new Date();
+            return 'sr_msgs_' + (uid || 'guest') + '_' + d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
+        }
+        function getRealMsgCount(uid) {
+            try { return parseInt(localStorage.getItem(_msgDayKey(uid)) || '0', 10); } catch(_) { return 0; }
+        }
+        function setRealMsgCount(uid, n) {
+            try {
+                // Clear old keys for this user
+                const prefix = 'sr_msgs_' + (uid || 'guest') + '_';
+                const curKey = _msgDayKey(uid);
+                Object.keys(localStorage).forEach(k => { if (k.startsWith(prefix) && k !== curKey) localStorage.removeItem(k); });
+                localStorage.setItem(curKey, String(n));
+            } catch(_) {}
+        }
+        function getUidForMsg() {
+            return (window._fbAuth && window._fbAuth.currentUser && window._fbAuth.currentUser.uid) || 'guest';
+        }
+
+        // ── Hourly image counter persisted in localStorage ──
+        function _imgHourKey(uid) {
+            const d = new Date();
+            return 'sr_imgs_' + (uid || 'guest') + '_' + d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate() + '-' + d.getHours();
+        }
+        function getRealImgCount(uid) {
+            try { return parseInt(localStorage.getItem(_imgHourKey(uid)) || '0', 10); } catch(_) { return 0; }
+        }
+        function setRealImgCount(uid, n) {
+            try {
+                const prefix = 'sr_imgs_' + (uid || 'guest') + '_';
+                const curKey = _imgHourKey(uid);
+                Object.keys(localStorage).forEach(k => { if (k.startsWith(prefix) && k !== curKey) localStorage.removeItem(k); });
+                localStorage.setItem(curKey, String(n));
+            } catch(_) {}
+        }
+
+        let messagesSentToday = getRealMsgCount(getUidForMsg());
+        let imagesSentToday = getRealImgCount(getUidForMsg());
+        let contextDealMode = 'send';
+        let dealsRegistry = {};
+        let targetPendingPaymentPrice = 0;
+        let targetPendingDealId = null;
+
+        const mockListings = [
+            { id: 'list_1', title: 'Minimisty Fan Store', price: 500, desc: 'Complete high-converting Shopify build with inventory automation loops.', img: 'https://images.unsplash.com/photo-1619244434231-c4238db3005a?auto=format&fit=crop&w=300&q=80' },
+            { id: 'list_2', title: 'Siterifty Platform Engine', price: 850, desc: 'Full-stack platform code. Configured for high performance.', img: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=300&q=80' },
+            { id: 'list_3', title: 'SaaS Bundle Asset Pack', price: 300, desc: 'Includes nextjs design layouts and active API webhook integrations.', img: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=300&q=80' }
+        ];
+
+        const tierConfig = {
+            Free:    { msgLimit: 50,   imgLimit: 3,  fileSize: 1 },
+            Starter: { msgLimit: 500,  imgLimit: 10, fileSize: 3 },
+            Growth:  { msgLimit: 1500, imgLimit: 20, fileSize: 3 },
+            Pro:     { msgLimit: 5000, imgLimit: 30, fileSize: 3 }
+        };
+
+        function getCurrentPlan() {
+            const plan = (window._fbUserData && window._fbUserData.plan) || 'Free';
+            return tierConfig[plan] ? plan : 'Free';
+        }
+
+        function refreshPlanUI() {
+            const plan = getCurrentPlan();
+            const badge = document.getElementById('userTierBadge');
+            const upgradeBtn = document.getElementById('imsgUpgradeBtn');
+            if (badge) badge.textContent = plan + ' Plan';
+            if (upgradeBtn) upgradeBtn.style.display = (plan === 'Pro') ? 'none' : 'inline-flex';
+            // Always sync from localStorage before updating UI
+            messagesSentToday = getRealMsgCount(getUidForMsg());
+            updateSystemCountersUI();
+        }
+
+        function updateSystemCountersUI() {
+            const plan = getCurrentPlan();
+            const config = tierConfig[plan];
+            // Re-read from localStorage so count is always accurate after refresh
+            messagesSentToday = getRealMsgCount(getUidForMsg());
+            document.getElementById('msgCounterDisplay').innerText = messagesSentToday;
+            document.getElementById('msgLimitDisplay').innerText = config.msgLimit;
+            const msgPercentage = Math.min((messagesSentToday / config.msgLimit) * 100, 100);
+            document.getElementById('msgProgressBar').style.width = `${msgPercentage}%`;
+        }
+
+        function incrementMsgCount() {
+            const uid = getUidForMsg();
+            const n = getRealMsgCount(uid) + 1;
+            setRealMsgCount(uid, n);
+            messagesSentToday = n;
+        }
+
+        function checkMessageQuota() {
+            const plan = getCurrentPlan();
+            const config = tierConfig[plan];
+            messagesSentToday = getRealMsgCount(getUidForMsg());
+            if (messagesSentToday >= config.msgLimit) {
+                showCustomAlert(`Daily text limit reached on your ${plan} plan. Upgrade for a higher quota.`);
+                return false;
+            }
+            return true;
+        }
+
+        var _currentChatUid = '';
+        var _currentChatName = '';
+        var _currentChatPhoto = '';
+
+        function openChat(name, avatarUrl, status, uid) {
+            _currentChatUid   = uid || '';
+            _currentChatName  = name || '';
+            _currentChatPhoto = avatarUrl || '';
+            document.getElementById('chatTargetName').innerText = name;
+            document.getElementById('chatAvatar').src = avatarUrl;
+            document.getElementById('chatTargetStatus').innerText = status;
+            document.getElementById('imsgChatView').classList.add('open');
+        }
+
+        function viewChatSeller() {
+            if (_currentChatUid) {
+                window.location.href = '/user-profile?uid=' + _currentChatUid;
+            } else {
+                showCustomAlert('Seller profile not available.');
+            }
+        }
+
+        function closeChat() {
+            document.getElementById('imsgChatView').classList.remove('open');
+            document.getElementById('dropUpMenu').classList.remove('open');
+        }
+
+        function toggleDropUp() {
+            document.getElementById('dropUpMenu').classList.toggle('open');
+        }
+
+        function triggerInput(id) {
+            document.getElementById(id).click();
+            document.getElementById('dropUpMenu').classList.remove('open');
+        }
+
+        // ── Imgur upload for chat images ──────────────────────────
+        const _IMGUR_CLIENT_ID = (function() {
+            // Reuse the same Client-ID already defined in the avatar upload block
+            // Try to read it from the already-loaded script context first;
+            // fall back to the known constant so this block is self-contained.
+            return "891e5bb4aa94282";
+        })();
+
+        async function uploadImageToImgur(file) {
+            const formData = new FormData();
+            formData.append('image', file);
+            const resp = await fetch('https://api.imgur.com/3/image', {
+                method: 'POST',
+                headers: { Authorization: 'Client-ID ' + _IMGUR_CLIENT_ID },
+                body: formData
+            });
+            if (!resp.ok) throw new Error('Imgur upload failed: ' + resp.status);
+            const data = await resp.json();
+            if (!data.success) throw new Error(data.data?.error || 'Imgur error');
+            return data.data.link; // permanent Imgur URL
+        }
+
+        function appendImageMessageUploading(fileName) {
+            // Insert a placeholder bubble while uploading
+            const container = document.getElementById('chatMessagesContent');
+            const id = 'img_upload_' + Date.now();
+            const html = `
+              <div id="${id}" class="imsg-bubble-out">
+                <div class="imsg-img-bubble">
+                  <div class="imsg-img-frame" style="min-height:80px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.04);border-radius:10px;">
+                    <div style="display:flex;align-items:center;gap:8px;color:var(--muted);font-size:11px;">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                      Uploading…
+                    </div>
+                  </div>
+                  <div class="imsg-img-meta"><span class="imsg-img-filename">${fileName}</span></div>
+                </div>
+              </div>`;
+            container.insertAdjacentHTML('beforeend', html);
+            scrollToLatest();
+            return id;
+        }
+
+        function replaceUploadingBubble(placeholderId, fileName, imgurURL) {
+            const placeholder = document.getElementById(placeholderId);
+            if (!placeholder) return;
+            const escapedName = fileName.replace(/'/g, "\'");
+            placeholder.outerHTML = `
+              <div class="imsg-bubble-out">
+                <div class="imsg-img-bubble">
+                  <div class="imsg-img-frame">
+                    <img src="${imgurURL}" alt="" />
+                    <div class="imsg-img-hover">
+                      <button onclick="openImageInPopup('${imgurURL}', '${escapedName}')" class="imsg-img-view-btn">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="vertical-align:-1px;margin-right:3px;"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>VIEW IMAGE
+                      </button>
+                    </div>
+                  </div>
+                  <div class="imsg-img-meta">
+                    <span class="imsg-img-filename">${fileName}</span>
+                    <button onclick="openImageInPopup('${imgurURL}', '${escapedName}')" class="imsg-img-view-link">VIEW</button>
+                  </div>
+                </div>
+              </div>`;
+            scrollToLatest();
+        }
+
+        async function processFileSelection(input, type) {
+            if (!input.files || input.files.length === 0) return;
+            if (!checkMessageQuota()) { input.value = ''; return; }
+
+            const file = input.files[0];
+            const sizeInMB = file.size / (1024 * 1024);
+            const config = tierConfig[getCurrentPlan()];
+
+            if (sizeInMB > config.fileSize) {
+                showCustomAlert(`"${file.name}" exceeds your allocation limit.`);
+                input.value = '';
+                return;
+            }
+
+            if (type === 'image') {
+                imagesSentToday = getRealImgCount(getUidForMsg());
+                if (imagesSentToday >= config.imgLimit) {
+                    showCustomAlert(`Hourly image limit reached. Try again next hour.`);
+                    input.value = '';
+                    return;
+                }
+                // Show uploading placeholder immediately
+                const placeholderId = appendImageMessageUploading(file.name);
+                const _imgUid = getUidForMsg();
+                imagesSentToday = getRealImgCount(_imgUid) + 1;
+                setRealImgCount(_imgUid, imagesSentToday);
+                incrementMsgCount();
+                updateSystemCountersUI();
+                try {
+                    const imgurURL = await uploadImageToImgur(file);
+                    replaceUploadingBubble(placeholderId, file.name, imgurURL);
+                } catch(err) {
+                    // Replace placeholder with error state
+                    const placeholder = document.getElementById(placeholderId);
+                    if (placeholder) placeholder.remove();
+                    showCustomAlert('Image upload failed. Please try again.');
+                    console.error('[Imgur chat]', err);
+                }
+            } else {
+                // Non-image files: use local blob URL (no hosting needed for docs)
+                const fileObjectURL = URL.createObjectURL(file);
+                incrementMsgCount();
+                updateSystemCountersUI();
+                appendDocumentMessage(file.name, fileObjectURL);
+            }
+            input.value = '';
+        }
+
+        function buildListingsModalContent(listings) {
+            const container = document.getElementById('mockListingsContainer');
+            container.innerHTML = '';
+            if (!listings || listings.length === 0) {
+                container.innerHTML = '<div style="text-align:center;padding:28px 0;color:var(--muted);font-size:12px;">No listings found.</div>';
+                return;
+            }
+            listings.forEach(item => {
+                const img = (item.images && item.images[0]) ? item.images[0] : (item.img || '');
+                const title = item.title || item.url || 'Untitled listing';
+                const desc = item.desc || item.description || item.category || '';
+                const price = item.price ? Number(item.price).toLocaleString() : '—';
+                const row = `
+                  <div onclick="selectListingForActiveDeal('${item._id || item.id}')" class="imsg-listing-row">
+                    ${img ? `<img src="${img}" alt="" onerror="this.style.display='none'">` : '<div style="width:48px;height:48px;border-radius:8px;background:rgba(168,85,247,0.1);flex-shrink:0;"></div>'}
+                    <div class="imsg-listing-body">
+                      <h4 class="imsg-listing-title">${title}</h4>
+                      <p class="imsg-listing-desc">${desc}</p>
+                    </div>
+                    <span class="imsg-listing-price">$${price}</span>
+                  </div>`;
+                container.insertAdjacentHTML('beforeend', row);
+            });
+        }
+
+        function openDealSelectionModal(mode) {
+            contextDealMode = mode;
+            document.getElementById('dealModalTitle').innerText = mode === 'send' ? 'Send a Marketplace Deal' : 'Request a Custom Deal';
+            document.getElementById('listingSelectionModal').classList.add('open');
+
+            const container = document.getElementById('mockListingsContainer');
+            container.innerHTML = '<div style="text-align:center;padding:28px 0;color:var(--muted);font-size:12px;">Loading listings…</div>';
+
+            // For "send": load the current user's own listings
+            // For "request": load the other user's listings (the person they are chatting with)
+            const targetUid = mode === 'send'
+                ? (window._fbUserData && window._fbUserData.uid)
+                : _currentChatUid;
+
+            if (!targetUid) {
+                buildListingsModalContent([]);
+                return;
+            }
+
+            try {
+                var db   = window._fbDb;
+                var fns  = window._fbDbFns;
+                if (!db || !fns || !fns.ref || !fns.get) {
+                    // Firebase not ready — fall back to mock listings
+                    buildListingsModalContent(mockListings);
+                    return;
+                }
+                fns.get(fns.ref(db, 'users/' + targetUid + '/listings')).then(function(snap) {
+                    if (snap && snap.exists && snap.exists()) {
+                        var items = [];
+                        snap.forEach(function(child) {
+                            var v = child.val();
+                            if (v) items.push(Object.assign({ _id: child.key }, v));
+                        });
+                        buildListingsModalContent(items);
+                    } else {
+                        buildListingsModalContent([]);
+                    }
+                }).catch(function(err) {
+                    console.warn('[dealModal] listings fetch error', err);
+                    buildListingsModalContent([]);
+                });
+            } catch(e) {
+                console.warn('[dealModal] listings catch', e);
+                buildListingsModalContent([]);
+            }
+        }
+
+        function closeDealSelectionModal() {
+            document.getElementById('listingSelectionModal').classList.remove('open');
+        }
+
+        function selectListingForActiveDeal(id) {
+            closeDealSelectionModal();
+            if (!checkMessageQuota()) return;
+
+            // Check mockListings first, then look up from Firebase via dealsRegistry staging
+            const mockMatch = mockListings.find(x => x.id === id);
+            if (mockMatch) {
+                const dealId = 'deal_' + Date.now();
+                dealsRegistry[dealId] = { ...mockMatch, mode: contextDealMode, status: 'pending' };
+                renderDealComponentMessage(dealId);
+                return;
+            }
+
+            // Firebase listing — fetch by key from the correct uid path
+            const targetUid = contextDealMode === 'send'
+                ? (window._fbUserData && window._fbUserData.uid)
+                : _currentChatUid;
+
+            if (!targetUid) return;
+
+            try {
+                var db  = window._fbDb;
+                var fns = window._fbDbFns;
+                if (!db || !fns || !fns.ref || !fns.get) return;
+                fns.get(fns.ref(db, 'users/' + targetUid + '/listings/' + id)).then(function(snap) {
+                    if (!snap || !snap.exists || !snap.exists()) return;
+                    var v = snap.val();
+                    var normalized = {
+                        id:    id,
+                        title: v.title || v.url || 'Untitled listing',
+                        desc:  v.desc || v.description || v.category || '',
+                        price: v.price ? Number(v.price) : 0,
+                        img:   (v.images && v.images[0]) ? v.images[0] : ''
+                    };
+                    const dealId = 'deal_' + Date.now();
+                    dealsRegistry[dealId] = { ...normalized, mode: contextDealMode, status: 'pending' };
+                    renderDealComponentMessage(dealId);
+                }).catch(function(err) {
+                    console.warn('[dealSelect] fetch error', err);
+                });
+            } catch(e) {
+                console.warn('[dealSelect] catch', e);
+            }
+        }
+
+        function renderDealComponentMessage(dealId) {
+            const container = document.getElementById('chatMessagesContent');
+            const deal = dealsRegistry[dealId];
+
+            const labelIcon = deal.mode === 'send'
+                ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" style="vertical-align:-1px;margin-right:3px;"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.1a2 2 0 0 1-2 2H5.75a2 2 0 0 1-2-2v-4.1M16 6.5l-4-4-4 4m4-4v12.5"/></svg>'
+                : '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" style="vertical-align:-1px;margin-right:3px;"><path stroke-linecap="round" stroke-linejoin="round" d="M8 17.5v-12.5l4 4 4-4v12.5M4 19.5h16"/></svg>';
+            const labelText = (deal.mode === 'send' ? 'MARKETPLACE CONTRACT OFFER' : 'INBOUND ACQUISITION REQUEST');
+            const labelClass = deal.mode === 'send' ? 'send' : 'request';
+            const cardClass = deal.mode === 'send' ? '' : 'request';
+
+            const html = `
+              <div id="wrapper_${dealId}" class="imsg-bubble-out">
+                <div class="imsg-deal-card ${cardClass}">
+
+                  <div id="overlay_approved_${dealId}" class="imsg-deal-overlay approved">
+                    <div class="imsg-deal-overlay-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg></div>
+                    <span class="imsg-deal-overlay-title">BUYER APPROVED</span>
+                    <p class="imsg-deal-overlay-sub">Funds successfully transferred from wallet balance</p>
+                  </div>
+
+                  <div id="overlay_rejected_${dealId}" class="imsg-deal-overlay rejected">
+                    <div class="imsg-deal-overlay-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg></div>
+                    <span class="imsg-deal-overlay-title">DEAL REJECTED</span>
+                    <p class="imsg-deal-overlay-sub">Merchant context parameters closed by receiver side parameters</p>
+                  </div>
+
+                  <div>
+                    <span class="imsg-deal-label ${labelClass}">${labelIcon}${labelText}</span>
+                    <span class="imsg-deal-id">ID: ${dealId}</span>
+                  </div>
+
+                  <div class="imsg-deal-listing">
+                    <img src="${deal.img}" alt="">
+                    <div class="imsg-deal-listing-body">
+                      <h5 class="imsg-deal-listing-title">${deal.title}</h5>
+                      <p class="imsg-deal-listing-desc">${deal.desc}</p>
+                      <span class="imsg-deal-listing-price">$${deal.price}</span>
+                    </div>
+                  </div>
+
+                  <div style="display:flex;flex-direction:column;gap:6px;padding-top:4px;">
+                    <div class="imsg-deal-actions">
+                      <button onclick="handleReceiverAction('${dealId}', 'approve')" class="imsg-deal-btn approve">APPROVE</button>
+                      <button onclick="handleReceiverAction('${dealId}', 'reject')" class="imsg-deal-btn reject">REJECT</button>
+                    </div>
+                    <div class="imsg-deal-lock"><span><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="vertical-align:-1px;margin-right:3px;"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"/></svg>Sender Security Lock Active</span></div>
+                  </div>
+
+                </div>
+              </div>`;
+
+            container.insertAdjacentHTML('beforeend', html);
+            incrementMsgCount();
+            updateSystemCountersUI();
+            scrollToLatest();
+        }
+
+        function handleReceiverAction(dealId, resolution) {
+            const deal = dealsRegistry[dealId];
+            if (!deal) return;
+
+            if (resolution === 'reject') {
+                dealsRegistry[dealId].status = 'rejected';
+                document.getElementById(`overlay_rejected_${dealId}`).classList.add('show');
+                appendSystemLogMessage(`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="vertical-align:-1px;margin-right:4px;color:#f87171;"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>Deal notification: Marketplace entry transaction [${dealId}] has been rejected by receiver.`);
+                return;
+            }
+
+            if (resolution === 'approve') {
+                targetPendingPaymentPrice = deal.price;
+                targetPendingDealId = dealId;
+                document.getElementById('paymentValueDisplay').innerText = `$${deal.price}`;
+                document.getElementById('paymentDescription').innerText = `Authorize direct allocation transfer for "${deal.title}"`;
+                document.getElementById('paymentProcessingModal').classList.add('open');
+            }
+        }
+
+        function closePaymentModal() {
+            document.getElementById('paymentProcessingModal').classList.remove('open');
+        }
+
+        function executeWalletDeduction() {
+            closePaymentModal();
+
+            const currentBalance = parseFloat((window._fbUserData && window._fbUserData.balance) || 0);
+
+            if (currentBalance < targetPendingPaymentPrice) {
+                showCustomAlert(`Insufficient wallet balance. This deal costs $${targetPendingPaymentPrice}, but your balance is $${currentBalance.toFixed(2)}. Top up your wallet to continue.`);
+                return;
+            }
+
+            if (window._fbUserData) window._fbUserData.balance = currentBalance - targetPendingPaymentPrice;
+            dealsRegistry[targetPendingDealId].status = 'approved';
+            document.getElementById(`overlay_approved_${targetPendingDealId}`).classList.add('show');
+            appendSystemLogMessage(`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="vertical-align:-1px;margin-right:4px;color:#58f278;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-4-3a4 4 0 0 0 4 3c2.21 0 4-1.343 4-3s-1.79-3-4-3-4-1.343-4-3 1.79-3 4-3a4 4 0 0 1 4 3"/></svg>Transaction Success: Paid $${targetPendingPaymentPrice} from your wallet balance.`);
+            updateSystemCountersUI();
+        }
+
+        function appendSystemLogMessage(text) {
+            const container = document.getElementById('chatMessagesContent');
+            const html = `<div class="imsg-syslog-wrap"><div class="imsg-syslog">${text}</div></div>`;
+            container.insertAdjacentHTML('beforeend', html);
+            scrollToLatest();
+        }
+
+        function openModernLinkModal() {
+            document.getElementById('dropUpMenu').classList.remove('open');
+            document.getElementById('modalLinkTitle').value = '';
+            document.getElementById('modalLinkUrl').value = '';
+            updateLiveLinkPreview();
+            document.getElementById('modernLinkModal').classList.add('open');
+        }
+
+        function closeModernLinkModal() {
+            document.getElementById('modernLinkModal').classList.remove('open');
+        }
+
+        function updateLiveLinkPreview() {
+            const titleInput = document.getElementById('modalLinkTitle').value || "Link Attachment Title";
+            let urlInput = document.getElementById('modalLinkUrl').value || "https://yoururl.com";
+            document.getElementById('previewTitle').innerText = titleInput;
+            document.getElementById('previewUrl').innerText = urlInput;
+        }
+
+        function sendEmbeddedLinkMessage() {
+            if (!checkMessageQuota()) return;
+            const title = document.getElementById('modalLinkTitle').value || "Shared Link Asset";
+            let url = document.getElementById('modalLinkUrl').value || "https://siterifty.com";
+
+            const container = document.getElementById('chatMessagesContent');
+            const msgHtml = `
+              <div class="imsg-bubble-out">
+                <div class="imsg-bubble-link">
+                  <span class="imsg-bubble-link-tag"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" style="vertical-align:-1px;margin-right:3px;"><path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"/></svg>LINK EMBED</span>
+                  <h5>${title}</h5>
+                  <a href="${url}" target="_blank">${url}</a>
+                </div>
+              </div>`;
+
+            container.insertAdjacentHTML('beforeend', msgHtml);
+            incrementMsgCount();
+            updateSystemCountersUI();
+            scrollToLatest();
+            closeModernLinkModal();
+        }
+
+        function sendStandardTextMessage() {
+            if (!checkMessageQuota()) return;
+            const input = document.getElementById('chatTextMessageInput');
+            const val = input.value.trim();
+            if (!val) return;
+
+            const container = document.getElementById('chatMessagesContent');
+            const html = `
+              <div class="imsg-bubble-out">
+                <div class="imsg-bubble-out-content">${val}</div>
+              </div>`;
+            container.insertAdjacentHTML('beforeend', html);
+            input.value = '';
+            incrementMsgCount();
+            updateSystemCountersUI();
+            scrollToLatest();
+        }
+
+        function openImageInPopup(url, name) {
+            document.getElementById('popupTargetImage').src = url;
+            document.getElementById('popupImageName').innerText = name;
+            document.getElementById('fullscreenImageModal').classList.add('open');
+        }
+
+        function closeFullscreenImage() {
+            document.getElementById('fullscreenImageModal').classList.remove('open');
+        }
+
+        function appendImageMessage(fileName, objectURL) {
+            const container = document.getElementById('chatMessagesContent');
+            const escapedName = fileName.replace(/'/g, "\\'");
+            const html = `
+              <div class="imsg-bubble-out">
+                <div class="imsg-img-bubble">
+                  <div class="imsg-img-frame">
+                    <img src="${objectURL}" alt="" />
+                    <div class="imsg-img-hover">
+                      <button onclick="openImageInPopup('${objectURL}', '${escapedName}')" class="imsg-img-view-btn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="vertical-align:-1px;margin-right:3px;"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>VIEW IMAGE</button>
+                    </div>
+                  </div>
+                  <div class="imsg-img-meta">
+                    <span class="imsg-img-filename">${fileName}</span>
+                    <button onclick="openImageInPopup('${objectURL}', '${escapedName}')" class="imsg-img-view-link">VIEW</button>
+                  </div>
+                </div>
+              </div>`;
+            container.insertAdjacentHTML('beforeend', html);
+            scrollToLatest();
+        }
+
+        function appendDocumentMessage(fileName, objectURL) {
+            const container = document.getElementById('chatMessagesContent');
+            const isHtml = fileName.toLowerCase().endsWith('.html');
+            const typeLabel = isHtml ? 'HTML INTERACTIVE PAGE' : 'DOCUMENT PDF';
+            const html = `
+              <div class="imsg-bubble-out">
+                <a href="${objectURL}" target="_blank" class="imsg-doc-bubble">
+                  <div class="imsg-doc-row">
+                    <div class="imsg-doc-icon">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>
+                    </div>
+                    <div style="min-width:0;">
+                      <span class="imsg-doc-type">${typeLabel}</span>
+                      <p class="imsg-doc-name">${fileName}</p>
+                      <span class="imsg-doc-sub">Click to preview file</span>
+                    </div>
+                  </div>
+                </a>
+              </div>`;
+            container.insertAdjacentHTML('beforeend', html);
+            scrollToLatest();
+        }
+
+        function scrollToLatest() {
+            const el = document.getElementById('chatMessagesContent');
+            el.scrollTop = el.scrollHeight;
+        }
+
+        function showCustomAlert(msg) {
+            document.getElementById('alertMessage').innerText = msg;
+            document.getElementById('alertModal').classList.add('open');
+        }
+
+        function closeAlert() {
+            document.getElementById('alertModal').classList.remove('open');
+        }
+        // Expose globally so external scripts (donate modal, etc.) can use the custom alert
+        window.showCustomAlert = showCustomAlert;
+        window.closeAlert = closeAlert;
+
+        // Seller/Buyer tab toggle (visual only, demo data is seller-only)
+        document.addEventListener('DOMContentLoaded', function(){
+            const sellerTab = document.getElementById('imsgTabSeller');
+            const buyerTab = document.getElementById('imsgTabBuyer');
+            if (sellerTab && buyerTab) {
+                sellerTab.addEventListener('click', function(){ sellerTab.classList.add('active'); buyerTab.classList.remove('active'); });
+                buyerTab.addEventListener('click', function(){ buyerTab.classList.add('active'); sellerTab.classList.remove('active'); });
+            }
+        });
+
+        refreshPlanUI();
+    </script>
 
 <!-- ════════ DONATE MODAL ════════ -->
 <div class="donate-modal-overlay" id="homeDonateModal" onclick="if(event.target===this) closeDonateModal()">
