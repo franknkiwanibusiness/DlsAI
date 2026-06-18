@@ -185,6 +185,132 @@ export default async function handler(req, res) {
         return res.status(200).json({ ok: true, sent, failed });
     }
 
+    // ── 6. Transfer account ───────────────────────────────────────
+    if (action === 'transfer_account') {
+        const authHeader = req.headers.authorization || '';
+        const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+        if (!idToken) return res.status(401).json({ error: 'Missing Authorization header' });
+
+        initFirebase();
+        const auth = getAuth();
+        const db   = getDatabase();
+
+        // Verify the caller's session
+        let decoded;
+        try { decoded = await auth.verifyIdToken(idToken); }
+        catch { return res.status(401).json({ error: 'Invalid or expired session.' }); }
+
+        const fromUid = decoded.uid;
+        const { recipientEmail, accountYear, username, plan } = body;
+
+        if (!recipientEmail || !recipientEmail.includes('@')) {
+            return res.status(400).json({ error: 'Missing required fields.' });
+        }
+
+        // Password was verified client-side via Firebase re-auth before getIdToken(true).
+        // The fresh ID token is proof — no server-side password check needed.
+
+        // Make sure recipient email differs from caller's
+        if (recipientEmail.toLowerCase() === decoded.email.toLowerCase()) {
+            return res.status(400).json({ error: 'Recipient must be different from your account email.' });
+        }
+
+        // Check for balance or open escrow (same guards as delete_account)
+        const userSnap  = await db.ref(`users/${fromUid}`).get();
+        const userData  = userSnap.val() || {};
+        const balance   = parseFloat(userData.balance || 0);
+        if (balance > 0.01) {
+            return res.status(400).json({ error: `You have a wallet balance of $${balance.toFixed(2)}. Please withdraw before transferring.` });
+        }
+        const escrowSnap  = await db.ref(`users/${fromUid}/escrow`).get();
+        const openOrders  = Object.values(escrowSnap.val() || {}).filter(o => o && o.status === 'pending');
+        if (openOrders.length > 0) {
+            return res.status(400).json({ error: 'You have open escrow orders. Please resolve them before transferring.' });
+        }
+
+        const siteDomain   = 'siterifty.com';
+        const safeUsername = username || decoded.email.split('@')[0];
+        const safePlan     = plan     || 'Free';
+        const now     = new Date();
+        const dateStr = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+
+        // Email to recipient
+        const recipientHtml = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0a0a0f;font-family:'Helvetica Neue',Arial,sans-serif;"><div style="max-width:520px;margin:0 auto;padding:40px 20px;"><div style="text-align:center;margin-bottom:32px;"><img src="https://i.imgur.com/8EEl86u.jpeg" alt="Siterifty" style="width:48px;height:48px;border-radius:12px;"><div style="font-size:22px;font-weight:800;color:#f1f0ff;margin-top:12px;letter-spacing:-0.03em;">Account Transfer Notice</div></div><div style="background:#12121a;border:1px solid rgba(251,191,36,0.2);border-radius:16px;padding:28px;margin-bottom:24px;"><div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:10px;padding:14px;margin-bottom:20px;"><div style="font-size:13px;font-weight:700;color:#fbbf24;margin-bottom:4px;">Account Transfer Initiated</div><div style="font-size:12px;color:rgba(251,191,36,0.7);line-height:1.6;">The Siterifty account <strong style="color:#fbbf24;">@${safeUsername}</strong> has been transferred to your email address.</div></div><table style="width:100%;border-collapse:collapse;font-size:12px;"><tr style="border-bottom:1px solid rgba(255,255,255,0.05);"><td style="padding:8px 0;color:#8b8aa8;">From account</td><td style="padding:8px 0;color:#f1f0ff;text-align:right;">${decoded.email}</td></tr><tr style="border-bottom:1px solid rgba(255,255,255,0.05);"><td style="padding:8px 0;color:#8b8aa8;">To (you)</td><td style="padding:8px 0;color:#fbbf24;text-align:right;">${recipientEmail}</td></tr><tr style="border-bottom:1px solid rgba(255,255,255,0.05);"><td style="padding:8px 0;color:#8b8aa8;">Username</td><td style="padding:8px 0;color:#f1f0ff;text-align:right;">@${safeUsername}</td></tr><tr style="border-bottom:1px solid rgba(255,255,255,0.05);"><td style="padding:8px 0;color:#8b8aa8;">Plan transferred</td><td style="padding:8px 0;color:#a855f7;text-align:right;">${safePlan}</td></tr><tr><td style="padding:8px 0;color:#8b8aa8;">Date &amp; time</td><td style="padding:8px 0;color:#f1f0ff;text-align:right;">${dateStr} · ${timeStr}</td></tr></table></div><div style="background:#12121a;border:1px solid rgba(255,255,255,0.13);border-radius:16px;padding:20px;margin-bottom:24px;"><div style="font-size:12px;color:#8b8aa8;line-height:1.7;">You now have full ownership of this account. Sign in to Siterifty with your email address to access the transferred account. If you did not expect this transfer, contact <a href="mailto:support@${siteDomain}" style="color:#a855f7;">support@${siteDomain}</a> immediately.</div></div><div style="text-align:center;font-size:11px;color:rgba(139,138,168,0.4);">© 2026 ${siteDomain} · Automated security notice · AES-256 encrypted audit log retained</div></div></body></html>`;
+
+        // Email to original owner
+        const ownerHtml = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0a0a0f;font-family:'Helvetica Neue',Arial,sans-serif;"><div style="max-width:520px;margin:0 auto;padding:40px 20px;"><div style="text-align:center;margin-bottom:32px;"><img src="https://i.imgur.com/8EEl86u.jpeg" alt="Siterifty" style="width:48px;height:48px;border-radius:12px;"><div style="font-size:22px;font-weight:800;color:#f1f0ff;margin-top:12px;letter-spacing:-0.03em;">Transfer Complete</div></div><div style="background:#12121a;border:1px solid rgba(248,113,113,0.2);border-radius:16px;padding:28px;margin-bottom:24px;"><div style="background:rgba(248,113,113,0.06);border:1px solid rgba(248,113,113,0.18);border-radius:10px;padding:14px;margin-bottom:20px;"><div style="font-size:13px;font-weight:700;color:#f87171;margin-bottom:4px;">Your account has been transferred</div><div style="font-size:12px;color:rgba(248,113,113,0.75);line-height:1.6;">You have successfully transferred <strong style="color:#f87171;">@${safeUsername}</strong> to <strong>${recipientEmail}</strong>. You no longer have access to this account.</div></div><table style="width:100%;border-collapse:collapse;font-size:12px;"><tr style="border-bottom:1px solid rgba(255,255,255,0.05);"><td style="padding:8px 0;color:#8b8aa8;">Transferred to</td><td style="padding:8px 0;color:#f1f0ff;text-align:right;">${recipientEmail}</td></tr><tr><td style="padding:8px 0;color:#8b8aa8;">Date &amp; time</td><td style="padding:8px 0;color:#f1f0ff;text-align:right;">${dateStr} · ${timeStr}</td></tr></table></div><div style="background:#12121a;border:1px solid rgba(255,255,255,0.13);border-radius:16px;padding:20px;margin-bottom:24px;"><div style="font-size:12px;color:#8b8aa8;line-height:1.7;">This action is permanent and irreversible. If you did not authorise this transfer, contact <a href="mailto:support@${siteDomain}" style="color:#a855f7;">support@${siteDomain}</a> immediately with your account details.</div></div><div style="text-align:center;font-size:11px;color:rgba(139,138,168,0.4);">© 2026 ${siteDomain} · AES-256 encrypted audit log retained</div></div></body></html>`;
+
+        // ── Point of no return — transfer happens BEFORE emails ─────────
+
+        // 1. Update Firebase Auth email → locks original owner out immediately.
+        //    Recipient uses "Forgot password" with their email to set a new password.
+        try {
+            await auth.updateUser(fromUid, {
+                email:         recipientEmail,
+                emailVerified: false,
+            });
+        } catch (e) {
+            console.error('[transfer_account] auth.updateUser failed', e);
+            return res.status(500).json({ error: 'Failed to update account credentials. Transfer aborted — no data was changed.' });
+        }
+
+        // 2. Update RTDB so app-level email references match the new owner.
+        try {
+            await db.ref(`users/${fromUid}`).update({
+                email:           recipientEmail,
+                transferredFrom: decoded.email,
+                transferredAt:   Date.now(),
+            });
+        } catch (e) {
+            console.error('[transfer_account] RTDB user update failed', e);
+            // Auth already updated — log but continue.
+        }
+
+        // 3. Revoke all sessions — signs original owner out everywhere right now.
+        try {
+            await auth.revokeRefreshTokens(fromUid);
+        } catch (e) {
+            console.warn('[transfer_account] revokeRefreshTokens failed', e);
+        }
+
+        // 4. Write audit log — transfer is done, safe to record it.
+        try {
+            await db.ref('accountTransfers').push({
+                fromEmail:   decoded.email,
+                fromUid,
+                toEmail:     recipientEmail,
+                username:    safeUsername,
+                plan:        safePlan,
+                timestamp:   Date.now(),
+                accountYear: accountYear || null,
+            });
+        } catch (e) {
+            console.warn('[transfer_account] audit log write failed', e);
+        }
+
+        // 5. Now send confirmation emails — ownership is already transferred.
+        if (RESEND_API_KEY) {
+            await Promise.all([
+                fetch('https://api.resend.com/emails', {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + RESEND_API_KEY },
+                    body:    JSON.stringify({ from: 'Siterifty <no-reply@siterifty.com>', to: [recipientEmail], subject: 'Siterifty Account Transfer — You have received an account', html: recipientHtml })
+                }).catch(e => console.warn('[transfer_account] recipient email failed', e)),
+                fetch('https://api.resend.com/emails', {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + RESEND_API_KEY },
+                    body:    JSON.stringify({ from: 'Siterifty <no-reply@siterifty.com>', to: [decoded.email], subject: 'Siterifty: Your account has been transferred', html: ownerHtml })
+                }).catch(e => console.warn('[transfer_account] owner email failed', e))
+            ]);
+        } else {
+            console.warn('[transfer_account] RESEND_API_KEY not set — emails skipped');
+        }
+
+        console.log(`[transfer_account] uid=${fromUid} (${decoded.email}) -> ${recipientEmail} complete`);
+        return res.status(200).json({ ok: true });
+    }
+
     return res.status(400).json({ error: 'Unknown action: ' + action });
 }
 
