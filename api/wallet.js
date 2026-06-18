@@ -96,14 +96,152 @@ export default async function handler(req, res) {
     // 2. Route by action
     const { action } = req.body || {};
 
+    if (action === 'transfer_lookup') {
+        return handleTransferLookup(req, res, db, senderUid);
+    }
     if (action === 'transfer') {
         return handleTransfer(req, res, db, senderUid);
     }
     if (action === 'promote') {
         return handlePromote(req, res, db, senderUid);
     }
+    if (action === 'withdraw') {
+        return handleWithdraw(req, res, db, senderUid);
+    }
 
-    return res.status(400).json({ success: false, error: 'Invalid action. Use "transfer" or "promote".' });
+    return res.status(400).json({ success: false, error: 'Invalid action.' });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ACTION: transfer_lookup
+// Looks up a user by email so the transfer UI can confirm the recipient.
+// Body: { action, recipientEmail }
+// ─────────────────────────────────────────────────────────────────────────────
+async function handleTransferLookup(req, res, db, senderUid) {
+    const { recipientEmail } = req.body || {};
+    if (!recipientEmail || !recipientEmail.includes('@')) {
+        return res.status(400).json({ success: false, error: 'Enter a valid email address.' });
+    }
+
+    // Scan users node for matching email — RTDB has no query-by-email,
+    // so we use Firebase Auth Admin which has a direct lookup.
+    let recipientUser;
+    try {
+        recipientUser = await getAuth().getUserByEmail(recipientEmail.toLowerCase().trim());
+    } catch {
+        return res.status(404).json({ success: false, error: 'No Siterifty account found for that email.' });
+    }
+
+    if (recipientUser.uid === senderUid) {
+        return res.status(400).json({ success: false, error: "You can't transfer to yourself." });
+    }
+
+    // Pull display name from RTDB user record
+    const snap = await db.ref(`users/${recipientUser.uid}`).get();
+    const userData = snap.val() || {};
+
+    return res.status(200).json({
+        success: true,
+        uid:     recipientUser.uid,
+        email:   recipientUser.email,
+        name:    userData.username || userData.displayName || recipientUser.displayName || '',
+    });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ACTION: withdraw
+// Deducts balance and queues a PayPal payout request.
+// Body: { action, paypalEmail, method, requestedGross }
+// ─────────────────────────────────────────────────────────────────────────────
+
+const PLAN_FEE_RATES = { free: 0.30, Free: 0.30, starter: 0.15, Starter: 0.15, growth: 0.10, Growth: 0.10, pro: 0.05, Pro: 0.05 };
+const MIN_WITHDRAW = 50;
+const MAX_WITHDRAW = 999;
+
+async function handleWithdraw(req, res, db, senderUid) {
+    const { paypalEmail, requestedGross } = req.body || {};
+
+    if (!paypalEmail || !paypalEmail.includes('@')) {
+        return res.status(400).json({ success: false, error: 'Enter a valid PayPal email.' });
+    }
+
+    const gross = Number(requestedGross);
+    if (!isFinite(gross) || gross <= 0) {
+        return res.status(400).json({ success: false, error: 'Enter a valid amount.' });
+    }
+    if (gross < MIN_WITHDRAW) {
+        return res.status(400).json({ success: false, error: `Minimum withdrawal is $${MIN_WITHDRAW.toFixed(2)}.` });
+    }
+    if (gross > MAX_WITHDRAW) {
+        return res.status(400).json({ success: false, error: `Maximum withdrawal is $${MAX_WITHDRAW.toFixed(2)}.` });
+    }
+
+    // Get user's plan to compute correct fee rate
+    const userSnap = await db.ref(`users/${senderUid}`).get();
+    const userData = userSnap.val() || {};
+    const plan     = userData.plan || 'Free';
+    const feeRate  = PLAN_FEE_RATES[plan] ?? 0.30;
+
+    const grossCents = Math.round(gross * 100);
+    const feeCents   = Math.round(grossCents * feeRate);
+    const netCents   = grossCents - feeCents;
+
+    // Atomically deduct from balance
+    const balRef = db.ref(`users/${senderUid}/balance`);
+    let result;
+    try {
+        result = await balRef.transaction(current => {
+            if (current === null) return current;
+            let balCents = Math.round(Number(current) * 100);
+            if (!isFinite(balCents)) balCents = 0;
+            if (balCents < grossCents) return undefined; // abort — insufficient
+            return (balCents - grossCents) / 100;
+        });
+    } catch (err) {
+        console.error('[wallet/withdraw] transaction error', err);
+        return res.status(500).json({ success: false, error: 'Withdrawal failed. Please try again.' });
+    }
+
+    if (!result.committed) {
+        return res.status(400).json({ success: false, error: 'Insufficient balance.' });
+    }
+
+    const newBalance   = result.snapshot.val();
+    const withdrawalId = 'wd_' + Date.now() + '_' + senderUid.slice(0, 6);
+    const now          = Date.now();
+
+    // Queue withdrawal record under the user + global withdrawals node
+    const record = {
+        withdrawalId,
+        uid:         senderUid,
+        paypalEmail,
+        method:      'paypal',
+        gross:       grossCents / 100,
+        fee:         feeCents   / 100,
+        amount:      netCents   / 100,  // net payout
+        feeRate,
+        plan,
+        status:      'pending',         // admin processes manually or via PayPal Payouts API
+        createdAt:   now,
+    };
+
+    await Promise.all([
+        db.ref(`users/${senderUid}/withdrawals/${withdrawalId}`).set(record)
+            .catch(e => console.error('[wallet/withdraw] user record failed', e)),
+        db.ref(`withdrawals/${withdrawalId}`).set(record)
+            .catch(e => console.error('[wallet/withdraw] global record failed', e)),
+    ]);
+
+    return res.status(200).json({
+        success:      true,
+        withdrawalId,
+        newBalance,
+        gross:        grossCents / 100,
+        fee:          feeCents   / 100,
+        amount:       netCents   / 100,
+        status:       'pending',
+    });
+}
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -111,7 +249,18 @@ export default async function handler(req, res) {
 // Body: { action, recipientUid, amount }
 // ─────────────────────────────────────────────────────────────────────────────
 async function handleTransfer(req, res, db, senderUid) {
-    const { recipientUid, amount } = req.body || {};
+    const { recipientEmail, recipientUid: _recipientUid, amount } = req.body || {};
+
+    // Accept either recipientEmail (from new client) or recipientUid (legacy)
+    let recipientUid = _recipientUid;
+    if (!recipientUid && recipientEmail) {
+        try {
+            const authUser = await getAuth().getUserByEmail(recipientEmail.toLowerCase().trim());
+            recipientUid = authUser.uid;
+        } catch {
+            return res.status(404).json({ success: false, error: 'No account found for that email.' });
+        }
+    }
 
     if (typeof recipientUid !== 'string' || !recipientUid) {
         return res.status(400).json({ success: false, error: 'Missing recipient.' });
