@@ -4206,6 +4206,18 @@
 .imsg-deal-btn:active { transform: scale(0.95); }
 .imsg-deal-btn.approve { background: rgba(52,211,153,0.2); border: 1px solid rgba(52,211,153,0.4); color: #58f278; }
 .imsg-deal-btn.reject { background: rgba(239,68,68,0.2); border: 1px solid rgba(239,68,68,0.4); color: #f87171; }
+
+.imsg-deal-sticky { display: none; align-items: center; gap: 10px; padding: 10px 14px; font-size: 11.5px; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.08); position: relative; z-index: 5; }
+.imsg-deal-sticky.show { display: flex; }
+.imsg-deal-sticky.pending { background: linear-gradient(135deg, rgba(245,200,66,0.16), rgba(245,200,66,0.07)); color: #f5c842; }
+.imsg-deal-sticky.approved { background: linear-gradient(135deg, rgba(52,211,153,0.16), rgba(52,211,153,0.07)); color: #34d399; }
+.imsg-deal-sticky.paid { background: linear-gradient(135deg, rgba(52,211,153,0.16), rgba(52,211,153,0.07)); color: #34d399; }
+.imsg-deal-sticky-icon { flex-shrink: 0; display: flex; }
+.imsg-deal-sticky-text { flex: 1; min-width: 0; line-height: 1.4; }
+.imsg-deal-sticky-text strong { font-weight: 800; }
+.imsg-deal-sticky-sub { font-size: 9.5px; font-weight: 600; opacity: 0.7; margin-top: 1px; }
+.imsg-deal-sticky-view { flex-shrink: 0; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.18); color: #fff; font-size: 10px; font-weight: 800; letter-spacing: 0.03em; text-transform: uppercase; padding: 6px 12px; border-radius: 999px; cursor: pointer; }
+.imsg-deal-sticky-countdown { flex-shrink: 0; font-size: 9.5px; font-weight: 800; background: rgba(0,0,0,0.18); border-radius: 999px; padding: 3px 9px; letter-spacing: 0.02em; white-space: nowrap; }
 .imsg-deal-lock { text-align: center; background: rgba(255,255,255,0.02); padding: 4px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); }
 .imsg-deal-lock span { font-size: 8px; color: rgba(255,255,255,0.3); font-weight: 500; text-transform: uppercase; letter-spacing: -0.01em; }
 
@@ -8268,21 +8280,8 @@
                     </div>
                 </div>
 
-                <div class="imsg-thread-list">
-                    <div onclick="openChat('Alex Vance', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80', 'Active', 'alex-vance-uid')" class="imsg-thread-row">
-                        <div class="imsg-thread-avatar-wrap">
-                            <img class="imsg-thread-avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="Alex">
-                            <span class="imsg-thread-dot"></span>
-                        </div>
-                        <div class="imsg-thread-body">
-                            <div class="imsg-thread-top">
-                                <h4 class="imsg-thread-name">Alex Vance</h4>
-                                <span class="imsg-thread-time">14:32</span>
-                            </div>
-                            <p class="imsg-thread-preview">Is the SaaS application bundle listing still negotiable at $450?</p>
-                        </div>
-                        <div class="imsg-thread-unread">4</div>
-                    </div>
+                <div class="imsg-thread-list" id="imsgThreadList">
+                    <div class="imsg-thread-empty" id="imsgThreadEmpty" style="display:none;padding:32px 0;text-align:center;color:var(--muted,#6b6890);font-size:13px;">No messages yet.</div>
                 </div>
             </div>
 
@@ -8314,10 +8313,18 @@
                     </div>
                 </div>
 
-                <div id="chatMessagesContent">
-                    <div class="imsg-bubble-in">
-                        <div class="imsg-bubble-in-content">Hey frank! Was looking over your newest listing on Siterifty. Let me know if that asset package price has any flex.</div>
+                <div id="dealStickyBanner" class="imsg-deal-sticky">
+                    <span class="imsg-deal-sticky-icon" id="dealStickyIcon"></span>
+                    <div class="imsg-deal-sticky-text">
+                        <div id="dealStickyMain"><strong>Deal pending</strong></div>
+                        <div class="imsg-deal-sticky-sub" id="dealStickySub"></div>
                     </div>
+                    <span id="dealStickyCountdown" class="imsg-deal-sticky-countdown" style="display:none;"></span>
+                    <button id="dealStickyViewBtn" onclick="viewDealStickyPlaceholder()" class="imsg-deal-sticky-view" style="display:none;">View</button>
+                </div>
+
+                <div id="chatMessagesContent">
+                    <!-- messages loaded dynamically from Firebase inbox -->
                 </div>
 
                 <div class="imsg-action-bar">
@@ -8366,24 +8373,65 @@
             </div>
 
             <!-- ── Payment confirm modal ── -->
-            <div id="paymentProcessingModal" class="imsg-center-modal">
-                <div class="imsg-pay-card">
-                    <div class="imsg-pay-icon">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-4-3a4 4 0 0 0 4 3c2.21 0 4-1.343 4-3s-1.79-3-4-3-4-1.343-4-3 1.79-3 4-3a4 4 0 0 1 4 3"/></svg>
+            <!-- ── iOS Deal Approval Popup ── -->
+            <div id="paymentProcessingModal" class="imsg-center-modal" onclick="if(event.target===this)closePaymentModal()" style="background:rgba(0,0,0,0.75);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);display:none;position:fixed;inset:0;z-index:9999;justify-content:center;align-items:center;padding:20px;">
+                <div style="background:rgba(28,28,30,0.92);border:1px solid rgba(255,255,255,0.1);width:100%;max-width:440px;max-height:85vh;border-radius:22px;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;box-shadow:0 25px 50px -12px rgba(0,0,0,0.6);position:relative;scrollbar-width:none;">
+
+                    <!-- Sticky header -->
+                    <div style="position:sticky;top:0;z-index:10;background-image:linear-gradient(rgba(20,20,25,0.65),rgba(20,20,25,0.85)),url('https://picsum.photos/seed/siterifty/450/100');background-size:cover;background-position:center;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:0.5px solid rgba(255,255,255,0.15);padding:22px 16px 16px;text-align:center;position:relative;">
+                        <div style="position:absolute;top:7px;left:50%;transform:translateX(-50%);width:36px;height:5px;background:rgba(255,255,255,0.35);border-radius:2.5px;"></div>
+                        <div style="color:#fff;font-size:1.05rem;font-weight:600;letter-spacing:-0.2px;margin-top:4px;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;text-shadow:0 2px 4px rgba(0,0,0,0.5);">Deal Approval</div>
                     </div>
-                    <div>
-                        <h3 class="imsg-pay-title">Confirm Payment</h3>
-                        <p id="paymentDescription" class="imsg-pay-desc">Authorize allocation transaction from balance</p>
+
+                    <!-- Listing image -->
+                    <div style="position:relative;width:100%;padding-top:56.25%;background:#1c1c1e;">
+                        <img id="dealApprovalImg" src="" alt="Listing" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;">
                     </div>
-                    <div class="imsg-pay-box">
-                        <span class="imsg-pay-box-label">Price Matrix</span>
-                        <span id="paymentValueDisplay" class="imsg-pay-box-value">$0.00</span>
+
+                    <!-- Body -->
+                    <div style="padding:24px 20px;display:flex;flex-direction:column;align-items:center;text-align:center;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;">
+                        <h2 id="dealApprovalTitle" style="font-size:1.4rem;font-weight:700;color:#fff;letter-spacing:-0.4px;margin-bottom:8px;"></h2>
+                        <p id="dealApprovalDesc" style="font-size:0.925rem;color:#8e8e93;line-height:1.45;margin-bottom:20px;max-width:95%;"></p>
+
+                        <button onclick="closePaymentModal()" style="background:rgba(255,255,255,0.1);color:#0a84ff;border:none;padding:10px 20px;border-radius:10px;font-size:0.9rem;font-weight:600;cursor:pointer;font-family:inherit;">View Listing</button>
+
+                        <hr style="width:100%;border:0;border-top:0.5px solid rgba(255,255,255,0.15);margin:20px 0;">
+
+                        <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;color:#8e8e93;margin-bottom:14px;font-weight:500;">Financial Breakdown</div>
+                        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;">
+                            <div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px 6px;display:flex;flex-direction:column;gap:6px;">
+                                <span style="font-size:0.725rem;color:#aeaeac;font-weight:500;">Mo. Revenue</span>
+                                <span id="dealApprovalRevenue" style="font-size:1rem;font-weight:600;letter-spacing:-0.2px;color:#fff;"></span>
+                            </div>
+                            <div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px 6px;display:flex;flex-direction:column;gap:6px;">
+                                <span style="font-size:0.725rem;color:#aeaeac;font-weight:500;">Mo. Expenses</span>
+                                <span id="dealApprovalExpenses" style="font-size:1rem;font-weight:600;letter-spacing:-0.2px;color:#ff453a;"></span>
+                            </div>
+                            <div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px 6px;display:flex;flex-direction:column;gap:6px;">
+                                <span style="font-size:0.725rem;color:#aeaeac;font-weight:500;">Mo. Profit</span>
+                                <span id="dealApprovalProfit" style="font-size:1rem;font-weight:600;letter-spacing:-0.2px;color:#30d158;"></span>
+                            </div>
+                        </div>
+
+                        <hr style="width:100%;border:0;border-top:0.5px solid rgba(255,255,255,0.15);margin:20px 0;">
+
+                        <div style="width:100%;display:flex;flex-direction:column;align-items:center;">
+                            <span style="font-size:0.85rem;color:#8e8e93;font-weight:500;margin-bottom:4px;">Asking Price</span>
+                            <div id="dealApprovalPrice" style="font-size:2.1rem;font-weight:700;color:#fff;letter-spacing:-0.5px;margin-bottom:24px;"></div>
+
+                            <div style="background:rgba(255,214,10,0.12);border:0.5px solid rgba(255,214,10,0.3);border-radius:12px;padding:12px 14px;margin-bottom:16px;width:100%;display:flex;align-items:flex-start;gap:10px;text-align:left;">
+                                <span style="flex-shrink:0;margin-top:1px;display:inline-flex;"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1.5l5.5 2v3.8c0 3.4-2.3 5.6-5.5 6.7-3.2-1.1-5.5-3.3-5.5-6.7V3.5L8 1.5z" stroke="#ffd60a" stroke-width="1.3" stroke-linejoin="round"/><path d="M5.6 8.1l1.7 1.7 3.1-3.6" stroke="#ffd60a" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                                <span style="color:#ffd60a;font-size:0.825rem;line-height:1.4;font-weight:400;">To prevent fraud, funds are safely held in escrow and will not be transferred to the seller until the deal is fully finalized.</span>
+                            </div>
+
+                            <button onclick="executeWalletDeduction()" style="background:linear-gradient(135deg,rgba(10,132,255,0.8),rgba(0,112,227,0.4));color:#fff;border:1px solid rgba(255,255,255,0.25);padding:14px 24px;border-radius:14px;font-size:1rem;font-weight:600;width:100%;cursor:pointer;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 4px 24px 0 rgba(10,132,255,0.3),inset 0 1px 1px rgba(255,255,255,0.3);transition:all .2s ease;font-family:inherit;" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 30px 0 rgba(10,132,255,0.45),inset 0 1px 1px rgba(255,255,255,0.4)';" onmouseout="this.style.transform='';this.style.boxShadow='0 4px 24px 0 rgba(10,132,255,0.3),inset 0 1px 1px rgba(255,255,255,0.3)';" onmousedown="this.style.transform='translateY(1px) scale(0.99)';" onmouseup="this.style.transform='';">Pay Now</button>
+                        </div>
                     </div>
-                    <div class="imsg-pay-actions">
-                        <button onclick="closePaymentModal()" class="imsg-pay-btn cancel">CANCEL</button>
-                        <button onclick="executeWalletDeduction()" class="imsg-pay-btn confirm">CONFIRM PAY</button>
-                    </div>
+
                 </div>
+                <!-- hidden legacy ids so existing JS still finds them -->
+                <span id="paymentValueDisplay" style="display:none;"></span>
+                <span id="paymentDescription" style="display:none;"></span>
             </div>
 
             <!-- ── Link embed sheet ── -->
@@ -8428,14 +8476,19 @@
             </div>
 
             <!-- ── Alert modal ── -->
-            <div id="alertModal" class="imsg-center-modal">
-                <div class="imsg-alert-card">
-                    <div class="imsg-alert-icon">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
+            <!-- iOS Alert Modal -->
+            <div id="alertModal" onclick="if(event.target===this)closeAlert()" style="display:none;position:fixed;inset:0;z-index:99999;align-items:center;justify-content:center;padding:24px;background:rgba(0,0,0,0.6);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);">
+                <div style="width:100%;max-width:320px;border-radius:20px;overflow:hidden;background:rgba(28,28,30,0.97);border:1px solid rgba(255,255,255,0.1);box-shadow:0 32px 64px rgba(0,0,0,0.7),inset 0 0 0 0.5px rgba(255,255,255,0.06);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;">
+                    <div id="alertAccentBar" style="height:3px;width:100%;background:linear-gradient(90deg,#ff453a,#ff6b6b);"></div>
+                    <div style="padding:28px 24px 0;display:flex;flex-direction:column;align-items:center;text-align:center;">
+                        <div id="alertIconRing" style="width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:16px;background:rgba(255,69,58,0.12);border:1px solid rgba(255,69,58,0.25);flex-shrink:0;transition:background .2s,border-color .2s;">
+                            <svg id="alertIconSvg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ff453a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
+                        </div>
+                        <div id="alertTitleEl" style="font-size:1rem;font-weight:700;color:#fff;letter-spacing:-0.2px;margin-bottom:8px;">Notice</div>
+                        <p id="alertMessage" style="font-size:0.875rem;color:rgba(255,255,255,0.52);line-height:1.55;margin:0 0 24px;font-weight:400;"></p>
                     </div>
-                    <h3 class="imsg-alert-title">System Response</h3>
-                    <p id="alertMessage" class="imsg-alert-msg"></p>
-                    <button onclick="closeAlert()" class="imsg-alert-dismiss">DISMISS</button>
+                    <div style="height:0.5px;background:rgba(255,255,255,0.1);"></div>
+                    <button onclick="closeAlert()" style="width:100%;padding:15px 24px;background:transparent;border:none;font-size:0.975rem;font-weight:600;color:#0a84ff;cursor:pointer;font-family:inherit;letter-spacing:-0.1px;transition:background .12s;display:block;" onmouseover="this.style.background='rgba(10,132,255,0.08)'" onmouseout="this.style.background='transparent'" onmousedown="this.style.background='rgba(10,132,255,0.15)'" onmouseup="this.style.background='rgba(10,132,255,0.08)'">OK</button>
                 </div>
             </div>
 
@@ -10115,7 +10168,7 @@
             updateSocialRow(_platform, url);
             saveSocialToFirebase(_platform, url);
             closeSocialConnectModal();
-            showSocialToast('✓ ' + p.label + ' connected', p.accent);
+            showSocialToast('<svg width="11" height="11" viewBox="0 0 14 14" fill="none" style="vertical-align:-1px;margin-right:2px;"><path d="M2.5 7.5l3 3 6-6.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>' + p.label + ' connected', p.accent);
           };
 
           window.doSocialDisconnect = function() {
@@ -10160,8 +10213,8 @@
 
           function showSocialToast(msg, color) {
             var t = document.createElement('div');
-            t.textContent = msg;
-            t.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:'+(color||'#30d158')+';color:'+(color==='#e7e7e7'?'#000':'#fff')+';padding:10px 20px;border-radius:999px;font-family:Syne,sans-serif;font-weight:700;font-size:13px;z-index:999999;pointer-events:none;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,0.5);opacity:0;transition:opacity .25s;';
+            t.innerHTML = msg;
+            t.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:'+(color||'#30d158')+';color:'+(color==='#e7e7e7'?'#000':'#fff')+';padding:10px 20px;border-radius:999px;font-family:Syne,sans-serif;font-weight:700;font-size:13px;z-index:999999;pointer-events:none;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,0.5);opacity:0;transition:opacity .25s;display:flex;align-items:center;gap:6px;justify-content:center;';
             document.body.appendChild(t);
             requestAnimationFrame(function(){ t.style.opacity='1'; });
             setTimeout(function(){ t.style.opacity='0'; setTimeout(function(){ t.remove(); },300); }, 2600);
@@ -11481,7 +11534,7 @@
                             </div>
                             <div class="settings-sub-body" style="padding:20px 16px 60px;">
 
-                                <!-- ⚠️ Encrypted warning banner -->
+                                <!-- Encrypted warning banner -->
                                 <div style="background:linear-gradient(135deg,rgba(251,191,36,0.06),rgba(248,113,113,0.04));border:1px solid rgba(251,191,36,0.28);border-radius:16px;padding:18px 16px;margin-bottom:20px;position:relative;overflow:hidden;">
                                     <div style="position:absolute;top:-8px;right:-8px;width:80px;height:80px;background:rgba(251,191,36,0.04);border-radius:999px;pointer-events:none;"></div>
                                     <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:12px;">
@@ -11489,7 +11542,7 @@
                                             <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="3" y="8" width="12" height="8" rx="1.5" stroke="#fbbf24" stroke-width="1.3"/><path d="M6 8V6a3 3 0 0 1 6 0v2" stroke="#fbbf24" stroke-width="1.3" stroke-linecap="round"/><circle cx="9" cy="12" r="1" fill="#fbbf24"/></svg>
                                         </div>
                                         <div>
-                                            <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:#fbbf24;letter-spacing:-.01em;margin-bottom:4px;">⚠ THIS CANNOT BE REVERSED</div>
+                                            <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:#fbbf24;letter-spacing:-.01em;margin-bottom:4px;display:flex;align-items:center;gap:6px;"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;"><path d="M8 1.6L14.8 13.4a1 1 0 0 1-.86 1.5H2.06a1 1 0 0 1-.86-1.5L8 1.6z" stroke="#fbbf24" stroke-width="1.3" stroke-linejoin="round"/><path d="M8 6.2v3.3" stroke="#fbbf24" stroke-width="1.3" stroke-linecap="round"/><circle cx="8" cy="11.8" r="0.9" fill="#fbbf24"/></svg>THIS CANNOT BE REVERSED</div>
                                             <div style="font-size:11px;color:rgba(251,191,36,0.8);line-height:1.7;">Transferring your account permanently hands full ownership — including all listings, wallet balance, purchase history, and plan — to the recipient. <strong style="color:#fbbf24;">You will lose all access immediately.</strong> This action is encrypted, logged, and irreversible.</div>
                                         </div>
                                     </div>
@@ -11757,7 +11810,7 @@
     <!--  FIREBASE + AUTH LOGIC  -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
-        import { getDatabase, ref, set, get, update, onValue } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+        import { getDatabase, ref, set, get, update, onValue, push } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
         import {
             getAuth,
             createUserWithEmailAndPassword,
@@ -11787,7 +11840,7 @@
         //  Global bridge for non-module scripts (featured listings, activity feed, etc.) 
         window._fbDb    = db;
         window._fbAuth  = auth;
-        window._fbDbFns = { ref, get, set, update, onValue };
+        window._fbDbFns = { ref, get, set, update, onValue, push };
         window._fbSDK  = { onValue };  // used by realtime plan listener
         //  Expose primitives so plain <script> blocks can call Firebase 
         window._db     = db;
@@ -12302,7 +12355,7 @@
 
         //  Expose DB + helpers globally (used by Imgur upload script) 
         window._fbDb = db;
-        window._fbDbFns = { ref, get, update, set, onValue };
+        window._fbDbFns = { ref, get, update, set, onValue, push };
 
         //  auth state 
         //  Global realtime user data listener 
@@ -13281,7 +13334,7 @@
                             <div style="display:flex;align-items:center;gap:7px;">
                                 <div style="width:22px;height:22px;border-radius:999px;background:linear-gradient(135deg,#a855f7,#818cf8);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff;">M</div>
                                 <div style="font-size:10px;font-weight:700;color:var(--muted);">@marcus_builds · Growth Plan</div>
-                                <div style="margin-left:auto;font-size:10px;color:#f59e0b;">★★★★★</div>
+                                <div style="margin-left:auto;display:flex;gap:1px;"><svg width="10" height="10" viewBox="0 0 12 12" fill="#f59e0b"><path d="M6 0.5l1.8 3.7 4.1.6-3 2.9.7 4.1L6 9.9 2.4 11.8l.7-4.1-3-2.9 4.1-.6L6 0.5z"/></svg><svg width="10" height="10" viewBox="0 0 12 12" fill="#f59e0b"><path d="M6 0.5l1.8 3.7 4.1.6-3 2.9.7 4.1L6 9.9 2.4 11.8l.7-4.1-3-2.9 4.1-.6L6 0.5z"/></svg><svg width="10" height="10" viewBox="0 0 12 12" fill="#f59e0b"><path d="M6 0.5l1.8 3.7 4.1.6-3 2.9.7 4.1L6 9.9 2.4 11.8l.7-4.1-3-2.9 4.1-.6L6 0.5z"/></svg><svg width="10" height="10" viewBox="0 0 12 12" fill="#f59e0b"><path d="M6 0.5l1.8 3.7 4.1.6-3 2.9.7 4.1L6 9.9 2.4 11.8l.7-4.1-3-2.9 4.1-.6L6 0.5z"/></svg><svg width="10" height="10" viewBox="0 0 12 12" fill="#f59e0b"><path d="M6 0.5l1.8 3.7 4.1.6-3 2.9.7 4.1L6 9.9 2.4 11.8l.7-4.1-3-2.9 4.1-.6L6 0.5z"/></svg></div>
                             </div>
                         </div>
                         <div style="background:rgba(56,189,248,0.05);border:1px solid rgba(56,189,248,0.15);border-radius:13px;padding:14px;">
@@ -13289,7 +13342,7 @@
                             <div style="display:flex;align-items:center;gap:7px;">
                                 <div style="width:22px;height:22px;border-radius:999px;background:linear-gradient(135deg,#38bdf8,#a855f7);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff;">S</div>
                                 <div style="font-size:10px;font-weight:700;color:var(--muted);">@sophiedev · Pro Plan</div>
-                                <div style="margin-left:auto;font-size:10px;color:#f59e0b;">★★★★★</div>
+                                <div style="margin-left:auto;display:flex;gap:1px;"><svg width="10" height="10" viewBox="0 0 12 12" fill="#f59e0b"><path d="M6 0.5l1.8 3.7 4.1.6-3 2.9.7 4.1L6 9.9 2.4 11.8l.7-4.1-3-2.9 4.1-.6L6 0.5z"/></svg><svg width="10" height="10" viewBox="0 0 12 12" fill="#f59e0b"><path d="M6 0.5l1.8 3.7 4.1.6-3 2.9.7 4.1L6 9.9 2.4 11.8l.7-4.1-3-2.9 4.1-.6L6 0.5z"/></svg><svg width="10" height="10" viewBox="0 0 12 12" fill="#f59e0b"><path d="M6 0.5l1.8 3.7 4.1.6-3 2.9.7 4.1L6 9.9 2.4 11.8l.7-4.1-3-2.9 4.1-.6L6 0.5z"/></svg><svg width="10" height="10" viewBox="0 0 12 12" fill="#f59e0b"><path d="M6 0.5l1.8 3.7 4.1.6-3 2.9.7 4.1L6 9.9 2.4 11.8l.7-4.1-3-2.9 4.1-.6L6 0.5z"/></svg><svg width="10" height="10" viewBox="0 0 12 12" fill="#f59e0b"><path d="M6 0.5l1.8 3.7 4.1.6-3 2.9.7 4.1L6 9.9 2.4 11.8l.7-4.1-3-2.9 4.1-.6L6 0.5z"/></svg></div>
                             </div>
                         </div>
                     </div>
@@ -15214,20 +15267,20 @@
 
                     if (isSeller && deal.status === 'funded') {
                         actEl.innerHTML = '<button onclick="window._transferAssetFromPanel(\'' + deal.offerId + '\')" '
-                            + 'style="width:100%;padding:10px 0;border-radius:10px;background:linear-gradient(135deg,rgba(56,189,248,.85),rgba(168,85,247,.8));border:none;color:#fff;font-family:\'Syne\',sans-serif;font-size:12px;font-weight:800;cursor:pointer;">🚀 Transfer App / Website</button>';
+                            + 'style="width:100%;padding:10px 0;border-radius:10px;background:linear-gradient(135deg,rgba(56,189,248,.85),rgba(168,85,247,.8));border:none;color:#fff;font-family:\'Syne\',sans-serif;font-size:12px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 1.5c2 1 3.4 3.2 3.4 6 0 1.3-.3 2.4-.7 3.3l-2.7 2.7-2.7-2.7c-.4-.9-.7-2-.7-3.3 0-2.8 1.4-5 3.4-6z" stroke="#fff" stroke-width="1.2" stroke-linejoin="round"/><circle cx="8" cy="6.8" r="1.3" stroke="#fff" stroke-width="1.1"/><path d="M5.3 11l-1.6 1.4.3 2.1 2-.7M10.7 11l1.6 1.4-.3 2.1-2-.7" stroke="#fff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>Transfer App / Website</button>';
                     }
 
                     if (isBuyer && deal.status === 'inspection') {
                         const inspEnds = deal.inspectionEndsAt ? new Date(deal.inspectionEndsAt).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
                         actEl.innerHTML = (inspEnds ? '<div style="font-size:10px;color:var(--muted);margin-bottom:8px;">Inspection window ends ' + inspEnds + '</div>' : '')
                             + '<button onclick="window._confirmReceiptFromPanel(\'' + deal.offerId + '\')" '
-                            + 'style="width:100%;padding:10px 0;border-radius:10px;background:linear-gradient(135deg,rgba(52,211,153,.9),rgba(56,189,248,.8));border:none;color:#fff;font-family:\'Syne\',sans-serif;font-size:12px;font-weight:800;cursor:pointer;margin-bottom:6px;">✅ Confirm Receipt — Release Funds</button>'
+                            + 'style="width:100%;padding:10px 0;border-radius:10px;background:linear-gradient(135deg,rgba(52,211,153,.9),rgba(56,189,248,.8));border:none;color:#fff;font-family:\'Syne\',sans-serif;font-size:12px;font-weight:800;cursor:pointer;margin-bottom:6px;display:flex;align-items:center;justify-content:center;gap:7px;"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5l3 3 6-6.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Confirm Receipt — Release Funds</button>'
                             + '<button onclick="window._disputeFromPanel(\'' + deal.offerId + '\')" '
-                            + 'style="width:100%;padding:8px 0;border-radius:10px;background:rgba(248,113,113,0.07);border:1px solid rgba(248,113,113,0.2);color:#f87171;font-family:\'Syne\',sans-serif;font-size:11px;font-weight:700;cursor:pointer;">⚠ Open Dispute</button>';
+                            + 'style="width:100%;padding:8px 0;border-radius:10px;background:rgba(248,113,113,0.07);border:1px solid rgba(248,113,113,0.2);color:#f87171;font-family:\'Syne\',sans-serif;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;"><svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 1.6L14.8 13.4a1 1 0 0 1-.86 1.5H2.06a1 1 0 0 1-.86-1.5L8 1.6z" stroke="#f87171" stroke-width="1.3" stroke-linejoin="round"/><path d="M8 6.2v3.3" stroke="#f87171" stroke-width="1.3" stroke-linecap="round"/><circle cx="8" cy="11.8" r="0.9" fill="#f87171"/></svg>Open Dispute</button>';
                     }
 
                     if (isSeller && deal.status === 'inspection') {
-                        actEl.innerHTML = '<div style="font-size:10px;color:#38bdf8;background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.2);border-radius:8px;padding:8px 10px;line-height:1.5;">⏳ Waiting for buyer to confirm receipt.</div>';
+                        actEl.innerHTML = '<div style="font-size:10px;color:#38bdf8;background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.2);border-radius:8px;padding:8px 10px;line-height:1.5;display:flex;align-items:center;gap:7px;"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;"><circle cx="8" cy="8" r="6.3" stroke="#38bdf8" stroke-width="1.3"/><path d="M8 4.8V8l2.5 1.5" stroke="#38bdf8" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>Waiting for buyer to confirm receipt.</div>';
                     }
 
                     if (actEl.innerHTML) dealEl.appendChild(actEl);
@@ -18366,7 +18419,7 @@
             </div>
             <div style="flex:1;">
               <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:800;color:#fff;">PayPal</div>
-              <div style="font-size:10px;color:rgba(52,211,153,0.75);margin-top:2px;font-weight:600;">✓ Available now</div>
+              <div style="font-size:10px;color:rgba(52,211,153,0.75);margin-top:2px;font-weight:600;display:flex;align-items:center;gap:4px;"><svg width="10" height="10" viewBox="0 0 14 14" fill="none" style="flex-shrink:0;"><path d="M2.5 7.5l3 3 6-6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Available now</div>
             </div>
             <div style="width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#a855f7,#818cf8);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
               <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -20150,20 +20203,174 @@ if (document.readyState === 'loading') {
 
     <script>
         //  Messages modal open/close 
+        var _inboxUnsubscribe = null;
+
+        function _imsgTimeAgo(ts) {
+            if (!ts) return '';
+            var diff = Date.now() - ts;
+            var m = Math.floor(diff / 60000);
+            if (m < 1)  return 'just now';
+            if (m < 60) return m + 'm ago';
+            var h = Math.floor(m / 60);
+            if (h < 24) return h + 'h ago';
+            var d = Math.floor(h / 24);
+            return d + 'd ago';
+        }
+
+        function _isAdminUid(uid) {
+            // Admin is identified by matching the adminEmail stored in Firebase
+            // We compare against window._fbUserData.isAdmin flag set during auth
+            if (!uid) return false;
+            // Check against the currently logged-in admin uid if available
+            return window._adminUidCache && window._adminUidCache === uid;
+        }
+
+        function _renderInboxThreads(messages, myUid) {
+            var list = document.getElementById('imsgThreadList');
+            var empty = document.getElementById('imsgThreadEmpty');
+            if (!list) return;
+
+            // Group messages by conversation partner
+            var threads = {};
+            Object.keys(messages || {}).forEach(function(msgId) {
+                var msg = messages[msgId];
+                if (!msg) return;
+                // Partner is whoever isn't me
+                var partnerUid  = (msg.fromUid === myUid) ? msg.toUid   : msg.fromUid;
+                var partnerName = (msg.fromUid === myUid) ? (msg.toName || msg.toUid || 'Buyer') : (msg.fromUsername || msg.fromEmail || 'Buyer');
+                if (!partnerUid) return;
+                if (!threads[partnerUid] || (msg.sentAt || 0) > (threads[partnerUid].sentAt || 0)) {
+                    threads[partnerUid] = {
+                        partnerUid:  partnerUid,
+                        partnerName: partnerName,
+                        message:     msg.message || '',
+                        sentAt:      msg.sentAt  || 0,
+                        read:        msg.read !== false,
+                        listingTitle: msg.listingTitle || ''
+                    };
+                }
+                // Count unread (messages TO me that are unread)
+                if (msg.toUid === myUid && !msg.read) {
+                    threads[partnerUid] = threads[partnerUid] || {};
+                    threads[partnerUid].unread = (threads[partnerUid].unread || 0) + 1;
+                }
+            });
+
+            var sorted = Object.values(threads).sort(function(a,b){ return (b.sentAt||0)-(a.sentAt||0); });
+
+            // Remove old thread rows (keep empty placeholder)
+            Array.from(list.querySelectorAll('.imsg-thread-row')).forEach(function(el){ el.remove(); });
+
+            if (sorted.length === 0) {
+                if (empty) empty.style.display = '';
+                return;
+            }
+            if (empty) empty.style.display = 'none';
+
+            // Cache admin uid from logged in user data
+            if (window._fbUserData && window._fbUserData.isAdmin && window._fbAuth && window._fbAuth.currentUser) {
+                window._adminUidCache = window._fbAuth.currentUser.uid;
+            }
+
+            sorted.forEach(function(t) {
+                var initials = (t.partnerName||'?').slice(0,2).toUpperCase();
+                var isAdmin  = _isAdminUid(t.partnerUid);
+                var preview  = t.message.length > 60 ? t.message.slice(0,60)+'…' : t.message;
+                var timeStr  = _imsgTimeAgo(t.sentAt);
+                var unreadBadge = (t.unread && !t.read) ? '<div class="imsg-thread-unread">' + (t.unread||1) + '</div>' : '';
+
+                var adminBadges = isAdmin
+                    ? '<span style="display:inline-flex;align-items:center;gap:3px;margin-left:4px;">'
+                    + '<svg width="11" height="11" viewBox="0 0 16 16" fill="none" title="Verified"><path d="M6.5 11.5l-3-3 1.06-1.06L6.5 9.38l5.44-5.44L13 5l-6.5 6.5z" fill="#2dd4a0"/><circle cx="8" cy="8" r="7" stroke="#2dd4a0" stroke-width="1.5"/></svg>'
+                    + '<span style="font-size:9px;font-weight:700;letter-spacing:.06em;color:#c084fc;background:rgba(192,132,252,0.12);border:1px solid rgba(192,132,252,0.3);border-radius:999px;padding:1px 5px;">ADMIN</span>'
+                    + '</span>'
+                    : '';
+
+                var row = document.createElement('div');
+                row.className = 'imsg-thread-row';
+                row.innerHTML =
+                    '<div class="imsg-thread-avatar-wrap">'
+                    + '<div class="imsg-thread-avatar" style="display:flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:999px;background:linear-gradient(135deg,#9b5de5,#e879a0);font-family:\'Syne\',sans-serif;font-size:13px;font-weight:700;color:#fff;flex-shrink:0;">' + initials + '</div>'
+                    + '<span class="imsg-thread-dot"></span>'
+                    + '</div>'
+                    + '<div class="imsg-thread-body">'
+                    + '<div class="imsg-thread-top">'
+                    + '<h4 class="imsg-thread-name" style="display:flex;align-items:center;gap:2px;">@' + (t.partnerName||'User') + adminBadges + '</h4>'
+                    + '<span class="imsg-thread-time">' + timeStr + '</span>'
+                    + '</div>'
+                    + '<p class="imsg-thread-preview">' + (t.listingTitle ? '[' + t.listingTitle + '] ' : '') + preview + '</p>'
+                    + '</div>'
+                    + unreadBadge;
+
+                row.addEventListener('click', function() {
+                    openChat(t.partnerName, '', 'Buyer', t.partnerUid, t.partnerUid);
+                    // Mark messages as read
+                    _markInboxRead(myUid, t.partnerUid);
+                });
+                list.appendChild(row);
+            });
+        }
+
+        function _markInboxRead(myUid, partnerUid) {
+            try {
+                var db  = window._fbDb;
+                var fns = window._fbDbFns;
+                if (!db || !fns || !fns.ref || !fns.get || !fns.update) return;
+                fns.get(fns.ref(db, 'users/' + myUid + '/inbox')).then(function(snap) {
+                    if (!snap.exists()) return;
+                    var updates = {};
+                    snap.forEach(function(child) {
+                        var msg = child.val();
+                        if (msg && msg.fromUid === partnerUid && !msg.read) {
+                            updates['users/' + myUid + '/inbox/' + child.key + '/read'] = true;
+                        }
+                    });
+                    if (Object.keys(updates).length > 0) fns.update(fns.ref(db, '/'), updates).catch(function(){});
+                }).catch(function(){});
+            } catch(e) {}
+        }
+
+        function _loadInbox(uid) {
+            // Unsubscribe previous listener
+            if (_inboxUnsubscribe) { try { _inboxUnsubscribe(); } catch(e){} _inboxUnsubscribe = null; }
+
+            var db  = window._fbDb;
+            var fns = window._fbDbFns;
+            if (!db || !fns || !fns.ref || !fns.onValue) return;
+
+            // Listen to inbox in realtime
+            var inboxRef = fns.ref(db, 'users/' + uid + '/inbox');
+            _inboxUnsubscribe = fns.onValue(inboxRef, function(snap) {
+                var msgs = snap.exists() ? snap.val() : {};
+                _renderInboxThreads(msgs, uid);
+                // Update unread badge on FAB/tab
+                var unread = 0;
+                Object.values(msgs||{}).forEach(function(m){ if (m && m.toUid === uid && !m.read) unread++; });
+                var sellerBadge = document.getElementById('imsgTabSeller') && document.getElementById('imsgTabSeller').querySelector('.imsg-tab-badge');
+                if (sellerBadge) sellerBadge.textContent = unread || '0';
+            }, function(err) { console.warn('[inbox]', err); });
+        }
+
         window.openMessagesModal = function(){
-            const overlay = document.getElementById('messagesOverlay');
+            var overlay = document.getElementById('messagesOverlay');
             overlay.classList.add('open');
             if (window._lockBodyScroll) window._lockBodyScroll();
-            const username = (window._fbUserData && window._fbUserData.username) || (window._fbAuth && window._fbAuth.currentUser && window._fbAuth.currentUser.email ? window._fbAuth.currentUser.email.split('@')[0] : 'user');
-            const unameEl = document.getElementById('imsgMyUsername');
-            const avEl = document.getElementById('imsgMyAvatar');
+            var userData = window._fbUserData;
+            var authUser = window._fbAuth && window._fbAuth.currentUser;
+            var username = (userData && userData.username) || (authUser && authUser.email ? authUser.email.split('@')[0] : 'user');
+            var uid      = (authUser && authUser.uid) || (userData && userData.uid) || '';
+            var unameEl  = document.getElementById('imsgMyUsername');
+            var avEl     = document.getElementById('imsgMyAvatar');
             if (unameEl) unameEl.textContent = '@' + username;
-            if (avEl) avEl.textContent = username.charAt(0).toUpperCase();
+            if (avEl)    avEl.textContent    = username.charAt(0).toUpperCase();
             refreshPlanUI();
+            // Load real inbox from Firebase
+            if (uid) _loadInbox(uid);
         };
         window.closeMessagesModal = function(){
             document.getElementById('messagesOverlay').classList.remove('open');
             if (window._unlockBodyScroll) window._unlockBodyScroll();
+            if (_inboxUnsubscribe) { try { _inboxUnsubscribe(); } catch(e){} _inboxUnsubscribe = null; }
         };
 
         // ── Real daily message counter persisted in localStorage ──
@@ -20210,6 +20417,8 @@ if (document.readyState === 'loading') {
         let dealsRegistry = {};
         let targetPendingPaymentPrice = 0;
         let targetPendingDealId = null;
+        let _activeStickyDealId = null;
+        let _stickyCountdownTimer = null;
 
         const mockListings = [
             { id: 'list_1', title: 'Minimisty Fan Store', price: 500, desc: 'Complete high-converting Shopify build with inventory automation loops.', img: 'https://images.unsplash.com/photo-1619244434231-c4238db3005a?auto=format&fit=crop&w=300&q=80' },
@@ -20273,14 +20482,94 @@ if (document.readyState === 'loading') {
         var _currentChatName = '';
         var _currentChatPhoto = '';
 
+        var _chatMsgUnsubscribe = null;
+
         function openChat(name, avatarUrl, status, uid) {
             _currentChatUid   = uid || '';
             _currentChatName  = name || '';
             _currentChatPhoto = avatarUrl || '';
-            document.getElementById('chatTargetName').innerText = name;
-            document.getElementById('chatAvatar').src = avatarUrl;
-            document.getElementById('chatTargetStatus').innerText = status;
+
+            // Reset sticky deal banner — this mock demo only tracks one active deal at a time
+            _activeStickyDealId = null;
+            if (_stickyCountdownTimer) { clearInterval(_stickyCountdownTimer); _stickyCountdownTimer = null; }
+            var stickyBanner = document.getElementById('dealStickyBanner');
+            if (stickyBanner) stickyBanner.classList.remove('show');
+
+            // Name row with admin/verified badges if applicable
+            var nameEl = document.getElementById('chatTargetName');
+            if (nameEl) {
+                nameEl.textContent = '@' + (name || 'User');
+                if (_isAdminUid(uid)) {
+                    nameEl.insertAdjacentHTML('afterend',
+                        '<span style="display:inline-flex;align-items:center;gap:3px;margin-left:5px;">'
+                        + '<svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M6.5 11.5l-3-3 1.06-1.06L6.5 9.38l5.44-5.44L13 5l-6.5 6.5z" fill="#2dd4a0"/><circle cx="8" cy="8" r="7" stroke="#2dd4a0" stroke-width="1.5"/></svg>'
+                        + '<span style="font-size:9px;font-weight:700;letter-spacing:.06em;color:#c084fc;background:rgba(192,132,252,0.12);border:1px solid rgba(192,132,252,0.3);border-radius:999px;padding:1px 5px;">ADMIN</span>'
+                        + '</span>');
+                }
+            }
+
+            var avatarEl = document.getElementById('chatAvatar');
+            if (avatarEl) {
+                if (avatarUrl) { avatarEl.src = avatarUrl; avatarEl.style.display = ''; }
+                else { avatarEl.src = ''; avatarEl.style.display = 'none'; }
+            }
+            var statusEl = document.getElementById('chatTargetStatus');
+            if (statusEl) statusEl.innerText = status || '';
+
             document.getElementById('imsgChatView').classList.add('open');
+
+            // Load real messages from Firebase
+            var myUid = (window._fbAuth && window._fbAuth.currentUser && window._fbAuth.currentUser.uid) || '';
+            var container = document.getElementById('chatMessagesContent');
+            if (container) container.innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--muted,#6b6890);font-size:12px;">Loading messages…</div>';
+
+            if (_chatMsgUnsubscribe) { try { _chatMsgUnsubscribe(); } catch(e){} _chatMsgUnsubscribe = null; }
+
+            var db  = window._fbDb;
+            var fns = window._fbDbFns;
+            if (!db || !fns || !fns.ref || !fns.onValue || !myUid) {
+                if (container) container.innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--muted,#6b6890);font-size:12px;">Sign in to view messages.</div>';
+                return;
+            }
+
+            // Listen to my inbox for messages from this partner
+            var inboxRef = fns.ref(db, 'users/' + myUid + '/inbox');
+            _chatMsgUnsubscribe = fns.onValue(inboxRef, function(snap) {
+                var msgs = [];
+                if (snap.exists()) {
+                    snap.forEach(function(child) {
+                        var m = child.val();
+                        if (!m) return;
+                        // Show messages that involve this partner
+                        if (m.fromUid === uid || m.toUid === uid) {
+                            msgs.push(m);
+                        }
+                    });
+                }
+                msgs.sort(function(a,b){ return (a.sentAt||0)-(b.sentAt||0); });
+
+                if (!container) return;
+                if (msgs.length === 0) {
+                    container.innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--muted,#6b6890);font-size:12px;">No messages yet. Start the conversation!</div>';
+                    return;
+                }
+                container.innerHTML = '';
+                msgs.forEach(function(m) {
+                    var isMe = m.fromUid === myUid;
+                    var text = (m.message || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                    var time = _imsgTimeAgo(m.sentAt);
+                    if (isMe) {
+                        container.insertAdjacentHTML('beforeend',
+                            '<div class="imsg-bubble-out"><div class="imsg-bubble-out-content">' + text + '</div>'
+                            + '<div style="font-size:10px;color:var(--muted,#6b6890);text-align:right;margin-top:3px;">' + time + '</div></div>');
+                    } else {
+                        container.insertAdjacentHTML('beforeend',
+                            '<div class="imsg-bubble-in"><div class="imsg-bubble-in-content">' + text + '</div>'
+                            + '<div style="font-size:10px;color:var(--muted,#6b6890);margin-top:3px;">' + time + '</div></div>');
+                    }
+                });
+                scrollToLatest();
+            }, function(err) { console.warn('[chat msgs]', err); });
         }
 
         function viewChatSeller() {
@@ -20294,6 +20583,12 @@ if (document.readyState === 'loading') {
         function closeChat() {
             document.getElementById('imsgChatView').classList.remove('open');
             document.getElementById('dropUpMenu').classList.remove('open');
+            if (_chatMsgUnsubscribe) { try { _chatMsgUnsubscribe(); } catch(e){} _chatMsgUnsubscribe = null; }
+            // Remove admin badge injected into header
+            var nameRow = document.getElementById('chatTargetName');
+            if (nameRow && nameRow.nextElementSibling && nameRow.nextElementSibling.style && nameRow.nextElementSibling.style.display === 'inline-flex') {
+                nameRow.nextElementSibling.remove();
+            }
         }
 
         function toggleDropUp() {
@@ -20505,7 +20800,11 @@ if (document.readyState === 'loading') {
             const mockMatch = mockListings.find(x => x.id === id);
             if (mockMatch) {
                 const dealId = 'deal_' + Date.now();
-                dealsRegistry[dealId] = { ...mockMatch, mode: contextDealMode, status: 'pending' };
+                // The party who DIDN'T send/request this deal is the one who must respond to it.
+                // 'send'    = I own the listing and am offering it to them -> they approve/reject.
+                // 'request' = I'm asking to buy their listing -> they (the seller) approve/reject.
+                // Either way the *other* person decides, never whoever just clicked send/request.
+                dealsRegistry[dealId] = { ...mockMatch, mode: contextDealMode, status: 'pending', sellerIsMe: false };
                 renderDealComponentMessage(dealId);
                 return;
             }
@@ -20532,7 +20831,9 @@ if (document.readyState === 'loading') {
                         img:   (v.images && v.images[0]) ? v.images[0] : ''
                     };
                     const dealId = 'deal_' + Date.now();
-                    dealsRegistry[dealId] = { ...normalized, mode: contextDealMode, status: 'pending' };
+                    // Same rule as the mock-listing branch above: whoever just sent/requested
+                    // the deal is never the one who can approve/reject it on their own screen.
+                    dealsRegistry[dealId] = { ...normalized, mode: contextDealMode, status: 'pending', sellerIsMe: false };
                     renderDealComponentMessage(dealId);
                 }).catch(function(err) {
                     console.warn('[dealSelect] fetch error', err);
@@ -20553,14 +20854,23 @@ if (document.readyState === 'loading') {
             const labelClass = deal.mode === 'send' ? 'send' : 'request';
             const cardClass = deal.mode === 'send' ? '' : 'request';
 
+            // Whoever just sent/requested this deal cannot approve or reject their own offer —
+            // only the recipient on the other side of the conversation can respond.
+            const actionsHtml = deal.sellerIsMe
+                ? `<div class="imsg-deal-actions">
+                      <button onclick="handleReceiverAction('${dealId}', 'approve')" class="imsg-deal-btn approve">APPROVE</button>
+                      <button onclick="handleReceiverAction('${dealId}', 'reject')" class="imsg-deal-btn reject">REJECT</button>
+                    </div>`
+                : `<div class="imsg-deal-lock" style="justify-content:center;"><span><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="vertical-align:-1px;margin-right:3px;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9.75v.008M5.25 7.5h13.5A2.25 2.25 0 0 1 21 9.75v7.5A2.25 2.25 0 0 1 18.75 19.5H5.25A2.25 2.25 0 0 1 3 17.25v-7.5A2.25 2.25 0 0 1 5.25 7.5Z"/></svg>Waiting on the other party's decision</span></div>`;
+
             const html = `
               <div id="wrapper_${dealId}" class="imsg-bubble-out">
                 <div class="imsg-deal-card ${cardClass}">
 
                   <div id="overlay_approved_${dealId}" class="imsg-deal-overlay approved">
                     <div class="imsg-deal-overlay-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg></div>
-                    <span class="imsg-deal-overlay-title">BUYER APPROVED</span>
-                    <p class="imsg-deal-overlay-sub">Funds successfully transferred from wallet balance</p>
+                    <span class="imsg-deal-overlay-title">DEAL APPROVED</span>
+                    <p class="imsg-deal-overlay-sub">Awaiting payment from buyer</p>
                   </div>
 
                   <div id="overlay_rejected_${dealId}" class="imsg-deal-overlay rejected">
@@ -20584,10 +20894,7 @@ if (document.readyState === 'loading') {
                   </div>
 
                   <div style="display:flex;flex-direction:column;gap:6px;padding-top:4px;">
-                    <div class="imsg-deal-actions">
-                      <button onclick="handleReceiverAction('${dealId}', 'approve')" class="imsg-deal-btn approve">APPROVE</button>
-                      <button onclick="handleReceiverAction('${dealId}', 'reject')" class="imsg-deal-btn reject">REJECT</button>
-                    </div>
+                    ${actionsHtml}
                     <div class="imsg-deal-lock"><span><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="vertical-align:-1px;margin-right:3px;"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"/></svg>Sender Security Lock Active</span></div>
                   </div>
 
@@ -20597,31 +20904,143 @@ if (document.readyState === 'loading') {
             container.insertAdjacentHTML('beforeend', html);
             incrementMsgCount();
             updateSystemCountersUI();
+
+            // Activate sticky pending banner with a 3-day countdown for the seller to act
+            deal.respondBy = Date.now() + (3 * 24 * 60 * 60 * 1000);
+            _activeStickyDealId = dealId;
+            updateDealStickyBanner(dealId);
+
             scrollToLatest();
+        }
+
+
+        // ── Sticky deal status banner (under chat header) ──
+        const _stickyIcons = {
+            pending: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.3" stroke="currentColor" stroke-width="1.4"/><path d="M8 4.8V8l2.5 1.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+            approved: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.3" stroke="currentColor" stroke-width="1.4"/><path d="M5.3 8.2l1.8 1.8 3.6-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+            paid: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="1.5" y="4" width="13" height="9" rx="1.6" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="8.5" r="2" stroke="currentColor" stroke-width="1.2"/></svg>'
+        };
+
+        function _fmtCountdown(ms) {
+            if (ms <= 0) return 'Expired';
+            const totalMin = Math.floor(ms / 60000);
+            const days = Math.floor(totalMin / 1440);
+            const hours = Math.floor((totalMin % 1440) / 60);
+            if (days > 0) return days + 'd ' + hours + 'h left';
+            const mins = totalMin % 60;
+            return hours + 'h ' + mins + 'm left';
+        }
+
+        function updateDealStickyBanner(dealId) {
+            const deal = dealsRegistry[dealId];
+            const banner = document.getElementById('dealStickyBanner');
+            if (!banner) return;
+            if (!deal) { banner.classList.remove('show'); return; }
+
+            const icon  = document.getElementById('dealStickyIcon');
+            const main  = document.getElementById('dealStickyMain');
+            const sub   = document.getElementById('dealStickySub');
+            const cd    = document.getElementById('dealStickyCountdown');
+            const viewBtn = document.getElementById('dealStickyViewBtn');
+
+            banner.classList.remove('pending', 'approved', 'paid');
+            banner.classList.add('show');
+            if (_stickyCountdownTimer) { clearInterval(_stickyCountdownTimer); _stickyCountdownTimer = null; }
+
+            if (deal.status === 'pending') {
+                banner.classList.add('pending');
+                icon.innerHTML = _stickyIcons.pending;
+                main.innerHTML = '<strong>Deal pending</strong> — awaiting response';
+                sub.textContent = deal.sellerIsMe ? 'You need to approve or reject this deal.' : 'Waiting on the other party to respond.';
+                cd.style.display = '';
+                viewBtn.style.display = 'none';
+
+                const tick = () => { cd.textContent = _fmtCountdown((deal.respondBy || 0) - Date.now()); };
+                tick();
+                _stickyCountdownTimer = setInterval(tick, 60000);
+
+            } else if (deal.status === 'approved') {
+                banner.classList.add('approved');
+                icon.innerHTML = _stickyIcons.approved;
+                main.innerHTML = '<strong>Deal approved</strong>';
+                sub.textContent = 'Awaiting payment from buyer.';
+                cd.style.display = 'none';
+                viewBtn.style.display = 'none';
+
+            } else if (deal.status === 'paid') {
+                banner.classList.add('paid');
+                icon.innerHTML = _stickyIcons.paid;
+                main.innerHTML = '<strong>Buyer paid $' + Number(deal.price || 0).toLocaleString() + '</strong>';
+                sub.textContent = 'Awaiting seller to send buyer the site.';
+                cd.style.display = 'none';
+                viewBtn.style.display = '';
+
+            } else {
+                // rejected / other terminal states — hide the sticky banner
+                banner.classList.remove('show');
+                if (_activeStickyDealId === dealId) _activeStickyDealId = null;
+            }
+        }
+
+        function viewDealStickyPlaceholder() {
+            // Placeholder — wiring for the asset-transfer view comes later.
         }
 
         function handleReceiverAction(dealId, resolution) {
             const deal = dealsRegistry[dealId];
             if (!deal) return;
 
+            // Only the recipient of the deal can approve or reject it — never the sender.
+            if (!deal.sellerIsMe) return;
+
             if (resolution === 'reject') {
                 dealsRegistry[dealId].status = 'rejected';
                 document.getElementById(`overlay_rejected_${dealId}`).classList.add('show');
                 appendSystemLogMessage(`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="vertical-align:-1px;margin-right:4px;color:#f87171;"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>Deal notification: Marketplace entry transaction [${dealId}] has been rejected by receiver.`);
+                if (_activeStickyDealId === dealId) updateDealStickyBanner(dealId);
                 return;
             }
 
             if (resolution === 'approve') {
+                dealsRegistry[dealId].status = 'approved';
+                document.getElementById(`overlay_approved_${dealId}`).classList.add('show');
+                appendSystemLogMessage(`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="vertical-align:-1px;margin-right:4px;color:#58f278;"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>Deal notification: Marketplace entry transaction [${dealId}] has been approved. Awaiting payment from buyer.`);
+                if (_activeStickyDealId === dealId) updateDealStickyBanner(dealId);
+
                 targetPendingPaymentPrice = deal.price;
                 targetPendingDealId = dealId;
-                document.getElementById('paymentValueDisplay').innerText = `$${deal.price}`;
-                document.getElementById('paymentDescription').innerText = `Authorize direct allocation transfer for "${deal.title}"`;
-                document.getElementById('paymentProcessingModal').classList.add('open');
+
+                // Populate iOS popup fields
+                const modal = document.getElementById('paymentProcessingModal');
+                const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val || '—'; };
+                const setImg = (id, src) => { const el = document.getElementById(id); if (el) el.src = src || ''; };
+
+                setEl('dealApprovalTitle', deal.title || 'Listing');
+                setEl('dealApprovalDesc',  deal.desc  || '');
+                setEl('dealApprovalPrice', deal.price ? '$' + Number(deal.price).toLocaleString() : '—');
+                // Revenue/expenses/profit — use deal fields if present, otherwise derive
+                const rev = deal.revenue   ? '$' + Number(deal.revenue).toLocaleString()   : (deal.price ? '$' + Math.round(deal.price * 0.04).toLocaleString() + '/mo' : '—');
+                const exp = deal.expenses  ? '$' + Number(deal.expenses).toLocaleString()  : '—';
+                const pro = deal.profit    ? '$' + Number(deal.profit).toLocaleString()    : '—';
+                setEl('dealApprovalRevenue',  rev);
+                setEl('dealApprovalExpenses', exp);
+                setEl('dealApprovalProfit',   pro);
+                setImg('dealApprovalImg', deal.img || '');
+
+                // Legacy hidden spans for any existing code that reads them
+                setEl('paymentValueDisplay', `$${deal.price}`);
+                setEl('paymentDescription', `Authorize direct allocation transfer for "${deal.title}"`);
+
+                // Open modal
+                modal.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
             }
         }
 
         function closePaymentModal() {
-            document.getElementById('paymentProcessingModal').classList.remove('open');
+            const modal = document.getElementById('paymentProcessingModal');
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
         }
 
         function executeWalletDeduction() {
@@ -20635,9 +21054,10 @@ if (document.readyState === 'loading') {
             }
 
             if (window._fbUserData) window._fbUserData.balance = currentBalance - targetPendingPaymentPrice;
-            dealsRegistry[targetPendingDealId].status = 'approved';
-            document.getElementById(`overlay_approved_${targetPendingDealId}`).classList.add('show');
+            dealsRegistry[targetPendingDealId].status = 'paid';
+            document.getElementById(`overlay_approved_${targetPendingDealId}`).querySelector('.imsg-deal-overlay-sub').textContent = 'Buyer paid $' + Number(targetPendingPaymentPrice).toLocaleString() + ' — awaiting site transfer';
             appendSystemLogMessage(`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="vertical-align:-1px;margin-right:4px;color:#58f278;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-4-3a4 4 0 0 0 4 3c2.21 0 4-1.343 4-3s-1.79-3-4-3-4-1.343-4-3 1.79-3 4-3a4 4 0 0 1 4 3"/></svg>Transaction Success: Paid $${targetPendingPaymentPrice} from your wallet balance.`);
+            if (_activeStickyDealId === targetPendingDealId) updateDealStickyBanner(targetPendingDealId);
             updateSystemCountersUI();
         }
 
@@ -20667,6 +21087,48 @@ if (document.readyState === 'loading') {
             document.getElementById('previewUrl').innerText = urlInput;
         }
 
+        // ── Persist a chat message to Firebase so it survives reloads and reaches the other person ──
+        // Realtime DB has no shared "conversation" node here — each user has their own
+        // users/{uid}/inbox — so a message has to be written to BOTH the sender's and the
+        // recipient's inbox under the same key for both sides to see the full thread.
+        function _persistChatMessage(extra) {
+            try {
+                var db  = window._fbDb;
+                var fns = window._fbDbFns;
+                var myUid = (window._fbAuth && window._fbAuth.currentUser && window._fbAuth.currentUser.uid) || '';
+                if (!db || !fns || !fns.ref || !fns.push || !fns.set || !myUid || !_currentChatUid) {
+                    console.warn('[chat send] Firebase not ready or no active chat target — message was not saved.');
+                    return null;
+                }
+                var userData = window._fbUserData || {};
+                var myUsername = userData.username || (window._fbAuth.currentUser.email ? window._fbAuth.currentUser.email.split('@')[0] : 'User');
+
+                var base = Object.assign({
+                    fromUid:      myUid,
+                    toUid:        _currentChatUid,
+                    fromUsername: myUsername,
+                    fromEmail:    userData.email || window._fbAuth.currentUser.email || '',
+                    toName:       _currentChatName || '',
+                    sentAt:       Date.now(),
+                    read:         false
+                }, extra || {});
+
+                // Use one push key shared by both copies so they can be correlated/deduped if needed.
+                var newKey = fns.push(fns.ref(db, 'users/' + myUid + '/inbox')).key;
+
+                var updates = {};
+                updates['users/' + myUid + '/inbox/' + newKey]            = base;
+                updates['users/' + _currentChatUid + '/inbox/' + newKey]  = base;
+                fns.update(fns.ref(db, '/'), updates).catch(function(err) {
+                    console.warn('[chat send] failed to save message', err);
+                });
+                return base;
+            } catch (e) {
+                console.warn('[chat send] error', e);
+                return null;
+            }
+        }
+
         function sendEmbeddedLinkMessage() {
             if (!checkMessageQuota()) return;
             const title = document.getElementById('modalLinkTitle').value || "Shared Link Asset";
@@ -20683,6 +21145,7 @@ if (document.readyState === 'loading') {
               </div>`;
 
             container.insertAdjacentHTML('beforeend', msgHtml);
+            _persistChatMessage({ message: '[Link] ' + title, linkTitle: title, linkUrl: url, type: 'link' });
             incrementMsgCount();
             updateSystemCountersUI();
             scrollToLatest();
@@ -20701,6 +21164,7 @@ if (document.readyState === 'loading') {
                 <div class="imsg-bubble-out-content">${val}</div>
               </div>`;
             container.insertAdjacentHTML('beforeend', html);
+            _persistChatMessage({ message: val, type: 'text' });
             input.value = '';
             incrementMsgCount();
             updateSystemCountersUI();
@@ -20767,13 +21231,63 @@ if (document.readyState === 'loading') {
             el.scrollTop = el.scrollHeight;
         }
 
-        function showCustomAlert(msg) {
-            document.getElementById('alertMessage').innerText = msg;
-            document.getElementById('alertModal').classList.add('open');
+        // Alert type themes
+        var _alertThemes = {
+            error:   { bar:'linear-gradient(90deg,#ff453a,#ff6b6b)', ring:'rgba(255,69,58,0.12)', ringBorder:'rgba(255,69,58,0.28)', stroke:'#ff453a',
+                       icon:'<path d="M6 18 18 6M6 6l12 12"/>', title:'Error' },
+            warning: { bar:'linear-gradient(90deg,#ffd60a,#ffb340)', ring:'rgba(255,214,10,0.12)', ringBorder:'rgba(255,214,10,0.28)', stroke:'#ffd60a',
+                       icon:'<path d="M12 9v3.75m0 3.75h.008v-.008H12v.008zm9-3.75a9 9 0 11-18 0 9 9 0 0118 0z"/>', title:'Warning' },
+            success: { bar:'linear-gradient(90deg,#30d158,#34c759)', ring:'rgba(48,209,88,0.12)', ringBorder:'rgba(48,209,88,0.28)', stroke:'#30d158',
+                       icon:'<path d="M4.5 12.75l6 6 9-13.5"/>', title:'Success' },
+            info:    { bar:'linear-gradient(90deg,#0a84ff,#5e5ce6)', ring:'rgba(10,132,255,0.12)', ringBorder:'rgba(10,132,255,0.28)', stroke:'#0a84ff',
+                       icon:'<path d="M11.25 11.25l.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/>', title:'Info' }
+        };
+
+        function _detectAlertType(msg) {
+            var m = (msg || '').toLowerCase();
+            if (/insuffici|balance|failed|error|invalid|cannot|unable|denied|blocked|rejected|no longer|expired/.test(m)) return 'error';
+            if (/limit|quota|upgrade|maximum|minimum|too (long|short|many)|already|wait|cooldown/.test(m)) return 'warning';
+            if (/success|sent|approved|completed|saved|updated|confirmed|subscribed/.test(m)) return 'success';
+            return 'info';
+        }
+
+        function showCustomAlert(msg, typeOverride) {
+            var type   = typeOverride || _detectAlertType(msg);
+            var theme  = _alertThemes[type] || _alertThemes.info;
+            var modal  = document.getElementById('alertModal');
+
+            // Set message
+            var msgEl = document.getElementById('alertMessage');
+            if (msgEl) msgEl.textContent = msg || '';
+
+            // Title
+            var titleEl = document.getElementById('alertTitleEl');
+            if (titleEl) titleEl.textContent = theme.title;
+
+            // Accent bar
+            var bar = document.getElementById('alertAccentBar');
+            if (bar) bar.style.background = theme.bar;
+
+            // Icon ring
+            var ring = document.getElementById('alertIconRing');
+            if (ring) { ring.style.background = theme.ring; ring.style.borderColor = theme.ringBorder; }
+
+            // Icon SVG
+            var iconSvg = document.getElementById('alertIconSvg');
+            if (iconSvg) {
+                iconSvg.setAttribute('stroke', theme.stroke);
+                iconSvg.innerHTML = theme.icon;
+            }
+
+            // Show
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
         }
 
         function closeAlert() {
-            document.getElementById('alertModal').classList.remove('open');
+            var modal = document.getElementById('alertModal');
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
         }
         // Expose globally so external scripts (donate modal, etc.) can use the custom alert
         window.showCustomAlert = showCustomAlert;
@@ -21005,16 +21519,25 @@ if (document.readyState === 'loading') {
             // Show success celebration
             const subText = `Sent ${_fmtMoney(amt)} to ${recipientHandle}`;
             document.getElementById('homeDonateSuccessSub').textContent = subText;
-            const MONEY = ['💸','💰','💵','🪙','✨'];
+            const MONEY = [
+                '<svg width="100%" height="100%" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9.5" fill="#fbbf24" stroke="#f59e0b" stroke-width="1"/><path d="M12 6.5v11M9.3 9.3c0-1.1 1.2-1.8 2.7-1.8s2.7.8 2.7 1.8c0 2.4-5.4 1.1-5.4 3.6 0 1.1 1.2 1.9 2.7 1.9s2.7-.7 2.7-1.9" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/></svg>',
+                '<svg width="100%" height="100%" viewBox="0 0 24 24" fill="none"><rect x="2" y="6" width="20" height="12" rx="2" fill="#34d399" stroke="#10b981" stroke-width="1"/><circle cx="12" cy="12" r="3" stroke="#ecfdf5" stroke-width="1.2"/><circle cx="5" cy="9" r="0.9" fill="#ecfdf5"/><circle cx="19" cy="15" r="0.9" fill="#ecfdf5"/></svg>',
+                '<svg width="100%" height="100%" viewBox="0 0 24 24" fill="none"><rect x="2" y="7" width="20" height="10" rx="2" fill="#60a5fa" stroke="#3b82f6" stroke-width="1"/><circle cx="12" cy="12" r="2.6" stroke="#eff6ff" stroke-width="1.1"/></svg>',
+                '<svg width="100%" height="100%" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9.5" fill="#fde68a" stroke="#d97706" stroke-width="1"/><text x="12" y="16" font-size="11" font-weight="800" text-anchor="middle" fill="#92400e">¢</text></svg>',
+                '<svg width="100%" height="100%" viewBox="0 0 24 24" fill="none"><path d="M12 2l1.6 6.4L20 10l-6.4 1.6L12 18l-1.6-6.4L4 10l6.4-1.6L12 2z" fill="#f0abfc"/></svg>'
+            ];
             const c = document.getElementById('homeDonateParticles');
             c.innerHTML = '';
             for (let i = 0; i < 18; i++) {
                 const el = document.createElement('span');
                 el.className = 'd-s-particle';
-                el.textContent = MONEY[Math.floor(Math.random() * MONEY.length)];
+                el.innerHTML = MONEY[Math.floor(Math.random() * MONEY.length)];
                 el.style.left = Math.random() * 100 + '%';
                 el.style.animationDelay = (Math.random() * 1.4) + 's';
-                el.style.fontSize = (16 + Math.random() * 14) + 'px';
+                const sz = (16 + Math.random() * 14);
+                el.style.width = sz + 'px';
+                el.style.height = sz + 'px';
+                el.style.display = 'inline-block';
                 c.appendChild(el);
             }
             const overlay = document.getElementById('homeDonateSuccessOverlay');
@@ -21037,6 +21560,24 @@ if (document.readyState === 'loading') {
 </script>
 
 </body>
+<script>
+window._avatarFallback = function(img, kind) {
+    const icons = {
+        bot: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="5" y="9" width="14" height="11" rx="3" stroke="#a8ff6b" stroke-width="1.4"/><circle cx="9.5" cy="14.5" r="1.3" fill="#a8ff6b"/><circle cx="14.5" cy="14.5" r="1.3" fill="#a8ff6b"/><path d="M12 9V5m-2.5 0h5" stroke="#a8ff6b" stroke-width="1.4" stroke-linecap="round"/></svg>',
+        pixel: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="4" height="4" fill="#c084fc"/><rect x="16" y="4" width="4" height="4" fill="#c084fc"/><rect x="4" y="16" width="4" height="4" fill="#c084fc"/><rect x="16" y="16" width="4" height="4" fill="#c084fc"/><rect x="9" y="9" width="6" height="6" fill="#c084fc"/></svg>',
+        indie: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8.5" r="3.5" stroke="#6ee7b7" stroke-width="1.4"/><path d="M5 19.5c0-3.6 3.1-6.5 7-6.5s7 2.9 7 6.5" stroke="#6ee7b7" stroke-width="1.4" stroke-linecap="round"/></svg>',
+        geo: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 3l8 7-8 11-8-11 8-7z" stroke="#7dd3fc" stroke-width="1.4" stroke-linejoin="round"/></svg>',
+        smile: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="#fca5a5" stroke-width="1.4"/><circle cx="9" cy="10" r="1" fill="#fca5a5"/><circle cx="15" cy="10" r="1" fill="#fca5a5"/><path d="M8.5 14c1 1.3 2.2 2 3.5 2s2.5-.7 3.5-2" stroke="#fca5a5" stroke-width="1.3" stroke-linecap="round"/></svg>'
+    };
+    img.style.display = 'none';
+    if (img.parentElement) {
+        img.parentElement.style.display = 'flex';
+        img.parentElement.style.alignItems = 'center';
+        img.parentElement.style.justifyContent = 'center';
+        img.parentElement.innerHTML = icons[kind] || icons.bot;
+    }
+};
+</script>
 <!-- ════════ AVATAR LIBRARY MODAL (Free users) ════════ -->
 <div id="avatarLibraryOverlay" onclick="if(event.target===this)closeAvatarLibrary()" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(8,8,14,0.85);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);align-items:center;justify-content:center;">
   <div style="background:linear-gradient(160deg,#12121c,#1a1a2e);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:28px 24px 24px;width:min(360px,92vw);position:relative;box-shadow:0 24px 64px rgba(0,0,0,0.6);">
@@ -21050,31 +21591,31 @@ if (document.readyState === 'loading') {
     <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:20px;">
       <div onclick="selectLibraryAvatar('https://api.dicebear.com/8.x/bottts/svg?seed=siterifty1&backgroundColor=1e3a5f')" class="av-lib-opt" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:7px;">
         <div style="width:52px;height:52px;border-radius:50%;overflow:hidden;border:2px solid rgba(168,255,107,0);transition:border-color .18s,transform .18s;background:#1e1e30;" class="av-lib-ring">
-          <img src="https://api.dicebear.com/8.x/bottts/svg?seed=siterifty1&backgroundColor=1e3a5f" width="52" height="52" style="width:100%;height:100%;object-fit:cover;" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='🤖';">
+          <img src="https://api.dicebear.com/8.x/bottts/svg?seed=siterifty1&backgroundColor=1e3a5f" width="52" height="52" style="width:100%;height:100%;object-fit:cover;" loading="lazy" onerror="_avatarFallback(this,'bot')">
         </div>
         <span style="font-size:9.5px;color:rgba(255,255,255,0.4);font-weight:600;text-align:center;">Bot</span>
       </div>
       <div onclick="selectLibraryAvatar('https://api.dicebear.com/8.x/pixel-art/svg?seed=siterifty2&backgroundColor=3b1e5f')" class="av-lib-opt" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:7px;">
         <div style="width:52px;height:52px;border-radius:50%;overflow:hidden;border:2px solid rgba(168,255,107,0);transition:border-color .18s,transform .18s;background:#1e1e30;" class="av-lib-ring">
-          <img src="https://api.dicebear.com/8.x/pixel-art/svg?seed=siterifty2&backgroundColor=3b1e5f" width="52" height="52" style="width:100%;height:100%;object-fit:cover;" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='👾';">
+          <img src="https://api.dicebear.com/8.x/pixel-art/svg?seed=siterifty2&backgroundColor=3b1e5f" width="52" height="52" style="width:100%;height:100%;object-fit:cover;" loading="lazy" onerror="_avatarFallback(this,'pixel')">
         </div>
         <span style="font-size:9.5px;color:rgba(255,255,255,0.4);font-weight:600;text-align:center;">Pixel</span>
       </div>
       <div onclick="selectLibraryAvatar('https://api.dicebear.com/8.x/adventurer/svg?seed=siterifty3&backgroundColor=1e3a2f')" class="av-lib-opt" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:7px;">
         <div style="width:52px;height:52px;border-radius:50%;overflow:hidden;border:2px solid rgba(168,255,107,0);transition:border-color .18s,transform .18s;background:#1e1e30;" class="av-lib-ring">
-          <img src="https://api.dicebear.com/8.x/adventurer/svg?seed=siterifty3&backgroundColor=1e3a2f" width="52" height="52" style="width:100%;height:100%;object-fit:cover;" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='🧑';">
+          <img src="https://api.dicebear.com/8.x/adventurer/svg?seed=siterifty3&backgroundColor=1e3a2f" width="52" height="52" style="width:100%;height:100%;object-fit:cover;" loading="lazy" onerror="_avatarFallback(this,'indie')">
         </div>
         <span style="font-size:9.5px;color:rgba(255,255,255,0.4);font-weight:600;text-align:center;">Indie</span>
       </div>
       <div onclick="selectLibraryAvatar('https://api.dicebear.com/8.x/identicon/svg?seed=siterifty4&backgroundColor=1f1f35')" class="av-lib-opt" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:7px;">
         <div style="width:52px;height:52px;border-radius:50%;overflow:hidden;border:2px solid rgba(168,255,107,0);transition:border-color .18s,transform .18s;background:#1e1e30;" class="av-lib-ring">
-          <img src="https://api.dicebear.com/8.x/identicon/svg?seed=siterifty4&backgroundColor=1f1f35" width="52" height="52" style="width:100%;height:100%;object-fit:cover;" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='🔷';">
+          <img src="https://api.dicebear.com/8.x/identicon/svg?seed=siterifty4&backgroundColor=1f1f35" width="52" height="52" style="width:100%;height:100%;object-fit:cover;" loading="lazy" onerror="_avatarFallback(this,'geo')">
         </div>
         <span style="font-size:9.5px;color:rgba(255,255,255,0.4);font-weight:600;text-align:center;">Geo</span>
       </div>
       <div onclick="selectLibraryAvatar('https://api.dicebear.com/8.x/fun-emoji/svg?seed=siterifty5&backgroundColor=3a1e1e')" class="av-lib-opt" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:7px;">
         <div style="width:52px;height:52px;border-radius:50%;overflow:hidden;border:2px solid rgba(168,255,107,0);transition:border-color .18s,transform .18s;background:#1e1e30;" class="av-lib-ring">
-          <img src="https://api.dicebear.com/8.x/fun-emoji/svg?seed=siterifty5&backgroundColor=3a1e1e" width="52" height="52" style="width:100%;height:100%;object-fit:cover;" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='😄';">
+          <img src="https://api.dicebear.com/8.x/fun-emoji/svg?seed=siterifty5&backgroundColor=3a1e1e" width="52" height="52" style="width:100%;height:100%;object-fit:cover;" loading="lazy" onerror="_avatarFallback(this,'smile')">
         </div>
         <span style="font-size:9.5px;color:rgba(255,255,255,0.4);font-weight:600;text-align:center;">Emoji</span>
       </div>
@@ -21636,8 +22177,8 @@ window.selectLibraryAvatar = async function(url) {
 
   function _toast(msg, color) {
     var t = document.createElement('div');
-    t.textContent = msg;
-    t.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:' + (color||'#30d158') + ';color:#fff;padding:10px 20px;border-radius:999px;font-family:Syne,sans-serif;font-weight:700;font-size:13px;z-index:99999;pointer-events:none;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,0.4);opacity:0;transition:opacity .25s;';
+    t.innerHTML = msg;
+    t.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:' + (color||'#30d158') + ';color:#fff;padding:10px 20px;border-radius:999px;font-family:Syne,sans-serif;font-weight:700;font-size:13px;z-index:99999;pointer-events:none;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,0.4);opacity:0;transition:opacity .25s;display:flex;align-items:center;gap:6px;justify-content:center;';
     document.body.appendChild(t);
     requestAnimationFrame(function(){ t.style.opacity = '1'; });
     setTimeout(function(){ t.style.opacity = '0'; setTimeout(function(){ t.remove(); }, 300); }, 2600);
@@ -21701,7 +22242,7 @@ window.selectLibraryAvatar = async function(url) {
 
     // Basic email validation
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      _toast('⚠ Enter a valid PayPal email', '#ff453a');
+      _toast('<svg width="13" height="13" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;"><path d="M8 1.6L14.8 13.4a1 1 0 0 1-.86 1.5H2.06a1 1 0 0 1-.86-1.5L8 1.6z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M8 6.2v3.3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="8" cy="11.8" r="0.9" fill="currentColor"/></svg>Enter a valid PayPal email', '#ff453a');
       if (emailEl) { emailEl.focus(); emailEl.style.borderColor = '#ff453a'; setTimeout(function(){ emailEl.style.borderColor = ''; }, 2000); }
       return;
     }
@@ -21711,14 +22252,14 @@ window.selectLibraryAvatar = async function(url) {
     if (schedule !== 'off') {
       if (!awValidateMin(source)) {
         if (minEl) minEl.focus();
-        _toast('⚠ Fix the minimum balance amount', '#ff453a');
+        _toast('<svg width="13" height="13" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;"><path d="M8 1.6L14.8 13.4a1 1 0 0 1-.86 1.5H2.06a1 1 0 0 1-.86-1.5L8 1.6z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M8 6.2v3.3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="8" cy="11.8" r="0.9" fill="currentColor"/></svg>Fix the minimum balance amount', '#ff453a');
         return;
       }
       minBalance = parseFloat(minEl ? minEl.value : 50) || 50;
     }
 
     var uid = _uid();
-    if (!uid) { _toast('⚠ Not signed in', '#ff453a'); return; }
+    if (!uid) { _toast('<svg width="13" height="13" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;"><path d="M8 1.6L14.8 13.4a1 1 0 0 1-.86 1.5H2.06a1 1 0 0 1-.86-1.5L8 1.6z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M8 6.2v3.3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="8" cy="11.8" r="0.9" fill="currentColor"/></svg>Not signed in', '#ff453a'); return; }
 
     // Disable both save buttons while saving
     var btns = document.querySelectorAll('[onclick*="savePayoutSettings"]');
@@ -21728,7 +22269,7 @@ window.selectLibraryAvatar = async function(url) {
     var fns = window._fbDbFns;
 
     if (!db || !fns || !fns.ref || !fns.update) {
-      _toast('⚠ Firebase not ready — try again', '#ff453a');
+      _toast('<svg width="13" height="13" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;"><path d="M8 1.6L14.8 13.4a1 1 0 0 1-.86 1.5H2.06a1 1 0 0 1-.86-1.5L8 1.6z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M8 6.2v3.3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="8" cy="11.8" r="0.9" fill="currentColor"/></svg>Firebase not ready — try again', '#ff453a');
       btns.forEach(function(b){ b.disabled = false; b.textContent = 'Save payout settings'; });
       return;
     }
@@ -21759,11 +22300,11 @@ window.selectLibraryAvatar = async function(url) {
       }
 
       btns.forEach(function(b){ b.disabled = false; b.textContent = 'Save payout settings'; });
-      _toast('✓ Payout settings saved', '#30d158');
+      _toast('<svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="flex-shrink:0;"><path d="M2.5 7.5l3 3 6-6.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>Payout settings saved', '#30d158');
     }).catch(function(err) {
       console.error('[savePayoutSettings]', err);
       btns.forEach(function(b){ b.disabled = false; b.textContent = 'Save payout settings'; });
-      _toast('⚠ Save failed — try again', '#ff453a');
+      _toast('<svg width="13" height="13" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;"><path d="M8 1.6L14.8 13.4a1 1 0 0 1-.86 1.5H2.06a1 1 0 0 1-.86-1.5L8 1.6z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M8 6.2v3.3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="8" cy="11.8" r="0.9" fill="currentColor"/></svg>Save failed — try again', '#ff453a');
     });
   };
 
@@ -22078,20 +22619,20 @@ window.selectLibraryAvatar = async function(url) {
             if (res.ok) {
                 if (json.unbanned) {
                     _appealSubmitted = true;
-                    btn.textContent = 'Appeal approved ✓';
-                    _showStatus('ok', '✓ Appeal approved — your suspension has been lifted. Refreshing…');
+                    btn.innerHTML = 'Appeal approved <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="vertical-align:-1px;margin-left:2px;"><path d="M2.5 7.5l3 3 6-6.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+                    _showStatus('ok', '<svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="vertical-align:-1px;margin-right:4px;"><path d="M2.5 7.5l3 3 6-6.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>Appeal approved — your suspension has been lifted. Refreshing…');
                     setTimeout(() => window.location.reload(), 2200);
                 } else if (json.queued) {
                     _appealSubmitted = true;
-                    btn.textContent = 'Appeal submitted ✓';
-                    _showStatus('ok', '✓ Your appeal has been submitted and will be reviewed by our team within 24–48 hours.');
+                    btn.innerHTML = 'Appeal submitted <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="vertical-align:-1px;margin-left:2px;"><path d="M2.5 7.5l3 3 6-6.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+                    _showStatus('ok', '<svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="vertical-align:-1px;margin-right:4px;"><path d="M2.5 7.5l3 3 6-6.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>Your appeal has been submitted and will be reviewed by our team within 24–48 hours.');
                 } else {
                     btn.disabled = false; btn.textContent = 'Submit Appeal →';
-                    _showStatus('err', json.error || 'Unexpected response. Please try again.');
+                    _showStatus('err', _escapeHtml(json.error) || 'Unexpected response. Please try again.');
                 }
             } else {
                 btn.disabled = false; btn.textContent = 'Submit Appeal →';
-                _showStatus('err', json.error || 'Server error. Please try again in a moment.');
+                _showStatus('err', _escapeHtml(json.error) || 'Server error. Please try again in a moment.');
             }
         } catch(e) {
             btn.disabled = false; btn.textContent = 'Submit Appeal →';
@@ -22099,11 +22640,18 @@ window.selectLibraryAvatar = async function(url) {
         }
     };
 
+    function _escapeHtml(s) {
+        if (!s) return s;
+        const d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+    }
+
     function _showStatus(type, msg) {
         const el = document.getElementById('banAppealStatus');
         if (!el) return;
         el.className = 'ban-appeal-status ' + type;
-        el.textContent = msg;
+        el.innerHTML = msg;
         el.style.display = 'block';
     }
 
