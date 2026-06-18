@@ -38,13 +38,6 @@ if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
     webpush.setVapidDetails(VAPID_EMAIL, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 }
 
-// ─────────────────────────────────────────────
-// In-memory push subscription store.
-// Replace with Firebase Admin / your DB in production
-// so subscriptions survive server restarts.
-// ─────────────────────────────────────────────
-const _subscriptions = new Map(); // deviceId → subscription object
-
 export default async function handler(req, res) {
     // CORS — allow your domain only in production
     res.setHeader('Access-Control-Allow-Origin', 'https://siterifty.com');
@@ -80,9 +73,20 @@ export default async function handler(req, res) {
         if (!subscription || !subscription.endpoint) {
             return res.status(400).json({ error: 'Missing subscription' });
         }
-        const id = deviceId || (metadata?.uid || 'anon') + '_' + Date.now();
-        _subscriptions.set(id, { subscription, metadata: metadata || {}, savedAt: Date.now() });
-        console.log('[settings] push-subscribe:', id, metadata?.uid);
+        const id    = deviceId || (metadata?.uid || 'anon') + '_' + Date.now();
+        const email = metadata?.email || null;
+        initFirebase();
+        try {
+            await getDatabase().ref(`pushSubscriptions/${id}`).set({
+                subscription,
+                email,
+                uid:     metadata?.uid || null,
+                savedAt: Date.now(),
+            });
+        } catch (e) {
+            console.warn('[settings] push-subscribe RTDB write failed', e);
+        }
+        console.log('[settings] push-subscribe:', id, email);
         return res.status(200).json({ ok: true, deviceId: id });
     }
 
@@ -169,18 +173,29 @@ export default async function handler(req, res) {
             icon:  'https://i.imgur.com/8EEl86u.jpeg',
             url:   url || 'https://siterifty.com'
         });
+        initFirebase();
+        const allSubsSnap = await getDatabase().ref('pushSubscriptions').get();
         let sent = 0, failed = 0;
-        for (const [id, { subscription }] of _subscriptions) {
-            try {
-                await webpush.sendNotification(subscription, payload);
-                sent++;
-            } catch (e) {
-                console.warn('[settings] broadcast failed for', id, e.statusCode);
-                if (e.statusCode === 410 || e.statusCode === 404) {
-                    _subscriptions.delete(id); // expired — clean up
-                }
-                failed++;
-            }
+        if (allSubsSnap.exists()) {
+            const removes = [];
+            const sends   = [];
+            allSubsSnap.forEach(child => {
+                const { subscription } = child.val();
+                if (!subscription) return;
+                sends.push(
+                    webpush.sendNotification(subscription, payload)
+                        .then(() => { sent++; })
+                        .catch(e => {
+                            failed++;
+                            console.warn('[settings] broadcast failed for', child.key, e.statusCode);
+                            if (e.statusCode === 410 || e.statusCode === 404) {
+                                removes.push(getDatabase().ref(`pushSubscriptions/${child.key}`).remove().catch(() => {}));
+                            }
+                        })
+                );
+            });
+            await Promise.all(sends);
+            await Promise.all(removes);
         }
         return res.status(200).json({ ok: true, sent, failed });
     }
@@ -305,6 +320,35 @@ export default async function handler(req, res) {
             ]);
         } else {
             console.warn('[transfer_account] RESEND_API_KEY not set — emails skipped');
+        }
+
+        // 6. Push notification to recipient if they have a stored subscription
+        if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+            try {
+                const subsSnap = await db.ref('pushSubscriptions').orderByChild('email').equalTo(recipientEmail).get();
+                if (subsSnap.exists()) {
+                    const pushPayload = JSON.stringify({
+                        title: 'Siterifty — Account Received',
+                        body:  `@${safeUsername} has been transferred to you. Sign in with your email to access it.`,
+                        icon:  'https://i.imgur.com/8EEl86u.jpeg',
+                        url:   'https://siterifty.com'
+                    });
+                    const sends = [];
+                    subsSnap.forEach(child => {
+                        const sub = child.val().subscription;
+                        if (sub) sends.push(
+                            webpush.sendNotification(sub, pushPayload).catch(e => {
+                                if (e.statusCode === 410 || e.statusCode === 404) {
+                                    db.ref(`pushSubscriptions/${child.key}`).remove().catch(() => {});
+                                }
+                            })
+                        );
+                    });
+                    await Promise.all(sends);
+                }
+            } catch (e) {
+                console.warn('[transfer_account] push notification failed', e);
+            }
         }
 
         console.log(`[transfer_account] uid=${fromUid} (${decoded.email}) -> ${recipientEmail} complete`);
