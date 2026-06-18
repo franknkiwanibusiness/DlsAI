@@ -1,15 +1,33 @@
 // Siterifty — /api/settings.js
-// Handles: push-subscribe, send-email, newsletter-subscribe, notify-event
+// Handles: push-subscribe, send-email, newsletter-subscribe, notify-event, delete_account
 // Deploy to: https://siterifty.com/api/settings.js
 //
 // Required env vars:
-//   VAPID_PUBLIC_KEY   — your VAPID public key
-//   VAPID_PRIVATE_KEY  — your VAPID private key
-//   VAPID_EMAIL        — mailto:you@siterifty.com
-//   RESEND_API_KEY     — from resend.com (for email sending)
-//   FIREBASE_ADMIN_SDK — JSON string of your Firebase service account (optional, for logging)
+//   VAPID_PUBLIC_KEY      — your VAPID public key
+//   VAPID_PRIVATE_KEY     — your VAPID private key
+//   VAPID_EMAIL           — mailto:you@siterifty.com
+//   RESEND_API_KEY        — from resend.com (for email sending)
+//   FIREBASE_PROJECT_ID   — Firebase project ID
+//   FIREBASE_DATABASE_URL — Realtime Database URL
+//   FIREBASE_CLIENT_EMAIL — Firebase Admin service account email
+//   FIREBASE_PRIVATE_KEY  — Firebase Admin private key
 
 import webpush from 'web-push';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { getDatabase }                   from 'firebase-admin/database';
+import { getAuth }                       from 'firebase-admin/auth';
+
+function initFirebase() {
+    if (getApps().length > 0) return getApps()[0];
+    return initializeApp({
+        credential: cert({
+            projectId:   process.env.FIREBASE_PROJECT_ID,
+            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+            privateKey:  process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        }),
+        databaseURL: process.env.FIREBASE_DATABASE_URL,
+    });
+}
 
 const VAPID_PUBLIC_KEY  = process.env.VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
@@ -31,7 +49,7 @@ export default async function handler(req, res) {
     // CORS — allow your domain only in production
     res.setHeader('Access-Control-Allow-Origin', 'https://siterifty.com');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -43,6 +61,18 @@ export default async function handler(req, res) {
     }
 
     const { action } = body;
+
+    // ── delete_account requires Firebase Admin auth ───────────────
+    if (action === 'delete_account') {
+        const authHeader = req.headers.authorization || '';
+        const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+        if (!idToken) return res.status(401).json({ error: 'Missing Authorization header' });
+        initFirebase();
+        let decoded;
+        try { decoded = await getAuth().verifyIdToken(idToken); }
+        catch { return res.status(401).json({ error: 'Invalid or expired session.' }); }
+        return handleDeleteAccount(req, res, decoded.uid);
+    }
 
     // ── 1. Push subscribe ─────────────────────────────────────────
     if (action === 'push-subscribe') {
@@ -156,4 +186,76 @@ export default async function handler(req, res) {
     }
 
     return res.status(400).json({ error: 'Unknown action: ' + action });
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ACTION: delete_account
+// Permanently removes all user data from RTDB and deletes the Auth account.
+// Blocked if the user has a wallet balance > $0 or open escrow orders.
+// ─────────────────────────────────────────────────────────────────────────────
+async function handleDeleteAccount(req, res, uid) {
+    const db   = getDatabase();
+    const auth = getAuth();
+
+    // 1. Safety checks — balance and open orders
+    const userSnap = await db.ref(`users/${uid}`).get();
+    const userData = userSnap.val() || {};
+
+    const balance = parseFloat(userData.balance || 0);
+    if (balance > 0.01) {
+        return res.status(400).json({
+            error:   'balance_remaining',
+            balance: parseFloat(balance.toFixed(2)),
+        });
+    }
+
+    const offersSnap = await db.ref(`users/${uid}/escrow`).get();
+    const offers = offersSnap.val() || {};
+    const openOrders = Object.values(offers).filter(o => o && o.status === 'pending');
+    if (openOrders.length > 0) {
+        return res.status(400).json({ error: 'open_orders' });
+    }
+
+    // 2. Remove all RTDB data under users/{uid}
+    try {
+        await db.ref(`users/${uid}`).remove();
+    } catch (e) {
+        console.error('[delete_account] RTDB user remove failed', e);
+        return res.status(500).json({ error: 'Failed to delete user data. Please try again.' });
+    }
+
+    // 3. Remove user's listings from websites/ node
+    try {
+        const listingsSnap = await db.ref('websites').orderByChild('uid').equalTo(uid).get();
+        if (listingsSnap.exists()) {
+            const updates = {};
+            listingsSnap.forEach(child => { updates[`websites/${child.key}`] = null; });
+            await db.ref().update(updates);
+        }
+    } catch (e) {
+        console.error('[delete_account] listings remove failed', e);
+        // Non-fatal — continue with auth deletion
+    }
+
+    // 4. Clean up transfers/withdrawals referencing this uid (mark as deleted)
+    try {
+        const txSnap = await db.ref('transfers').orderByChild('from').equalTo(uid).get();
+        if (txSnap.exists()) {
+            const updates = {};
+            txSnap.forEach(child => { updates[`transfers/${child.key}/fromDeleted`] = true; });
+            await db.ref().update(updates);
+        }
+    } catch (e) { console.warn('[delete_account] transfer cleanup failed', e); }
+
+    // 5. Delete the Firebase Auth account — point of no return
+    try {
+        await auth.deleteUser(uid);
+    } catch (e) {
+        console.error('[delete_account] Auth deleteUser failed', e);
+        return res.status(500).json({ error: 'Account data removed but auth deletion failed. Contact support.' });
+    }
+
+    console.log(`[delete_account] uid=${uid} fully deleted`);
+    return res.status(200).json({ success: true });
 }
