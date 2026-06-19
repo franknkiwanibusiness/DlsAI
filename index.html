@@ -4156,7 +4156,7 @@
 .imsg-bubble-link a { font-size: 11px; color: #34d399; text-decoration: underline; display: block; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .imsg-bubble-link a:hover { color: #58f278; }
 
-.imsg-img-bubble { width: 100%; max-width: 240px; border-radius: 16px; border-bottom-right-radius: 0; background: #18181b; border: 1px solid rgba(255,255,255,0.1); padding: 10px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
+.imsg-img-bubble { width: 100%; max-width: 240px; border-radius: 16px; background: #18181b; border: 1px solid rgba(255,255,255,0.1); padding: 10px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
 .imsg-img-frame { position: relative; border-radius: 12px; overflow: hidden; background: rgba(0,0,0,0.4); aspect-ratio: 16/9; border: 1px solid rgba(255,255,255,0.05); }
 .imsg-img-frame img { width: 100%; height: 100%; object-fit: cover; }
 .imsg-img-hover { position: absolute; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; }
@@ -4167,7 +4167,7 @@
 .imsg-img-view-link { font-size: 9px; font-weight: 900; color: #58f278; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; border: none; background: none; }
 .imsg-img-view-link:hover { text-decoration: underline; }
 
-.imsg-doc-bubble { display: block; border-radius: 16px; border-bottom-right-radius: 0; background: #18181b; border: 1px solid rgba(255,255,255,0.1); padding: 12px; font-size: 12px; color: #fff; cursor: pointer; text-decoration: none; transition: border-color 0.15s; }
+.imsg-doc-bubble { display: block; border-radius: 16px; background: #18181b; border: 1px solid rgba(255,255,255,0.1); padding: 12px; font-size: 12px; color: #fff; cursor: pointer; text-decoration: none; transition: border-color 0.15s; }
 .imsg-doc-bubble:hover { border-color: rgba(52,211,153,0.4); }
 .imsg-doc-row { display: flex; align-items: center; gap: 10px; }
 .imsg-doc-icon { height: 32px; width: 32px; border-radius: 8px; background: rgba(52,211,153,0.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #34d399; }
@@ -20516,9 +20516,12 @@ if (document.readyState === 'loading') {
                     // Image message
                     if (m.type === 'image' && m.fileUrl) {
                         var escapedName = (m.fileName || 'image').replace(/'/g, "\\'");
+                        var imgBubbleStyle = isMe
+                            ? 'border-bottom-right-radius:0;border-bottom-left-radius:16px;'
+                            : 'border-bottom-left-radius:0;border-bottom-right-radius:16px;';
                         container.insertAdjacentHTML('beforeend',
-                            '<div class="imsg-bubble-out">'
-                            + '<div class="imsg-img-bubble">'
+                            '<div class="' + (isMe ? 'imsg-bubble-out' : 'imsg-bubble-in') + '">'
+                            + '<div class="imsg-img-bubble" style="' + imgBubbleStyle + '">'
                             + '<div class="imsg-img-frame">'
                             + '<img src="' + m.fileUrl + '" alt="">'
                             + '<div class="imsg-img-hover">'
@@ -20540,11 +20543,9 @@ if (document.readyState === 'loading') {
                             m.fileUrl   || null,
                             m.fileData  || null,
                             m.mimeType  || 'application/octet-stream',
-                            isMe
+                            isMe,
+                            time
                         );
-                        container.insertAdjacentHTML('beforeend',
-                            '<div style="font-size:10px;color:var(--muted,#6b6890);text-align:' + (isMe ? 'right' : 'left') + ';margin-top:3px;">' + time + '</div>'
-                            + '</div>');
                         return;
                     }
 
@@ -20554,22 +20555,21 @@ if (document.readyState === 'loading') {
                         var dealId = m.dealId || ('deal_' + m.sentAt);
 
                         // The *recipient* (not the sender) is the one who approves/rejects.
-                        var iAmRecipient = !isMe;  // sender = fromUid = me → I sent it → they decide
+                        var iAmRecipient = !isMe;
                         var sellerIsMe   = iAmRecipient;
 
-                        // Restore into dealsRegistry so approve/reject handlers work
-                        if (!dealsRegistry[dealId]) {
-                            dealsRegistry[dealId] = {
-                                id:        d.id,
-                                title:     d.title,
-                                desc:      d.desc,
-                                price:     d.price,
-                                img:       d.img,
-                                mode:      d.mode,
-                                status:    d.status || 'pending',
-                                sellerIsMe: sellerIsMe
-                            };
-                        }
+                        // Always restore/update the registry entry from Firebase data so
+                        // status changes written by _syncDealStatus are picked up on re-render.
+                        dealsRegistry[dealId] = {
+                            id:         d.id,
+                            title:      d.title,
+                            desc:       d.desc,
+                            price:      d.price,
+                            img:        d.img,
+                            mode:       d.mode,
+                            status:     d.status || 'pending',
+                            sellerIsMe: sellerIsMe
+                        };
 
                         var labelIcon = d.mode === 'send'
                             ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" style="vertical-align:-1px;margin-right:3px;"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.1a2 2 0 0 1-2 2H5.75a2 2 0 0 1-2-2v-4.1M16 6.5l-4-4-4 4m4-4v12.5"/></svg>'
@@ -20592,7 +20592,7 @@ if (document.readyState === 'loading') {
                         var rejectedOverlayStyle = status === 'rejected' ? 'display:flex;' : '';
 
                         container.insertAdjacentHTML('beforeend',
-                            '<div id="wrapper_' + dealId + '" class="imsg-bubble-out">'
+                            '<div id="wrapper_' + dealId + '" class="' + (isMe ? 'imsg-bubble-out' : 'imsg-bubble-in') + '">'
                             + '<div class="imsg-deal-card ' + cardClass + '">'
                             + '<div id="overlay_approved_' + dealId + '" class="imsg-deal-overlay approved" style="' + approvedOverlayStyle + '">'
                             + '<div class="imsg-deal-overlay-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg></div>'
@@ -20628,10 +20628,58 @@ if (document.readyState === 'loading') {
                             _activeStickyDealId = dealId;
                             updateDealStickyBanner(dealId);
                         }
+
+                        // For REQUEST deals: sender=buyer. When the seller approves, Firebase updates
+                        // the status to 'approved'. The next inbox re-render triggers this block on the
+                        // buyer's side — open the payment modal so the buyer can complete the purchase.
+                        if (status === 'approved' && isMe && d.mode === 'request') {
+                            var _prevStatus = window._dealLastSeenStatus && window._dealLastSeenStatus[dealId];
+                            if (_prevStatus !== 'approved') {
+                                if (!window._dealLastSeenStatus) window._dealLastSeenStatus = {};
+                                window._dealLastSeenStatus[dealId] = 'approved';
+                                targetPendingPaymentPrice = d.price;
+                                targetPendingDealId = dealId;
+                                var _modal = document.getElementById('paymentProcessingModal');
+                                var _setEl = function(id, val) { var el = document.getElementById(id); if (el) el.textContent = val || '—'; };
+                                var _setImg = function(id, src) { var el = document.getElementById(id); if (el) el.src = src || ''; };
+                                _setEl('dealApprovalTitle', d.title || 'Listing');
+                                _setEl('dealApprovalDesc',  d.desc  || '');
+                                _setEl('dealApprovalPrice', d.price ? '$' + Number(d.price).toLocaleString() : '—');
+                                _setEl('paymentValueDisplay', '$' + d.price);
+                                _setEl('paymentDescription', 'Authorize direct allocation transfer for "' + d.title + '"');
+                                _setImg('dealApprovalImg', d.img || '');
+                                if (_modal) { _modal.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+                            }
+                        }
+                        if (status !== 'pending' && _activeStickyDealId === dealId) {
+                            updateDealStickyBanner(dealId);
+                        }
                         return;
                     }
 
-                    // Plain text / link message
+                    // Link message — render as rich clickable card, not raw text
+                    if (m.type === 'link' && m.linkUrl) {
+                        var linkTitle = (m.linkTitle || m.linkUrl).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                        var linkUrl   = (m.linkUrl || '').replace(/"/g,'&quot;');
+                        var bubbleClass = isMe ? 'imsg-bubble-out' : 'imsg-bubble-in';
+                        var linkCorner  = isMe
+                            ? 'border-bottom-right-radius:0;'
+                            : 'border-bottom-left-radius:0;';
+                        container.insertAdjacentHTML('beforeend',
+                            '<div class="' + bubbleClass + '">'
+                            + '<div class="imsg-bubble-link" style="' + linkCorner + '">'
+                            + '<span class="imsg-bubble-link-tag">'
+                            + '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" style="vertical-align:-1px;margin-right:3px;"><path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"/></svg>'
+                            + 'LINK EMBED</span>'
+                            + '<h5>' + linkTitle + '</h5>'
+                            + '<a href="' + linkUrl + '" target="_blank">' + linkUrl + '</a>'
+                            + '</div>'
+                            + '<div style="font-size:10px;color:var(--muted,#6b6890);text-align:' + (isMe ? 'right' : 'left') + ';margin-top:3px;">' + time + '</div>'
+                            + '</div>');
+                        return;
+                    }
+
+                    // Plain text message
                     var text = (m.message || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
                     if (isMe) {
                         container.insertAdjacentHTML('beforeend',
@@ -20779,6 +20827,12 @@ if (document.readyState === 'loading') {
                         fileName: file.name,
                         fileUrl:  imgurURL
                     });
+                    // Push-only notify recipient
+                    var _myNameI = (window._fbUserData && window._fbUserData.username) || 'Someone';
+                    _notifyUser('image', _currentChatUid, {
+                        title: _myNameI + ' sent you a photo',
+                        body:  file.name
+                    });
                 } catch(err) {
                     // Replace placeholder with error state
                     const placeholder = document.getElementById(placeholderId);
@@ -20807,6 +20861,12 @@ if (document.readyState === 'loading') {
                         fileName:    file.name,
                         mimeType:    file.type,
                         fileData:    base64Data   // stored in RTDB; no Storage required
+                    });
+                    // Push-only notify recipient
+                    var _myNameD = (window._fbUserData && window._fbUserData.username) || 'Someone';
+                    _notifyUser('document', _currentChatUid, {
+                        title: _myNameD + ' sent you a document',
+                        body:  file.name
                     });
                 } catch(err) {
                     const placeholder = document.getElementById(placeholderId);
@@ -20967,7 +21027,7 @@ if (document.readyState === 'loading') {
                 : `<div class="imsg-deal-lock" style="justify-content:center;"><span><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="vertical-align:-1px;margin-right:3px;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9.75v.008M5.25 7.5h13.5A2.25 2.25 0 0 1 21 9.75v7.5A2.25 2.25 0 0 1 18.75 19.5H5.25A2.25 2.25 0 0 1 3 17.25v-7.5A2.25 2.25 0 0 1 5.25 7.5Z"/></svg>Waiting on the other party's decision</span></div>`;
 
             const html = `
-              <div id="wrapper_${dealId}" class="imsg-bubble-out">
+              <div id="wrapper_${dealId}" class="imsg-bubble-out" data-deal-id="${dealId}">
                 <div class="imsg-deal-card ${cardClass}">
 
                   <div id="overlay_approved_${dealId}" class="imsg-deal-overlay approved">
@@ -21028,6 +21088,14 @@ if (document.readyState === 'loading') {
                     mode:   deal.mode  || 'send',
                     status: 'pending'
                 }
+            });
+
+            // Push-only notify recipient about the deal
+            var _myNameDeal = (window._fbUserData && window._fbUserData.username) || 'Someone';
+            var _dealLabel  = deal.mode === 'request' ? 'requested a deal' : 'sent you a deal offer';
+            _notifyUser('deal', _currentChatUid, {
+                title: _myNameDeal + ' ' + _dealLabel,
+                body:  (deal.title || 'Untitled') + ' — $' + (deal.price || 0)
             });
 
             scrollToLatest();
@@ -21110,54 +21178,71 @@ if (document.readyState === 'loading') {
             const deal = dealsRegistry[dealId];
             if (!deal) return;
 
-            // Only the recipient of the deal can approve or reject it — never the sender.
-            if (!deal.sellerIsMe) return;
+            // Only the recipient can act — if sellerIsMe is false we are the sender, not the receiver
+            if (!deal.sellerIsMe) {
+                console.warn('[deal] You are the sender — only the recipient can approve or reject.');
+                return;
+            }
 
             if (resolution === 'reject') {
                 dealsRegistry[dealId].status = 'rejected';
-                document.getElementById(`overlay_rejected_${dealId}`).classList.add('show');
-                appendSystemLogMessage(`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="vertical-align:-1px;margin-right:4px;color:#f87171;"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>Deal notification: Marketplace entry transaction [${dealId}] has been rejected by receiver.`);
+                const rejEl = document.getElementById('overlay_rejected_' + dealId);
+                if (rejEl) rejEl.classList.add('show');
+                // Hide the action buttons so they can't click again
+                const wrapper = document.getElementById('wrapper_' + dealId);
+                if (wrapper) {
+                    const actionsEl = wrapper.querySelector('.imsg-deal-actions');
+                    if (actionsEl) actionsEl.style.display = 'none';
+                }
+                appendSystemLogMessage('<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="vertical-align:-1px;margin-right:4px;color:#f87171;"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>Deal notification: Marketplace entry transaction [' + dealId + '] has been rejected by receiver.');
                 if (_activeStickyDealId === dealId) updateDealStickyBanner(dealId);
-                // Write updated status to Firebase so the sender sees the rejection
                 _syncDealStatus(dealId, 'rejected');
                 return;
             }
 
             if (resolution === 'approve') {
                 dealsRegistry[dealId].status = 'approved';
-                document.getElementById(`overlay_approved_${dealId}`).classList.add('show');
-                appendSystemLogMessage(`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="vertical-align:-1px;margin-right:4px;color:#58f278;"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>Deal notification: Marketplace entry transaction [${dealId}] has been approved. Awaiting payment from buyer.`);
+                const appEl = document.getElementById('overlay_approved_' + dealId);
+                if (appEl) appEl.classList.add('show');
+                // Hide the action buttons so they can't click again
+                const wrapper = document.getElementById('wrapper_' + dealId);
+                if (wrapper) {
+                    const actionsEl = wrapper.querySelector('.imsg-deal-actions');
+                    if (actionsEl) actionsEl.style.display = 'none';
+                }
+                appendSystemLogMessage('<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="vertical-align:-1px;margin-right:4px;color:#58f278;"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>Deal notification: Marketplace entry transaction [' + dealId + '] has been approved. Awaiting payment from buyer.');
                 if (_activeStickyDealId === dealId) updateDealStickyBanner(dealId);
-                // Write updated status to Firebase so the sender sees the approval
                 _syncDealStatus(dealId, 'approved');
 
-                targetPendingPaymentPrice = deal.price;
-                targetPendingDealId = dealId;
+                // For a REQUEST deal: sender=buyer, receiver=seller.
+                // Seller approves here → buyer (the sender) needs to pay, so we don't open the payment
+                // modal on the seller's screen. The buyer sees the status update via Firebase and pays.
+                // For a SEND deal: sender=seller, receiver=buyer.
+                // Buyer (the receiver) approves here → open payment modal immediately for them to pay.
+                if (deal.mode === 'send') {
+                    targetPendingPaymentPrice = deal.price;
+                    targetPendingDealId = dealId;
 
-                // Populate iOS popup fields
-                const modal = document.getElementById('paymentProcessingModal');
-                const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val || '—'; };
-                const setImg = (id, src) => { const el = document.getElementById(id); if (el) el.src = src || ''; };
+                    const modal = document.getElementById('paymentProcessingModal');
+                    const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val || '—'; };
+                    const setImg = (id, src) => { const el = document.getElementById(id); if (el) el.src = src || ''; };
 
-                setEl('dealApprovalTitle', deal.title || 'Listing');
-                setEl('dealApprovalDesc',  deal.desc  || '');
-                setEl('dealApprovalPrice', deal.price ? '$' + Number(deal.price).toLocaleString() : '—');
-                // Revenue/expenses/profit — use deal fields if present, otherwise derive
-                const rev = deal.revenue   ? '$' + Number(deal.revenue).toLocaleString()   : (deal.price ? '$' + Math.round(deal.price * 0.04).toLocaleString() + '/mo' : '—');
-                const exp = deal.expenses  ? '$' + Number(deal.expenses).toLocaleString()  : '—';
-                const pro = deal.profit    ? '$' + Number(deal.profit).toLocaleString()    : '—';
-                setEl('dealApprovalRevenue',  rev);
-                setEl('dealApprovalExpenses', exp);
-                setEl('dealApprovalProfit',   pro);
-                setImg('dealApprovalImg', deal.img || '');
+                    setEl('dealApprovalTitle', deal.title || 'Listing');
+                    setEl('dealApprovalDesc',  deal.desc  || '');
+                    setEl('dealApprovalPrice', deal.price ? '$' + Number(deal.price).toLocaleString() : '—');
+                    const rev = deal.revenue  ? '$' + Number(deal.revenue).toLocaleString()  : (deal.price ? '$' + Math.round(deal.price * 0.04).toLocaleString() + '/mo' : '—');
+                    const exp = deal.expenses ? '$' + Number(deal.expenses).toLocaleString() : '—';
+                    const pro = deal.profit   ? '$' + Number(deal.profit).toLocaleString()   : '—';
+                    setEl('dealApprovalRevenue',  rev);
+                    setEl('dealApprovalExpenses', exp);
+                    setEl('dealApprovalProfit',   pro);
+                    setImg('dealApprovalImg', deal.img || '');
+                    setEl('paymentValueDisplay', '$' + deal.price);
+                    setEl('paymentDescription', 'Authorize direct allocation transfer for "' + deal.title + '"');
 
-                // Legacy hidden spans for any existing code that reads them
-                setEl('paymentValueDisplay', `$${deal.price}`);
-                setEl('paymentDescription', `Authorize direct allocation transfer for "${deal.title}"`);
-
-                // Open modal
-                modal.style.display = 'flex';
-                document.body.style.overflow = 'hidden';
+                    modal.style.display = 'flex';
+                    document.body.style.overflow = 'hidden';
+                }
             }
         }
 
@@ -21183,6 +21268,46 @@ if (document.readyState === 'loading') {
             appendSystemLogMessage(`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="vertical-align:-1px;margin-right:4px;color:#58f278;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-4-3a4 4 0 0 0 4 3c2.21 0 4-1.343 4-3s-1.79-3-4-3-4-1.343-4-3 1.79-3 4-3a4 4 0 0 1 4 3"/></svg>Transaction Success: Paid $${targetPendingPaymentPrice} from your wallet balance.`);
             if (_activeStickyDealId === targetPendingDealId) updateDealStickyBanner(targetPendingDealId);
             updateSystemCountersUI();
+
+            // Notify seller (the chat partner) — push + email
+            const _deal     = dealsRegistry[targetPendingDealId] || {};
+            const _myName   = (window._fbUserData && window._fbUserData.username) || 'Buyer';
+            const _myEmail  = (window._fbAuth && window._fbAuth.currentUser && window._fbAuth.currentUser.email) || '';
+            const _paidAmt  = '$' + Number(targetPendingPaymentPrice).toLocaleString();
+            const _dealTitle = _deal.title || 'your listing';
+
+            // Fetch seller email from Firebase so we can email them
+            (async function() {
+                var sellerEmail = '';
+                try {
+                    var db = window._fbDb; var fns = window._fbDbFns;
+                    if (db && fns && fns.ref && fns.get && _currentChatUid) {
+                        var snap = await fns.get(fns.ref(db, 'users/' + _currentChatUid + '/email'));
+                        sellerEmail = snap && snap.val ? (snap.val() || '') : '';
+                    }
+                } catch(e) {}
+
+                _notifyUser('payment', _currentChatUid, {
+                    title:   'Payment received — ' + _paidAmt,
+                    body:    _myName + ' paid ' + _paidAmt + ' for "' + _dealTitle + '". Transfer the site to complete the deal.',
+                    chatMsg: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="vertical-align:-1px;margin-right:4px;color:#58f278;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-4-3a4 4 0 0 0 4 3c2.21 0 4-1.343 4-3s-1.79-3-4-3-4-1.343-4-3 1.79-3 4-3a4 4 0 0 1 4 3"/></svg>Payment sent: ' + _myName + ' paid ' + _paidAmt + ' for "' + _dealTitle + '".',
+                    email: sellerEmail ? {
+                        to:      sellerEmail,
+                        subject: 'Payment received: ' + _paidAmt + ' for "' + _dealTitle + '" on Siterifty',
+                        html:    `<div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#0a0a0f;color:#f1f0ff;border-radius:16px;">
+                            <h2 style="margin:0 0 8px;font-size:22px;color:#58f278;">💸 Payment Received!</h2>
+                            <p style="color:#a0a0b8;font-size:14px;line-height:1.6;margin:0 0 20px;">
+                                <strong style="color:#fff;">${_myName}</strong> has paid <strong style="color:#58f278;">${_paidAmt}</strong> for <strong style="color:#fff;">"${_dealTitle}"</strong>.
+                            </p>
+                            <p style="color:#a0a0b8;font-size:14px;line-height:1.6;margin:0 0 20px;">
+                                The funds are held in escrow. Please transfer the site assets to the buyer to release payment to your wallet.
+                            </p>
+                            <a href="https://siterifty.com" style="display:inline-block;background:linear-gradient(135deg,#58f278,#34d399);color:#04140f;font-weight:700;font-size:14px;padding:12px 24px;border-radius:10px;text-decoration:none;">Go to Siterifty →</a>
+                            <p style="color:#555;font-size:11px;margin-top:24px;">Buyer email: ${_myEmail || 'N/A'} · Deal ID: ${targetPendingDealId}</p>
+                        </div>`
+                    } : null
+                });
+            })();
         }
 
         function appendSystemLogMessage(text) {
@@ -21191,6 +21316,110 @@ if (document.readyState === 'loading') {
             container.insertAdjacentHTML('beforeend', html);
             scrollToLatest();
         }
+
+        // ── Unified notification dispatcher ──────────────────────────────────────
+        // type: 'message' | 'deal' | 'image' | 'document' | 'donate' | 'payment'
+        // recipientUid : Firebase uid of the person who should receive the notif
+        // opts.title   : notification title
+        // opts.body    : notification body text
+        // opts.email   : { to, subject, html } — only sent for 'donate' and 'payment'
+        // opts.chatMsg : string — system log message to append in THIS user's chat view
+        // ─────────────────────────────────────────────────────────────────────────
+        async function _notifyUser(type, recipientUid, opts) {
+            opts = opts || {};
+
+            // 1. Append a system log line in the active chat (visible to the SENDER right now)
+            if (opts.chatMsg) {
+                appendSystemLogMessage(opts.chatMsg);
+            }
+
+            // 2. Write a push notification payload to Firebase under the recipient's
+            //    /users/{uid}/pendingPush node. The recipient's page (or SW) polls this.
+            //    Also call /api/push-send if the server supports it.
+            try {
+                var db  = window._fbDb;
+                var fns = window._fbDbFns;
+                if (db && fns && fns.ref && fns.push && recipientUid) {
+                    var pushPayload = {
+                        type:      type,
+                        title:     opts.title  || 'Siterifty',
+                        body:      opts.body   || '',
+                        timestamp: Date.now(),
+                        fromUid:   (window._fbAuth && window._fbAuth.currentUser && window._fbAuth.currentUser.uid) || ''
+                    };
+                    // Write to recipient's pendingPush list so their open tab can pick it up
+                    fns.push(fns.ref(db, 'users/' + recipientUid + '/pendingPush'), pushPayload).catch(function(){});
+
+                    // Also attempt server-side Web Push if recipient has a pushSubscription saved
+                    fns.get && fns.get(fns.ref(db, 'users/' + recipientUid + '/pushSubscription')).then(function(snap) {
+                        if (!snap || !snap.exists || !snap.exists()) return;
+                        var sub = snap.val();
+                        fetch('/api/push-send', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ subscription: sub, title: pushPayload.title, body: pushPayload.body, type: type })
+                        }).catch(function(){});
+                    }).catch(function(){});
+                }
+            } catch(e) { console.warn('[notify push]', e); }
+
+            // 3. Email — only for 'donate' and 'payment' types
+            if ((type === 'donate' || type === 'payment') && opts.email && window._sendEmail) {
+                try {
+                    await window._sendEmail(opts.email.to, opts.email.subject, opts.email.html);
+                } catch(e) { console.warn('[notify email]', e); }
+            }
+        }
+
+        // ── Listen for incoming pendingPush entries and show browser notification ──
+        (function _listenPendingPush() {
+            var _pushListenerUid = null;
+            var _pushUnsub = null;
+            function _startPushListener(uid) {
+                if (_pushListenerUid === uid) return;
+                _pushListenerUid = uid;
+                if (_pushUnsub) { try { _pushUnsub(); } catch(e){} }
+                var db  = window._fbDb;
+                var fns = window._fbDbFns;
+                if (!db || !fns || !fns.ref || !fns.onValue) return;
+                var pushRef = fns.ref(db, 'users/' + uid + '/pendingPush');
+                _pushUnsub = fns.onValue(pushRef, function(snap) {
+                    if (!snap || !snap.exists || !snap.exists()) return;
+                    // Only show browser notification if permission granted
+                    if (!('Notification' in window) || Notification.permission !== 'granted') {
+                        // Still clear them from Firebase
+                        fns.remove && fns.remove(pushRef).catch(function(){});
+                        return;
+                    }
+                    snap.forEach(function(child) {
+                        var p = child.val();
+                        if (!p) return;
+                        // Don't show if the tab is currently focused (user is looking at it)
+                        if (document.hasFocus && document.hasFocus()) return;
+                        new Notification(p.title || 'Siterifty', {
+                            body: p.body || '',
+                            icon: '/favicon.ico',
+                            tag:  p.type + '_' + child.key   // dedupes same-type bursts
+                        });
+                    });
+                    // Clear processed entries
+                    fns.remove && fns.remove(pushRef).catch(function(){});
+                }, function(){});
+            }
+
+            // Hook into auth state — start listener when user signs in
+            var _authInterval = setInterval(function() {
+                var auth = window._fbAuth;
+                if (auth && auth.currentUser) {
+                    clearInterval(_authInterval);
+                    _startPushListener(auth.currentUser.uid);
+                    // Re-check if uid changes (sign-out then sign-in as different user)
+                    auth.onAuthStateChanged && auth.onAuthStateChanged(function(u) {
+                        if (u) _startPushListener(u.uid);
+                    });
+                }
+            }, 1200);
+        })();
 
         function openModernLinkModal() {
             document.getElementById('dropUpMenu').classList.remove('open');
@@ -21305,6 +21534,13 @@ if (document.readyState === 'loading') {
             updateSystemCountersUI();
             scrollToLatest();
             closeModernLinkModal();
+
+            // Push-only notify recipient
+            var _myNameL = (window._fbUserData && window._fbUserData.username) || 'Someone';
+            _notifyUser('message', _currentChatUid, {
+                title: _myNameL + ' shared a link',
+                body:  title + ' — ' + url
+            });
         }
 
         function sendStandardTextMessage() {
@@ -21324,6 +21560,13 @@ if (document.readyState === 'loading') {
             incrementMsgCount();
             updateSystemCountersUI();
             scrollToLatest();
+
+            // Push-only notify recipient — no email for plain messages
+            var _myName = (window._fbUserData && window._fbUserData.username) || 'Someone';
+            _notifyUser('message', _currentChatUid, {
+                title: _myName + ' sent you a message',
+                body:  val.length > 80 ? val.slice(0, 80) + '…' : val
+            });
         }
 
         function openImageInPopup(url, name) {
@@ -21358,16 +21601,21 @@ if (document.readyState === 'loading') {
             scrollToLatest();
         }
 
-        function appendDocumentMessage(fileName, fileUrl, fileData, mimeType, isMine) {
+        function appendDocumentMessage(fileName, fileUrl, fileData, mimeType, isMine, time) {
             const container = document.getElementById('chatMessagesContent');
             // Reconstruct a blob URL from base64 if no direct URL is available
             const resolvedUrl = fileUrl || (fileData ? base64ToObjectURL(fileData, mimeType) : '#');
             const isHtml = fileName.toLowerCase().endsWith('.html');
             const typeLabel = isHtml ? 'HTML INTERACTIVE PAGE' : 'DOCUMENT PDF';
             const bubbleClass = isMine === false ? 'imsg-bubble-in' : 'imsg-bubble-out';
+            const docCorner = isMine === false
+                ? 'border-bottom-left-radius:0;border-bottom-right-radius:16px;'
+                : 'border-bottom-right-radius:0;border-bottom-left-radius:16px;';
+            const timeAlign = isMine === false ? 'left' : 'right';
+            const timeHtml  = time ? `<div style="font-size:10px;color:var(--muted,#6b6890);text-align:${timeAlign};margin-top:3px;">${time}</div>` : '';
             const html = `
               <div class="${bubbleClass}">
-                <a href="${resolvedUrl}" target="_blank" class="imsg-doc-bubble">
+                <a href="${resolvedUrl}" target="_blank" class="imsg-doc-bubble" style="${docCorner}">
                   <div class="imsg-doc-row">
                     <div class="imsg-doc-icon">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>
@@ -21379,6 +21627,7 @@ if (document.readyState === 'loading') {
                     </div>
                   </div>
                 </a>
+                ${timeHtml}
               </div>`;
             container.insertAdjacentHTML('beforeend', html);
             scrollToLatest();
@@ -21734,6 +21983,47 @@ if (document.readyState === 'loading') {
 
             const recipientHandle = document.getElementById('homeDonateRecipientName').textContent;
             window.closeDonateModal();
+
+            // Notify the donation recipient — push + email + chat system message
+            const _donorName = (window._fbUserData && window._fbUserData.username) || 'Someone';
+            const _fmtAmt = _fmtMoney(amt);
+
+            // Post a system message in chat if a conversation is open with this person
+            if (_currentChatUid && _currentChatUid === _donateTargetUid) {
+                appendSystemLogMessage(
+                    '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="vertical-align:-1px;margin-right:4px;color:#fbbf24;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8.25v13.5m0-13.5a2.25 2.25 0 1 0-2.25-2.25v.75M12 8.25a2.25 2.25 0 1 0 2.25-2.25v.75"/></svg>' +
+                    _donorName + ' donated ' + _fmtAmt + ' to ' + recipientHandle + '.'
+                );
+            }
+
+            // Fetch recipient's email from Firebase for the email notification
+            (async function() {
+                var recipientEmail = '';
+                try {
+                    var db = window._fbDb; var fns = window._fbDbFns;
+                    if (db && fns && fns.ref && fns.get && _donateTargetUid) {
+                        var snap = await fns.get(fns.ref(db, 'users/' + _donateTargetUid + '/email'));
+                        recipientEmail = snap && snap.val ? (snap.val() || '') : '';
+                    }
+                } catch(e) {}
+
+                _notifyUser('donate', _donateTargetUid, {
+                    title: 'You received a donation — ' + _fmtAmt,
+                    body:  _donorName + ' sent you ' + _fmtAmt + ' on Siterifty.',
+                    email: recipientEmail ? {
+                        to:      recipientEmail,
+                        subject: 'You received ' + _fmtAmt + ' from ' + _donorName + ' on Siterifty',
+                        html:    `<div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#0a0a0f;color:#f1f0ff;border-radius:16px;">
+                            <h2 style="margin:0 0 8px;font-size:22px;color:#fbbf24;">🎁 Donation Received!</h2>
+                            <p style="color:#a0a0b8;font-size:14px;line-height:1.6;margin:0 0 20px;">
+                                <strong style="color:#fff;">${_donorName}</strong> sent you a donation of <strong style="color:#fbbf24;">${_fmtAmt}</strong>. The funds have been added to your Siterifty wallet.
+                            </p>
+                            <a href="https://siterifty.com" style="display:inline-block;background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#1a0a00;font-weight:700;font-size:14px;padding:12px 24px;border-radius:10px;text-decoration:none;">View your wallet →</a>
+                            <p style="color:#555;font-size:11px;margin-top:24px;">Siterifty · You can manage donation preferences in Settings.</p>
+                        </div>`
+                    } : null
+                });
+            })();
 
             // Show success celebration
             const subText = `Sent ${_fmtMoney(amt)} to ${recipientHandle}`;
