@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connecting GitHub — Siterifty</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #060f08;
+      color: #fff;
+      font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+      padding: 24px;
+    }
+    .card {
+      background: linear-gradient(160deg, #0d1117, #161b22);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 40px 32px;
+      max-width: 360px;
+      width: 100%;
+    }
+    .icon {
+      width: 52px; height: 52px;
+      background: rgba(48,209,88,0.1);
+      border: 1px solid rgba(48,209,88,0.25);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px;
+    }
+    h1 { font-size: 18px; font-weight: 800; margin-bottom: 8px; }
+    p  { font-size: 13px; color: rgba(255,255,255,0.4); line-height: 1.5; }
+    .error { color: #f87171; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="icon" id="icon">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="rgba(48,209,88,0.9)">
+      <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/>
+    </svg>
+  </div>
+  <h1 id="title">Connecting GitHub…</h1>
+  <p id="msg">Finishing authorization, this window will close automatically.</p>
+</div>
+
+<script>
+(function () {
+  var params = new URLSearchParams(window.location.search);
+  var code   = params.get('code');
+  var error  = params.get('error');
+
+  if (error || !code) {
+    document.getElementById('title').textContent = 'Authorization failed';
+    document.getElementById('msg').textContent   = error || 'No code returned from GitHub. Please close this window and try again.';
+    document.getElementById('msg').classList.add('error');
+    document.getElementById('icon').style.background = 'rgba(248,113,113,0.1)';
+    document.getElementById('icon').style.borderColor = 'rgba(248,113,113,0.25)';
+    document.getElementById('icon').innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="#f87171" stroke-width="2" stroke-linecap="round"/></svg>';
+    return;
+  }
+
+  // Post code back to the opener (the AutoSell modal)
+  if (window.opener && !window.opener.closed) {
+    window.opener.postMessage({ type: 'gh_oauth_code', code: code }, window.location.origin);
+    document.getElementById('title').textContent = 'GitHub connected!';
+    document.getElementById('msg').textContent   = 'Closing this window…';
+    setTimeout(function () { window.close(); }, 1200);
+  } else {
+    // Fallback: no opener — store in sessionStorage and redirect back
+    try { sessionStorage.setItem('as_gh_code_fallback', code); } catch(e){}
+    document.getElementById('title').textContent = 'Almost there!';
+    document.getElementById('msg').textContent   = 'Return to the AutoSell settings and try again — the code has been captured.';
+  }
+})();
+</script>
+</body>
+</html>
