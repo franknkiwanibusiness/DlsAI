@@ -7,25 +7,19 @@ import { getDatabase } from 'firebase-admin/database';
 // Client ID is hardcoded (public)
 const GITHUB_CLIENT_ID = 'Iv23li02xb3bQ14ZvMeR';
 
-// We'll read the secret from GITHUB_PRIVATE_KEY (as you have it set)
-// Also fallback to GITHUB_CLIENT_SECRET for compatibility
+// ── Get the OAuth Client Secret from environment ────────────────────────────
 function getClientSecret() {
-  // First try your environment variable
-  let secret = process.env.GITHUB_PRIVATE_KEY;
-  if (secret) {
-    console.log('[GitHub OAuth] Using client secret from GITHUB_PRIVATE_KEY');
-    return secret;
+  // The OAuth secret is stored in GITHUB_SECRET_KEY (not GITHUB_PRIVATE_KEY)
+  const secret = process.env.GITHUB_SECRET_KEY;
+  if (!secret || secret.length === 0) {
+    console.error('[GitHub OAuth] ❌ GITHUB_SECRET_KEY environment variable is not set.');
+    throw new Error('GitHub OAuth Client Secret is missing. Set GITHUB_SECRET_KEY.');
   }
-  
-  // Fallback to standard name
-  secret = process.env.GITHUB_CLIENT_SECRET;
-  if (secret) {
-    console.log('[GitHub OAuth] Using client secret from GITHUB_CLIENT_SECRET');
-    return secret;
+  console.log(`[GitHub OAuth] ✅ Using GITHUB_SECRET_KEY (length: ${secret.length})`);
+  if (secret.length !== 40) {
+    console.warn(`[GitHub OAuth] ⚠️ Secret length is ${secret.length}, expected 40. Check your value.`);
   }
-  
-  console.error('[GitHub OAuth] ❌ No client secret found in environment!');
-  throw new Error('GitHub Client Secret not set. Please set GITHUB_PRIVATE_KEY or GITHUB_CLIENT_SECRET environment variable.');
+  return secret;
 }
 
 // ── Firebase init ────────────────────────────────────────────────────────────
@@ -48,12 +42,11 @@ function db() {
 
 // ── Exchange OAuth code for user access token ────────────────────────────────
 async function exchangeCodeForToken(code) {
-  console.log('[GitHub OAuth] 🔑 Exchanging code...');
+  console.log('[GitHub OAuth] 🔑 Exchanging code for token...');
   console.log('[GitHub OAuth] 📝 Code prefix:', code.substring(0, 10) + '...');
   console.log('[GitHub OAuth] 🆔 Client ID (hardcoded):', GITHUB_CLIENT_ID);
 
   const clientSecret = getClientSecret();
-  console.log('[GitHub OAuth] 🔒 Client Secret:', clientSecret ? '✅ Present' : '❌ Missing');
 
   const requestBody = {
     client_id:     GITHUB_CLIENT_ID,
@@ -61,7 +54,7 @@ async function exchangeCodeForToken(code) {
     code,
   };
 
-  // Optional redirect_uri (helps with mismatch)
+  // Optional redirect_uri – if set in env, helps prevent mismatch errors
   if (process.env.GITHUB_REDIRECT_URI) {
     requestBody.redirect_uri = process.env.GITHUB_REDIRECT_URI;
     console.log('[GitHub OAuth] 📡 Redirect URI:', process.env.GITHUB_REDIRECT_URI);
@@ -70,9 +63,9 @@ async function exchangeCodeForToken(code) {
   try {
     const res = await fetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json', 
-        'Accept': 'application/json' 
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
       },
       body: JSON.stringify(requestBody),
     });
@@ -80,19 +73,24 @@ async function exchangeCodeForToken(code) {
     const data = await res.json();
     console.log('[GitHub OAuth] 📨 GitHub response:', JSON.stringify(data, null, 2));
 
+    // Handle errors from GitHub
     if (data.error) {
       let msg = data.error_description || data.error;
-      if (data.error === 'bad_verification_code') msg = 'The code expired or was used already. Try again.';
-      else if (data.error === 'incorrect_client_credentials') msg = 'Invalid Client ID or Secret. Check your GITHUB_PRIVATE_KEY value.';
-      else if (data.error === 'redirect_uri_mismatch') msg = 'Redirect URI mismatch. Update GitHub App settings.';
+      if (data.error === 'bad_verification_code') {
+        msg = 'The authorization code has expired or was already used. Please try the GitHub login again.';
+      } else if (data.error === 'incorrect_client_credentials') {
+        msg = 'Invalid Client ID or Secret. Check that GITHUB_SECRET_KEY contains the correct 40‑character OAuth secret.';
+      } else if (data.error === 'redirect_uri_mismatch') {
+        msg = 'Redirect URI does not match GitHub App settings. Update your GitHub App configuration.';
+      }
       throw new Error(msg);
     }
 
     if (!data.access_token) {
-      throw new Error('No access token returned. Response: ' + JSON.stringify(data));
+      throw new Error('No access_token in response: ' + JSON.stringify(data));
     }
 
-    console.log('[GitHub OAuth] ✅ Token obtained');
+    console.log('[GitHub OAuth] ✅ Token obtained successfully');
     return data.access_token;
   } catch (error) {
     console.error('[GitHub OAuth] ❌ Exchange failed:', error.message);
@@ -102,98 +100,153 @@ async function exchangeCodeForToken(code) {
 
 // ── Get GitHub user info ──────────────────────────────────────────────────────
 async function getGithubUser(token) {
-  const res = await fetch('https://api.github.com/user', {
-    headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
-  });
-  if (!res.ok) throw new Error(`GitHub API error: ${res.status}`);
-  return res.json();
+  try {
+    const res = await fetch('https://api.github.com/user', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github+json',
+      },
+    });
+    if (!res.ok) {
+      const error = await res.text();
+      throw new Error(`GitHub API error (${res.status}): ${error}`);
+    }
+    return res.json();
+  } catch (error) {
+    console.error('[GitHub OAuth] ❌ Failed to get user info:', error.message);
+    throw error;
+  }
 }
 
-// ── List user's repos ────────────────────────────────────────────────────────
+// ── List user's repositories (owned) ──────────────────────────────────────────
 async function listRepos(token) {
-  const res = await fetch(
-    'https://api.github.com/user/repos?per_page=100&sort=updated&affiliation=owner',
-    { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } }
-  );
-  if (!res.ok) throw new Error(`GitHub API error: ${res.status}`);
-  const repos = await res.json();
-  if (!Array.isArray(repos)) throw new Error('Failed to fetch repos');
-  return repos.map(r => ({
-    id:          r.id,
-    name:        r.name,
-    full_name:   r.full_name,
-    description: r.description || '',
-    private:     r.private,
-    url:         r.html_url,
-    stars:       r.stargazers_count,
-    language:    r.language || '',
-    topics:      r.topics || [],
-    size:        r.size,
-    updated_at:  r.updated_at,
-  }));
+  try {
+    const res = await fetch(
+      'https://api.github.com/user/repos?per_page=100&sort=updated&affiliation=owner',
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/vnd.github+json',
+        },
+      }
+    );
+    if (!res.ok) {
+      const error = await res.text();
+      throw new Error(`GitHub API error (${res.status}): ${error}`);
+    }
+    const repos = await res.json();
+    if (!Array.isArray(repos)) throw new Error('Invalid repos response');
+
+    return repos.map((r) => ({
+      id:          r.id,
+      name:        r.name,
+      full_name:   r.full_name,
+      description: r.description || '',
+      private:     r.private,
+      url:         r.html_url,
+      stars:       r.stargazers_count,
+      language:    r.language || '',
+      topics:      r.topics || [],
+      size:        r.size,
+      updated_at:  r.updated_at,
+    }));
+  } catch (error) {
+    console.error('[GitHub OAuth] ❌ Failed to list repos:', error.message);
+    throw error;
+  }
 }
 
 // ── Fetch single repo metadata ──────────────────────────────────────────────
 async function fetchRepoMeta(token, fullName) {
-  const res = await fetch(`https://api.github.com/repos/${fullName}`, {
-    headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
-  });
-  if (!res.ok) throw new Error(`GitHub API error: ${res.status}`);
-  const r = await res.json();
-  return {
-    name:        r.name,
-    full_name:   r.full_name,
-    description: r.description || '',
-    private:     r.private,
-    url:         r.html_url,
-    stars:       r.stargazers_count,
-    forks:       r.forks_count,
-    language:    r.language || '',
-    topics:      r.topics || [],
-    size:        r.size,
-    created_at:  r.created_at,
-    updated_at:  r.updated_at,
-    license:     r.license?.name || null,
-    open_issues: r.open_issues_count,
-  };
+  try {
+    const res = await fetch(`https://api.github.com/repos/${fullName}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github+json',
+      },
+    });
+    if (!res.ok) {
+      const error = await res.text();
+      throw new Error(`GitHub API error (${res.status}): ${error}`);
+    }
+    const r = await res.json();
+    return {
+      name:        r.name,
+      full_name:   r.full_name,
+      description: r.description || '',
+      private:     r.private,
+      url:         r.html_url,
+      stars:       r.stargazers_count,
+      forks:       r.forks_count,
+      language:    r.language || '',
+      topics:      r.topics || [],
+      size:        r.size,
+      created_at:  r.created_at,
+      updated_at:  r.updated_at,
+      license:     r.license?.name || null,
+      open_issues: r.open_issues_count,
+    };
+  } catch (error) {
+    console.error('[GitHub OAuth] ❌ Failed to fetch repo metadata:', error.message);
+    throw error;
+  }
 }
 
-// ── Add buyer as collaborator ──────────────────────────────────────────────
+// ── Add buyer as collaborator (read‑only access) ────────────────────────────
 async function addCollaborator(sellerToken, fullName, buyerGithubUsername) {
-  const res = await fetch(
-    `https://api.github.com/repos/${fullName}/collaborators/${buyerGithubUsername}`,
-    {
-      method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${sellerToken}`,
-        Accept: 'application/vnd.github+json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ permission: 'pull' }),
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${fullName}/collaborators/${buyerGithubUsername}`,
+      {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${sellerToken}`,
+          Accept: 'application/vnd.github+json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ permission: 'pull' }),
+      }
+    );
+    // 201 = invited, 204 = already a collaborator
+    const success = res.status === 201 || res.status === 204;
+    if (!success) {
+      const error = await res.text();
+      throw new Error(`GitHub API error (${res.status}): ${error || 'Failed to add collaborator'}`);
     }
-  );
-  return res.status === 201 || res.status === 204;
+    return true;
+  } catch (error) {
+    console.error('[GitHub OAuth] ❌ Failed to add collaborator:', error.message);
+    throw error;
+  }
 }
 
 // ── Main handler ─────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
+  // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const mode = req.query.mode || req.body?.mode;
+  console.log('[GitHub OAuth] 📡 Mode:', mode);
 
   try {
+    // ── mode=callback: OAuth code → token → repos → save to Firebase ─────────
     if (mode === 'callback') {
       if (req.method !== 'POST') return res.status(405).end();
+
       const { code, uid } = req.body;
-      if (!code || !uid) return res.status(400).json({ error: 'Missing code or uid' });
+      if (!code) return res.status(400).json({ error: 'Missing code parameter' });
+      if (!uid) return res.status(400).json({ error: 'Missing uid parameter' });
+
+      console.log('[GitHub OAuth] 📝 Callback for UID:', uid);
 
       const token = await exchangeCodeForToken(code);
       const ghUser = await getGithubUser(token);
       const repos = await listRepos(token);
 
+      // Save token and user info to Firebase (token encrypted at rest)
       await db().ref(`users/${uid}/github`).set({
         username:     ghUser.login,
         avatarUrl:    ghUser.avatar_url,
@@ -201,6 +254,8 @@ export default async function handler(req, res) {
         linkedAt:     Date.now(),
       });
 
+      // Return username, avatar, and repo list (no token)
+      console.log('[GitHub OAuth] ✅ Connection successful for', ghUser.login);
       return res.status(200).json({
         username: ghUser.login,
         avatar:   ghUser.avatar_url,
@@ -209,46 +264,65 @@ export default async function handler(req, res) {
       });
     }
 
+    // ── mode=repos: return seller's repos ──────────────────────────────────────
     if (mode === 'repos') {
       if (req.method !== 'POST') return res.status(405).end();
+
       const { uid } = req.body;
       if (!uid) return res.status(400).json({ error: 'Missing uid' });
 
       const snap = await db().ref(`users/${uid}/github`).get();
       if (!snap.exists()) return res.status(404).json({ error: 'GitHub not connected' });
+
       const { accessToken } = snap.val();
       const repos = await listRepos(accessToken);
       return res.status(200).json({ repos });
     }
 
+    // ── mode=repodata: fetch live repo metadata ────────────────────────────────
     if (mode === 'repodata') {
       if (req.method !== 'POST') return res.status(405).end();
+
       const { uid, fullName } = req.body;
       if (!uid || !fullName) return res.status(400).json({ error: 'Missing uid or fullName' });
 
       const snap = await db().ref(`users/${uid}/github`).get();
       if (!snap.exists()) return res.status(404).json({ error: 'GitHub not connected' });
+
       const { accessToken } = snap.val();
       const meta = await fetchRepoMeta(accessToken, fullName);
 
-      await db().ref(`users/${uid}/autoSell/repoMeta`).set({ ...meta, cachedAt: Date.now() });
+      // Cache the metadata in Firebase for AI use
+      await db().ref(`users/${uid}/autoSell/repoMeta`).set({
+        ...meta,
+        cachedAt: Date.now(),
+      });
+
       return res.status(200).json({ repo: meta });
     }
 
+    // ── mode=invite: add buyer as collaborator ─────────────────────────────────
     if (mode === 'invite') {
       if (req.method !== 'POST') return res.status(405).end();
+
       const { sellerUid, buyerGithubUsername, repoFullName } = req.body;
       if (!sellerUid || !buyerGithubUsername || !repoFullName) {
-        return res.status(400).json({ error: 'Missing fields' });
+        return res.status(400).json({ error: 'Missing required fields' });
       }
+
+      console.log('[GitHub OAuth] 👥 Adding collaborator:', {
+        sellerUid,
+        buyer: buyerGithubUsername,
+        repo: repoFullName,
+      });
 
       const snap = await db().ref(`users/${sellerUid}/github`).get();
       if (!snap.exists()) return res.status(404).json({ error: 'Seller GitHub not connected' });
+
       const { accessToken } = snap.val();
+      await addCollaborator(accessToken, repoFullName, buyerGithubUsername);
 
-      const ok = await addCollaborator(accessToken, repoFullName, buyerGithubUsername);
-      if (!ok) return res.status(500).json({ error: 'Failed to add collaborator' });
-
+      // Log invitation
       await db().ref(`autosell/${sellerUid}/invites`).push({
         buyerGithubUsername,
         repoFullName,
@@ -262,6 +336,6 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: `Unknown mode: ${mode}` });
   } catch (err) {
     console.error('[GitHub OAuth] ❌ Error:', err);
-    return res.status(500).json({ error: err.message || 'Internal error' });
+    return res.status(500).json({ error: err.message || 'Internal server error' });
   }
 }
