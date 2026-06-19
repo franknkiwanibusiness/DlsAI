@@ -7,7 +7,7 @@
 
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getDatabase } from 'firebase-admin/database';
-import { createAppAuth } from '@octokit/auth-app';
+
 
 // ── Firebase init ────────────────────────────────────────────────────────────
 function initFirebase() {
@@ -27,15 +27,6 @@ function db() {
   return getDatabase();
 }
 
-// ── GitHub App auth (used for installation tokens) ───────────────────────────
-function getAppAuth() {
-  return createAppAuth({
-    appId:      process.env.GITHUB_APP_ID,
-    privateKey: process.env.GITHUB_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    clientId:   process.env.GITHUB_CLIENT_ID,     // Iv23li02xb3bQ14ZvMeR
-    clientSecret: process.env.GITHUB_CLIENT_SECRET,
-  });
-}
 
 // ── Exchange OAuth code for user access token ────────────────────────────────
 async function exchangeCodeForToken(code) {
