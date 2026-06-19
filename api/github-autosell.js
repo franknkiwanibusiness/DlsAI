@@ -9,11 +9,11 @@ const GITHUB_CLIENT_ID = 'Iv23li02xb3bQ14ZvMeR';
 
 // ── Get the OAuth Client Secret from environment ────────────────────────────
 function getClientSecret() {
-  // The OAuth secret is stored in GITHUB_SECRET_KEY (not GITHUB_PRIVATE_KEY)
+  // The OAuth secret is stored in GITHUB_SECRET_KEY (NOT GITHUB_PRIVATE_KEY)
   const secret = process.env.GITHUB_SECRET_KEY;
   if (!secret || secret.length === 0) {
-    console.error('[GitHub OAuth] ❌ GITHUB_SECRET_KEY environment variable is not set.');
-    throw new Error('GitHub OAuth Client Secret is missing. Set GITHUB_SECRET_KEY.');
+    console.error('[GitHub OAuth] ❌ GITHUB_SECRET_KEY is not set or empty.');
+    throw new Error('GitHub OAuth Client Secret missing. Set GITHUB_SECRET_KEY with your 40-character secret.');
   }
   console.log(`[GitHub OAuth] ✅ Using GITHUB_SECRET_KEY (length: ${secret.length})`);
   if (secret.length !== 40) {
@@ -42,7 +42,7 @@ function db() {
 
 // ── Exchange OAuth code for user access token ────────────────────────────────
 async function exchangeCodeForToken(code) {
-  console.log('[GitHub OAuth] 🔑 Exchanging code for token...');
+  console.log('[GitHub OAuth] 🔑 Exchanging code...');
   console.log('[GitHub OAuth] 📝 Code prefix:', code.substring(0, 10) + '...');
   console.log('[GitHub OAuth] 🆔 Client ID (hardcoded):', GITHUB_CLIENT_ID);
 
@@ -54,7 +54,6 @@ async function exchangeCodeForToken(code) {
     code,
   };
 
-  // Optional redirect_uri – if set in env, helps prevent mismatch errors
   if (process.env.GITHUB_REDIRECT_URI) {
     requestBody.redirect_uri = process.env.GITHUB_REDIRECT_URI;
     console.log('[GitHub OAuth] 📡 Redirect URI:', process.env.GITHUB_REDIRECT_URI);
@@ -73,15 +72,14 @@ async function exchangeCodeForToken(code) {
     const data = await res.json();
     console.log('[GitHub OAuth] 📨 GitHub response:', JSON.stringify(data, null, 2));
 
-    // Handle errors from GitHub
     if (data.error) {
       let msg = data.error_description || data.error;
       if (data.error === 'bad_verification_code') {
-        msg = 'The authorization code has expired or was already used. Please try the GitHub login again.';
+        msg = 'The authorization code expired or was already used. Try again with a fresh code.';
       } else if (data.error === 'incorrect_client_credentials') {
-        msg = 'Invalid Client ID or Secret. Check that GITHUB_SECRET_KEY contains the correct 40‑character OAuth secret.';
+        msg = 'Invalid Client ID or Secret. Check that GITHUB_SECRET_KEY contains the correct 40‑character secret.';
       } else if (data.error === 'redirect_uri_mismatch') {
-        msg = 'Redirect URI does not match GitHub App settings. Update your GitHub App configuration.';
+        msg = 'Redirect URI mismatch. Update your GitHub App settings.';
       }
       throw new Error(msg);
     }
@@ -90,7 +88,7 @@ async function exchangeCodeForToken(code) {
       throw new Error('No access_token in response: ' + JSON.stringify(data));
     }
 
-    console.log('[GitHub OAuth] ✅ Token obtained successfully');
+    console.log('[GitHub OAuth] ✅ Token obtained');
     return data.access_token;
   } catch (error) {
     console.error('[GitHub OAuth] ❌ Exchange failed:', error.message);
@@ -207,7 +205,6 @@ async function addCollaborator(sellerToken, fullName, buyerGithubUsername) {
         body: JSON.stringify({ permission: 'pull' }),
       }
     );
-    // 201 = invited, 204 = already a collaborator
     const success = res.status === 201 || res.status === 204;
     if (!success) {
       const error = await res.text();
@@ -222,7 +219,6 @@ async function addCollaborator(sellerToken, fullName, buyerGithubUsername) {
 
 // ── Main handler ─────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
-  // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -232,7 +228,6 @@ export default async function handler(req, res) {
   console.log('[GitHub OAuth] 📡 Mode:', mode);
 
   try {
-    // ── mode=callback: OAuth code → token → repos → save to Firebase ─────────
     if (mode === 'callback') {
       if (req.method !== 'POST') return res.status(405).end();
 
@@ -246,7 +241,6 @@ export default async function handler(req, res) {
       const ghUser = await getGithubUser(token);
       const repos = await listRepos(token);
 
-      // Save token and user info to Firebase (token encrypted at rest)
       await db().ref(`users/${uid}/github`).set({
         username:     ghUser.login,
         avatarUrl:    ghUser.avatar_url,
@@ -254,7 +248,6 @@ export default async function handler(req, res) {
         linkedAt:     Date.now(),
       });
 
-      // Return username, avatar, and repo list (no token)
       console.log('[GitHub OAuth] ✅ Connection successful for', ghUser.login);
       return res.status(200).json({
         username: ghUser.login,
@@ -264,7 +257,6 @@ export default async function handler(req, res) {
       });
     }
 
-    // ── mode=repos: return seller's repos ──────────────────────────────────────
     if (mode === 'repos') {
       if (req.method !== 'POST') return res.status(405).end();
 
@@ -279,7 +271,6 @@ export default async function handler(req, res) {
       return res.status(200).json({ repos });
     }
 
-    // ── mode=repodata: fetch live repo metadata ────────────────────────────────
     if (mode === 'repodata') {
       if (req.method !== 'POST') return res.status(405).end();
 
@@ -292,7 +283,6 @@ export default async function handler(req, res) {
       const { accessToken } = snap.val();
       const meta = await fetchRepoMeta(accessToken, fullName);
 
-      // Cache the metadata in Firebase for AI use
       await db().ref(`users/${uid}/autoSell/repoMeta`).set({
         ...meta,
         cachedAt: Date.now(),
@@ -301,7 +291,6 @@ export default async function handler(req, res) {
       return res.status(200).json({ repo: meta });
     }
 
-    // ── mode=invite: add buyer as collaborator ─────────────────────────────────
     if (mode === 'invite') {
       if (req.method !== 'POST') return res.status(405).end();
 
@@ -322,7 +311,6 @@ export default async function handler(req, res) {
       const { accessToken } = snap.val();
       await addCollaborator(accessToken, repoFullName, buyerGithubUsername);
 
-      // Log invitation
       await db().ref(`autosell/${sellerUid}/invites`).push({
         buyerGithubUsername,
         repoFullName,
