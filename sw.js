@@ -1,42 +1,62 @@
-// Siterifty Service Worker — required for Web Push notifications
-// Deploy this file to the ROOT of your domain: https://siterifty.com/sw.js
+// Siterifty — /sw.js
+// Must be served from the root of the domain (https://siterifty.com/sw.js)
+// so it has scope over the entire site.
 
 self.addEventListener('install', function(e) {
-    self.skipWaiting();
+    self.skipWaiting(); // activate immediately, don't wait for old SW to die
 });
 
 self.addEventListener('activate', function(e) {
-    e.waitUntil(clients.claim());
+    e.waitUntil(self.clients.claim()); // take control of all open tabs right away
 });
 
+// ── Handle incoming Web Push from server ──────────────────────────────────────
 self.addEventListener('push', function(e) {
     var data = {};
-    try { data = e.data ? e.data.json() : {}; } catch(_) {}
-    var title   = data.title  || 'Siterifty';
-    var body    = data.body   || 'You have a new notification.';
-    var icon    = data.icon   || '/favicon.ico';
-    var url     = data.url    || '/';
+    try {
+        data = e.data ? e.data.json() : {};
+    } catch(_) {
+        data = { title: 'Siterifty', body: e.data ? e.data.text() : '' };
+    }
+
+    var title = data.title || 'Siterifty';
+    var body  = data.body  || '';
+    var icon  = data.icon  || '/favicon.ico';
+    var type  = data.type  || 'message';
+
+    // Badge and tag grouped by type so bursts don't spam
+    var tag = type + '_' + Date.now();
+
     e.waitUntil(
         self.registration.showNotification(title, {
-            body:  body,
-            icon:  icon,
-            badge: icon,
-            data:  { url: url }
+            body:    body,
+            icon:    icon,
+            badge:   '/favicon.ico',
+            tag:     tag,
+            vibrate: [200, 100, 200],
+            data:    { url: 'https://siterifty.com', type: type }
         })
     );
 });
 
+// ── Handle notification click — open/focus the site ──────────────────────────
 self.addEventListener('notificationclick', function(e) {
     e.notification.close();
-    var target = e.notification.data && e.notification.data.url ? e.notification.data.url : '/';
+    var targetUrl = (e.notification.data && e.notification.data.url) || 'https://siterifty.com';
+
     e.waitUntil(
-        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(list) {
-            for (var i = 0; i < list.length; i++) {
-                if (list[i].url === target && 'focus' in list[i]) {
-                    return list[i].focus();
+        self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clients) {
+            // If a tab is already open, focus it
+            for (var i = 0; i < clients.length; i++) {
+                var client = clients[i];
+                if (client.url.indexOf('siterifty.com') !== -1 && 'focus' in client) {
+                    return client.focus();
                 }
             }
-            if (clients.openWindow) return clients.openWindow(target);
+            // Otherwise open a new tab
+            if (self.clients.openWindow) {
+                return self.clients.openWindow(targetUrl);
+            }
         })
     );
 });
