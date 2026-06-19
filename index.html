@@ -8387,9 +8387,20 @@
                 <div style="background:rgba(28,28,30,0.92);border:1px solid rgba(255,255,255,0.1);width:100%;max-width:440px;max-height:85vh;border-radius:22px;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;box-shadow:0 25px 50px -12px rgba(0,0,0,0.6);position:relative;scrollbar-width:none;">
 
                     <!-- Sticky header -->
-                    <div style="position:sticky;top:0;z-index:10;background-image:linear-gradient(rgba(20,20,25,0.65),rgba(20,20,25,0.85)),url('https://picsum.photos/seed/siterifty/450/100');background-size:cover;background-position:center;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:0.5px solid rgba(255,255,255,0.15);padding:22px 16px 16px;text-align:center;position:relative;">
-                        <div style="position:absolute;top:7px;left:50%;transform:translateX(-50%);width:36px;height:5px;background:rgba(255,255,255,0.35);border-radius:2.5px;"></div>
-                        <div style="color:#fff;font-size:1.05rem;font-weight:600;letter-spacing:-0.2px;margin-top:4px;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;text-shadow:0 2px 4px rgba(0,0,0,0.5);">Deal Approval</div>
+                    <div style="position:sticky;top:0;z-index:10;background:rgba(20,20,25,0.96);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:0.5px solid rgba(255,255,255,0.12);padding:14px 16px 14px;display:flex;align-items:center;justify-content:space-between;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;">
+                        <!-- pill handle centered above header -->
+                        <div style="position:absolute;top:6px;left:50%;transform:translateX(-50%);width:36px;height:4px;background:rgba(255,255,255,0.25);border-radius:2px;"></div>
+                        <!-- left spacer to balance close btn -->
+                        <div style="width:32px;"></div>
+                        <!-- title -->
+                        <div style="display:flex;align-items:center;gap:7px;margin-top:4px;">
+                            <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.3" stroke="#30d158" stroke-width="1.4"/><path d="M5.3 8.2l1.8 1.8 3.6-4" stroke="#30d158" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <span style="color:#fff;font-size:1rem;font-weight:600;letter-spacing:-0.2px;">Deal Approved</span>
+                        </div>
+                        <!-- close button -->
+                        <button onclick="closePaymentModal()" title="Close" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.1);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;margin-top:4px;flex-shrink:0;" onmouseover="this.style.background='rgba(255,255,255,0.18)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">
+                            <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M1 1l12 12M13 1L1 13"/></svg>
+                        </button>
                     </div>
 
                     <!-- Listing image -->
@@ -11875,61 +11886,6 @@
         function hideMsg(...ids){ ids.forEach(id=>{ const el=$(id); if(el){el.style.display='none'; el.textContent='';} }); }
         function setBtn(id, text, disabled){ const b=$(id); b.textContent=text; b.disabled=disabled; }
 
-        //  Admin detection 
-        // Admin email is read from Firebase at /adminEmail — never hardcoded here.
-        // _adminEmail is populated once on auth via loadAdminEmail().
-        // The real security gate remains server-side; this only controls UI visibility.
-        let _adminEmail = null;
-
-        async function loadAdminEmail() {
-            try {
-                const snap = await get(ref(db, 'adminEmail'));
-                _adminEmail = snap.exists() ? snap.val().trim().toLowerCase() : null;
-            } catch(e) {
-                _adminEmail = null;
-            }
-        }
-
-        function isAdminUser(user) {
-            if (!user || !user.email || !_adminEmail) return false;
-            return user.email.trim().toLowerCase() === _adminEmail;
-        }
-
-        //  Load platform revenue from server (admin only) 
-        async function loadAdminRevenue() {
-            const walletEl = document.getElementById('walletPillAmount');
-            try {
-                const token = await auth.currentUser.getIdToken();
-                const resp = await fetch('/api/admin/revenue', {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
-                if (!resp.ok) throw new Error('HTTP ' + resp.status);
-                const d = await resp.json();
-
-                // Store globally for tooltip / future dashboard use
-                window._adminRevenue = d;
-
-                // Format the pill: show total topups + active sub revenue
-                if (walletEl) {
-                    walletEl.textContent = '$' + (d.totalRevenue || 0).toFixed(2);
-                    walletEl.title = [
-                        'Top-ups collected: $' + (d.totalTopups || 0).toFixed(2),
-                        'Active sub revenue: $' + (d.totalSubRevenue || 0).toFixed(2) + '/mo',
-                        'Held in wallets: $' + (d.totalHeld || 0).toFixed(2),
-                        'Paid out: $' + (d.totalWithdrawn || 0).toFixed(2),
-                        '',
-                        'Users: ' + (d.userCount || 0) + '  |  Listings: ' + (d.listingCount || 0),
-                        'Subscribers: ' + (d.subCount || 0) +
-                            ' (S:' + (d.breakdown && d.breakdown.starter || 0) +
-                            ' G:' + (d.breakdown && d.breakdown.growth  || 0) +
-                            ' P:' + (d.breakdown && d.breakdown.pro     || 0) + ')',
-                    ].join('\n');
-                }
-            } catch (e) {
-                console.warn('[adminRevenue]', e);
-                if (walletEl) { walletEl.textContent = 'Error'; walletEl.title = e.message; }
-            }
-        }
 
         //  Scroll lock helpers — prevent background page scroll when any modal is open 
         // Uses the position:fixed technique so iOS Safari can't bleed scroll through.
@@ -12405,7 +12361,6 @@
             if (typeof window._checkBanGate === 'function') window._checkBanGate(data, user.uid);
 
             const plan = data.plan || 'Free';
-            const admin = isAdminUser(user);
             // 1. Update global cache
             window._fbUserData = {
                 uid:         user.uid,
@@ -12414,23 +12369,15 @@
                 email:       user.email || data.email || '',
                 balance:     parseFloat(data.balance || 0),
                 paypalSubId: data.paypalSubId || null,
-                isAdmin:     admin
             };
-            // 2. Wallet pill — admin sees platform revenue, users see their own balance
+            // 2. Wallet pill
             const walletEl = document.getElementById('walletPillAmount');
             const labelEl  = document.querySelector('#walletPill .credit-label');
             if (walletEl) {
                 walletEl.classList.remove('skel');
-                if (admin) {
-                    walletEl.textContent = '...';
-                    walletEl.title = 'Loading platform revenue…';
-                    if (labelEl) labelEl.textContent = 'Revenue';
-                    loadAdminRevenue();
-                } else {
-                    walletEl.textContent = fmtBal(parseFloat(data.balance||0));
-                    walletEl.title = '';
-                    if (labelEl) labelEl.textContent = 'Balance';
-                }
+                walletEl.textContent = fmtBal(parseFloat(data.balance||0));
+                walletEl.title = '';
+                if (labelEl) labelEl.textContent = 'Balance';
             }
             // 3. Update announcement bar
             updateAnnouncementBar(data, user);
@@ -12456,8 +12403,6 @@
         onAuthStateChanged(auth, async user => {
             window._fbAuth = auth;
             updateAvatar(user);
-            // Load admin email from Firebase before any isAdminUser() call
-            await loadAdminEmail();
             // Tear down previous realtime listener
             if (_userDataUnsubscribe) { _userDataUnsubscribe(); _userDataUnsubscribe = null; }
 
@@ -12550,7 +12495,6 @@
                 if (walletEl) { walletEl.classList.remove('skel'); walletEl.textContent = '$0.00'; walletEl.title = ''; }
                 const labelEl = document.querySelector('#walletPill .credit-label');
                 if (labelEl) labelEl.textContent = 'Balance';
-                window._adminRevenue = null;
                 updateAnnouncementBar(null, null);
                 const cancelBtn = document.getElementById('billingCancelBtn');
                 if (cancelBtn) cancelBtn.style.display = 'none';
@@ -16566,7 +16510,7 @@
             btn.disabled=true; btn.textContent='Looking up...'; errEl.textContent='';
             try {
                 var idToken = await user.getIdToken(true);
-                var res = await fetch('/api/wallet',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+idToken},body:JSON.stringify({action:'transfer_lookup',recipientEmail:email})});
+                var res = await fetch('/api/transfer',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+idToken},body:JSON.stringify({action:'transfer_lookup',recipientEmail:email})});
                 var data = await res.json();
                 if(!res.ok||data.error){ errEl.textContent=data.error||'Account not found.'; return; }
                 _tfRecipient = {email:data.email,name:data.name||''};
@@ -16628,7 +16572,7 @@
             btn.disabled=true; btn.textContent='Sending...'; errEl.textContent='';
             try {
                 var idToken=await user.getIdToken(true);
-                var res=await fetch('/api/wallet',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+idToken},body:JSON.stringify({action:'transfer',recipientEmail:_tfRecipient.email,amount:_tfAmount})});
+                var res=await fetch('/api/transfer',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+idToken},body:JSON.stringify({action:'transfer',recipientEmail:_tfRecipient.email,amount:_tfAmount})});
                 var data;
                 try { data=await res.json(); } catch(jsonErr) {
                     // Server returned a non-JSON body (e.g. 500 HTML error page)
@@ -18208,16 +18152,65 @@
       <!-- ╚═════════════════╝ -->
       <div id="wdStep1" style="padding:20px 20px 28px;">
 
-        <!-- Balance hero -->
-        <div style="text-align:center;padding:20px 16px 16px;background:linear-gradient(160deg,rgba(52,211,153,0.07),rgba(56,189,248,0.04));border:1px solid rgba(52,211,153,0.14);border-radius:18px;margin-bottom:16px;position:relative;overflow:hidden;">
+        <!-- Balance hero — 3-column breakdown -->
+        <div style="background:linear-gradient(160deg,rgba(52,211,153,0.07),rgba(56,189,248,0.04));border:1px solid rgba(52,211,153,0.14);border-radius:18px;margin-bottom:16px;overflow:hidden;position:relative;">
           <div style="position:absolute;inset:0;background:url('https://i.pinimg.com/originals/b9/de/c6/b9dec6676e8fa03674971f635b90498d.gif') center/cover;opacity:.04;pointer-events:none;"></div>
-          <div style="position:relative;z-index:1;">
-            <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(52,211,153,0.6);margin-bottom:6px;">Available Balance</div>
+          <!-- Top: available balance (full width) -->
+          <div style="position:relative;z-index:1;text-align:center;padding:18px 16px 14px;border-bottom:1px solid rgba(255,255,255,0.06);">
+            <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(52,211,153,0.6);margin-bottom:6px;display:flex;align-items:center;justify-content:center;gap:5px;">
+              Available Balance
+              <!-- Info tooltip -->
+              <span style="position:relative;display:inline-flex;" class="wd-info-wrap">
+                <svg id="wdInfoAvailable" onclick="wdToggleInfo('available')" width="13" height="13" viewBox="0 0 16 16" fill="none" style="cursor:pointer;opacity:.55;transition:opacity .15s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.55'"><circle cx="8" cy="8" r="6.5" stroke="#34d399" stroke-width="1.3"/><path d="M8 7v4" stroke="#34d399" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="5.2" r=".7" fill="#34d399"/></svg>
+                <div id="wdTooltip-available" style="display:none;position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:rgba(14,18,24,0.98);border:1px solid rgba(52,211,153,0.25);border-radius:10px;padding:10px 12px;width:200px;font-size:10.5px;color:rgba(255,255,255,0.75);line-height:1.5;z-index:99;box-shadow:0 8px 30px rgba(0,0,0,0.6);font-weight:400;text-transform:none;letter-spacing:0;text-align:left;">
+                  <strong style="color:#34d399;display:block;margin-bottom:4px;">Available Balance</strong>
+                  Funds you can withdraw right now. Comes from completed sales where the buyer confirmed receipt and Siterifty released escrow.
+                  <div style="position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);width:8px;height:8px;background:rgba(14,18,24,0.98);border-right:1px solid rgba(52,211,153,0.25);border-bottom:1px solid rgba(52,211,153,0.25);transform:translateX(-50%) rotate(45deg);"></div>
+                </div>
+              </span>
+            </div>
             <div style="display:flex;align-items:center;justify-content:center;gap:7px;">
               <div style="width:6px;height:6px;border-radius:50%;background:#34d399;box-shadow:0 0 8px rgba(52,211,153,0.7);flex-shrink:0;"></div>
               <span id="wdGrossAmount" style="font-family:'Plus Jakarta Sans','Syne',sans-serif;font-size:28px;font-weight:800;letter-spacing:-.04em;background:linear-gradient(135deg,#34d399,#38bdf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">$0</span>
             </div>
-            <div style="font-size:10.5px;color:rgba(255,255,255,0.3);margin-top:4px;">Earned from site sales &amp; escrow payouts</div>
+            <div style="font-size:10.5px;color:rgba(255,255,255,0.3);margin-top:4px;">Only money you can withdraw</div>
+          </div>
+          <!-- Bottom: Pending + Rejected -->
+          <div style="position:relative;z-index:1;display:grid;grid-template-columns:1fr 1fr;">
+            <!-- Pending -->
+            <div style="padding:12px 14px;border-right:1px solid rgba(255,255,255,0.06);">
+              <div style="font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(251,191,36,0.65);margin-bottom:5px;display:flex;align-items:center;gap:4px;">
+                <span style="width:6px;height:6px;border-radius:50%;background:#fbbf24;display:inline-block;flex-shrink:0;"></span>
+                Pending
+                <span style="position:relative;display:inline-flex;" class="wd-info-wrap">
+                  <svg onclick="wdToggleInfo('pending')" width="12" height="12" viewBox="0 0 16 16" fill="none" style="cursor:pointer;opacity:.55;transition:opacity .15s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.55'"><circle cx="8" cy="8" r="6.5" stroke="#fbbf24" stroke-width="1.3"/><path d="M8 7v4" stroke="#fbbf24" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="5.2" r=".7" fill="#fbbf24"/></svg>
+                  <div id="wdTooltip-pending" style="display:none;position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:rgba(14,18,24,0.98);border:1px solid rgba(251,191,36,0.25);border-radius:10px;padding:10px 12px;width:200px;font-size:10.5px;color:rgba(255,255,255,0.75);line-height:1.5;z-index:99;box-shadow:0 8px 30px rgba(0,0,0,0.6);font-weight:400;text-transform:none;letter-spacing:0;text-align:left;">
+                    <strong style="color:#fbbf24;display:block;margin-bottom:4px;">Pending Funds</strong>
+                    Money on hold in escrow. The buyer has paid but the site transfer hasn't been confirmed yet. These funds unlock once the deal completes.
+                    <div style="position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);width:8px;height:8px;background:rgba(14,18,24,0.98);border-right:1px solid rgba(251,191,36,0.25);border-bottom:1px solid rgba(251,191,36,0.25);transform:translateX(-50%) rotate(45deg);"></div>
+                  </div>
+                </span>
+              </div>
+              <div id="wdPendingAmount" style="font-family:'Plus Jakarta Sans','Syne',sans-serif;font-size:17px;font-weight:800;letter-spacing:-.03em;color:#fbbf24;">$0</div>
+              <div style="font-size:9px;color:rgba(255,255,255,0.25);margin-top:2px;">On hold</div>
+            </div>
+            <!-- Rejected -->
+            <div style="padding:12px 14px;">
+              <div style="font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(248,113,113,0.65);margin-bottom:5px;display:flex;align-items:center;gap:4px;">
+                <span style="width:6px;height:6px;border-radius:50%;background:#f87171;display:inline-block;flex-shrink:0;"></span>
+                Rejected
+                <span style="position:relative;display:inline-flex;" class="wd-info-wrap">
+                  <svg onclick="wdToggleInfo('rejected')" width="12" height="12" viewBox="0 0 16 16" fill="none" style="cursor:pointer;opacity:.55;transition:opacity .15s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.55'"><circle cx="8" cy="8" r="6.5" stroke="#f87171" stroke-width="1.3"/><path d="M8 7v4" stroke="#f87171" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="5.2" r=".7" fill="#f87171"/></svg>
+                  <div id="wdTooltip-rejected" style="display:none;position:absolute;bottom:calc(100% + 8px);right:0;background:rgba(14,18,24,0.98);border:1px solid rgba(248,113,113,0.25);border-radius:10px;padding:10px 12px;width:200px;font-size:10.5px;color:rgba(255,255,255,0.75);line-height:1.5;z-index:99;box-shadow:0 8px 30px rgba(0,0,0,0.6);font-weight:400;text-transform:none;letter-spacing:0;text-align:left;">
+                    <strong style="color:#f87171;display:block;margin-bottom:4px;">Rejected Funds</strong>
+                    Funds Siterifty has seized due to a policy violation, dispute ruling, chargeback, or fraud. You no longer have access to withdraw these.
+                    <div style="position:absolute;bottom:-5px;right:16px;width:8px;height:8px;background:rgba(14,18,24,0.98);border-right:1px solid rgba(248,113,113,0.25);border-bottom:1px solid rgba(248,113,113,0.25);transform:rotate(45deg);"></div>
+                  </div>
+                </span>
+              </div>
+              <div id="wdRejectedAmount" style="font-family:'Plus Jakarta Sans','Syne',sans-serif;font-size:17px;font-weight:800;letter-spacing:-.03em;color:#f87171;">$0</div>
+              <div style="font-size:9px;color:rgba(255,255,255,0.25);margin-top:2px;">No access</div>
+            </div>
           </div>
         </div>
 
@@ -18672,6 +18665,27 @@ window.openWithdrawModal = function(){
     if(amtErr){ amtErr.textContent=''; amtErr.style.display='none'; }
     var grossEl = document.getElementById('wdGrossAmount');
     if(grossEl) grossEl.textContent = fmtShort(wdState.fullBalance);
+    // Load pending + rejected from server (GET /api/wallet)
+    (async function(){
+        try {
+            var user = window._fbAuth && window._fbAuth.currentUser;
+            if(!user) return;
+            var idToken = await user.getIdToken();
+            var res = await fetch('/api/wallet', {
+                method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + idToken }
+            });
+            var d = await res.json();
+            if(!d.success) return;
+            var grossEl = document.getElementById('wdGrossAmount');
+            var pendEl  = document.getElementById('wdPendingAmount');
+            var rejEl   = document.getElementById('wdRejectedAmount');
+            if(grossEl){ grossEl.textContent = fmtShort(d.balance); wdState.fullBalance = d.balance; }
+            if(pendEl)  pendEl.textContent  = '$' + Number(d.pendingBalance).toFixed(2);
+            if(rejEl)   rejEl.textContent   = '$' + Number(d.rejectedBalance).toFixed(2);
+            wdUpdatePlanTable(0);
+        } catch(e){ console.warn('[wallet] balance fetch failed', e); }
+    })();
     wdUpdatePlanTable(0);
     wdUpdateKycBanner(0);
     wdShowStep(1);
@@ -18685,7 +18699,29 @@ window.closeWithdrawModal = function(){
     if(overlay) overlay.classList.remove('open');
     if(window._unlockBodyScroll) window._unlockBodyScroll();
     wdStopTimers();
+    // Close any open tooltips
+    ['available','pending','rejected'].forEach(function(k){
+        var t = document.getElementById('wdTooltip-'+k); if(t) t.style.display='none';
+    });
 };
+
+// Info tooltip toggle — click ⓘ to open, click anywhere else to close
+window.wdToggleInfo = function(key){
+    var ids = ['available','pending','rejected'];
+    ids.forEach(function(k){
+        var el = document.getElementById('wdTooltip-'+k);
+        if(!el) return;
+        el.style.display = (k === key && el.style.display === 'none') ? 'block' : 'none';
+    });
+    // Stop propagation so the doc-level closer doesn't immediately hide it
+    event && event.stopPropagation && event.stopPropagation();
+};
+// Click outside any tooltip → close all
+document.addEventListener('click', function(){
+    ['available','pending','rejected'].forEach(function(k){
+        var t = document.getElementById('wdTooltip-'+k); if(t) t.style.display='none';
+    });
+});
 
 //  Step navigation 
 function wdShowStep(n){
@@ -18988,7 +19024,7 @@ window.wdConfirm = async function(){
 
         var idToken = await user.getIdToken(true);
 
-        var res = await fetch('/api/wallet', {
+        var res = await fetch('/api/transfer', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + idToken },
             body: JSON.stringify({
@@ -19598,563 +19634,7 @@ document.addEventListener('DOMContentLoaded', function(){
     </div>
 </div>
 
-<!--  ADMIN CONTROL PANEL (floating pill, admin only)  -->
-<div id="sysAdminPanel" style="
-    display:none; position:fixed; bottom:22px; right:18px;
-    z-index:99998; font-family:'DM Sans',sans-serif;
-">
-    <!-- collapsed pill -->
-    <button id="sysAdminPill" onclick="toggleAdminPanel()" style="
-        display:flex; align-items:center; gap:7px;
-        background:linear-gradient(135deg,#1a0a2e,#0d0d1f);
-        border:1px solid rgba(168,85,247,0.45);
-        border-radius:999px; padding:8px 16px 8px 12px;
-        color:#ede9ff; cursor:pointer;
-        box-shadow:0 4px 20px rgba(0,0,0,0.6), 0 0 0 1px rgba(168,85,247,0.2);
-        transition:box-shadow .2s, border-color .2s;
-        white-space:nowrap;
-    " onmouseover="this.style.borderColor='rgba(168,85,247,0.7)';this.style.boxShadow='0 4px 24px rgba(0,0,0,0.7),0 0 16px rgba(168,85,247,0.25)'"
-       onmouseout="this.style.borderColor='rgba(168,85,247,0.45)';this.style.boxShadow='0 4px 20px rgba(0,0,0,0.6),0 0 0 1px rgba(168,85,247,0.2)'">
-        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 1l1.3 2.6L11 4l-2 2 .5 3L7 7.8 4.5 9 5 6 3 4l2.7-.4Z" fill="#a855f7"/></svg>
-        <span style="font-family:'Syne',sans-serif;font-size:11px;font-weight:800;letter-spacing:.04em;color:#c084fc;">ADMIN</span>
-        <svg id="sysAdminChevron" width="10" height="10" viewBox="0 0 10 10" fill="none" style="transition:transform .2s;"><path d="M2 3.5l3 3 3-3" stroke="#a855f7" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </button>
-    <!-- expanded panel -->
-    <div id="sysAdminDrawer" style="
-        display:none; position:absolute; bottom:calc(100% + 10px); right:0;
-        width:290px;
-        background:linear-gradient(160deg,#130d22 0%,#0c0c1c 100%);
-        border:1px solid rgba(168,85,247,0.3);
-        border-radius:18px; padding:0; overflow:hidden;
-        box-shadow:0 24px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(168,85,247,0.12);
-        animation:sysDrawerPop .2s cubic-bezier(.34,1.4,.64,1) both;
-    ">
-        <!-- header -->
-        <div style="padding:14px 16px 10px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;">
-            <div>
-                <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:#ede9ff;letter-spacing:-.01em;">Platform Controls</div>
-                <div style="font-size:10px;color:#6b6890;margin-top:1px;">Changes apply to all users instantly</div>
-            </div>
-            <div style="font-size:9px;font-weight:700;letter-spacing:.05em;color:#a855f7;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.2);border-radius:6px;padding:2px 7px;">LIVE</div>
-        </div>
-        <div style="padding:12px 14px;display:flex;flex-direction:column;gap:8px;">
 
-            <!-- MAINTENANCE TOGGLE -->
-            <div style="background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 13px;">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-                    <div style="display:flex;align-items:center;gap:7px;">
-                        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="#a855f7" stroke-width="1.2"/><path d="M7 4.5v3l1.5 1" stroke="#a855f7" stroke-width="1.2" stroke-linecap="round"/></svg>
-                        <span style="font-size:12px;font-weight:600;color:#ede9ff;">Maintenance Mode</span>
-                    </div>
-                    <!-- toggle -->
-                    <label style="position:relative;display:inline-block;width:38px;height:22px;flex-shrink:0;cursor:pointer;">
-                        <input type="checkbox" id="adminToggleMaintenance" style="opacity:0;width:0;height:0;" onchange="adminToggleMaintenance(this.checked)">
-                        <span style="position:absolute;inset:0;background:rgba(255,255,255,0.1);border-radius:999px;transition:background .2s;" id="adminMaintenanceTrack"></span>
-                        <span style="position:absolute;height:16px;width:16px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:transform .2s;pointer-events:none;" id="adminMaintenanceThumb"></span>
-                    </label>
-                </div>
-                <input id="adminMaintenanceMsg" type="text" placeholder="Maintenance message for users…" value="We're making some improvements. We'll be back shortly." style="
-                    width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
-                    border-radius:8px;padding:7px 10px;font-size:11px;color:#ede9ff;
-                    font-family:'DM Sans',sans-serif;outline:none;transition:border-color .15s;
-                    -webkit-user-select:text;user-select:text;margin-bottom:5px;
-                " onfocus="this.style.borderColor='rgba(168,85,247,0.35)'" onblur="this.style.borderColor='rgba(255,255,255,0.08)'" oninput="syncMaintenanceMsg(this.value)">
-                <input id="adminMaintenanceEta" type="text" placeholder="ETA (e.g. Back in ~30 minutes)" style="
-                    width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
-                    border-radius:8px;padding:7px 10px;font-size:11px;color:#ede9ff;
-                    font-family:'DM Sans',sans-serif;outline:none;transition:border-color .15s;
-                    -webkit-user-select:text;user-select:text;
-                " onfocus="this.style.borderColor='rgba(168,85,247,0.35)'" onblur="this.style.borderColor='rgba(255,255,255,0.08)'" oninput="syncMaintenanceEta(this.value)">
-            </div>
-
-            <!-- BAN USER -->
-            <div style="background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 13px;">
-                <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;">
-                    <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="#f87171" stroke-width="1.2"/><path d="M4 4l6 6M10 4L4 10" stroke="#f87171" stroke-width="1.2" stroke-linecap="round"/></svg>
-                    <span style="font-size:12px;font-weight:600;color:#ede9ff;">Ban / Terminate User</span>
-                </div>
-                <input id="adminBanUid" type="email" placeholder="User email address" style="
-                    width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
-                    border-radius:8px;padding:7px 10px;font-size:11px;color:#ede9ff;
-                    font-family:'DM Sans',sans-serif;outline:none;transition:border-color .15s;
-                    -webkit-user-select:text;user-select:text;margin-bottom:5px;
-                " onfocus="this.style.borderColor='rgba(248,113,113,0.35)'" onblur="this.style.borderColor='rgba(255,255,255,0.08)'">
-                <input id="adminBanReason" type="text" placeholder="Reason (e.g. Spam / Fraud)" style="
-                    width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
-                    border-radius:8px;padding:7px 10px;font-size:11px;color:#ede9ff;
-                    font-family:'DM Sans',sans-serif;outline:none;transition:border-color .15s;
-                    -webkit-user-select:text;user-select:text;margin-bottom:8px;
-                " onfocus="this.style.borderColor='rgba(248,113,113,0.35)'" onblur="this.style.borderColor='rgba(255,255,255,0.08)'">
-                <div style="display:flex;gap:7px;">
-                    <button onclick="adminBanUser()" style="
-                        flex:1;padding:9px 10px;
-                        background:rgba(248,113,113,0.1);
-                        border:1.5px solid rgba(248,113,113,0.28);
-                        border-radius:980px;
-                        color:#fca5a5;
-                        font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;
-                        cursor:pointer;letter-spacing:-0.01em;
-                        transition:background .14s,border-color .14s,transform .1s;
-                        -webkit-tap-highlight-color:transparent;
-                    "
-                    onmouseover="this.style.background='rgba(248,113,113,0.2)';this.style.borderColor='rgba(248,113,113,0.45)'"
-                    onmouseout="this.style.background='rgba(248,113,113,0.1)';this.style.borderColor='rgba(248,113,113,0.28)'"
-                    onmousedown="this.style.transform='scale(0.95)'" onmouseup="this.style.transform='scale(1)'">Ban</button>
-                    <button onclick="adminUnbanUser()" style="
-                        flex:1;padding:9px 10px;
-                        background:rgba(52,211,153,0.08);
-                        border:1.5px solid rgba(52,211,153,0.25);
-                        border-radius:980px;
-                        color:#6ee7b7;
-                        font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;
-                        cursor:pointer;letter-spacing:-0.01em;
-                        transition:background .14s,border-color .14s,transform .1s;
-                        -webkit-tap-highlight-color:transparent;
-                    "
-                    onmouseover="this.style.background='rgba(52,211,153,0.16)';this.style.borderColor='rgba(52,211,153,0.4)'"
-                    onmouseout="this.style.background='rgba(52,211,153,0.08)';this.style.borderColor='rgba(52,211,153,0.25)'"
-                    onmousedown="this.style.transform='scale(0.95)'" onmouseup="this.style.transform='scale(1)'">Unban</button>
-                </div>
-                <div id="adminBanStatus" style="font-size:10px;color:#6b6890;margin-top:6px;min-height:14px;"></div>
-            </div>
-
-            <!-- GRANT CREDIT -->
-            <div style="background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 13px;">
-                <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;">
-                    <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="#34d399" stroke-width="1.2"/><path d="M7 4v6M4 7h6" stroke="#34d399" stroke-width="1.2" stroke-linecap="round"/></svg>
-                    <span style="font-size:12px;font-weight:600;color:#ede9ff;">Grant Wallet Credit</span>
-                </div>
-                <input id="adminGrantEmail" type="email" placeholder="User email address" style="
-                    width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
-                    border-radius:8px;padding:7px 10px;font-size:11px;color:#ede9ff;
-                    font-family:'DM Sans',sans-serif;outline:none;transition:border-color .15s;
-                    -webkit-user-select:text;user-select:text;margin-bottom:5px;box-sizing:border-box;
-                " onfocus="this.style.borderColor='rgba(52,211,153,0.35)'" onblur="this.style.borderColor='rgba(255,255,255,0.08)'">
-                <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
-                    <span style="font-size:11px;color:#6b6890;flex-shrink:0;">$</span>
-                    <input id="adminGrantAmount" type="number" min="0.01" max="1" step="0.01" value="1" style="
-                        flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
-                        border-radius:8px;padding:7px 10px;font-size:11px;color:#ede9ff;
-                        font-family:'DM Sans',sans-serif;outline:none;transition:border-color .15s;
-                        -webkit-user-select:text;user-select:text;
-                    " onfocus="this.style.borderColor='rgba(52,211,153,0.35)'" onblur="this.style.borderColor='rgba(255,255,255,0.08)'">
-                    <span style="font-size:10px;color:#4a4868;flex-shrink:0;">max $1</span>
-                </div>
-                <button onclick="adminGrantCredit()" style="
-                    width:100%;padding:9px 10px;
-                    background:rgba(52,211,153,0.1);
-                    border:1.5px solid rgba(52,211,153,0.28);
-                    border-radius:980px;
-                    color:#6ee7b7;
-                    font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;
-                    cursor:pointer;letter-spacing:-0.01em;
-                    transition:background .14s,border-color .14s,transform .1s;
-                    -webkit-tap-highlight-color:transparent;
-                "
-                onmouseover="this.style.background='rgba(52,211,153,0.2)';this.style.borderColor='rgba(52,211,153,0.45)'"
-                onmouseout="this.style.background='rgba(52,211,153,0.1)';this.style.borderColor='rgba(52,211,153,0.28)'"
-                onmousedown="this.style.transform='scale(0.95)'" onmouseup="this.style.transform='scale(1)'">Grant Credit</button>
-                <div id="adminGrantStatus" style="font-size:10px;color:#6b6890;margin-top:6px;min-height:14px;"></div>
-            </div>
-
-            <!-- APPEALS INBOX -->
-            <div style="background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 13px;">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-                    <div style="display:flex;align-items:center;gap:7px;">
-                        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="2" y="3" width="10" height="8" rx="1.5" stroke="#f5c842" stroke-width="1.2"/><path d="M2 5.5l5 3 5-3" stroke="#f5c842" stroke-width="1.2" stroke-linecap="round"/></svg>
-                        <span style="font-size:12px;font-weight:600;color:#ede9ff;">Pending Appeals</span>
-                    </div>
-                    <span id="adminAppealCount" style="font-size:9px;font-weight:700;background:rgba(245,200,66,0.12);border:1px solid rgba(245,200,66,0.25);border-radius:999px;padding:1px 7px;color:#fde68a;">0</span>
-                </div>
-                <div id="adminAppealsList" style="max-height:130px;overflow-y:auto;display:flex;flex-direction:column;gap:5px;">
-                    <div style="font-size:11px;color:#4a4868;text-align:center;padding:10px 0;">No pending appeals</div>
-                </div>
-            </div>
-
-            <!-- PLATFORM STATS SHORTCUT -->
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
-                <div id="adminStatUsers" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:10px;text-align:center;">
-                    <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:#ede9ff;">—</div>
-                    <div style="font-size:9px;color:#6b6890;margin-top:2px;">Users</div>
-                </div>
-                <div id="adminStatListings" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:10px;text-align:center;">
-                    <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:#ede9ff;">—</div>
-                    <div style="font-size:9px;color:#6b6890;margin-top:2px;">Listings</div>
-                </div>
-            </div>
-
-        </div>
-    </div>
-</div>
-
-<style>
-@keyframes sysGlowPulse { 0%,100%{opacity:.6} 50%{opacity:1} }
-@keyframes sysSpin { to{transform:rotate(360deg)} }
-@keyframes sysDrawerPop { from{opacity:0;transform:scale(.94) translateY(8px)} to{opacity:1;transform:none} }
-@keyframes sysFadeIn { from{opacity:0} to{opacity:1} }
-</style>
-
-<script>
-(function() {
-'use strict';
-
-// Admin email is read from Firebase at /adminEmail — never hardcoded.
-// Loaded once when the admin panel auth fires via _loadAdminEmail().
-let _adminEmailSys = null;
-
-async function _loadAdminEmail() {
-    try {
-        const fns = window._fbDbFns;
-        const database = window._fbDb || window._db;
-        if (!fns || !database) return;
-        const snap = await fns.get(fns.ref(database, 'adminEmail'));
-        _adminEmailSys = snap.exists() ? snap.val().trim().toLowerCase() : null;
-    } catch(e) {
-        _adminEmailSys = null;
-    }
-}
-
-function _isAdmin(user) {
-    if (!user || !user.email || !_adminEmailSys) return false;
-    return user.email.trim().toLowerCase() === _adminEmailSys;
-}
-function _auth(){ return window._fbAuth || window._auth; }
-function _fns() { return window._fbDbFns; }
-function _db()  { return window._fbDb  || window._db; }
-function _ref(path)       { const f=_fns(); return f && f.ref(_db(), path); }
-function _onVal(path, cb) { const f=_fns(); if(f && f.onValue) f.onValue(_ref(path), cb); }
-
-// All admin actions go through the server API — bypasses Firebase DB security rules
-async function adminAPI(method, route, body) {
-    const user = _auth() && _auth().currentUser;
-    if (!user) throw new Error('Not signed in');
-    const token = await user.getIdToken();
-    const opts = { method, headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' } };
-    if (body) opts.body = JSON.stringify(body);
-    const resp = await fetch('/api/' + route, opts);
-    const data = await resp.json();
-    if (!resp.ok) throw new Error(data.error || 'HTTP ' + resp.status);
-    return data;
-}
-
-let _maintenanceActive = false;
-let _currentUserBanned = false;
-let _panelOpen = false;
-
-// 
-// MAINTENANCE
-// 
-function showMaintenance(msg, eta) {
-    const user = _auth() && _auth().currentUser;
-    if (_isAdmin(user)) return;
-    document.getElementById('sysMaintenanceMsg').textContent = msg || "We're making some improvements. We'll be back shortly.";
-    document.getElementById('sysMaintenanceEta').textContent = eta ? 'Estimated time: ' + eta : 'Estimated time: check back soon';
-    document.getElementById('sysMaintenanceOverlay').style.display = 'flex';
-}
-function hideMaintenance() {
-    document.getElementById('sysMaintenanceOverlay').style.display = 'none';
-}
-window.closeMaintenance = function() { hideMaintenance(); };
-
-function syncMaintenanceUi(data) {
-    const toggleEl = document.getElementById('adminToggleMaintenance');
-    const trackEl  = document.getElementById('adminMaintenanceTrack');
-    const thumbEl  = document.getElementById('adminMaintenanceThumb');
-    const msgEl    = document.getElementById('adminMaintenanceMsg');
-    const etaEl    = document.getElementById('adminMaintenanceEta');
-    if (!data) data = {};
-    const on = !!data.active;
-    if (toggleEl) toggleEl.checked = on;
-    if (trackEl)  trackEl.style.background = on ? '#a855f7' : 'rgba(255,255,255,0.1)';
-    if (thumbEl)  thumbEl.style.transform  = on ? 'translateX(16px)' : 'translateX(0)';
-    if (msgEl && data.message) msgEl.value = data.message;
-    if (etaEl && data.eta)     etaEl.value = data.eta;
-}
-
-// Toggle via API — server writes to Firebase with service account (no rules block)
-window.adminToggleMaintenance = async function(on) {
-    const trackEl = document.getElementById('adminMaintenanceTrack');
-    const thumbEl = document.getElementById('adminMaintenanceThumb');
-    if (trackEl) trackEl.style.background = on ? '#a855f7' : 'rgba(255,255,255,0.1)';
-    if (thumbEl) thumbEl.style.transform  = on ? 'translateX(16px)' : 'translateX(0)';
-    const msg = (document.getElementById('adminMaintenanceMsg') || {}).value || '';
-    const eta = (document.getElementById('adminMaintenanceEta') || {}).value || '';
-    try {
-        await adminAPI('POST', 'admin/maintenance', { active: on, message: msg, eta: eta });
-    } catch(e) {
-        console.warn('[maintenance toggle]', e);
-        // Revert toggle on failure
-        if (trackEl) trackEl.style.background = !on ? '#a855f7' : 'rgba(255,255,255,0.1)';
-        if (thumbEl) thumbEl.style.transform  = !on ? 'translateX(16px)' : 'translateX(0)';
-        const toggleEl = document.getElementById('adminToggleMaintenance');
-        if (toggleEl) toggleEl.checked = !on;
-    }
-};
-window.syncMaintenanceMsg = async function(v) {
-    const on = (document.getElementById('adminToggleMaintenance') || {}).checked || false;
-    const eta = (document.getElementById('adminMaintenanceEta') || {}).value || '';
-    try { await adminAPI('POST', 'admin/maintenance', { active: on, message: v, eta: eta }); } catch(e) {}
-};
-window.syncMaintenanceEta = async function(v) {
-    const on = (document.getElementById('adminToggleMaintenance') || {}).checked || false;
-    const msg = (document.getElementById('adminMaintenanceMsg') || {}).value || '';
-    try { await adminAPI('POST', 'admin/maintenance', { active: on, message: msg, eta: v }); } catch(e) {}
-};
-
-// 
-// BAN / UNBAN — via API
-// 
-function showBanned(reason) {
-    const user = _auth() && _auth().currentUser;
-    if (_isAdmin(user)) return;
-    const reaEl    = document.getElementById('sysBannedReason');
-    const reaWrap  = document.getElementById('sysBannedReasonWrap');
-    if (reason) {
-        if (reaEl)   reaEl.textContent   = reason;
-        if (reaWrap) reaWrap.style.display = 'block';
-    }
-    document.getElementById('sysBannedOverlay').style.display = 'flex';
-    document.querySelectorAll('header, #walletPill, #headerUserChip, #avatarBtn').forEach(el => {
-        el.style.pointerEvents = 'none';
-    });
-}
-function hideBanned() {
-    document.getElementById('sysBannedOverlay').style.display = 'none';
-    document.querySelectorAll('header, #walletPill, #headerUserChip, #avatarBtn').forEach(el => {
-        el.style.pointerEvents = '';
-    });
-}
-
-window.adminBanUser = async function() {
-    const statusEl = document.getElementById('adminBanStatus');
-    const email  = (document.getElementById('adminBanUid') || {}).value.trim();
-    const reason = (document.getElementById('adminBanReason') || {}).value.trim() || 'Terms of Service violation';
-    if (!email) { if(statusEl) { statusEl.style.color='#f87171'; statusEl.textContent = 'Enter an email'; } return; }
-    try {
-        if(statusEl) { statusEl.style.color='#6b6890'; statusEl.textContent = 'Banning\u2026'; }
-        await adminAPI('POST', 'admin/ban', { email, reason });
-        if(statusEl) { statusEl.style.color='#6ee7b7'; statusEl.textContent = 'User banned \u2713'; }
-        setTimeout(() => { if(statusEl) { statusEl.style.color='#6b6890'; statusEl.textContent=''; } }, 3000);
-    } catch(e) {
-        if(statusEl) { statusEl.style.color='#f87171'; statusEl.textContent = e.message; }
-    }
-};
-
-window.adminUnbanUser = async function() {
-    const statusEl = document.getElementById('adminBanStatus');
-    const email = (document.getElementById('adminBanUid') || {}).value.trim();
-    if (!email) { if(statusEl) { statusEl.style.color='#f87171'; statusEl.textContent = 'Enter an email'; } return; }
-    try {
-        if(statusEl) { statusEl.style.color='#6b6890'; statusEl.textContent = 'Unbanning\u2026'; }
-        await adminAPI('POST', 'admin/unban', { email });
-        if(statusEl) { statusEl.style.color='#6ee7b7'; statusEl.textContent = 'User unbanned \u2713'; }
-        setTimeout(() => { if(statusEl) { statusEl.style.color='#6b6890'; statusEl.textContent=''; } }, 3000);
-    } catch(e) {
-        if(statusEl) { statusEl.style.color='#f87171'; statusEl.textContent = e.message; }
-    }
-};
-
-// 
-// GRANT CREDIT
-// 
-window.adminGrantCredit = async function() {
-    const statusEl = document.getElementById('adminGrantStatus');
-    const email  = (document.getElementById('adminGrantEmail') || {}).value.trim();
-    const amount = parseFloat((document.getElementById('adminGrantAmount') || {}).value || 1);
-    if (!email) { if(statusEl) { statusEl.style.color='#f87171'; statusEl.textContent = 'Enter an email'; } return; }
-    if (isNaN(amount) || amount <= 0 || amount > 1) { if(statusEl) { statusEl.style.color='#f87171'; statusEl.textContent = 'Amount must be $0.01 – $1.00'; } return; }
-    try {
-        if(statusEl) { statusEl.style.color='#6b6890'; statusEl.textContent = 'Granting…'; }
-        const data = await adminAPI('POST', 'admin/grant-credit', { email, amount });
-        if(statusEl) { statusEl.style.color='#6ee7b7'; statusEl.textContent = '$' + amount.toFixed(2) + ' granted (new balance: $' + data.newBalance.toFixed(2) + ')'; }
-        setTimeout(() => { if(statusEl) { statusEl.style.color='#6b6890'; statusEl.textContent=''; } }, 4000);
-    } catch(e) {
-        if(statusEl) { statusEl.style.color='#f87171'; statusEl.textContent = e.message; }
-    }
-};
-
-// 
-// APPEALS — loaded via API
-// 
-window.submitBanAppeal = async function() {
-    const btn      = document.getElementById('sysBannedAppealBtn');
-    const statusEl = document.getElementById('sysBannedAppealStatus');
-    const text     = (document.getElementById('sysBannedAppealText') || {}).value.trim();
-    if (!text || text.length < 10) {
-        if(statusEl) { statusEl.style.color='#f87171'; statusEl.textContent = 'Please write at least a sentence.'; }
-        return;
-    }
-    if(btn) { btn.disabled=true; btn.textContent='Submitting\u2026'; }
-    if(statusEl) { statusEl.style.color='#6b6890'; statusEl.textContent=''; }
-    try {
-        const user = _auth() && _auth().currentUser;
-        const fns  = _fns();
-        if (!fns || !fns.push) throw new Error('Firebase not ready');
-        await fns.push(_ref('/appeals'), {
-            uid:     user ? user.uid   : 'unknown',
-            email:   user ? user.email : 'unknown',
-            message: text,
-            ts:      Date.now(),
-            status:  'pending'
-        });
-        if(btn)     { btn.textContent='Appeal Submitted'; btn.style.background='rgba(52,211,153,0.15)'; btn.style.border='1px solid rgba(52,211,153,0.3)'; }
-        if(statusEl){ statusEl.style.color='#6ee7b7'; statusEl.textContent='Received \u2014 we\'ll respond within 1\u20133 days.'; }
-    } catch(e) {
-        if(btn) { btn.disabled=false; btn.textContent='Submit Appeal'; }
-        if(statusEl) { statusEl.style.color='#f87171'; statusEl.textContent='Failed to submit. Try again.'; }
-    }
-};
-
-async function loadAdminAppeals() {
-    const listEl  = document.getElementById('adminAppealsList');
-    const countEl = document.getElementById('adminAppealCount');
-    if (!listEl) return;
-    listEl.innerHTML = '<div style="font-size:11px;color:#6b6890;text-align:center;padding:10px 0;">Loading\u2026</div>';
-    try {
-        const data = await adminAPI('GET', 'admin/appeals');
-        const appeals = data.appeals || [];
-        if (countEl) countEl.textContent = appeals.length;
-        if (!appeals.length) {
-            listEl.innerHTML = '<div style="font-size:11px;color:#4a4868;text-align:center;padding:10px 0;">No pending appeals</div>';
-            return;
-        }
-        listEl.innerHTML = appeals.map(a => `
-            <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:8px 9px;">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-                    <span style="font-size:10px;font-weight:600;color:#ede9ff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px;">${_escHtml(a.email||a.uid||'unknown')}</span>
-                    <div style="display:flex;gap:4px;flex-shrink:0;">
-                        <button onclick="adminResolveAppeal('${a.key}','approve')" style="font-size:9px;padding:2px 7px;border-radius:5px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.25);color:#6ee7b7;cursor:pointer;font-weight:700;" onmouseover="this.style.background='rgba(52,211,153,0.2)'" onmouseout="this.style.background='rgba(52,211,153,0.1)'">Unban</button>
-                        <button onclick="adminResolveAppeal('${a.key}','deny')" style="font-size:9px;padding:2px 7px;border-radius:5px;background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.2);color:#fca5a5;cursor:pointer;font-weight:700;" onmouseover="this.style.background='rgba(248,113,113,0.18)'" onmouseout="this.style.background='rgba(248,113,113,0.08)'">Deny</button>
-                    </div>
-                </div>
-                <div style="font-size:10px;color:#6b6890;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${_escHtml((a.message||'').slice(0,80))}</div>
-            </div>
-        `).join('');
-    } catch(e) {
-        listEl.innerHTML = '<div style="font-size:11px;color:#f87171;text-align:center;padding:10px 0;">' + _escHtml(e.message) + '</div>';
-    }
-}
-
-window.adminResolveAppeal = async function(key, action) {
-    try {
-        await adminAPI('POST', 'admin/appeals/resolve', { key, action });
-        loadAdminAppeals();
-    } catch(e) { console.warn('[adminResolveAppeal]', e); }
-};
-
-// 
-// ADMIN PANEL TOGGLE
-// 
-window.toggleAdminPanel = function() {
-    _panelOpen = !_panelOpen;
-    const drawer  = document.getElementById('sysAdminDrawer');
-    const chevron = document.getElementById('sysAdminChevron');
-    if (drawer)  drawer.style.display  = _panelOpen ? 'block' : 'none';
-    if (chevron) chevron.style.transform = _panelOpen ? 'rotate(180deg)' : '';
-    if (_panelOpen) loadAdminAppeals();
-};
-
-// 
-// ADMIN AUTO-PRO + STAT SYNC
-// 
-function grantAdminPro() {
-    const user = _auth() && _auth().currentUser;
-    if (!_isAdmin(user)) return;
-    if (window._fbUserData) {
-        window._fbUserData.plan    = 'Pro';
-        window._fbUserData.isAdmin = true;
-    }
-}
-
-// 
-// REALTIME LISTENERS — maintenance + ban status (read-only, rules allow)
-// 
-function startSysListeners(user) {
-    _onVal('/meta/maintenance', function(snap) {
-        const data = snap && snap.exists() ? snap.val() : {};
-        _maintenanceActive = !!data.active;
-        if (_isAdmin(_auth() && _auth().currentUser)) {
-            syncMaintenanceUi(data);
-            return;
-        }
-        if (_maintenanceActive) {
-            showMaintenance(data.message, data.eta);
-        } else {
-            hideMaintenance();
-        }
-    });
-
-    if (user) {
-        _onVal('/users/' + user.uid + '/banned', function(snap) {
-            const data = snap && snap.exists() ? snap.val() : {};
-            if (_isAdmin(user)) return;
-            if (data && data.active) {
-                _currentUserBanned = true;
-                showBanned(data.reason || '');
-            } else {
-                _currentUserBanned = false;
-                hideBanned();
-            }
-        });
-    }
-}
-
-// 
-// WIRE INTO AUTH STATE
-// 
-function loadAdminStats() {
-    if (!window._adminRevenue) return;
-    const d = window._adminRevenue;
-    const uEl = document.querySelector('#adminStatUsers div:first-child');
-    const lEl = document.querySelector('#adminStatListings div:first-child');
-    if (uEl) uEl.textContent = d.userCount   || '—';
-    if (lEl) lEl.textContent = d.listingCount || '—';
-}
-
-async function onAuthReady(user) {
-    // Load admin email from Firebase before any _isAdmin() check
-    await _loadAdminEmail();
-    if (_isAdmin(user)) {
-        document.getElementById('sysAdminPanel').style.display = 'block';
-        const closeBtn = document.getElementById('sysMaintenanceCloseBtn');
-        if (closeBtn) closeBtn.style.display = 'inline-flex';
-        grantAdminPro();
-        setTimeout(loadAdminStats, 2000);
-    } else {
-        document.getElementById('sysAdminPanel').style.display = 'none';
-    }
-    startSysListeners(user);
-}
-
-function _escHtml(s) {
-    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-let _authWaitMs = 0;
-function waitForAuth() {
-    const auth = _auth();
-    if (auth && auth.onAuthStateChanged) {
-        auth.onAuthStateChanged(function(user) {
-            onAuthReady(user || null);
-        });
-        startSysListeners(null);
-    } else if (_authWaitMs < 8000) {
-        _authWaitMs += 120;
-        setTimeout(waitForAuth, 120);
-    }
-}
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', waitForAuth);
-} else {
-    waitForAuth();
-}
-
-})();
-
-
-
-
-        </script>
 
     <script>
         //  Messages modal open/close 
@@ -20170,14 +19650,6 @@ if (document.readyState === 'loading') {
             if (h < 24) return h + 'h ago';
             var d = Math.floor(h / 24);
             return d + 'd ago';
-        }
-
-        function _isAdminUid(uid) {
-            // Admin is identified by matching the adminEmail stored in Firebase
-            // We compare against window._fbUserData.isAdmin flag set during auth
-            if (!uid) return false;
-            // Check against the currently logged-in admin uid if available
-            return window._adminUidCache && window._adminUidCache === uid;
         }
 
         function _renderInboxThreads(messages, myUid) {
@@ -20222,24 +19694,12 @@ if (document.readyState === 'loading') {
             }
             if (empty) empty.style.display = 'none';
 
-            // Cache admin uid from logged in user data
-            if (window._fbUserData && window._fbUserData.isAdmin && window._fbAuth && window._fbAuth.currentUser) {
-                window._adminUidCache = window._fbAuth.currentUser.uid;
-            }
-
             sorted.forEach(function(t) {
                 var initials = (t.partnerName||'?').slice(0,2).toUpperCase();
-                var isAdmin  = _isAdminUid(t.partnerUid);
                 var preview  = t.message.length > 60 ? t.message.slice(0,60)+'…' : t.message;
                 var timeStr  = _imsgTimeAgo(t.sentAt);
                 var unreadBadge = (t.unread && !t.read) ? '<div class="imsg-thread-unread">' + (t.unread||1) + '</div>' : '';
 
-                var adminBadges = isAdmin
-                    ? '<span style="display:inline-flex;align-items:center;gap:3px;margin-left:4px;">'
-                    + '<svg width="11" height="11" viewBox="0 0 16 16" fill="none" title="Verified"><path d="M6.5 11.5l-3-3 1.06-1.06L6.5 9.38l5.44-5.44L13 5l-6.5 6.5z" fill="#2dd4a0"/><circle cx="8" cy="8" r="7" stroke="#2dd4a0" stroke-width="1.5"/></svg>'
-                    + '<span style="font-size:9px;font-weight:700;letter-spacing:.06em;color:#c084fc;background:rgba(192,132,252,0.12);border:1px solid rgba(192,132,252,0.3);border-radius:999px;padding:1px 5px;">ADMIN</span>'
-                    + '</span>'
-                    : '';
 
                 var row = document.createElement('div');
                 row.className = 'imsg-thread-row';
@@ -20250,7 +19710,7 @@ if (document.readyState === 'loading') {
                     + '</div>'
                     + '<div class="imsg-thread-body">'
                     + '<div class="imsg-thread-top">'
-                    + '<h4 class="imsg-thread-name" style="display:flex;align-items:center;gap:2px;">@' + (t.partnerName||'User') + adminBadges + '</h4>'
+                    + '<h4 class="imsg-thread-name" style="display:flex;align-items:center;gap:2px;">@' + (t.partnerName||'User') + '</h4>'
                     + '<span class="imsg-thread-time">' + timeStr + '</span>'
                     + '</div>'
                     + '<p class="imsg-thread-preview">' + (t.listingTitle ? '[' + t.listingTitle + '] ' : '') + preview + '</p>'
@@ -20454,13 +19914,6 @@ if (document.readyState === 'loading') {
             var nameEl = document.getElementById('chatTargetName');
             if (nameEl) {
                 nameEl.textContent = '@' + (name || 'User');
-                if (_isAdminUid(uid)) {
-                    nameEl.insertAdjacentHTML('afterend',
-                        '<span style="display:inline-flex;align-items:center;gap:3px;margin-left:5px;">'
-                        + '<svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M6.5 11.5l-3-3 1.06-1.06L6.5 9.38l5.44-5.44L13 5l-6.5 6.5z" fill="#2dd4a0"/><circle cx="8" cy="8" r="7" stroke="#2dd4a0" stroke-width="1.5"/></svg>'
-                        + '<span style="font-size:9px;font-weight:700;letter-spacing:.06em;color:#c084fc;background:rgba(192,132,252,0.12);border:1px solid rgba(192,132,252,0.3);border-radius:999px;padding:1px 5px;">ADMIN</span>'
-                        + '</span>');
-                }
             }
 
             var avatarEl = document.getElementById('chatAvatar');
@@ -21252,29 +20705,102 @@ if (document.readyState === 'loading') {
             document.body.style.overflow = '';
         }
 
-        function executeWalletDeduction() {
-            closePaymentModal();
-
+        async function executeWalletDeduction() {
+            // ── Pre-flight: client-side balance check for instant UX feedback ──
             const currentBalance = parseFloat((window._fbUserData && window._fbUserData.balance) || 0);
-
             if (currentBalance < targetPendingPaymentPrice) {
-                showCustomAlert(`Insufficient wallet balance. This deal costs $${targetPendingPaymentPrice}, but your balance is $${currentBalance.toFixed(2)}. Top up your wallet to continue.`);
+                showCustomAlert(`Insufficient wallet balance. This deal costs $${Number(targetPendingPaymentPrice).toLocaleString()}, but your balance is $${currentBalance.toFixed(2)}. Top up your wallet to continue.`);
                 return;
             }
 
-            if (window._fbUserData) window._fbUserData.balance = currentBalance - targetPendingPaymentPrice;
+            // Disable Pay Now button while request is in flight
+            const _payBtn = document.querySelector('#paymentProcessingModal button[onclick*="executeWalletDeduction"]');
+            if (_payBtn) { _payBtn.disabled = true; _payBtn.textContent = 'Processing…'; }
+
+            try {
+                const _auth = window._fbAuth;
+                const _user = _auth && _auth.currentUser;
+                if (!_user) throw new Error('Not signed in.');
+                const _idToken = await _user.getIdToken();
+
+                // ── 1. Server-side deduction via /api/transfer ──
+                const _deal       = dealsRegistry[targetPendingDealId] || {};
+                const _sellerUid  = _currentChatUid; // the person the buyer is chatting with
+
+                const _res = await fetch('/api/transfer', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + _idToken
+                    },
+                    body: JSON.stringify({
+                        recipientUid: _sellerUid,
+                        amount:       Number(targetPendingPaymentPrice),
+                        dealId:       targetPendingDealId,
+                        _dealEscrow:  true   // flag so server writes pending instead of releasing
+                    })
+                });
+
+                const _json = await _res.json().catch(() => ({}));
+                if (!_res.ok) throw new Error(_json.error || 'Payment failed.');
+
+                // ── 2. Update local balance from server response ──
+                if (_json.newBalance !== undefined && window._fbUserData) {
+                    window._fbUserData.balance = _json.newBalance;
+                    const _balEl = document.getElementById('acStatBalance');
+                    if (_balEl) _balEl.textContent = '$' + Number(_json.newBalance).toFixed(2);
+                }
+
+                // ── 3. Write deal status = 'paid' in Firebase ──
+                try {
+                    const _db  = window._fbDb;
+                    const _fns = window._fbDbFns;
+                    const _uid = _user.uid;
+                    if (_db && _fns && _fns.ref && _fns.set) {
+                        // Mark deal as paid in messages
+                        const _dealPath = 'messages/' + [_uid, _sellerUid].sort().join('_') + '/deal_' + targetPendingDealId;
+                        await _fns.set(_fns.ref(_db, _dealPath + '/status'), 'paid').catch(() => {});
+
+                        // Write pending balance to seller (funds on hold until site transfer)
+                        const _sellerPendRef = _fns.ref(_db, 'users/' + _sellerUid + '/pendingBalance');
+                        const _pendSnap = await _fns.get(_sellerPendRef).catch(() => null);
+                        const _prevPend = (_pendSnap && _pendSnap.val && _pendSnap.val()) || 0;
+                        const _addAmt   = _json.recipientReceived || Number(targetPendingPaymentPrice);
+                        await _fns.set(_sellerPendRef, parseFloat((_prevPend + _addAmt).toFixed(2))).catch(() => {});
+
+                        // Record deal payment entry for audit trail
+                        await _fns.set(_fns.ref(_db, 'deals/' + targetPendingDealId), {
+                            buyerUid:   _uid,
+                            sellerUid:  _sellerUid,
+                            amount:     Number(targetPendingPaymentPrice),
+                            received:   _addAmt,
+                            status:     'paid',
+                            paidAt:     Date.now(),
+                            title:      _deal.title || '',
+                        }).catch(() => {});
+                    }
+                } catch(_fe) { console.warn('[pay] firebase write partial fail', _fe); }
+
+            } catch (_err) {
+                if (_payBtn) { _payBtn.disabled = false; _payBtn.textContent = 'Pay Now'; }
+                showCustomAlert(_err.message || 'Payment failed. Please try again.');
+                return;
+            }
+
+            closePaymentModal();
             dealsRegistry[targetPendingDealId].status = 'paid';
-            document.getElementById(`overlay_approved_${targetPendingDealId}`).querySelector('.imsg-deal-overlay-sub').textContent = 'Buyer paid $' + Number(targetPendingPaymentPrice).toLocaleString() + ' — awaiting site transfer';
-            appendSystemLogMessage(`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="vertical-align:-1px;margin-right:4px;color:#58f278;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-4-3a4 4 0 0 0 4 3c2.21 0 4-1.343 4-3s-1.79-3-4-3-4-1.343-4-3 1.79-3 4-3a4 4 0 0 1 4 3"/></svg>Transaction Success: Paid $${targetPendingPaymentPrice} from your wallet balance.`);
+            const _overlayEl = document.getElementById(`overlay_approved_${targetPendingDealId}`);
+            if (_overlayEl) _overlayEl.querySelector('.imsg-deal-overlay-sub').textContent = 'Buyer paid $' + Number(targetPendingPaymentPrice).toLocaleString() + ' — awaiting site transfer';
+            appendSystemLogMessage(`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="vertical-align:-1px;margin-right:4px;color:#58f278;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-4-3a4 4 0 0 0 4 3c2.21 0 4-1.343 4-3s-1.79-3-4-3-4-1.343-4-3 1.79-3 4-3a4 4 0 0 1 4 3"/></svg>Transaction Success: Paid $${Number(targetPendingPaymentPrice).toLocaleString()} from your wallet balance.`);
             if (_activeStickyDealId === targetPendingDealId) updateDealStickyBanner(targetPendingDealId);
             updateSystemCountersUI();
 
             // Notify seller (the chat partner) — push + email
-            const _deal     = dealsRegistry[targetPendingDealId] || {};
-            const _myName   = (window._fbUserData && window._fbUserData.username) || 'Buyer';
-            const _myEmail  = (window._fbAuth && window._fbAuth.currentUser && window._fbAuth.currentUser.email) || '';
-            const _paidAmt  = '$' + Number(targetPendingPaymentPrice).toLocaleString();
-            const _dealTitle = _deal.title || 'your listing';
+            const _notifDeal  = dealsRegistry[targetPendingDealId] || {};
+            const _myName     = (window._fbUserData && window._fbUserData.username) || 'Buyer';
+            const _myEmail    = (window._fbAuth && window._fbAuth.currentUser && window._fbAuth.currentUser.email) || '';
+            const _paidAmt    = '$' + Number(targetPendingPaymentPrice).toLocaleString();
+            const _dealTitle  = _notifDeal.title || 'your listing';
 
             // Fetch seller email from Firebase so we can email them
             (async function() {
@@ -21938,10 +21464,10 @@ if (document.readyState === 'loading') {
 
         try {
             const idToken = await user.getIdToken();
-            const res = await fetch('/api/transfer.js', {
+            const res = await fetch('/api/transfer', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + idToken },
-                body: JSON.stringify({ recipientUid: _donateTargetUid, amount: amt })
+                body: JSON.stringify({ action: 'donate', recipientUid: _donateTargetUid, amount: amt })
             });
             const data = await res.json().catch(() => ({}));
 
