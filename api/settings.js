@@ -1,12 +1,10 @@
 // Siterifty — /api/settings.js
-// Handles: push-subscribe, send-email, newsletter-subscribe, notify-event, delete_account
+// Handles: push-subscribe, push-notify, send-email, newsletter-subscribe, notify-event, delete_account
 // Deploy to: https://siterifty.com/api/settings.js
 //
 // Required env vars:
-//   VAPID_PUBLIC_KEY      — your VAPID public key
-//   VAPID_PRIVATE_KEY     — your VAPID private key
-//   VAPID_EMAIL           — mailto:you@siterifty.com
-//   RESEND_API_KEY        — from resend.com (for email sending)
+//   VAPID_PRIVATE_KEY     — VAPID private key (public key is hardcoded to match frontend)
+//   RESEND_API_KEY        — from resend.com (donate/payment emails only)
 //   FIREBASE_PROJECT_ID   — Firebase project ID
 //   FIREBASE_DATABASE_URL — Realtime Database URL
 //   FIREBASE_CLIENT_EMAIL — Firebase Admin service account email
@@ -29,14 +27,21 @@ function initFirebase() {
     });
 }
 
-const VAPID_PUBLIC_KEY  = process.env.VAPID_PUBLIC_KEY;
+const VAPID_PUBLIC_KEY  = 'BMTBoZaETNkmPu3gl42TbHyU9CH6tRTS9_TBGB2-oor3nSvt5WhJyk1PcmOiOLIt5z5xRterBfR2xlY2Ubyq1Do';
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
 const VAPID_EMAIL       = process.env.VAPID_EMAIL || 'mailto:admin@siterifty.com';
 const RESEND_API_KEY    = process.env.RESEND_API_KEY;
 
-if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+if (VAPID_PRIVATE_KEY) {
     webpush.setVapidDetails(VAPID_EMAIL, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 }
+
+// ─────────────────────────────────────────────
+// In-memory push subscription store.
+// Replace with Firebase Admin / your DB in production
+// so subscriptions survive server restarts.
+// ─────────────────────────────────────────────
+const _subscriptions = new Map(); // deviceId → subscription object
 
 export default async function handler(req, res) {
     // CORS — allow your domain only in production
@@ -73,21 +78,81 @@ export default async function handler(req, res) {
         if (!subscription || !subscription.endpoint) {
             return res.status(400).json({ error: 'Missing subscription' });
         }
-        const id    = deviceId || (metadata?.uid || 'anon') + '_' + Date.now();
-        const email = metadata?.email || null;
-        initFirebase();
-        try {
-            await getDatabase().ref(`pushSubscriptions/${id}`).set({
-                subscription,
-                email,
-                uid:     metadata?.uid || null,
-                savedAt: Date.now(),
-            });
-        } catch (e) {
-            console.warn('[settings] push-subscribe RTDB write failed', e);
+        const id = deviceId || (metadata?.uid || 'anon') + '_' + Date.now();
+        // Keep in-memory map as before
+        _subscriptions.set(id, { subscription, metadata: metadata || {}, savedAt: Date.now() });
+        // Also persist to Firebase so push-notify can look it up by uid even after server restart
+        const uid = metadata?.uid;
+        if (uid) {
+            try {
+                initFirebase();
+                const db = getDatabase();
+                await Promise.all([
+                    db.ref(`pushSubscriptions/${id}`).set({ subscription, uid, savedAt: Date.now() }),
+                    db.ref(`users/${uid}/pushSubscription`).set(subscription),
+                ]);
+            } catch (e) {
+                console.warn('[settings] push-subscribe firebase save failed:', e.message);
+            }
         }
-        console.log('[settings] push-subscribe:', id, email);
+        console.log('[settings] push-subscribe:', id, uid);
         return res.status(200).json({ ok: true, deviceId: id });
+    }
+
+    // ── 1b. Push notify — called by sender client on every send action ────
+    // Looks up recipient's push subscription from Firebase and fires real Web Push.
+    // Also writes to users/{recipientUid}/pendingPush as in-tab fallback.
+    if (action === 'push-notify') {
+        const authHeader = req.headers.authorization || '';
+        const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+        if (!idToken) return res.status(401).json({ error: 'Missing Authorization header' });
+
+        initFirebase();
+        try { await getAuth().verifyIdToken(idToken); }
+        catch { return res.status(401).json({ error: 'Invalid or expired session.' }); }
+
+        const { recipientUid, type, title, body: notifBody } = body;
+        if (!recipientUid) return res.status(400).json({ error: 'Missing recipientUid' });
+
+        const db = getDatabase();
+
+        // Write pendingPush entry — picked up instantly by recipient's open tab via onValue
+        await db.ref(`users/${recipientUid}/pendingPush`).push({
+            type:      type || 'message',
+            title:     title || 'Siterifty',
+            body:      notifBody || '',
+            timestamp: Date.now(),
+        }).catch(e => console.warn('[push-notify] pendingPush write failed:', e.message));
+
+        // Send real Web Push to recipient's stored subscription (works with tab closed / phone locked)
+        if (!VAPID_PRIVATE_KEY) {
+            return res.status(200).json({ ok: true, pushed: false, reason: 'VAPID_PRIVATE_KEY not set' });
+        }
+
+        const subSnap = await db.ref(`users/${recipientUid}/pushSubscription`).get().catch(() => null);
+        if (!subSnap || !subSnap.exists()) {
+            return res.status(200).json({ ok: true, pushed: false, reason: 'No subscription for user' });
+        }
+
+        const subscription = subSnap.val();
+        const payload = JSON.stringify({
+            title: title || 'Siterifty',
+            body:  notifBody || '',
+            icon:  'https://i.imgur.com/8EEl86u.jpeg',
+            type:  type || 'message',
+        });
+
+        try {
+            await webpush.sendNotification(subscription, payload);
+            return res.status(200).json({ ok: true, pushed: true });
+        } catch (e) {
+            // 410/404 = subscription expired — remove it so we don't keep trying
+            if (e.statusCode === 410 || e.statusCode === 404) {
+                await db.ref(`users/${recipientUid}/pushSubscription`).remove().catch(() => {});
+            }
+            console.warn('[push-notify] webpush failed:', e.statusCode, e.message);
+            return res.status(200).json({ ok: true, pushed: false, reason: e.message });
+        }
     }
 
     // ── 2. Send email (notif toggle confirmation) ─────────────────
@@ -173,29 +238,18 @@ export default async function handler(req, res) {
             icon:  'https://i.imgur.com/8EEl86u.jpeg',
             url:   url || 'https://siterifty.com'
         });
-        initFirebase();
-        const allSubsSnap = await getDatabase().ref('pushSubscriptions').get();
         let sent = 0, failed = 0;
-        if (allSubsSnap.exists()) {
-            const removes = [];
-            const sends   = [];
-            allSubsSnap.forEach(child => {
-                const { subscription } = child.val();
-                if (!subscription) return;
-                sends.push(
-                    webpush.sendNotification(subscription, payload)
-                        .then(() => { sent++; })
-                        .catch(e => {
-                            failed++;
-                            console.warn('[settings] broadcast failed for', child.key, e.statusCode);
-                            if (e.statusCode === 410 || e.statusCode === 404) {
-                                removes.push(getDatabase().ref(`pushSubscriptions/${child.key}`).remove().catch(() => {}));
-                            }
-                        })
-                );
-            });
-            await Promise.all(sends);
-            await Promise.all(removes);
+        for (const [id, { subscription }] of _subscriptions) {
+            try {
+                await webpush.sendNotification(subscription, payload);
+                sent++;
+            } catch (e) {
+                console.warn('[settings] broadcast failed for', id, e.statusCode);
+                if (e.statusCode === 410 || e.statusCode === 404) {
+                    _subscriptions.delete(id); // expired — clean up
+                }
+                failed++;
+            }
         }
         return res.status(200).json({ ok: true, sent, failed });
     }
@@ -320,35 +374,6 @@ export default async function handler(req, res) {
             ]);
         } else {
             console.warn('[transfer_account] RESEND_API_KEY not set — emails skipped');
-        }
-
-        // 6. Push notification to recipient if they have a stored subscription
-        if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
-            try {
-                const subsSnap = await db.ref('pushSubscriptions').orderByChild('email').equalTo(recipientEmail).get();
-                if (subsSnap.exists()) {
-                    const pushPayload = JSON.stringify({
-                        title: 'Siterifty — Account Received',
-                        body:  `@${safeUsername} has been transferred to you. Sign in with your email to access it.`,
-                        icon:  'https://i.imgur.com/8EEl86u.jpeg',
-                        url:   'https://siterifty.com'
-                    });
-                    const sends = [];
-                    subsSnap.forEach(child => {
-                        const sub = child.val().subscription;
-                        if (sub) sends.push(
-                            webpush.sendNotification(sub, pushPayload).catch(e => {
-                                if (e.statusCode === 410 || e.statusCode === 404) {
-                                    db.ref(`pushSubscriptions/${child.key}`).remove().catch(() => {});
-                                }
-                            })
-                        );
-                    });
-                    await Promise.all(sends);
-                }
-            } catch (e) {
-                console.warn('[transfer_account] push notification failed', e);
-            }
         }
 
         console.log(`[transfer_account] uid=${fromUid} (${decoded.email}) -> ${recipientEmail} complete`);
