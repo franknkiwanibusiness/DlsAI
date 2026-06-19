@@ -21318,107 +21318,84 @@ if (document.readyState === 'loading') {
         }
 
         // ── Unified notification dispatcher ──────────────────────────────────────
-        // type: 'message' | 'deal' | 'image' | 'document' | 'donate' | 'payment'
-        // recipientUid : Firebase uid of the person who should receive the notif
-        // opts.title   : notification title
-        // opts.body    : notification body text
-        // opts.email   : { to, subject, html } — only sent for 'donate' and 'payment'
-        // opts.chatMsg : string — system log message to append in THIS user's chat view
+        // Sender clicks send → calls /api/push-notify.js with recipientUid + payload.
+        // The API looks up recipient's push subscription from Firebase and sends
+        // a real Web Push via the VAPID keys — works even when their tab is closed.
+        // Email only fires for 'donate' and 'payment'.
         // ─────────────────────────────────────────────────────────────────────────
         async function _notifyUser(type, recipientUid, opts) {
             opts = opts || {};
 
-            // 1. Append a system log line in the active chat (visible to the SENDER right now)
-            if (opts.chatMsg) {
-                appendSystemLogMessage(opts.chatMsg);
-            }
+            // 1. Append a system log line in the active chat (visible to the SENDER)
+            if (opts.chatMsg) appendSystemLogMessage(opts.chatMsg);
 
-            // 2. Write a push notification payload to Firebase under the recipient's
-            //    /users/{uid}/pendingPush node. The recipient's page (or SW) polls this.
-            //    Also call /api/push-send if the server supports it.
+            // 2. Call /api/push-notify.js — server reads recipient's subscription from
+            //    Firebase and sends the Web Push. Works with tab closed / phone locked.
             try {
-                var db  = window._fbDb;
-                var fns = window._fbDbFns;
-                if (db && fns && fns.ref && fns.push && recipientUid) {
-                    var pushPayload = {
-                        type:      type,
-                        title:     opts.title  || 'Siterifty',
-                        body:      opts.body   || '',
-                        timestamp: Date.now(),
-                        fromUid:   (window._fbAuth && window._fbAuth.currentUser && window._fbAuth.currentUser.uid) || ''
-                    };
-                    // Write to recipient's pendingPush list so their open tab can pick it up
-                    fns.push(fns.ref(db, 'users/' + recipientUid + '/pendingPush'), pushPayload).catch(function(){});
-
-                    // Also attempt server-side Web Push if recipient has a pushSubscription saved
-                    fns.get && fns.get(fns.ref(db, 'users/' + recipientUid + '/pushSubscription')).then(function(snap) {
-                        if (!snap || !snap.exists || !snap.exists()) return;
-                        var sub = snap.val();
-                        fetch('/api/push-send', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ subscription: sub, title: pushPayload.title, body: pushPayload.body, type: type })
-                        }).catch(function(){});
-                    }).catch(function(){});
+                var auth = window._fbAuth;
+                var user = auth && auth.currentUser;
+                if (user && recipientUid) {
+                    var idToken = await user.getIdToken();
+                    fetch('/api/settings.js', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + idToken
+                        },
+                        body: JSON.stringify({
+                            action:       'push-notify',
+                            recipientUid: recipientUid,
+                            type:         type,
+                            title:        opts.title || 'Siterifty',
+                            body:         opts.body  || ''
+                        })
+                    }).catch(function(e) { console.warn('[push-notify]', e); });
                 }
-            } catch(e) { console.warn('[notify push]', e); }
+            } catch(e) { console.warn('[notify]', e); }
 
-            // 3. Email — only for 'donate' and 'payment' types
+            // 3. Email — only for 'donate' and 'payment'
             if ((type === 'donate' || type === 'payment') && opts.email && window._sendEmail) {
-                try {
-                    await window._sendEmail(opts.email.to, opts.email.subject, opts.email.html);
-                } catch(e) { console.warn('[notify email]', e); }
+                window._sendEmail(opts.email.to, opts.email.subject, opts.email.html).catch(function(){});
             }
         }
 
-        // ── Listen for incoming pendingPush entries and show browser notification ──
+        // ── In-tab fallback: listen for pendingPush entries written by the API ──
+        // The API also writes to /users/{uid}/pendingPush so that if the tab IS open
+        // but the OS push hasn't fired yet, the listener catches it immediately.
         (function _listenPendingPush() {
-            var _pushListenerUid = null;
-            var _pushUnsub = null;
-            function _startPushListener(uid) {
-                if (_pushListenerUid === uid) return;
-                _pushListenerUid = uid;
-                if (_pushUnsub) { try { _pushUnsub(); } catch(e){} }
+            function _start(uid) {
                 var db  = window._fbDb;
                 var fns = window._fbDbFns;
-                if (!db || !fns || !fns.ref || !fns.onValue) return;
+                if (!db || !fns || !fns.ref || !fns.onValue || !fns.remove) return;
                 var pushRef = fns.ref(db, 'users/' + uid + '/pendingPush');
-                _pushUnsub = fns.onValue(pushRef, function(snap) {
-                    if (!snap || !snap.exists || !snap.exists()) return;
-                    // Only show browser notification if permission granted
-                    if (!('Notification' in window) || Notification.permission !== 'granted') {
-                        // Still clear them from Firebase
-                        fns.remove && fns.remove(pushRef).catch(function(){});
-                        return;
-                    }
+                fns.onValue(pushRef, function(snap) {
+                    if (!snap || !snap.exists()) return;
+                    var canNotify = 'Notification' in window && Notification.permission === 'granted';
                     snap.forEach(function(child) {
                         var p = child.val();
                         if (!p) return;
-                        // Don't show if the tab is currently focused (user is looking at it)
-                        if (document.hasFocus && document.hasFocus()) return;
-                        new Notification(p.title || 'Siterifty', {
-                            body: p.body || '',
-                            icon: '/favicon.ico',
-                            tag:  p.type + '_' + child.key   // dedupes same-type bursts
-                        });
+                        if (canNotify && !(document.hasFocus && document.hasFocus())) {
+                            new Notification(p.title || 'Siterifty', {
+                                body: p.body || '',
+                                icon: '/favicon.ico',
+                                tag:  p.type + '_' + child.key
+                            });
+                        }
                     });
-                    // Clear processed entries
-                    fns.remove && fns.remove(pushRef).catch(function(){});
-                }, function(){});
+                    fns.remove(pushRef).catch(function(){});
+                });
             }
 
-            // Hook into auth state — start listener when user signs in
-            var _authInterval = setInterval(function() {
+            var _iv = setInterval(function() {
                 var auth = window._fbAuth;
-                if (auth && auth.currentUser) {
-                    clearInterval(_authInterval);
-                    _startPushListener(auth.currentUser.uid);
-                    // Re-check if uid changes (sign-out then sign-in as different user)
+                if (auth && auth.currentUser && window._fbDb && window._fbDbFns) {
+                    clearInterval(_iv);
+                    _start(auth.currentUser.uid);
                     auth.onAuthStateChanged && auth.onAuthStateChanged(function(u) {
-                        if (u) _startPushListener(u.uid);
+                        if (u) _start(u.uid);
                     });
                 }
-            }, 1200);
+            }, 800);
         })();
 
         function openModernLinkModal() {
@@ -21996,7 +21973,7 @@ if (document.readyState === 'loading') {
                 );
             }
 
-            // Fetch recipient's email from Firebase for the email notification
+            // Fetch recipient's email from Firebase, then send both emails
             (async function() {
                 var recipientEmail = '';
                 try {
@@ -22007,6 +21984,23 @@ if (document.readyState === 'loading') {
                     }
                 } catch(e) {}
 
+                // Sender confirmation email
+                var senderEmail = (window._fbAuth && window._fbAuth.currentUser && window._fbAuth.currentUser.email) || '';
+                if (senderEmail && window._sendEmail) {
+                    window._sendEmail(senderEmail,
+                        'You sent ' + _fmtAmt + ' to ' + recipientHandle + ' on Siterifty',
+                        `<div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#0a0a0f;color:#f1f0ff;border-radius:16px;">
+                            <h2 style="margin:0 0 8px;font-size:22px;color:#34d399;">Donation Sent!</h2>
+                            <p style="color:#a0a0b8;font-size:14px;line-height:1.6;margin:0 0 20px;">
+                                You sent <strong style="color:#fbbf24;">${_fmtAmt}</strong> to <strong style="color:#fff;">${recipientHandle}</strong>. The funds have been deducted from your Siterifty wallet.
+                            </p>
+                            <a href="https://siterifty.com" style="display:inline-block;background:linear-gradient(135deg,#34d399,#38bdf8);color:#04140f;font-weight:700;font-size:14px;padding:12px 24px;border-radius:10px;text-decoration:none;">View your wallet →</a>
+                            <p style="color:#555;font-size:11px;margin-top:24px;">Siterifty · This is a confirmation of your donation.</p>
+                        </div>`
+                    ).catch(function(){});
+                }
+
+                // Recipient notification — push + email
                 _notifyUser('donate', _donateTargetUid, {
                     title: 'You received a donation — ' + _fmtAmt,
                     body:  _donorName + ' sent you ' + _fmtAmt + ' on Siterifty.',
@@ -22014,7 +22008,7 @@ if (document.readyState === 'loading') {
                         to:      recipientEmail,
                         subject: 'You received ' + _fmtAmt + ' from ' + _donorName + ' on Siterifty',
                         html:    `<div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#0a0a0f;color:#f1f0ff;border-radius:16px;">
-                            <h2 style="margin:0 0 8px;font-size:22px;color:#fbbf24;">🎁 Donation Received!</h2>
+                            <h2 style="margin:0 0 8px;font-size:22px;color:#fbbf24;">Donation Received!</h2>
                             <p style="color:#a0a0b8;font-size:14px;line-height:1.6;margin:0 0 20px;">
                                 <strong style="color:#fff;">${_donorName}</strong> sent you a donation of <strong style="color:#fbbf24;">${_fmtAmt}</strong>. The funds have been added to your Siterifty wallet.
                             </p>
