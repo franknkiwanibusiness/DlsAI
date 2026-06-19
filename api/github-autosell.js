@@ -8,6 +8,11 @@
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getDatabase } from 'firebase-admin/database';
 
+// ── GitHub OAuth Credentials ──────────────────────────────────────────────────
+// Client ID is hardcoded (public, safe to expose)
+// Client Secret must be in environment variables (private, never expose)
+const GITHUB_CLIENT_ID = 'Iv23li02xb3bQ14ZvMeR';
+
 // ── Firebase init ────────────────────────────────────────────────────────────
 function initFirebase() {
   if (getApps().length > 0) return getApps()[0];
@@ -30,19 +35,20 @@ function db() {
 async function exchangeCodeForToken(code) {
   console.log('[GitHub OAuth] 🔑 Exchanging code for token...');
   console.log('[GitHub OAuth] 📝 Code (first 10 chars):', code.substring(0, 10) + '...');
-  console.log('[GitHub OAuth] 🆔 Client ID configured:', !!process.env.GITHUB_CLIENT_ID);
-  console.log('[GitHub OAuth] 🔒 Client Secret configured:', !!process.env.GITHUB_CLIENT_SECRET);
+  console.log('[GitHub OAuth] 🆔 Client ID (hardcoded):', GITHUB_CLIENT_ID);
+  console.log('[GitHub OAuth] 🔒 Client Secret (env):', process.env.GITHUB_CLIENT_SECRET ? '✅ Configured' : '❌ MISSING');
   
   // Validate required env vars
-  if (!process.env.GITHUB_CLIENT_ID) {
-    throw new Error('GITHUB_CLIENT_ID is not configured in environment variables');
+  if (!GITHUB_CLIENT_ID) {
+    throw new Error('GITHUB_CLIENT_ID is not configured');
   }
   if (!process.env.GITHUB_CLIENT_SECRET) {
+    console.error('[GitHub OAuth] ❌ GITHUB_CLIENT_SECRET environment variable is missing!');
     throw new Error('GITHUB_CLIENT_SECRET is not configured in environment variables');
   }
 
   const requestBody = {
-    client_id:     process.env.GITHUB_CLIENT_ID,
+    client_id:     GITHUB_CLIENT_ID,
     client_secret: process.env.GITHUB_CLIENT_SECRET,
     code,
   };
