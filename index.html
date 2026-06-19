@@ -8312,6 +8312,7 @@
                         </div>
                         <div class="imsg-merchant-row">
                             <span class="imsg-merchant-label">Verified Marketplace Merchant</span>
+                            <span class="as-chat-badge" id="asChatBadge"><svg width="9" height="9" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.8"/><path d="M7 10l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> AI Active</span>
                             <button onclick="viewChatSeller()" class="imsg-view-seller-btn">VIEW SELLER</button>
                         </div>
                     </div>
@@ -8348,6 +8349,10 @@
                     <button onclick="triggerInput('genericFileInput')" class="imsg-dropup-item">
                         <span>UPLOAD DOCUMENT / PAGE</span>
                         <span class="imsg-dropup-item-sub">PDF or .HTML Files</span>
+                    </button>
+                    <button onclick="document.getElementById('dropUpMenu').classList.remove('open');openAutoSellModal();" class="imsg-dropup-item" style="border-top:1px solid rgba(255,255,255,0.06);margin-top:4px;padding-top:14px;">
+                        <span style="display:flex;align-items:center;gap:7px;"><svg width="11" height="11" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke="#30d158" stroke-width="1.8"/><path d="M7 10l2 2 4-4" stroke="#30d158" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>AUTOSELL SETTINGS</span>
+                        <span class="imsg-dropup-item-sub">GitHub repo + AI auto-replies</span>
                     </button>
                 </div>
 
@@ -22521,6 +22526,1036 @@ window.selectLibraryAvatar = async function(url) {
       _toast('<svg width="13" height="13" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;"><path d="M8 1.6L14.8 13.4a1 1 0 0 1-.86 1.5H2.06a1 1 0 0 1-.86-1.5L8 1.6z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M8 6.2v3.3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="8" cy="11.8" r="0.9" fill="currentColor"/></svg>Save failed — try again', '#ff453a');
     });
   };
+
+})();
+</script>
+
+<!-- ═══════════════════════════════════════════════════════
+     AUTOSELL SYSTEM
+     — GitHub linking modal
+     — AutoSell settings modal (toggle + repo + 50/50 split disclosure)
+     — AI chat intercept: fires when buyer messages a seller with autoSell on
+     — Repo delivery: auto-sends GitHub repo link after deal payment confirmed
+     Firebase paths:
+       users/{uid}/github       { username, linkedAt }
+       users/{uid}/autoSell     { enabled, repoUrl, repoName, aiPersona }
+       autosell/{sellerUid}     mirror for server-side cron reads
+═══════════════════════════════════════════════════════ -->
+
+<!-- ── AutoSell / GitHub modal styles ── -->
+<style>
+/* ── Shared overlay shell ── */
+#autoSellOverlay, #githubLinkOverlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 10500;
+  background: rgba(0,0,0,0.82);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  align-items: center;
+  justify-content: center;
+  padding: 20px 16px;
+}
+#autoSellOverlay.open, #githubLinkOverlay.open { display: flex; }
+
+/* ── Card ── */
+.as-card {
+  background: linear-gradient(160deg, #0d1117, #161b22);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-top-color: rgba(255,255,255,0.18);
+  border-radius: 22px;
+  width: min(420px, 94vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04) inset;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.07) transparent;
+  position: relative;
+}
+
+/* ── Header ── */
+.as-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 20px 0;
+}
+.as-header-left { display: flex; align-items: center; gap: 12px; }
+.as-icon-badge {
+  width: 40px; height: 40px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.as-title {
+  font-family: 'Syne', 'Plus Jakarta Sans', sans-serif;
+  font-size: 16px; font-weight: 800;
+  color: #fff; letter-spacing: -.02em; line-height: 1.1;
+}
+.as-sub {
+  font-size: 11px; color: rgba(255,255,255,0.38);
+  margin-top: 3px; line-height: 1.4;
+}
+.as-close {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: rgba(255,255,255,0.4);
+  flex-shrink: 0; transition: background .15s;
+}
+.as-close:hover { background: rgba(255,255,255,0.12); }
+
+/* ── Body ── */
+.as-body { padding: 18px 20px 24px; }
+
+/* ── Section label ── */
+.as-section-label {
+  font-size: 9.5px; font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; color: rgba(255,255,255,0.25);
+  margin-bottom: 8px; margin-top: 18px;
+}
+.as-section-label:first-child { margin-top: 0; }
+
+/* ── Toggle row ── */
+.as-toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px; padding: 14px 16px;
+  gap: 12px;
+}
+.as-toggle-info { flex: 1; min-width: 0; }
+.as-toggle-title {
+  font-size: 13px; font-weight: 700; color: #fff;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+.as-toggle-desc { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 3px; line-height: 1.4; }
+
+/* iOS-style toggle */
+.as-toggle-switch {
+  width: 44px; height: 26px; border-radius: 999px;
+  background: rgba(255,255,255,0.12);
+  border: none; cursor: pointer; position: relative;
+  flex-shrink: 0; transition: background .2s;
+  outline: none;
+}
+.as-toggle-switch.on { background: #30d158; }
+.as-toggle-switch::after {
+  content: '';
+  position: absolute; top: 3px; left: 3px;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+  transition: transform .2s cubic-bezier(.4,0,.2,1);
+}
+.as-toggle-switch.on::after { transform: translateX(18px); }
+
+/* ── Input row ── */
+.as-input-wrap {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 13px; padding: 13px 14px;
+  transition: border-color .2s, box-shadow .2s;
+}
+.as-input-wrap:focus-within {
+  border-color: rgba(48,209,88,0.45);
+  box-shadow: 0 0 0 3px rgba(48,209,88,0.07);
+}
+.as-input-label {
+  font-size: 9.5px; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: rgba(255,255,255,0.25);
+  margin-bottom: 6px;
+}
+.as-input {
+  width: 100%; background: transparent; border: none; outline: none;
+  font-family: 'Plus Jakarta Sans', 'Inter', monospace;
+  font-size: 13px; font-weight: 600; color: #fff;
+}
+.as-input::placeholder { color: rgba(255,255,255,0.2); }
+
+/* ── GitHub connected pill ── */
+.as-gh-pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: rgba(48,209,88,0.08);
+  border: 1px solid rgba(48,209,88,0.25);
+  border-radius: 999px; padding: 5px 12px 5px 8px;
+  font-size: 11.5px; font-weight: 700; color: #30d158;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+/* ── Split info box ── */
+.as-split-box {
+  background: rgba(251,191,36,0.06);
+  border: 1px solid rgba(251,191,36,0.2);
+  border-radius: 13px; padding: 14px 16px;
+  display: flex; gap: 11px; align-items: flex-start;
+}
+.as-split-text { font-size: 11.5px; color: rgba(255,255,255,0.55); line-height: 1.55; }
+.as-split-text strong { color: #fbbf24; }
+
+/* ── Persona textarea ── */
+.as-textarea {
+  width: 100%; background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 13px; padding: 13px 14px;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  font-size: 12.5px; color: #fff; resize: vertical;
+  min-height: 72px; outline: none;
+  transition: border-color .2s;
+  box-sizing: border-box;
+}
+.as-textarea:focus {
+  border-color: rgba(48,209,88,0.4);
+  box-shadow: 0 0 0 3px rgba(48,209,88,0.06);
+}
+.as-textarea::placeholder { color: rgba(255,255,255,0.2); }
+
+/* ── Save button ── */
+.as-save-btn {
+  width: 100%; padding: 15px;
+  border-radius: 14px; border: none; cursor: pointer;
+  font-family: 'Syne', 'Plus Jakarta Sans', sans-serif;
+  font-size: 14px; font-weight: 800; letter-spacing: .01em;
+  background: linear-gradient(135deg, #30d158, #27b54a);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(48,209,88,0.25);
+  transition: opacity .15s, transform .1s;
+  margin-top: 20px;
+}
+.as-save-btn:hover { opacity: .88; }
+.as-save-btn:active { transform: scale(.98); }
+.as-save-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ── GitHub link button ── */
+.as-gh-connect-btn {
+  width: 100%; padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: #fff; cursor: pointer;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 13px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  transition: background .15s, border-color .15s;
+}
+.as-gh-connect-btn:hover {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.22);
+}
+
+/* ── AI bot bubble in chat ── */
+.imsg-ai-bubble {
+  display: flex; align-items: flex-start; gap: 8px;
+  margin-bottom: 10px;
+}
+.imsg-ai-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: linear-gradient(135deg, #30d158, #38bdf8);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; font-size: 12px;
+}
+.imsg-ai-content {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 0 14px 14px 14px;
+  padding: 10px 13px;
+  font-size: 12.5px; color: rgba(255,255,255,0.88);
+  line-height: 1.55; max-width: 78%;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+}
+.imsg-ai-label {
+  font-size: 9.5px; font-weight: 700; letter-spacing: .07em;
+  color: rgba(48,209,88,0.7); text-transform: uppercase;
+  margin-bottom: 5px;
+}
+.imsg-ai-typing {
+  display: flex; gap: 4px; align-items: center; padding: 2px 0;
+}
+.imsg-ai-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: rgba(48,209,88,0.6);
+  animation: aiDotPulse 1.2s ease-in-out infinite;
+}
+.imsg-ai-dot:nth-child(2) { animation-delay: .2s; }
+.imsg-ai-dot:nth-child(3) { animation-delay: .4s; }
+@keyframes aiDotPulse {
+  0%, 80%, 100% { transform: scale(1); opacity: .5; }
+  40% { transform: scale(1.35); opacity: 1; }
+}
+
+/* ── Repo delivery card in chat ── */
+.imsg-repo-card {
+  background: linear-gradient(135deg, rgba(48,209,88,0.07), rgba(56,189,248,0.04));
+  border: 1px solid rgba(48,209,88,0.22);
+  border-radius: 14px; padding: 14px 15px;
+  max-width: 78%; font-family: 'Plus Jakarta Sans', sans-serif;
+}
+.imsg-repo-card-label {
+  font-size: 9.5px; font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; color: rgba(48,209,88,0.7);
+  margin-bottom: 6px; display: flex; align-items: center; gap: 5px;
+}
+.imsg-repo-card-name {
+  font-size: 13.5px; font-weight: 800; color: #fff;
+  margin-bottom: 4px; letter-spacing: -.01em;
+}
+.imsg-repo-card-url {
+  font-size: 11px; color: rgba(56,189,248,0.8);
+  word-break: break-all; margin-bottom: 10px;
+}
+.imsg-repo-copy-btn {
+  background: rgba(48,209,88,0.1);
+  border: 1px solid rgba(48,209,88,0.3);
+  border-radius: 8px; padding: 6px 14px;
+  font-size: 11px; font-weight: 700; color: #30d158;
+  cursor: pointer; transition: background .15s;
+}
+.imsg-repo-copy-btn:hover { background: rgba(48,209,88,0.2); }
+
+/* ── AutoSell status badge shown in chat header ── */
+.as-chat-badge {
+  display: none;
+  align-items: center; gap: 5px;
+  background: rgba(48,209,88,0.1);
+  border: 1px solid rgba(48,209,88,0.25);
+  border-radius: 999px; padding: 3px 9px;
+  font-size: 9.5px; font-weight: 700;
+  color: rgba(48,209,88,0.9);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  flex-shrink: 0;
+}
+.as-chat-badge.visible { display: inline-flex; }
+</style>
+
+<!-- ══ AUTOSELL SETTINGS MODAL ══ -->
+<div id="autoSellOverlay" onclick="if(event.target===this)closeAutoSellModal()">
+  <div class="as-card">
+    <div class="as-header">
+      <div class="as-header-left">
+        <div class="as-icon-badge" style="background:linear-gradient(135deg,rgba(48,209,88,0.18),rgba(56,189,248,0.1));border:1px solid rgba(48,209,88,0.3);">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+            <circle cx="10" cy="10" r="8" stroke="#30d158" stroke-width="1.5"/>
+            <path d="M7 10l2 2 4-4" stroke="#30d158" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="as-title">AutoSell Mode</div>
+          <div class="as-sub">AI handles chats &amp; delivers your repo automatically</div>
+        </div>
+      </div>
+      <button class="as-close" onclick="closeAutoSellModal()">
+        <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M1.5 1.5l9 9M10.5 1.5l-9 9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+    <div class="as-body">
+
+      <!-- Toggle -->
+      <div class="as-section-label">Status</div>
+      <div class="as-toggle-row">
+        <div class="as-toggle-info">
+          <div class="as-toggle-title">Enable AutoSell</div>
+          <div class="as-toggle-desc">When on, our AI replies to buyers 24/7 and adds them as a repo collaborator the moment payment clears.</div>
+        </div>
+        <button class="as-toggle-switch" id="autoSellToggle" onclick="asToggle()" aria-label="Toggle AutoSell"></button>
+      </div>
+
+      <!-- 50/50 Split disclosure -->
+      <div class="as-section-label" style="margin-top:16px;">Revenue split</div>
+      <div class="as-split-box">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-top:1px;"><circle cx="8" cy="8" r="6.5" stroke="#fbbf24" stroke-width="1.2"/><path d="M8 5v3.5M8 10.5v.3" stroke="#fbbf24" stroke-width="1.4" stroke-linecap="round"/></svg>
+        <div class="as-split-text">
+          AutoSell uses Siterifty's AI infrastructure to handle your sales 24/7.
+          In exchange, <strong>each completed sale is split 50% to you, 50% to Siterifty</strong>.
+          Regular manual sales follow your plan's normal fee instead.
+        </div>
+      </div>
+
+      <!-- GitHub OAuth connect -->
+      <div class="as-section-label" style="margin-top:16px;">GitHub account</div>
+      <div id="asGhDisconnected">
+        <button class="as-gh-connect-btn" onclick="asStartGithubOAuth()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg>
+          Authorize with GitHub
+        </button>
+        <div style="font-size:10.5px;color:rgba(255,255,255,0.22);margin-top:7px;padding:0 2px;">We never store your password. GitHub OAuth grants read access to your repos so you can pick which one to sell.</div>
+      </div>
+      <div id="asGhConnected" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+          <div class="as-gh-pill">
+            <img id="asGhAvatar" src="" width="18" height="18" style="border-radius:50%;display:none;">
+            <svg id="asGhIcon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg>
+            <span id="asGhUsername">github_user</span>
+          </div>
+          <button onclick="asDisconnectGithub()" style="font-size:10px;font-weight:700;color:rgba(248,113,113,0.7);background:rgba(248,113,113,0.07);border:1px solid rgba(248,113,113,0.2);border-radius:7px;padding:4px 10px;cursor:pointer;" onmouseover="this.style.background='rgba(248,113,113,0.14)'" onmouseout="this.style.background='rgba(248,113,113,0.07)'">Disconnect</button>
+        </div>
+      </div>
+
+      <!-- Repo picker (shown after GitHub connected) -->
+      <div id="asRepoPicker" style="display:none;margin-top:14px;">
+        <div class="as-section-label">Repo to sell</div>
+        <div id="asRepoPickerLoading" style="font-size:12px;color:rgba(255,255,255,0.3);padding:10px 0;">Loading your repos…</div>
+        <div id="asRepoList" style="display:none;max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:7px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.08) transparent;"></div>
+        <!-- Selected repo display -->
+        <div id="asSelectedRepo" style="display:none;margin-top:10px;background:rgba(48,209,88,0.06);border:1px solid rgba(48,209,88,0.2);border-radius:12px;padding:12px 14px;">
+          <div style="font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(48,209,88,0.6);margin-bottom:5px;">Selected repo</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+            <div>
+              <div id="asSelectedRepoName" style="font-size:13px;font-weight:800;color:#fff;font-family:'Plus Jakarta Sans',sans-serif;"></div>
+              <div id="asSelectedRepoDesc" style="font-size:10.5px;color:rgba(255,255,255,0.35);margin-top:2px;line-height:1.4;"></div>
+            </div>
+            <button onclick="asClearSelectedRepo()" style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.3);background:transparent;border:none;cursor:pointer;white-space:nowrap;flex-shrink:0;">Change ↩</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Save -->
+      <button class="as-save-btn" id="asSaveBtn" onclick="saveAutoSellSettings()" style="margin-top:20px;">Save AutoSell settings</button>
+
+      <p style="text-align:center;font-size:10px;color:rgba(255,255,255,0.16);margin-top:12px;">You can turn AutoSell on/off anytime. Pending chats will continue until the buyer stops responding.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══ AUTOSELL SYSTEM LOGIC ══ -->
+<script>
+(function() {
+
+  // ── helpers ──────────────────────────────────────────────────────────
+  function _uid() {
+    try {
+      var u = (window._fbAuth && window._fbAuth.currentUser)
+           || (window._auth && window._auth.currentUser);
+      return u ? u.uid : null;
+    } catch(e) { return null; }
+  }
+  function _db()  { return window._fbDb || null; }
+  function _fns() { return window._fbDbFns || {}; }
+
+  function _toast(msg, color) {
+    var t = document.createElement('div');
+    t.innerHTML = msg;
+    t.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:'+(color||'#30d158')+';color:#fff;padding:10px 20px;border-radius:999px;font-family:Syne,sans-serif;font-weight:700;font-size:13px;z-index:99999;pointer-events:none;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,.4);opacity:0;transition:opacity .25s;display:flex;align-items:center;gap:6px;';
+    document.body.appendChild(t);
+    requestAnimationFrame(function(){ t.style.opacity='1'; });
+    setTimeout(function(){ t.style.opacity='0'; setTimeout(function(){ t.remove(); }, 300); }, 2600);
+  }
+
+  // ── in-memory state ──────────────────────────────────────────────────
+  var _asEnabled       = false;
+  var _asRepoUrl       = '';
+  var _asRepoName      = '';
+  var _asRepoFullName  = '';   // owner/repo — used for API calls
+  var _asRepoMeta      = null; // live repo data from GitHub
+  var _ghUsername      = '';
+  var _ghAvatar        = '';
+  var _oauthPopup      = null;
+
+  // ── GitHub App OAuth URL ─────────────────────────────────────────────
+  var GH_CLIENT_ID = 'Iv23li02xb3bQ14ZvMeR';
+
+  // ── modal open / close ───────────────────────────────────────────────
+  window.openAutoSellModal = function() {
+    _loadAutoSellState();
+    document.getElementById('autoSellOverlay').classList.add('open');
+    if (window._lockBodyScroll) window._lockBodyScroll();
+  };
+  window.closeAutoSellModal = function() {
+    document.getElementById('autoSellOverlay').classList.remove('open');
+    if (window._unlockBodyScroll) window._unlockBodyScroll();
+  };
+
+  // ── load state from Firebase ──────────────────────────────────────────
+  function _loadAutoSellState() {
+    var uid = _uid();
+    if (!uid) return;
+    var db = _db(); var fns = _fns();
+    if (!db || !fns.ref || !fns.get) return;
+
+    fns.get(fns.ref(db, 'users/' + uid)).then(function(snap) {
+      if (!snap || !snap.exists || !snap.exists()) return;
+      var d = snap.val() || {};
+
+      var as = d.autoSell || {};
+      _asEnabled      = !!as.enabled;
+      _asRepoUrl      = as.repoUrl      || '';
+      _asRepoName     = as.repoName     || '';
+      _asRepoFullName = as.repoFullName || '';
+      _asRepoMeta     = as.repoMeta     || null;
+      _ghUsername     = d.github ? (d.github.username || '') : '';
+      _ghAvatar       = d.github ? (d.github.avatarUrl || '') : '';
+
+      _syncToggleUI();
+      _syncGithubUI();
+      if (_ghUsername && _asRepoFullName) _syncSelectedRepo();
+    }).catch(function(e){ console.warn('[autoSell] load error', e); });
+  }
+
+  function _syncToggleUI() {
+    var btn = document.getElementById('autoSellToggle');
+    if (btn) btn.classList.toggle('on', _asEnabled);
+  }
+
+  function _syncGithubUI() {
+    var disc  = document.getElementById('asGhDisconnected');
+    var conn  = document.getElementById('asGhConnected');
+    var unEl  = document.getElementById('asGhUsername');
+    var avEl  = document.getElementById('asGhAvatar');
+    var icEl  = document.getElementById('asGhIcon');
+    var picker = document.getElementById('asRepoPicker');
+
+    if (_ghUsername) {
+      if (disc)   disc.style.display   = 'none';
+      if (conn)   conn.style.display   = '';
+      if (unEl)   unEl.textContent     = _ghUsername;
+      if (avEl && _ghAvatar) {
+        avEl.src = _ghAvatar;
+        avEl.style.display = 'inline-block';
+        if (icEl) icEl.style.display = 'none';
+      }
+      if (picker) picker.style.display = '';
+      // Load repos if not already selected
+      if (!_asRepoFullName) _loadRepoPicker();
+    } else {
+      if (disc)   disc.style.display   = '';
+      if (conn)   conn.style.display   = 'none';
+      if (picker) picker.style.display = 'none';
+    }
+  }
+
+  function _syncSelectedRepo() {
+    var listEl    = document.getElementById('asRepoList');
+    var selEl     = document.getElementById('asSelectedRepo');
+    var nameEl    = document.getElementById('asSelectedRepoName');
+    var descEl    = document.getElementById('asSelectedRepoDesc');
+    var loadingEl = document.getElementById('asRepoPickerLoading');
+
+    if (_asRepoFullName) {
+      if (listEl)    listEl.style.display    = 'none';
+      if (loadingEl) loadingEl.style.display = 'none';
+      if (selEl)     selEl.style.display     = '';
+      if (nameEl)    nameEl.textContent      = _asRepoName || _asRepoFullName;
+      if (descEl)    descEl.textContent      = (_asRepoMeta && _asRepoMeta.description) || _asRepoUrl || '';
+    } else {
+      if (selEl)  selEl.style.display  = 'none';
+      if (listEl) listEl.style.display = '';
+    }
+  }
+
+  // ── toggle ────────────────────────────────────────────────────────────
+  window.asToggle = function() {
+    _asEnabled = !_asEnabled;
+    _syncToggleUI();
+  };
+
+  // ── GitHub OAuth — open popup ─────────────────────────────────────────
+  window.asStartGithubOAuth = function() {
+    var uid = _uid();
+    if (!uid) { _toast('Sign in first', '#ff453a'); return; }
+
+    // state = uid so callback knows which user to update
+    var state    = uid + '_' + Math.random().toString(36).slice(2);
+    var redirect = window.location.origin + '/api/github-oauth-landing';
+    var oauthUrl = 'https://github.com/login/oauth/authorize'
+      + '?client_id=' + GH_CLIENT_ID
+      + '&redirect_uri=' + encodeURIComponent(redirect)
+      + '&scope=repo'
+      + '&state=' + encodeURIComponent(state);
+
+    // Store state so landing page can post back
+    try { sessionStorage.setItem('as_gh_state', state); } catch(e){}
+
+    // Open popup
+    var w = 600, h = 700;
+    var left = Math.max(0, (screen.width  - w) / 2);
+    var top  = Math.max(0, (screen.height - h) / 2);
+    _oauthPopup = window.open(oauthUrl, 'gh_oauth', 'width='+w+',height='+h+',left='+left+',top='+top+',toolbar=no,menubar=no');
+
+    // Listen for postMessage from landing page
+    window.addEventListener('message', _onOAuthMessage);
+  };
+
+  // ── Receive OAuth result from popup / landing page ────────────────────
+  function _onOAuthMessage(evt) {
+    if (!evt.data || evt.data.type !== 'gh_oauth_code') return;
+    window.removeEventListener('message', _onOAuthMessage);
+    if (_oauthPopup) { try { _oauthPopup.close(); } catch(e){} }
+
+    var code  = evt.data.code;
+    var uid   = _uid();
+    if (!code || !uid) { _toast('OAuth failed — try again', '#ff453a'); return; }
+
+    _toast('Connecting GitHub…', '#6b7280');
+
+    fetch('/api/github-autosell?mode=callback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: code, uid: uid })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      if (data.error) throw new Error(data.error);
+      _ghUsername = data.username;
+      _ghAvatar   = data.avatar || '';
+      _syncGithubUI();
+      _renderRepoList(data.repos || []);
+      _toast(
+        '<svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="flex-shrink:0;"><path d="M2.5 7.5l3 3 6-6.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+        + 'GitHub connected — @' + _ghUsername, '#30d158'
+      );
+    })
+    .catch(function(err) {
+      console.error('[autoSell OAuth]', err);
+      _toast('GitHub connection failed — try again', '#ff453a');
+    });
+  }
+
+  // ── Load repo list from API ───────────────────────────────────────────
+  function _loadRepoPicker() {
+    var uid = _uid();
+    if (!uid) return;
+    var loadingEl = document.getElementById('asRepoPickerLoading');
+    var listEl    = document.getElementById('asRepoList');
+    if (loadingEl) { loadingEl.textContent = 'Loading your repos…'; loadingEl.style.display = ''; }
+    if (listEl)    listEl.style.display = 'none';
+
+    fetch('/api/github-autosell?mode=repos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid: uid })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      if (data.error) throw new Error(data.error);
+      _renderRepoList(data.repos || []);
+    })
+    .catch(function(err) {
+      if (loadingEl) loadingEl.textContent = 'Failed to load repos — reconnect GitHub.';
+      console.warn('[autoSell repos]', err);
+    });
+  }
+
+  function _renderRepoList(repos) {
+    var loadingEl = document.getElementById('asRepoPickerLoading');
+    var listEl    = document.getElementById('asRepoList');
+    if (!listEl) return;
+    if (loadingEl) loadingEl.style.display = 'none';
+
+    if (!repos.length) {
+      listEl.innerHTML = '<div style="font-size:12px;color:rgba(255,255,255,0.3);padding:8px 0;">No repos found.</div>';
+      listEl.style.display = '';
+      return;
+    }
+
+    listEl.innerHTML = repos.map(function(r) {
+      var lockIcon = r.private
+        ? '<svg width="9" height="9" viewBox="0 0 14 14" fill="none" style="flex-shrink:0;"><rect x="2" y="6" width="10" height="7" rx="1.5" stroke="rgba(255,255,255,0.3)" stroke-width="1.3"/><path d="M4.5 6V4.5a2.5 2.5 0 0 1 5 0V6" stroke="rgba(255,255,255,0.3)" stroke-width="1.3"/></svg>'
+        : '';
+      var lang = r.language ? '<span style="color:rgba(255,255,255,0.28);font-size:10px;">'+_escHtmlAs(r.language)+'</span>' : '';
+      return '<div onclick="asSelectRepo('+JSON.stringify(_escHtmlAs(JSON.stringify(r)))+')" style="cursor:pointer;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:10px 12px;transition:background .15s;" onmouseover="this.style.background=\'rgba(48,209,88,0.06)\';this.style.borderColor=\'rgba(48,209,88,0.2)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.03)\';this.style.borderColor=\'rgba(255,255,255,0.07)\'">'
+        + '<div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;">'
+        + lockIcon
+        + '<span style="font-size:12.5px;font-weight:700;color:#fff;font-family:\'Plus Jakarta Sans\',sans-serif;">'+_escHtmlAs(r.name)+'</span>'
+        + lang
+        + '</div>'
+        + (r.description ? '<div style="font-size:10.5px;color:rgba(255,255,255,0.3);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+_escHtmlAs(r.description)+'</div>' : '')
+        + '</div>';
+    }).join('');
+    listEl.style.display = 'flex';
+  }
+
+  window.asSelectRepo = function(jsonStr) {
+    var r;
+    try { r = JSON.parse(jsonStr); } catch(e) { return; }
+    var uid = _uid();
+    if (!uid) return;
+
+    _asRepoFullName = r.full_name;
+    _asRepoName     = r.name;
+    _asRepoUrl      = r.url;
+    _asRepoMeta     = r;
+    _syncSelectedRepo();
+
+    // Fetch full metadata in background and cache to Firebase
+    fetch('/api/github-autosell?mode=repodata', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid: uid, fullName: r.full_name })
+    })
+    .then(function(res){ return res.json(); })
+    .then(function(data){ if (data.repo) _asRepoMeta = data.repo; })
+    .catch(function(e){ console.warn('[autoSell repodata]', e); });
+  };
+
+  window.asClearSelectedRepo = function() {
+    _asRepoFullName = '';
+    _asRepoName     = '';
+    _asRepoUrl      = '';
+    _asRepoMeta     = null;
+    var selEl = document.getElementById('asSelectedRepo');
+    var listEl = document.getElementById('asRepoList');
+    if (selEl)  selEl.style.display  = 'none';
+    if (listEl) listEl.style.display = '';
+  };
+
+  // ── save AutoSell settings ────────────────────────────────────────────
+  window.saveAutoSellSettings = function() {
+    var uid = _uid();
+    if (!uid) { _toast('Not signed in', '#ff453a'); return; }
+
+    if (_asEnabled && !_ghUsername) {
+      _toast('Connect your GitHub account first', '#ff453a'); return;
+    }
+    if (_asEnabled && !_asRepoFullName) {
+      _toast('Select a repo to sell first', '#ff453a'); return;
+    }
+
+    var db = _db(); var fns = _fns();
+    if (!db || !fns.ref || !fns.update) {
+      _toast('Firebase not ready — try again', '#ff453a'); return;
+    }
+
+    var btn = document.getElementById('asSaveBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+
+    var asData = {
+      enabled:      _asEnabled,
+      repoUrl:      _asRepoUrl,
+      repoName:     _asRepoName,
+      repoFullName: _asRepoFullName,
+      repoMeta:     _asRepoMeta || null,
+      updatedAt:    Date.now()
+    };
+
+    Promise.all([
+      fns.update(fns.ref(db, 'users/' + uid + '/autoSell'), asData),
+      fns.update(fns.ref(db, 'autosell/' + uid), Object.assign({ uid: uid }, asData))
+    ]).then(function() {
+      if (btn) { btn.disabled = false; btn.textContent = 'Save AutoSell settings'; }
+      _toast(
+        '<svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="flex-shrink:0;"><path d="M2.5 7.5l3 3 6-6.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+        + (_asEnabled ? 'AutoSell enabled — AI is live in your chats' : 'AutoSell disabled'),
+        _asEnabled ? '#30d158' : '#6b7280'
+      );
+      _refreshChatAutoSellBadge(uid);
+      closeAutoSellModal();
+    }).catch(function(err) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Save AutoSell settings'; }
+      _toast('Save failed — try again', '#ff453a');
+      console.error('[autoSell save]', err);
+    });
+  };
+
+  // ── disconnect GitHub ─────────────────────────────────────────────────
+  window.asDisconnectGithub = function() {
+    var uid = _uid();
+    if (!uid) return;
+    _ghUsername = ''; _ghAvatar = '';
+    _asRepoFullName = ''; _asRepoName = ''; _asRepoUrl = ''; _asRepoMeta = null;
+    _syncGithubUI();
+    var db = _db(); var fns = _fns();
+    if (db && fns.ref && fns.remove) {
+      fns.remove(fns.ref(db, 'users/' + uid + '/github')).catch(function(){});
+    }
+    _toast('GitHub disconnected', '#6b7280');
+  };
+
+  // ── Check if chat partner (seller) has AutoSell enabled ──────────────
+  var _autoSellListenerUnsub = null;
+  var _autoSellSellerData    = null; // full autoSell node from Firebase
+  var _autoSellAiActive      = false;
+  var _autoSellConvoHistory  = []; // rolling window for AI context
+  var _autoSellSellerUidRef  = null;
+
+  window._checkPartnerAutoSell = function(sellerUid) {
+    if (_autoSellListenerUnsub) { try { _autoSellListenerUnsub(); } catch(e){} _autoSellListenerUnsub = null; }
+    _autoSellSellerData   = null;
+    _autoSellAiActive     = false;
+    _autoSellConvoHistory = [];
+    _autoSellSellerUidRef = sellerUid || null;
+    _refreshChatAutoSellBadge(null);
+
+    if (!sellerUid) return;
+    var db = _db(); var fns = _fns();
+    if (!db || !fns.ref || !fns.onValue) return;
+
+    _autoSellListenerUnsub = fns.onValue(fns.ref(db, 'users/' + sellerUid + '/autoSell'), function(snap) {
+      if (snap && snap.exists && snap.exists()) {
+        var d = snap.val() || {};
+        _autoSellSellerData = d;
+        _autoSellAiActive   = !!d.enabled;
+        _refreshChatAutoSellBadge(sellerUid);
+      } else {
+        _autoSellSellerData = null;
+        _autoSellAiActive   = false;
+        _refreshChatAutoSellBadge(null);
+      }
+    });
+  };
+
+  function _refreshChatAutoSellBadge(sellerUid) {
+    var badge = document.getElementById('asChatBadge');
+    if (!badge) return;
+    if (_autoSellAiActive && sellerUid) badge.classList.add('visible');
+    else badge.classList.remove('visible');
+  }
+
+  // ── Build repo context string for AI system prompt ───────────────────
+  function _buildRepoContext(d) {
+    var meta = d.repoMeta || {};
+    var lines = [
+      '== PRODUCT BEING SOLD ==',
+      'Name: '        + (meta.name        || d.repoName    || ''),
+      'GitHub URL: '  + (meta.url         || d.repoUrl     || ''),
+      'Description: ' + (meta.description || 'No description provided'),
+      'Language: '    + (meta.language    || 'Not specified'),
+      'Stars: '       + (meta.stars       != null ? meta.stars : 'N/A'),
+      'Forks: '       + (meta.forks       != null ? meta.forks : 'N/A'),
+      'License: '     + (meta.license     || 'Not specified'),
+      'Topics: '      + ((meta.topics && meta.topics.length) ? meta.topics.join(', ') : 'None'),
+      'Visibility: '  + (meta.private     ? 'Private repo (buyer will be added as collaborator after payment)' : 'Public repo'),
+      'Open issues: ' + (meta.open_issues != null ? meta.open_issues : 'N/A'),
+      'Last updated: ' + (meta.updated_at ? new Date(meta.updated_at).toLocaleDateString('en-GB') : 'N/A'),
+    ];
+    return lines.join('\n');
+  }
+
+  // ── Intercept buyer message → AI reply via /api/chat (Groq) ──────────
+  window._autoSellInterceptOutgoing = async function(buyerMessage) {
+    if (!_autoSellAiActive || !_autoSellSellerData) return;
+
+    _autoSellConvoHistory.push({ role: 'user', content: buyerMessage });
+    if (_autoSellConvoHistory.length > 20) _autoSellConvoHistory = _autoSellConvoHistory.slice(-20);
+
+    var container = document.getElementById('chatMessagesContent');
+    if (!container) return;
+    var typingId = 'as_typing_' + Date.now();
+    container.insertAdjacentHTML('beforeend',
+      '<div id="'+typingId+'" class="imsg-ai-bubble">'
+      + '<div class="imsg-ai-avatar"><svg width="14" height="14" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke="#fff" stroke-width="1.4"/><path d="M7 10l2 2 4-4" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>'
+      + '<div class="imsg-ai-content"><div class="imsg-ai-label">AutoSell AI · replying for seller</div>'
+      + '<div class="imsg-ai-typing"><div class="imsg-ai-dot"></div><div class="imsg-ai-dot"></div><div class="imsg-ai-dot"></div></div>'
+      + '</div></div>');
+    if (window.scrollToLatest) window.scrollToLatest();
+
+    // Build a sales-focused system prompt injected into /api/chat
+    var repoContext = _buildRepoContext(_autoSellSellerData);
+    var salesSystemOverride = [
+      'You are AutoSell AI — an automated sales assistant replying on behalf of a seller on Siterifty.',
+      'Your ONLY job is to answer buyer questions about the product below, build excitement, and guide the buyer to click "Send Deal" in the chat to purchase.',
+      'Keep replies concise (2-4 sentences), conversational, and never use markdown or lists.',
+      'When payment is confirmed, the buyer will be automatically added as a GitHub collaborator — you can mention this as reassurance.',
+      'Never reveal the seller\'s personal details or token. Never discuss other products.',
+      repoContext
+    ].join('\n');
+
+    try {
+      // Use the same /api/chat endpoint as the support AI — it handles Firebase context + Groq
+      // We pass sellerUid as deviceId so the AI also knows seller's account/plan
+      var resp = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages:    _autoSellConvoHistory,
+          deviceId:    _autoSellSellerUidRef || '',
+          _systemOverride: salesSystemOverride  // api/chat must check for this field — see note below
+        })
+      });
+      var data   = await resp.json();
+      var aiText = data.reply || '';
+
+      if (aiText) _autoSellConvoHistory.push({ role: 'assistant', content: aiText });
+
+      var typingEl = document.getElementById(typingId);
+      if (typingEl) {
+        typingEl.outerHTML =
+          '<div class="imsg-ai-bubble">'
+          + '<div class="imsg-ai-avatar"><svg width="14" height="14" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke="#fff" stroke-width="1.4"/><path d="M7 10l2 2 4-4" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>'
+          + '<div class="imsg-ai-content"><div class="imsg-ai-label">AutoSell AI · replying for seller</div>'
+          + _escHtmlAs(aiText)
+          + '</div></div>';
+      }
+
+      _persistAutoSellAiMessage(aiText);
+
+    } catch(err) {
+      console.warn('[autoSell AI]', err);
+      var typingEl2 = document.getElementById(typingId);
+      if (typingEl2) typingEl2.remove();
+    }
+
+    if (window.scrollToLatest) window.scrollToLatest();
+  };
+
+  // ── Persist AI message to Firebase as if sent by seller ──────────────
+  function _persistAutoSellAiMessage(text) {
+    try {
+      var db = _db(); var fns = _fns();
+      var sellerUid = window._currentChatUid || '';
+      var buyerUid  = (window._fbAuth && window._fbAuth.currentUser && window._fbAuth.currentUser.uid) || '';
+      if (!db || !fns.ref || !fns.push || !fns.set || !sellerUid || !buyerUid) return;
+
+      var base = {
+        fromUid:      sellerUid,
+        toUid:        buyerUid,
+        fromUsername: 'AutoSell AI',
+        toName:       (window._currentChatName || ''),
+        message:      text,
+        type:         'text',
+        isAutoSell:   true,
+        sentAt:       Date.now(),
+        read:         false
+      };
+      var newKey = fns.push(fns.ref(db, 'users/' + buyerUid + '/inbox')).key;
+      var updates = {};
+      updates['users/' + buyerUid  + '/inbox/' + newKey] = base;
+      updates['users/' + sellerUid + '/inbox/' + newKey] = base;
+      fns.update(fns.ref(db, '/'), updates).catch(function(e){ console.warn('[autoSell persist]', e); });
+    } catch(e){ console.warn('[autoSell persist]', e); }
+  }
+
+  // ── After payment: ask buyer for GitHub username, then invite ─────────
+  window._autoSellDeliverRepo = function() {
+    if (!_autoSellAiActive || !_autoSellSellerData) return;
+    var repoUrl      = _autoSellSellerData.repoUrl      || '';
+    var repoName     = _autoSellSellerData.repoName     || '';
+    var repoFullName = _autoSellSellerData.repoFullName || '';
+    var repoMeta     = _autoSellSellerData.repoMeta     || {};
+    var sellerUid    = window._currentChatUid           || '';
+    var buyerUid     = (window._fbAuth && window._fbAuth.currentUser && window._fbAuth.currentUser.uid) || '';
+    if (!repoUrl || !repoFullName) return;
+
+    var container = document.getElementById('chatMessagesContent');
+    if (!container) return;
+
+    if (window.appendSystemLogMessage) {
+      appendSystemLogMessage(
+        '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#30d158" stroke-width="2.4" style="vertical-align:-1px;margin-right:4px;"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>'
+        + 'AutoSell: payment confirmed — requesting buyer\'s GitHub to grant repo access'
+      );
+    }
+
+    // Show GitHub username request bubble with inline input
+    var requestId = 'as_ghreq_' + Date.now();
+    container.insertAdjacentHTML('beforeend',
+      '<div class="imsg-ai-bubble" id="'+requestId+'">'
+      + '<div class="imsg-ai-avatar"><svg width="14" height="14" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke="#fff" stroke-width="1.4"/><path d="M7 10l2 2 4-4" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>'
+      + '<div class="imsg-ai-content">'
+      + '<div class="imsg-ai-label">AutoSell AI · payment confirmed 🎉</div>'
+      + 'Payment received! To give you access to <strong>'+_escHtmlAs(repoName)+'</strong>, please enter your GitHub username below and I\'ll add you as a collaborator right away.'
+      + '<div style="margin-top:10px;display:flex;gap:7px;align-items:center;">'
+      + '<input id="asBuyerGhInput_'+requestId+'" type="text" placeholder="your-github-username" autocomplete="off" spellcheck="false" style="flex:1;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:7px 11px;font-size:12px;font-weight:600;color:#fff;font-family:\'Plus Jakarta Sans\',sans-serif;outline:none;" onkeydown="if(event.key===\'Enter\')asSubmitBuyerGithub(\''+requestId+'\',\''+_escHtmlAs(sellerUid)+'\',\''+_escHtmlAs(repoFullName)+'\',\''+_escHtmlAs(repoUrl)+'\',\''+_escHtmlAs(repoName)+'\',\''+_escHtmlAs(buyerUid)+'\')">'
+      + '<button onclick="asSubmitBuyerGithub(\''+requestId+'\',\''+_escHtmlAs(sellerUid)+'\',\''+_escHtmlAs(repoFullName)+'\',\''+_escHtmlAs(repoUrl)+'\',\''+_escHtmlAs(repoName)+'\',\''+_escHtmlAs(buyerUid)+'\')" style="background:rgba(48,209,88,0.15);border:1px solid rgba(48,209,88,0.35);border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;color:#30d158;cursor:pointer;white-space:nowrap;">Add me →</button>'
+      + '</div>'
+      + '<div id="asBuyerGhStatus_'+requestId+'" style="margin-top:6px;font-size:11px;display:none;"></div>'
+      + '</div></div>'
+    );
+    if (window.scrollToLatest) window.scrollToLatest();
+
+    // Also log sale
+    try {
+      var db = _db(); var fns = _fns();
+      if (db && fns.ref && fns.push && sellerUid) {
+        fns.push(fns.ref(db, 'autosell/' + sellerUid + '/sales'), {
+          buyerUid:     buyerUid,
+          repoUrl:      repoUrl,
+          repoFullName: repoFullName,
+          repoName:     repoName,
+          splitPct:     50,
+          completedAt:  Date.now()
+        }).catch(function(){});
+      }
+    } catch(e){}
+  };
+
+  // ── Buyer submits GitHub username → call /api/github-autosell?mode=invite
+  window.asSubmitBuyerGithub = async function(requestId, sellerUid, repoFullName, repoUrl, repoName, buyerUid) {
+    var input     = document.getElementById('asBuyerGhInput_'   + requestId);
+    var statusEl  = document.getElementById('asBuyerGhStatus_'  + requestId);
+    var ghUsername = input ? input.value.trim() : '';
+    if (!ghUsername) { if (input) input.focus(); return; }
+
+    if (input) input.disabled = true;
+    if (statusEl) { statusEl.style.display = ''; statusEl.style.color = 'rgba(255,255,255,0.4)'; statusEl.textContent = 'Adding you as collaborator…'; }
+
+    try {
+      var res  = await fetch('/api/github-autosell?mode=invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sellerUid: sellerUid, buyerGithubUsername: ghUsername, repoFullName: repoFullName })
+      });
+      var json = await res.json();
+
+      if (json.success) {
+        if (statusEl) { statusEl.style.color = '#30d158'; statusEl.textContent = '✓ Done! Check your GitHub email — you\'ll get a collaborator invite for ' + repoName + '.'; }
+        // Save buyer's GitHub to their Firebase profile for future
+        var db = _db(); var fns = _fns();
+        if (db && fns.ref && fns.update && buyerUid) {
+          fns.update(fns.ref(db, 'users/' + buyerUid + '/github'), { username: ghUsername, linkedAt: Date.now() }).catch(function(){});
+        }
+        // Persist final delivery message
+        _persistAutoSellAiMessage('🎉 You\'ve been added as a collaborator on ' + repoName + ' (' + repoUrl + '). Check your GitHub email to accept the invite. Thanks for your purchase!');
+      } else {
+        if (input) input.disabled = false;
+        if (statusEl) { statusEl.style.color = '#f87171'; statusEl.textContent = json.error || 'Failed — check the username and try again.'; }
+      }
+    } catch(err) {
+      if (input) input.disabled = false;
+      if (statusEl) { statusEl.style.color = '#f87171'; statusEl.textContent = 'Network error — try again.'; }
+      console.warn('[autoSell invite]', err);
+    }
+  };
+
+  window._asToastCopied = function() { _toast('Repo link copied!', '#30d158'); };
+
+  function _escHtmlAs(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  // ── Patch sendStandardTextMessage to call the AI intercept ───────────
+  function _patchSendMessage() {
+    var orig = window.sendStandardTextMessage;
+    if (typeof orig !== 'function') { setTimeout(_patchSendMessage, 200); return; }
+    window.sendStandardTextMessage = function() {
+      var input = document.getElementById('chatTextMessageInput');
+      var val = input ? input.value.trim() : '';
+      orig();
+      if (val && _autoSellAiActive) window._autoSellInterceptOutgoing(val);
+    };
+  }
+  _patchSendMessage();
+
+  // ── Patch executeWalletDeduction to trigger repo delivery ────────────
+  function _patchWalletDeduction() {
+    var orig = window.executeWalletDeduction;
+    if (typeof orig !== 'function') { setTimeout(_patchWalletDeduction, 200); return; }
+    window.executeWalletDeduction = function() {
+      orig();
+      if (_autoSellAiActive) setTimeout(function(){ window._autoSellDeliverRepo(); }, 800);
+    };
+  }
+  _patchWalletDeduction();
+
+  // ── Patch openChat to check if partner has AutoSell on ───────────────
+  function _patchOpenChat() {
+    var orig = window.openChat;
+    if (typeof orig !== 'function') {
+      setTimeout(_patchOpenChat, 200);
+      return;
+    }
+    window.openChat = function(name, avatarUrl, status, uid, partnerUid) {
+      orig(name, avatarUrl, status, uid, partnerUid);
+      // Check if the seller (the person we're chatting with) has AutoSell on
+      var targetUid = uid || partnerUid || '';
+      if (targetUid) window._checkPartnerAutoSell(targetUid);
+    };
+  }
+  _patchOpenChat();
+
+  // ── Expose openAutoSellModal globally (for settings button hookup) ──
+  // This is already done above — just a comment marker.
 
 })();
 </script>
