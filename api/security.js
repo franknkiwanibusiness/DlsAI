@@ -501,6 +501,139 @@ export default async function handler(req, res) {
       return res.status(200).json({ queued: true, appealId: appealRef.key });
     }
 
+    // ── mode=accounts: account invite & managed-account system ───────────────
+    // Auth: Firebase ID token in Authorization: Bearer header (not x-admin-key)
+    if (mode === 'accounts') {
+      const authHeader = req.headers['authorization'] || '';
+      const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+      if (!idToken) return res.status(401).json({ error: 'Missing Bearer token.' });
+
+      let caller;
+      try { caller = await admin.auth().verifyIdToken(idToken); }
+      catch(e) { return res.status(401).json({ error: 'Invalid or expired token.' }); }
+
+      const { action, inviteeEmail, role, ownerUid } = req.body || {};
+
+      // helper: sanitise email into a Firebase-safe key
+      function emailKey(email) {
+        return (email || '').toLowerCase().trim().replace(/[.#$[\]]/g, '_');
+      }
+
+      // ── invite ────────────────────────────────────────────────────────────
+      if (action === 'invite') {
+        if (!inviteeEmail || !inviteeEmail.includes('@'))
+          return res.status(400).json({ error: 'Valid inviteeEmail required.' });
+        if (inviteeEmail.toLowerCase() === (caller.email || '').toLowerCase())
+          return res.status(400).json({ error: 'Cannot invite yourself.' });
+
+        const r   = role === 'editor' ? 'editor' : 'viewer';
+        const key = emailKey(inviteeEmail);
+
+        // Fetch owner's display name from their profile
+        const ownerSnap = await db.ref('users/' + caller.uid).once('value');
+        const ownerData = ownerSnap.val() || {};
+        const ownerName = ownerData.username || caller.email || 'Someone';
+
+        const payload = {
+          ownerUid:     caller.uid,
+          ownerEmail:   caller.email || '',
+          ownerName,
+          inviteeEmail: inviteeEmail.toLowerCase(),
+          role:         r,
+          status:       'pending',
+          invitedAt:    Date.now(),
+        };
+
+        await Promise.all([
+          db.ref('pendingInvites/' + key).set(payload),
+          db.ref('users/' + caller.uid + '/teamMembers/' + key).update({
+            email: inviteeEmail.toLowerCase(), role: r, status: 'pending', invitedAt: Date.now(),
+          }),
+        ]);
+        return res.status(200).json({ ok: true, message: 'Invite sent to ' + inviteeEmail });
+      }
+
+      // ── revoke ────────────────────────────────────────────────────────────
+      if (action === 'revoke') {
+        if (!inviteeEmail) return res.status(400).json({ error: 'inviteeEmail required.' });
+        const key = emailKey(inviteeEmail);
+        const ops = [
+          db.ref('pendingInvites/' + key).remove(),
+          db.ref('users/' + caller.uid + '/teamMembers/' + key).remove(),
+        ];
+        // Best-effort: also remove from invitee's managedAccounts if they've already accepted
+        try {
+          const inviteeRecord = await admin.auth().getUserByEmail(inviteeEmail.toLowerCase());
+          if (inviteeRecord) {
+            ops.push(db.ref('users/' + inviteeRecord.uid + '/managedAccounts/' + caller.uid).remove());
+          }
+        } catch(_) {}
+        await Promise.all(ops);
+        return res.status(200).json({ ok: true, message: 'Member removed.' });
+      }
+
+      // ── accept ────────────────────────────────────────────────────────────
+      if (action === 'accept') {
+        if (!ownerUid) return res.status(400).json({ error: 'ownerUid required.' });
+        const key     = emailKey(caller.email || '');
+        const invSnap = await db.ref('pendingInvites/' + key).once('value');
+        const inv     = invSnap.val();
+        if (!inv || inv.status !== 'pending')
+          return res.status(404).json({ error: 'No pending invite found.' });
+        if (inv.ownerUid !== ownerUid)
+          return res.status(403).json({ error: 'Invite owner mismatch.' });
+
+        await Promise.all([
+          db.ref('users/' + caller.uid + '/managedAccounts/' + ownerUid).set({
+            ownerUid,
+            ownerEmail:  inv.ownerEmail,
+            ownerName:   inv.ownerName || inv.ownerEmail,
+            role:        inv.role || 'viewer',
+            acceptedAt:  Date.now(),
+          }),
+          db.ref('pendingInvites/' + key).update({ status: 'accepted', acceptedAt: Date.now() }),
+          db.ref('users/' + ownerUid + '/teamMembers/' + key).update({ status: 'active', acceptedAt: Date.now() }),
+        ]);
+        return res.status(200).json({ ok: true, ownerName: inv.ownerName || inv.ownerEmail, role: inv.role || 'viewer' });
+      }
+
+      // ── reject ────────────────────────────────────────────────────────────
+      if (action === 'reject') {
+        const key = emailKey(caller.email || '');
+        await db.ref('pendingInvites/' + key).update({ status: 'rejected', rejectedAt: Date.now() });
+        if (ownerUid) {
+          await db.ref('users/' + ownerUid + '/teamMembers/' + key).update({ status: 'rejected' });
+        }
+        return res.status(200).json({ ok: true, message: 'Invite declined.' });
+      }
+
+      // ── leave (member exits a managed account) ────────────────────────────
+      if (action === 'leave') {
+        if (!ownerUid) return res.status(400).json({ error: 'ownerUid required.' });
+        const key = emailKey(caller.email || '');
+        await Promise.all([
+          db.ref('users/' + caller.uid + '/managedAccounts/' + ownerUid).remove(),
+          db.ref('users/' + ownerUid + '/teamMembers/' + key).remove(),
+          db.ref('pendingInvites/' + key).remove(),
+        ]);
+        return res.status(200).json({ ok: true, message: 'Left managed account.' });
+      }
+
+      // ── list_managed ──────────────────────────────────────────────────────
+      if (action === 'list_managed') {
+        const snap = await db.ref('users/' + caller.uid + '/managedAccounts').once('value');
+        return res.status(200).json({ ok: true, accounts: snap.val() || {} });
+      }
+
+      // ── list_members ──────────────────────────────────────────────────────
+      if (action === 'list_members') {
+        const snap = await db.ref('users/' + caller.uid + '/teamMembers').once('value');
+        return res.status(200).json({ ok: true, members: snap.val() || {} });
+      }
+
+      return res.status(400).json({ error: 'Unknown accounts action: ' + action });
+    }
+
     return res.status(400).json({ error: 'Unknown mode: ' + mode });
   } catch (err) {
     console.error('[api/security]', err);
