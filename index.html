@@ -3776,12 +3776,10 @@
     align-items: center; justify-content: center;
     padding: 0; overflow: hidden;
 }
-#messagesOverlay-bg-img { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-#messagesOverlay-bg-img img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; opacity: 0.45; filter: saturate(0.7) brightness(0.9); }
 #messagesOverlay::before {
     content: '';
     position: absolute; inset: 0;
-    background: rgba(10,10,15,0.78);
+    background: rgba(10,10,15,1);
     z-index: 0;
 }
 #messagesOverlay > * { position: relative; z-index: 1; }
@@ -4727,116 +4725,200 @@
             gap: 0;
         }
         #topupResult.open { display: flex; }
+        /* ── Top-up result card — redesign ── */
         .tr-card {
-            background: linear-gradient(160deg, #16161f, #111118);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 28px;
-            width: 100%;
-            max-width: 360px;
-            padding: 40px 32px 36px;
-            text-align: center;
             position: relative;
-            animation: topupIn 0.35s cubic-bezier(0.34,1.4,0.64,1) both;
-        }
-        .tr-emoji {
-            font-size: 64px;
-            line-height: 1;
-            margin-bottom: 20px;
-            display: block;
-            animation: emojiPop 0.5s cubic-bezier(0.34,1.6,0.64,1) 0.15s both;
-        }
-        @keyframes emojiPop {
-            from { transform: scale(0.2); opacity: 0; }
-            to   { transform: scale(1);   opacity: 1; }
+            width: 100%;
+            max-width: 380px;
+            border-radius: 32px;
+            overflow: hidden;
+            background: #0e0e16;
+            border: 1px solid rgba(255,255,255,0.07);
+            box-shadow: 0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04) inset;
+            animation: topupIn 0.4s cubic-bezier(0.34,1.3,0.64,1) both;
         }
         .tr-coins {
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
             pointer-events: none;
             overflow: hidden;
-            border-radius: 28px;
+            border-radius: 32px;
+            z-index: 0;
         }
         .tr-coin {
             position: absolute;
-            font-size: 20px;
+            font-size: 18px;
             animation: coinFall linear forwards;
             opacity: 0;
         }
         @keyframes coinFall {
             0%   { opacity: 1; transform: translateY(0) rotate(0deg) scale(1); }
-            100% { opacity: 0; transform: translateY(120px) rotate(360deg) scale(0.5); }
+            100% { opacity: 0; transform: translateY(140px) rotate(360deg) scale(0.4); }
+        }
+        /* Glowing top stripe */
+        .tr-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #34d399, #10b981, #34d399);
+            background-size: 200% 100%;
+            animation: trStripe 2.5s linear infinite;
+            z-index: 2;
+            transition: background .4s;
+        }
+        .tr-card.fail-mode::before {
+            background: linear-gradient(90deg, #f87171, #ef4444, #f87171);
+            background-size: 200% 100%;
+        }
+        @keyframes trStripe { 0%{background-position:0% 0%} 100%{background-position:200% 0%} }
+
+        /* Hero section */
+        .tr-hero {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 44px 32px 28px;
+            background: radial-gradient(ellipse 60% 50% at 50% 0%, rgba(52,211,153,0.1) 0%, transparent 70%);
+            transition: background .4s;
+        }
+        .tr-card.fail-mode .tr-hero {
+            background: radial-gradient(ellipse 60% 50% at 50% 0%, rgba(248,113,113,0.1) 0%, transparent 70%);
+        }
+        .tr-icon-wrap {
+            width: 80px; height: 80px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 22px;
+            animation: trIconPop 0.55s cubic-bezier(0.34,1.6,0.64,1) 0.1s both;
+            position: relative;
+        }
+        .tr-icon-wrap::after {
+            content: '';
+            position: absolute; inset: -6px;
+            border-radius: 50%;
+            border: 1.5px solid rgba(52,211,153,0.2);
+            animation: trRingPulse 2s ease-out 0.4s infinite;
+            transition: border-color .4s;
+        }
+        .tr-card.fail-mode .tr-icon-wrap::after { border-color: rgba(248,113,113,0.2); }
+        @keyframes trIconPop {
+            from { transform: scale(0.3) rotate(-15deg); opacity: 0; }
+            to   { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+        @keyframes trRingPulse {
+            0%   { transform: scale(1); opacity: 1; }
+            100% { transform: scale(1.5); opacity: 0; }
         }
         .tr-title {
             font-family: 'Syne', sans-serif;
-            font-size: 1.6rem;
-            font-weight: 800;
+            font-size: 1.55rem;
+            font-weight: 900;
             letter-spacing: -0.04em;
-            color: var(--text);
-            margin-bottom: 8px;
+            color: #f1f0ff;
+            margin-bottom: 6px;
+            text-align: center;
         }
         .tr-sub {
             font-size: 13px;
-            color: var(--muted);
-            line-height: 1.6;
-            margin-bottom: 24px;
+            color: rgba(255,255,255,0.38);
+            line-height: 1.65;
+            text-align: center;
+            max-width: 260px;
         }
+
+        /* Amount badge */
         .tr-amount-badge {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 8px 20px;
+            padding: 7px 18px;
             border-radius: 999px;
             font-family: 'Syne', sans-serif;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             font-weight: 800;
-            letter-spacing: -0.03em;
-            margin-bottom: 24px;
+            letter-spacing: -0.02em;
+            margin: 18px 0 0;
         }
         .tr-amount-badge.success {
-            background: rgba(52,211,153,0.12);
-            border: 1px solid rgba(52,211,153,0.3);
+            background: rgba(52,211,153,0.1);
+            border: 1px solid rgba(52,211,153,0.25);
             color: #34d399;
         }
         .tr-amount-badge.fail {
-            background: rgba(248,113,113,0.12);
-            border: 1px solid rgba(248,113,113,0.3);
+            background: rgba(248,113,113,0.1);
+            border: 1px solid rgba(248,113,113,0.25);
             color: #f87171;
+        }
+
+        /* Divider */
+        .tr-divider {
+            height: 1px;
+            background: rgba(255,255,255,0.06);
+            margin: 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Footer / CTA section */
+        .tr-footer {
+            position: relative;
+            z-index: 1;
+            padding: 24px 28px 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
         .tr-cta {
             width: 100%;
-            padding: 13px;
-            border-radius: 12px;
+            padding: 15px;
+            border-radius: 14px;
             font-family: 'Syne', sans-serif;
             font-size: 14px;
-            font-weight: 700;
+            font-weight: 800;
+            letter-spacing: 0.01em;
             cursor: pointer;
             border: none;
-            transition: opacity .15s, transform .15s;
+            transition: opacity .18s, transform .18s, box-shadow .18s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
-        .tr-cta:hover { opacity: .88; transform: translateY(-1px); }
+        .tr-cta:hover { opacity: .9; transform: translateY(-1px); }
+        .tr-cta:active { transform: scale(.98); }
         .tr-cta.success-cta {
-            background: linear-gradient(135deg, #34d399, #10b981);
+            background: linear-gradient(135deg, #34d399 0%, #059669 100%);
             color: #fff;
+            box-shadow: 0 8px 24px rgba(52,211,153,0.28);
         }
+        .tr-cta.success-cta:hover { box-shadow: 0 12px 30px rgba(52,211,153,0.38); }
         .tr-cta.fail-cta {
-            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            background: linear-gradient(135deg, #f87171, #ef4444);
             color: #fff;
+            box-shadow: 0 8px 24px rgba(248,113,113,0.25);
         }
         .tr-cta-ghost {
             width: 100%;
-            padding: 11px;
-            border-radius: 12px;
+            padding: 13px;
+            border-radius: 14px;
             font-family: 'Syne', sans-serif;
             font-size: 13px;
             font-weight: 600;
             cursor: pointer;
             background: transparent;
-            border: 1px solid rgba(255,255,255,0.1);
-            color: var(--muted);
-            margin-top: 10px;
-            transition: border-color .15s, color .15s;
+            border: 1px solid rgba(255,255,255,0.09);
+            color: rgba(255,255,255,0.35);
+            transition: border-color .15s, color .15s, background .15s;
+            letter-spacing: 0.01em;
         }
-        .tr-cta-ghost:hover { border-color: rgba(255,255,255,.2); color: var(--text); }
+        .tr-cta-ghost:hover {
+            border-color: rgba(255,255,255,0.18);
+            color: rgba(255,255,255,0.6);
+            background: rgba(255,255,255,0.03);
+        }
 
         /* ═══════════════════════════════════════════════
            TICKER SECTION — live sales feed
@@ -8177,10 +8259,7 @@
 
     <!--  MESSAGES MODAL (Inbox + Chat)  -->
     <div id="messagesOverlay">
-        <div id="messagesOverlay-bg-img" aria-hidden="true">
-            <img id="msgOverlayBgImg" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRANmB5Hwth7loc_aHJGTJKHYOImvhr_emj-1Yy5ABw3XCXxennbcSEaAw9&s=10" alt="" loading="lazy">
-            <div class="bg-img-skeleton" id="msgOverlayBgSkeleton"></div>
-        </div>
+
         <div id="messagesModal">
             <input type="file" id="photoInput" accept="image/*" class="imsg-hidden" onchange="processFileSelection(this, 'image')">
             <input type="file" id="genericFileInput" accept="application/pdf, text/html" class="imsg-hidden" onchange="processFileSelection(this, 'document')">
@@ -8332,6 +8411,7 @@
             <!-- ── Chat view ── -->
             <div id="imsgChatView">
                 <div class="imsg-chat-header">
+
                     <div class="imsg-chat-header-img" aria-hidden="true">
                         <img id="imsgChatHeaderImg" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRANmB5Hwth7loc_aHJGTJKHYOImvhr_emj-1Yy5ABw3XCXxennbcSEaAw9&s=10" alt="" loading="lazy">
                         <div class="bg-img-skeleton" id="imsgChatHeaderSkeleton"></div>
@@ -8799,14 +8879,25 @@
     <div id="topupResult">
         <div class="tr-card" id="trCard">
             <div class="tr-coins" id="trCoins"></div>
-            <div class="tr-icon-wrap" id="trEmoji" style="font-size:64px;line-height:1;margin-bottom:20px;display:flex;align-items:center;justify-content:center;">
-            <svg width="64" height="64" viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="30" fill="rgba(52,211,153,0.12)" stroke="rgba(52,211,153,0.35)" stroke-width="1.5"/><path d="M20 32l10 10 14-16" stroke="#34d399" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </div>
-            <div class="tr-title" id="trTitle">Balance Added!</div>
-            <div class="tr-amount-badge success" id="trBadge"></div>
-            <div class="tr-sub" id="trSub">Your wallet has been topped up successfully. Happy browsing!</div>
-            <button class="tr-cta success-cta" id="trCta" onclick="closeResult()">Continue Browsing</button>
-            <button class="tr-cta-ghost" id="trCta2" style="display:none" onclick="closeResult();openTopUpModal()">Try Again</button>
+            <!-- Hero -->
+            <div class="tr-hero">
+                <div class="tr-icon-wrap" id="trEmoji">
+                    <svg width="44" height="44" viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="30" fill="rgba(52,211,153,0.15)" stroke="rgba(52,211,153,0.4)" stroke-width="1.5"/><path d="M20 32l10 10 14-16" stroke="#34d399" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <div class="tr-title" id="trTitle">Balance Added!</div>
+                <div class="tr-sub" id="trSub">Your wallet has been topped up. Happy selling on Siterifty!</div>
+                <div class="tr-amount-badge success" id="trBadge"></div>
+            </div>
+            <!-- Divider -->
+            <div class="tr-divider"></div>
+            <!-- CTAs -->
+            <div class="tr-footer">
+                <button class="tr-cta success-cta" id="trCta" onclick="closeResult()">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    Go to Marketplace
+                </button>
+                <button class="tr-cta-ghost" id="trCta2" style="display:none" onclick="closeResult();openTopUpModal()">Try Again</button>
+            </div>
         </div>
     </div>
 
@@ -8978,7 +9069,10 @@
                     <div class="auth-divider">or sign up with email</div>
 
                     <label class="auth-label">Username</label>
-                    <input id="suUsername" class="auth-input" type="text" placeholder="coolperson123" autocomplete="off" spellcheck="false">
+                    <div style="position:relative;display:flex;align-items:center;">
+                        <span style="position:absolute;left:14px;font-size:15px;font-weight:700;color:rgba(255,255,255,0.35);pointer-events:none;z-index:1;">@</span>
+                        <input id="suUsername" class="auth-input" type="text" placeholder="coolperson123" autocomplete="off" spellcheck="false" style="padding-left:30px;width:100%;box-sizing:border-box;">
+                    </div>
                     <label class="auth-label">Email</label>
                     <input id="suEmail" class="auth-input" type="email" placeholder="you@example.com" autocomplete="email">
                     <label class="auth-label">Password</label>
@@ -12647,7 +12741,6 @@
             <div style="font-size:10.5px;color:rgba(255,255,255,0.25);margin-top:10px;">Tap whenever you're ready — no rush</div>
         </div>
     </div>
-    <div class="sr-tour-skip" id="srTourSkip">Skip tour</div>
 </div>`;
 
             document.body.appendChild(overlay);
@@ -12663,7 +12756,6 @@
             const xpNumEl  = document.getElementById('srXpBarNum');
             const xpBarEl  = document.getElementById('srXpBarFill');
             const btnEl    = document.getElementById('srTourBtn');
-            const skipEl   = document.getElementById('srTourSkip');
             const confEl   = document.getElementById('srTourConfetti');
 
             const TOTAL_XP = 150;
@@ -12741,14 +12833,13 @@
                 if (s.isLast) {
                     btnEl.style.display = 'none';
                     if (launchEl) launchEl.style.display = 'block';
-                    skipEl.style.display = 'none';
                 } else {
                     btnEl.style.display = 'block';
                     if (launchEl) launchEl.style.display = 'none';
                     btnEl.textContent = s.cta;
                     btnEl.style.background = 'linear-gradient(135deg,' + s.color + ',#818cf8)';
                     btnEl.style.boxShadow  = '0 8px 24px ' + s.color + '45';
-                    skipEl.style.display = 'block';
+                    _startStepGate(s.cta, s.color);
                 }
 
                 // Step-in animation
@@ -12759,6 +12850,26 @@
                 bodyEl.classList.add('sr-tour-step-enter');
 
                 if (i === steps.length - 1) _spawnConfetti(s.color);
+            }
+
+            function _startStepGate(ctaLabel, color) {
+                btnEl.disabled = true;
+                btnEl.style.opacity = '0.55';
+                btnEl.style.cursor  = 'not-allowed';
+                let secs = 3;
+                btnEl.textContent = ctaLabel + ' (' + secs + ')';
+                const iv = setInterval(function() {
+                    secs--;
+                    if (secs > 0) {
+                        btnEl.textContent = ctaLabel + ' (' + secs + ')';
+                    } else {
+                        clearInterval(iv);
+                        btnEl.textContent = ctaLabel;
+                        btnEl.disabled = false;
+                        btnEl.style.opacity = '1';
+                        btnEl.style.cursor  = 'pointer';
+                    }
+                }, 1000);
             }
 
             function _advance() {
@@ -12777,20 +12888,10 @@
                 setTimeout(function() { overlay.remove(); onDone(); }, 320);
             }
 
-            function _skip() {
-                // Mark tour complete but don't open dash — user dismissed
-                try { update(ref(db, 'users/' + uid), { tourComplete: true, lastExitAt: 0 }); } catch(_) {}
-                overlay.style.animation = 'srTourFadeIn .3s ease reverse forwards';
-                setTimeout(function() { overlay.remove(); }, 320);
-                // Show a subtle toast so they know where to find the dashboard
-                if (window.showToast) window.showToast('Tap your avatar or the top-right chip to open your dashboard anytime');
-            }
-
             // Expose launch to the inline button onclick
             overlay._launchDash = _launch;
 
             btnEl.addEventListener('click', _advance);
-            skipEl.addEventListener('click', _skip);
 
             _renderStep(0);
         }
@@ -13042,11 +13143,18 @@
 
                 setTimeout(()=>{
                     closeAuthModal();
-                    window._openDashWithFlow(true, uid, username);
-                    if (refResult && refResult.invalidRef) {
-                        setTimeout(() => { if (window._showReferralWelcomePopup) window._showReferralWelcomePopup(null, true); }, 1200);
-                    } else if (refResult && refResult.referrerUsername) {
-                        setTimeout(() => { if (window._showReferralWelcomePopup) window._showReferralWelcomePopup(refResult.referrerUsername, false); }, 1200);
+                    // Show avatar picker, then open dash
+                    if (window._openAvatarPicker) {
+                        window._openAvatarPicker(uid, username, function() {
+                            window._openDashWithFlow(true, uid, username);
+                            if (refResult && refResult.invalidRef) {
+                                setTimeout(() => { if (window._showReferralWelcomePopup) window._showReferralWelcomePopup(null, true); }, 1200);
+                            } else if (refResult && refResult.referrerUsername) {
+                                setTimeout(() => { if (window._showReferralWelcomePopup) window._showReferralWelcomePopup(refResult.referrerUsername, false); }, 1200);
+                            }
+                        });
+                    } else {
+                        window._openDashWithFlow(true, uid, username);
                     }
                 }, 900);
             } catch(e){
@@ -13089,42 +13197,32 @@
                 // Check if user already exists; if not, create profile
                 const snap = await get(ref(db,'users/'+uid));
                 if(!snap.exists()){
-                    // Generate username from Google display name or email
-                    let base = (user.displayName || user.email || 'user').replace(/[^a-zA-Z0-9]/g,'').toLowerCase().slice(0,16) || 'user';
-                    let username = base;
-                    let attempt = 0;
-                    while((await get(ref(db,'usernames/'+username))).exists() && attempt < 10){
-                        username = base + Math.floor(Math.random()*9000+1000);
-                        attempt++;
-                    }
+                    // Create base record first (plan, createdAt etc) — username/email filled by modal
                     await set(ref(db,'users/'+uid), {
-                        username:   username,
-                        email:      user.email || '',
-                        displayName: user.displayName || username,
-                        photoURL:   user.photoURL || '',
-                        plan:       'Free',
-                        createdAt:  Date.now(),
-                        address:    {},
-                        orders:     []
+                        username:    '',
+                        email:       user.email || '',
+                        displayName: user.displayName || '',
+                        photoURL:    user.photoURL || '',
+                        plan:        'Free',
+                        createdAt:   Date.now(),
+                        address:     {},
+                        orders:      []
                     });
-                    await set(ref(db,'usernames/'+username), uid);
-                    if(user.photoURL && window._applyPhotoURL) window._applyPhotoURL(user.photoURL);
-                    // Apply unique gradient to profileAvatarCircle
-                    const _pac = document.getElementById('profileAvatarCircle');
-                    if (_pac && !_pac.querySelector('img')) {
-                        const _uid = user.uid || '';
-                        const [_pc1,_pc2] = (window._avatarGradientForUser || function(){ return ['#a855f7','#818cf8']; })(_uid);
-                        _pac.style.background = `linear-gradient(135deg,${_pc1},${_pc2})`;
-                        _pac.textContent = (user.displayName || user.email || '?').charAt(0).toUpperCase();
-                    }
-                    // Process referral for Google new users
-                    const _gRefResult = await (window._processReferral ? window._processReferral(uid, username, user.email||'') : Promise.resolve(null));
                     closeAuthModal();
-                    window._openDashWithFlow(true, uid, username);
-                    if (_gRefResult && _gRefResult.invalidRef) {
-                        setTimeout(() => { if (window._showReferralWelcomePopup) window._showReferralWelcomePopup(null, true); }, 1200);
-                    } else if (_gRefResult && _gRefResult.referrerUsername) {
-                        setTimeout(() => { if (window._showReferralWelcomePopup) window._showReferralWelcomePopup(_gRefResult.referrerUsername, false); }, 1200);
+                    // New Google user — collect username + confirm email, then avatar picker
+                    if (window._openSocialProfileSetup) {
+                        window._openSocialProfileSetup(uid, 'google', user.email || '', async function(username, email, avatarUrl) {
+                            // Process referral
+                            const _gRefResult = await (window._processReferral ? window._processReferral(uid, username, user.email||'') : Promise.resolve(null));
+                            window._openDashWithFlow(true, uid, username);
+                            if (_gRefResult && _gRefResult.invalidRef) {
+                                setTimeout(() => { if (window._showReferralWelcomePopup) window._showReferralWelcomePopup(null, true); }, 1200);
+                            } else if (_gRefResult && _gRefResult.referrerUsername) {
+                                setTimeout(() => { if (window._showReferralWelcomePopup) window._showReferralWelcomePopup(_gRefResult.referrerUsername, false); }, 1200);
+                            }
+                        });
+                    } else {
+                        window._openDashWithFlow(true, uid, user.displayName || '');
                     }
                 } else {
                     closeAuthModal();
@@ -13162,38 +13260,36 @@
 
                 const snap = await get(ref(db,'users/'+uid));
                 if (!snap.exists()) {
-                    // New user — create Siterifty profile
-                    let base = (user.displayName || user.email || 'user').replace(/[^a-zA-Z0-9]/g,'').toLowerCase().slice(0,16) || 'user';
-                    let username = base;
-                    let attempt = 0;
-                    while((await get(ref(db,'usernames/'+username))).exists() && attempt < 10){
-                        username = base + Math.floor(Math.random()*9000+1000);
-                        attempt++;
-                    }
+                    // Create base record — username/email filled by modal
                     await set(ref(db,'users/'+uid), {
-                        username:    username,
+                        username:    '',
                         email:       user.email || '',
-                        displayName: user.displayName || username,
+                        displayName: user.displayName || '',
                         photoURL:    user.photoURL || '',
                         plan:        'Free',
                         createdAt:   Date.now(),
                         address:     {},
                         orders:      []
                     });
-                    await set(ref(db,'usernames/'+username), uid);
-                    if(user.photoURL && window._applyPhotoURL) window._applyPhotoURL(user.photoURL);
-                    // Referral processing
-                    const _ghRefResult = await (window._processReferral ? window._processReferral(uid, username, user.email||'') : Promise.resolve(null));
                     closeAuthModal();
-                    window._openDashWithFlow(true, uid, username);
-                    // After login, also link GitHub to AutoSell if token available
-                    if (ghToken && ghUsername) {
-                        _linkGithubToAutoSell(uid, ghToken, ghUsername, user.photoURL || '');
-                    }
-                    if (_ghRefResult && _ghRefResult.invalidRef) {
-                        setTimeout(() => { if (window._showReferralWelcomePopup) window._showReferralWelcomePopup(null, true); }, 1200);
-                    } else if (_ghRefResult && _ghRefResult.referrerUsername) {
-                        setTimeout(() => { if (window._showReferralWelcomePopup) window._showReferralWelcomePopup(_ghRefResult.referrerUsername, false); }, 1200);
+                    // New GitHub user — collect username + confirm email, then avatar picker
+                    if (window._openSocialProfileSetup) {
+                        window._openSocialProfileSetup(uid, 'github', user.email || '', async function(username, email, avatarUrl) {
+                            // Link GitHub to AutoSell
+                            if (ghToken && ghUsername) {
+                                _linkGithubToAutoSell(uid, ghToken, ghUsername, avatarUrl || user.photoURL || '');
+                            }
+                            // Process referral
+                            const _ghRefResult = await (window._processReferral ? window._processReferral(uid, username, user.email||'') : Promise.resolve(null));
+                            window._openDashWithFlow(true, uid, username);
+                            if (_ghRefResult && _ghRefResult.invalidRef) {
+                                setTimeout(() => { if (window._showReferralWelcomePopup) window._showReferralWelcomePopup(null, true); }, 1200);
+                            } else if (_ghRefResult && _ghRefResult.referrerUsername) {
+                                setTimeout(() => { if (window._showReferralWelcomePopup) window._showReferralWelcomePopup(_ghRefResult.referrerUsername, false); }, 1200);
+                            }
+                        });
+                    } else {
+                        window._openDashWithFlow(true, uid, user.displayName || '');
                     }
                 } else {
                     closeAuthModal();
@@ -17745,15 +17841,16 @@
             const title  = document.getElementById('trTitle');
             const sub    = document.getElementById('trSub');
 
-            emoji.innerHTML = '<svg width="64" height="64" viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="30" fill="rgba(52,211,153,0.12)" stroke="rgba(52,211,153,0.35)" stroke-width="1.5"/><path d="M20 32l10 10 14-16" stroke="#34d399" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+            emoji.innerHTML = '<svg width="44" height="44" viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="30" fill="rgba(52,211,153,0.15)" stroke="rgba(52,211,153,0.4)" stroke-width="1.5"/><path d="M20 32l10 10 14-16" stroke="#34d399" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
             title.textContent = 'Balance Added!';
             badge.textContent = '+$' + amount.toFixed(2);
             badge.className = 'tr-amount-badge success';
             sub.textContent = 'Your wallet has been topped up. Happy selling on Siterifty!';
             cta.className = 'tr-cta success-cta';
-            cta.textContent = 'Continue Browsing';
+            cta.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg> Go to Marketplace';
             cta.onclick = closeResult;
             cta2.style.display = 'none';
+            document.getElementById('trCard').classList.remove('fail-mode');
 
             result.classList.add('open');
             lockBodyScroll();
@@ -17770,17 +17867,18 @@
             const title  = document.getElementById('trTitle');
             const sub    = document.getElementById('trSub');
 
-            emoji.innerHTML = '<svg width="64" height="64" viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="30" fill="rgba(248,113,113,0.12)" stroke="rgba(248,113,113,0.35)" stroke-width="1.5"/><path d="M20 20l24 24M44 20L20 44" stroke="#f87171" stroke-width="3" stroke-linecap="round"/></svg>';
+            emoji.innerHTML = '<svg width="44" height="44" viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="30" fill="rgba(248,113,113,0.15)" stroke="rgba(248,113,113,0.4)" stroke-width="1.5"/><path d="M20 20l24 24M44 20L20 44" stroke="#f87171" stroke-width="3" stroke-linecap="round"/></svg>';
             title.textContent = 'Payment Failed';
             badge.textContent = 'Not charged';
             badge.className = 'tr-amount-badge fail';
             sub.textContent = message;
             cta.className = 'tr-cta fail-cta';
-            cta.textContent = 'Try Again';
+            cta.innerHTML = 'Try Again';
             cta.onclick = () => { closeResult(); openTopUpModal(); };
             cta2.style.display = 'block';
             cta2.textContent = 'Cancel';
             cta2.onclick = closeResult;
+            document.getElementById('trCard').classList.add('fail-mode');
 
             result.classList.add('open');
             lockBodyScroll();
@@ -22971,6 +23069,412 @@ document.addEventListener('DOMContentLoaded', function(){
     wireBgSkeleton('msgOverlayBgImg', 'msgOverlayBgSkeleton');
     wireBgSkeleton('imsgChatHeaderImg', 'imsgChatHeaderSkeleton');
     wireBgSkeleton('dashModalBgImg', 'dashModalBgSkeleton');
+})();
+</script>
+
+<!-- ══════════════════════════════════════════════════════
+     AVATAR PICKER MODAL (shown after email signup)
+══════════════════════════════════════════════════════ -->
+<div id="avatarPickerOverlay" style="display:none;position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,0.82);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);align-items:center;justify-content:center;padding:20px;">
+<style>
+#avatarPickerOverlay.open { display:flex!important; }
+.avp-card {
+    width:100%;max-width:420px;
+    background:linear-gradient(160deg,#13131e,#0e0e18);
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:28px;
+    overflow:hidden;
+    box-shadow:0 40px 80px rgba(0,0,0,0.7);
+    animation:avpIn .38s cubic-bezier(.34,1.25,.64,1) both;
+}
+@keyframes avpIn { from{transform:translateY(30px) scale(.96);opacity:0} to{transform:none;opacity:1} }
+.avp-header {
+    padding:28px 28px 20px;
+    border-bottom:1px solid rgba(255,255,255,0.06);
+}
+.avp-title {
+    font-family:'Syne',sans-serif;font-size:1.25rem;font-weight:900;
+    letter-spacing:-0.03em;color:#f1f0ff;margin-bottom:4px;
+}
+.avp-sub { font-size:12px;color:rgba(255,255,255,0.35);line-height:1.5; }
+.avp-preview-wrap {
+    display:flex;align-items:center;gap:14px;margin-top:18px;
+}
+.avp-preview-img {
+    width:60px;height:60px;border-radius:50%;
+    object-fit:cover;border:2px solid rgba(168,85,247,0.5);
+    box-shadow:0 0 0 4px rgba(168,85,247,0.12);
+    transition:all .3s;flex-shrink:0;
+}
+.avp-preview-label { font-size:12px;color:rgba(255,255,255,0.3);line-height:1.6; }
+.avp-preview-label strong { color:rgba(255,255,255,0.7);font-weight:600;display:block;margin-bottom:2px; }
+/* Horizontal scroll strip */
+.avp-strip-wrap {
+    padding:20px 0 20px;
+    border-bottom:1px solid rgba(255,255,255,0.06);
+}
+.avp-strip-label {
+    font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+    color:rgba(255,255,255,0.25);padding:0 28px;margin-bottom:12px;
+}
+.avp-strip {
+    display:flex;gap:12px;
+    overflow-x:auto;padding:4px 28px 8px;
+    scrollbar-width:none;
+}
+.avp-strip::-webkit-scrollbar { display:none; }
+.avp-thumb {
+    flex-shrink:0;width:72px;height:72px;border-radius:18px;
+    object-fit:cover;cursor:pointer;
+    border:2.5px solid transparent;
+    transition:transform .2s,border-color .2s,box-shadow .2s;
+    box-shadow:0 4px 12px rgba(0,0,0,0.4);
+}
+.avp-thumb:hover { transform:scale(1.07);box-shadow:0 8px 20px rgba(0,0,0,0.5); }
+.avp-thumb.selected {
+    border-color:#a855f7;
+    box-shadow:0 0 0 3px rgba(168,85,247,0.3),0 8px 20px rgba(0,0,0,0.5);
+    transform:scale(1.07);
+}
+/* Footer */
+.avp-footer { padding:20px 28px 24px;display:flex;flex-direction:column;gap:10px; }
+.avp-btn {
+    width:100%;padding:14px;border-radius:14px;
+    font-family:'Syne',sans-serif;font-size:14px;font-weight:800;
+    letter-spacing:.01em;cursor:pointer;border:none;
+    background:linear-gradient(135deg,#a855f7,#818cf8);
+    color:#fff;box-shadow:0 8px 24px rgba(168,85,247,0.3);
+    transition:opacity .18s,transform .18s,box-shadow .18s;
+}
+.avp-btn:hover { opacity:.9;transform:translateY(-1px);box-shadow:0 12px 28px rgba(168,85,247,0.4); }
+.avp-btn:active { transform:scale(.98); }
+.avp-skip {
+    text-align:center;font-size:11.5px;color:rgba(255,255,255,0.22);
+    cursor:pointer;transition:color .18s;padding:2px 0;
+}
+.avp-skip:hover { color:rgba(255,255,255,0.45); }
+</style>
+<div class="avp-card">
+    <div class="avp-header">
+        <div class="avp-title">Pick your profile picture</div>
+        <div class="avp-sub">Choose one to represent you on Siterifty. You can change it anytime.</div>
+        <div class="avp-preview-wrap">
+            <img class="avp-preview-img" id="avpPreviewImg" src="" alt="Preview">
+            <div class="avp-preview-label">
+                <strong id="avpPreviewName">@username</strong>
+                Scroll right to see all options →
+            </div>
+        </div>
+    </div>
+    <div class="avp-strip-wrap">
+        <div class="avp-strip-label">Choose an avatar</div>
+        <div class="avp-strip" id="avpStrip"></div>
+    </div>
+    <div class="avp-footer">
+        <button class="avp-btn" id="avpConfirmBtn" onclick="window._avpConfirm()">Use this picture →</button>
+        <div class="avp-skip" onclick="window._avpSkip()">Skip for now</div>
+    </div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SOCIAL PROFILE SETUP MODAL (Google/GitHub new users)
+══════════════════════════════════════════════════════ -->
+<div id="socialProfileOverlay" style="display:none;position:fixed;inset:0;z-index:9600;background:rgba(0,0,0,0.85);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);align-items:center;justify-content:center;padding:20px;">
+<style>
+#socialProfileOverlay.open { display:flex!important; }
+.spo-card {
+    width:100%;max-width:400px;
+    background:linear-gradient(160deg,#13131e,#0e0e18);
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:28px;overflow:hidden;
+    box-shadow:0 40px 80px rgba(0,0,0,0.7);
+    animation:avpIn .38s cubic-bezier(.34,1.25,.64,1) both;
+}
+.spo-top {
+    padding:28px 28px 24px;
+    border-bottom:1px solid rgba(255,255,255,0.06);
+    text-align:center;
+}
+.spo-icon {
+    width:52px;height:52px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    margin:0 auto 16px;
+    background:linear-gradient(135deg,rgba(168,85,247,0.15),rgba(129,140,248,0.1));
+    border:1px solid rgba(168,85,247,0.25);
+}
+.spo-title {
+    font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:900;
+    letter-spacing:-0.03em;color:#f1f0ff;margin-bottom:6px;
+}
+.spo-sub { font-size:12px;color:rgba(255,255,255,0.32);line-height:1.6;max-width:280px;margin:0 auto; }
+.spo-body { padding:24px 28px 28px;display:flex;flex-direction:column;gap:14px; }
+.spo-field { display:flex;flex-direction:column;gap:6px; }
+.spo-label {
+    font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+    color:rgba(255,255,255,0.3);
+}
+.spo-input-wrap { position:relative;display:flex;align-items:center; }
+.spo-at {
+    position:absolute;left:14px;font-size:15px;font-weight:700;
+    color:rgba(255,255,255,0.3);pointer-events:none;z-index:1;
+}
+.spo-input {
+    width:100%;box-sizing:border-box;
+    background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.1);
+    border-radius:12px;padding:12px 14px;
+    font-size:14px;color:#f1f0ff;outline:none;
+    font-family:'Plus Jakarta Sans','Syne',sans-serif;
+    transition:border-color .18s,box-shadow .18s;
+}
+.spo-input.has-at { padding-left:30px; }
+.spo-input:focus {
+    border-color:rgba(168,85,247,0.5);
+    box-shadow:0 0 0 3px rgba(168,85,247,0.1);
+}
+.spo-input::placeholder { color:rgba(255,255,255,0.2); }
+.spo-hint { font-size:10.5px;color:rgba(255,255,255,0.2);line-height:1.5; }
+.spo-err {
+    font-size:12px;color:#f87171;background:rgba(248,113,113,0.08);
+    border:1px solid rgba(248,113,113,0.18);border-radius:8px;
+    padding:8px 12px;display:none;
+}
+.spo-btn {
+    width:100%;padding:14px;border-radius:14px;
+    font-family:'Syne',sans-serif;font-size:14px;font-weight:800;
+    letter-spacing:.01em;cursor:pointer;border:none;
+    background:linear-gradient(135deg,#a855f7,#818cf8);
+    color:#fff;box-shadow:0 8px 24px rgba(168,85,247,0.3);
+    transition:opacity .18s,transform .18s;
+    margin-top:4px;
+}
+.spo-btn:hover { opacity:.9;transform:translateY(-1px); }
+.spo-btn:active { transform:scale(.98); }
+.spo-btn:disabled { opacity:.45;cursor:not-allowed;transform:none; }
+</style>
+<div class="spo-card">
+    <div class="spo-top">
+        <div class="spo-icon" id="spoProviderIcon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(168,85,247,0.8)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <div class="spo-title">Almost there!</div>
+        <div class="spo-sub" id="spoSub">Just a couple of things before you start. Choose a username and confirm your email.</div>
+    </div>
+    <div class="spo-body">
+        <div id="spoErr" class="spo-err"></div>
+        <div class="spo-field">
+            <div class="spo-label">Username</div>
+            <div class="spo-input-wrap">
+                <span class="spo-at">@</span>
+                <input id="spoUsername" class="spo-input has-at" type="text" placeholder="coolperson123" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="spo-hint">Letters, numbers and underscores only. Min 3 characters.</div>
+        </div>
+        <div class="spo-field" id="spoEmailField">
+            <div class="spo-label">Email address</div>
+            <div class="spo-input-wrap">
+                <input id="spoEmail" class="spo-input" type="email" placeholder="you@example.com" autocomplete="email">
+            </div>
+            <div class="spo-hint">Used for purchase confirmations and account recovery.</div>
+        </div>
+        <button class="spo-btn" id="spoSubmitBtn" onclick="window._spoSubmit()">Finish setting up my account →</button>
+    </div>
+</div>
+</div>
+
+<script>
+(function() {
+    const AVATAR_URLS = [
+        'https://wallpapers.com/images/hd/dark-galaxy-1080-x-1920-wallpaper-2pax0j8xoqtty0av.jpg',
+        'https://i.pinimg.com/474x/52/97/b4/5297b4d029cc0d64ed6484d3c9919d6b.jpg',
+        'https://i.pinimg.com/736x/0e/86/ec/0e86ec1c8b5bcbebcff97fde58530db5.jpg',
+        'https://img.magnific.com/free-photo/cyberpunk-illustration-with-neon-colors-futuristic-technology_23-2151672018.jpg',
+        'https://media.licdn.com/dms/image/v2/D5612AQG1iOLVOq8rOg/article-cover_image-shrink_720_1280/B56Z2VeuyvKcAM-/0/1776329354950?e=2147483647&v=beta&t=1vi3VbDwsgwyYKqGf_03thFpOz0M3jTejsGy07sFwzY',
+        'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSQ5ZNLMeTSmgQWXnHT0g32VtpbTCO9Ao0GXbf0M29X8A&s=10',
+        'https://m.media-amazon.com/images/I/81SNLEuNQuL._UF1000,1000_QL80_.jpg'
+    ];
+
+    // Pick a random default avatar
+    function _randomAvatar() {
+        return AVATAR_URLS[Math.floor(Math.random() * AVATAR_URLS.length)];
+    }
+
+    // ── AVATAR PICKER ─────────────────────────────────────────────
+    let _avpSelectedUrl = '';
+    let _avpUid = '';
+    let _avpUsername = '';
+    let _avpOnDone = null;
+
+    window._openAvatarPicker = function(uid, username, onDone) {
+        _avpUid = uid;
+        _avpUsername = username;
+        _avpOnDone = onDone || null;
+
+        // Default to first avatar
+        _avpSelectedUrl = AVATAR_URLS[0];
+
+        // Update preview
+        const previewImg = document.getElementById('avpPreviewImg');
+        const previewName = document.getElementById('avpPreviewName');
+        if (previewImg) { previewImg.src = _avpSelectedUrl; }
+        if (previewName) previewName.textContent = '@' + username;
+
+        // Build strip
+        const strip = document.getElementById('avpStrip');
+        if (strip) {
+            strip.innerHTML = '';
+            AVATAR_URLS.forEach(function(url, i) {
+                const img = document.createElement('img');
+                img.className = 'avp-thumb' + (i === 0 ? ' selected' : '');
+                img.src = url;
+                img.alt = 'Avatar option ' + (i + 1);
+                img.onclick = function() {
+                    _avpSelectedUrl = url;
+                    strip.querySelectorAll('.avp-thumb').forEach(function(t) { t.classList.remove('selected'); });
+                    img.classList.add('selected');
+                    if (previewImg) previewImg.src = url;
+                };
+                strip.appendChild(img);
+            });
+        }
+
+        document.getElementById('avatarPickerOverlay').classList.add('open');
+        document.body.style.overflow = 'hidden';
+    };
+
+    window._avpConfirm = async function() {
+        const btn = document.getElementById('avpConfirmBtn');
+        btn.disabled = true;
+        btn.textContent = 'Saving…';
+        try {
+            // Save to Firebase
+            if (_avpUid && window._fbDb && window._fbDbFns) {
+                const { ref, update } = window._fbDbFns;
+                await update(ref(window._fbDb, 'users/' + _avpUid), { photoURL: _avpSelectedUrl });
+            }
+            if (window._applyPhotoURL) window._applyPhotoURL(_avpSelectedUrl);
+        } catch(e) { console.warn('[avp]', e); }
+        document.getElementById('avatarPickerOverlay').classList.remove('open');
+        document.body.style.overflow = '';
+        btn.disabled = false;
+        btn.textContent = 'Use this picture →';
+        if (_avpOnDone) _avpOnDone(_avpSelectedUrl);
+    };
+
+    window._avpSkip = function() {
+        // Auto-assign a random avatar silently
+        const randomUrl = _randomAvatar();
+        try {
+            if (_avpUid && window._fbDb && window._fbDbFns) {
+                const { ref, update } = window._fbDbFns;
+                update(ref(window._fbDb, 'users/' + _avpUid), { photoURL: randomUrl });
+            }
+            if (window._applyPhotoURL) window._applyPhotoURL(randomUrl);
+        } catch(e) {}
+        document.getElementById('avatarPickerOverlay').classList.remove('open');
+        document.body.style.overflow = '';
+        if (_avpOnDone) _avpOnDone(randomUrl);
+    };
+
+    // ── SOCIAL PROFILE SETUP (Google / GitHub new users) ──────────
+    let _spoUid = '';
+    let _spoProvider = '';
+    let _spoOnDone = null;
+
+    window._openSocialProfileSetup = function(uid, provider, prefillEmail, onDone) {
+        _spoUid = uid;
+        _spoProvider = provider;
+        _spoOnDone = onDone || null;
+
+        // Provider icon
+        const iconEl = document.getElementById('spoProviderIcon');
+        const subEl  = document.getElementById('spoSub');
+        if (iconEl) {
+            if (provider === 'google') {
+                iconEl.innerHTML = '<svg width="20" height="20" viewBox="0 0 18 18" fill="none"><path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/><path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>';
+            } else {
+                iconEl.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="rgba(255,255,255,0.7)"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg>';
+            }
+        }
+        if (subEl) subEl.textContent = 'Pick a username and confirm your email to finish setting up your ' + (provider === 'google' ? 'Google' : 'GitHub') + ' account.';
+
+        // Pre-fill email if provided
+        const emailInput = document.getElementById('spoEmail');
+        if (emailInput && prefillEmail) {
+            emailInput.value = prefillEmail;
+            // If email is already known from provider, show it as readonly
+            emailInput.readOnly = !!prefillEmail;
+            emailInput.style.opacity = prefillEmail ? '0.5' : '1';
+        }
+
+        // Clear username + error
+        const usernameInput = document.getElementById('spoUsername');
+        if (usernameInput) usernameInput.value = '';
+        const errEl = document.getElementById('spoErr');
+        if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+
+        document.getElementById('socialProfileOverlay').classList.add('open');
+        document.body.style.overflow = 'hidden';
+        setTimeout(function() { if (usernameInput) usernameInput.focus(); }, 200);
+    };
+
+    window._spoSubmit = async function() {
+        const btn = document.getElementById('spoSubmitBtn');
+        const errEl = document.getElementById('spoErr');
+        const username = (document.getElementById('spoUsername').value || '').trim();
+        const email    = (document.getElementById('spoEmail').value || '').trim();
+
+        errEl.style.display = 'none';
+
+        if (!username || username.length < 3) { errEl.textContent = 'Username must be at least 3 characters.'; errEl.style.display='block'; return; }
+        if (!/^[a-zA-Z0-9_]+$/.test(username)) { errEl.textContent = 'Username can only contain letters, numbers and underscores.'; errEl.style.display='block'; return; }
+        if (!email || !/\S+@\S+\.\S+/.test(email)) { errEl.textContent = 'Please enter a valid email address.'; errEl.style.display='block'; return; }
+
+        btn.disabled = true;
+        btn.textContent = 'Checking…';
+
+        try {
+            if (window._fbDb && window._fbDbFns) {
+                const { ref, get, set, update } = window._fbDbFns;
+                const db = window._fbDb;
+
+                // Check username uniqueness
+                const snap = await get(ref(db, 'usernames/' + username.toLowerCase()));
+                if (snap.exists()) {
+                    errEl.textContent = 'That username is already taken. Try another.';
+                    errEl.style.display = 'block';
+                    btn.disabled = false;
+                    btn.textContent = 'Finish setting up my account →';
+                    return;
+                }
+
+                btn.textContent = 'Saving…';
+
+                // Update user profile
+                await update(ref(db, 'users/' + _spoUid), { username: username, email: email });
+                await set(ref(db, 'usernames/' + username.toLowerCase()), _spoUid);
+            }
+
+            document.getElementById('socialProfileOverlay').classList.remove('open');
+            document.body.style.overflow = '';
+
+            // Now show avatar picker
+            window._openAvatarPicker(_spoUid, username, function(avatarUrl) {
+                if (_spoOnDone) _spoOnDone(username, email, avatarUrl);
+            });
+
+        } catch(e) {
+            errEl.textContent = 'Something went wrong. Please try again.';
+            errEl.style.display = 'block';
+            btn.disabled = false;
+            btn.textContent = 'Finish setting up my account →';
+        }
+    };
+
+    // Expose random avatar helper
+    window._srRandomAvatar = _randomAvatar;
+    window._srAvatarUrls   = AVATAR_URLS;
 })();
 </script>
 
