@@ -4267,6 +4267,63 @@
 
 .imsg-img-bubble { width: 100%; max-width: 240px; border-radius: 16px; background: #18181b; border: 1px solid rgba(255,255,255,0.1); padding: 10px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
 .imsg-img-frame { position: relative; border-radius: 12px; overflow: hidden; background: rgba(0,0,0,0.4); aspect-ratio: 16/9; border: 1px solid rgba(255,255,255,0.05); }
+
+/* ── Group chat cards ─────────────────────────────────── */
+.gc-msg-row { display: flex; gap: 10px; align-items: flex-start; }
+.gc-msg-row.gc-me { flex-direction: row-reverse; }
+.gc-avatar {
+    width: 34px; height: 34px; border-radius: 999px; flex-shrink: 0;
+    background: linear-gradient(135deg, #a855f7, #38bdf8);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 800;
+    color: #fff; overflow: hidden; border: 1.5px solid rgba(255,255,255,0.08);
+}
+.gc-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 999px; }
+.gc-bubble {
+    max-width: 72%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px; border-top-left-radius: 4px;
+    padding: 10px 13px 8px;
+    position: relative;
+}
+.gc-me .gc-bubble {
+    background: rgba(88,242,120,0.10);
+    border-color: rgba(88,242,120,0.18);
+    border-top-left-radius: 16px;
+    border-top-right-radius: 4px;
+}
+.gc-meta { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
+.gc-username {
+    font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 800;
+    color: #a855f7; letter-spacing: -0.01em; cursor: pointer;
+}
+.gc-username:hover { text-decoration: underline; }
+.gc-me .gc-username { color: #58f278; }
+.gc-time { font-size: 10px; color: rgba(139,138,168,0.55); }
+.gc-text { font-size: 13px; color: rgba(241,240,255,0.88); line-height: 1.55; word-break: break-word; }
+.gc-me .gc-text { color: rgba(241,240,255,0.95); }
+.gc-contact-btn {
+    display: inline-flex; align-items: center; gap: 4px;
+    margin-top: 8px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+    color: #a855f7; background: rgba(168,85,247,0.09);
+    border: 1px solid rgba(168,85,247,0.22); border-radius: 999px;
+    padding: 3px 10px; cursor: pointer; text-transform: uppercase;
+    transition: background .15s;
+}
+.gc-contact-btn:hover { background: rgba(168,85,247,0.18); }
+.gc-date-divider {
+    text-align: center; font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
+    color: rgba(139,138,168,0.4); text-transform: uppercase;
+    padding: 4px 0 2px; position: relative;
+}
+.gc-date-divider::before, .gc-date-divider::after {
+    content: ''; position: absolute; top: 50%; width: 28%; height: 1px;
+    background: rgba(255,255,255,0.06);
+}
+.gc-date-divider::before { left: 0; }
+.gc-date-divider::after  { right: 0; }
 .imsg-img-frame img { width: 100%; height: 100%; object-fit: cover; }
 .imsg-img-hover { position: absolute; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; }
 .imsg-img-frame:hover .imsg-img-hover { opacity: 1; }
@@ -22065,20 +22122,48 @@ document.addEventListener('DOMContentLoaded', function(){
                     return;
                 }
                 container.innerHTML = '';
+                var lastDateLabel = '';
                 msgs.forEach(function(m) {
                     var isMe = m.fromUid === myUid;
-                    var time = _imsgTimeAgo(m.sentAt);
-                    var text = (m.message || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-                    var senderTag = !isMe ? '<div style="font-size:10.5px;font-weight:700;color:#a855f7;margin-bottom:2px;">@' + (m.fromUsername || 'User') + '</div>' : '';
-                    if (isMe) {
+                    var username = m.fromUsername || 'User';
+                    var initial  = username.charAt(0).toUpperCase();
+                    var photo    = m.fromPhoto || '';
+                    var text     = (m.message || '').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+                    var time     = _imsgTimeAgo(m.sentAt);
+
+                    // Date divider
+                    var dateLabel = m.sentAt ? new Date(m.sentAt).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : '';
+                    if (dateLabel && dateLabel !== lastDateLabel) {
+                        lastDateLabel = dateLabel;
                         container.insertAdjacentHTML('beforeend',
-                            '<div class="imsg-bubble-out"><div class="imsg-bubble-out-content">' + text + '</div>'
-                            + '<div style="font-size:10px;color:var(--muted,#6b6890);text-align:right;margin-top:3px;">' + time + '</div></div>');
-                    } else {
-                        container.insertAdjacentHTML('beforeend',
-                            '<div class="imsg-bubble-in">' + senderTag + '<div class="imsg-bubble-in-content">' + text + '</div>'
-                            + '<div style="font-size:10px;color:var(--muted,#6b6890);margin-top:3px;">' + time + '</div></div>');
+                            '<div class="gc-date-divider">' + dateLabel + '</div>');
                     }
+
+                    var avatarHtml = photo
+                        ? '<div class="gc-avatar"><img src="' + photo + '" alt="' + initial + '" onerror="this.parentElement.textContent=\'' + initial + '\'"></div>'
+                        : '<div class="gc-avatar">' + initial + '</div>';
+
+                    var dmBtn = !isMe
+                        ? '<button class="gc-contact-btn" onclick="window._gcDM(\'' + m.fromUid.replace(/'/g,"\\'") + '\',\'' + username.replace(/'/g,"\\'") + '\')">'
+                          + '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>'
+                          + ' Message</button>'
+                        : '';
+
+                    container.insertAdjacentHTML('beforeend',
+                        '<div class="gc-msg-row' + (isMe ? ' gc-me' : '') + '">'
+                        + avatarHtml
+                        + '<div class="gc-bubble">'
+                            + '<div class="gc-meta">'
+                                + '<span class="gc-username"' + (!isMe ? ' onclick="window._gcDM(\'' + m.fromUid.replace(/'/g,"\\'") + '\',\'' + username.replace(/'/g,"\\'") + '\')"' : '') + '>'
+                                    + (isMe ? 'You' : '@' + username)
+                                + '</span>'
+                                + '<span class="gc-time">' + time + '</span>'
+                            + '</div>'
+                            + '<div class="gc-text">' + text + '</div>'
+                            + dmBtn
+                        + '</div>'
+                        + '</div>'
+                    );
                 });
                 scrollToLatest();
             }, function(err) { console.warn('[group chat]', err); });
@@ -22094,6 +22179,25 @@ document.addEventListener('DOMContentLoaded', function(){
             var merchantRow = document.getElementById('imsgMerchantRow');
             if (merchantRow) merchantRow.style.display = '';
             return _origOpenChatForGroup.apply(this, arguments);
+        };
+
+        // DM shortcut from group chat "Message" button
+        window._gcDM = function(uid, username) {
+            if (!uid) return;
+            // Fetch their photo from Firebase for a proper avatar
+            var db  = window._fbDb;
+            var fns = window._fbDbFns;
+            if (db && fns && fns.ref && fns.get) {
+                fns.get(fns.ref(db, 'users/' + uid)).then(function(snap) {
+                    var u = snap.val() || {};
+                    var photo = u.avatarUrl || u.photoURL || '';
+                    openChat(username || uid, photo, 'Siterifty member', uid);
+                }).catch(function() {
+                    openChat(username || uid, '', 'Siterifty member', uid);
+                });
+            } else {
+                openChat(username || uid, '', 'Siterifty member', uid);
+            }
         };
 
         // Live preview/time for the pinned GROUP CHAT row in the inbox list
@@ -22943,6 +23047,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     var groupBase = Object.assign({
                         fromUid:      myUid,
                         fromUsername: myUsername,
+                        fromPhoto:    (window._fbAuth.currentUser.photoURL) || (userData.avatarUrl) || '',
                         sentAt:       Date.now()
                     }, extra || {});
                     var groupKey = fns.push(fns.ref(db, 'groupChat/messages')).key;
