@@ -361,13 +361,18 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Simple shared-secret auth. This endpoint can ban accounts — never leave it open.
-  const key = req.headers['x-admin-key'];
-  if (!process.env.ADMIN_API_KEY || key !== process.env.ADMIN_API_KEY) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  const mode = (req.query?.mode || 'evaluate').toString();
+
+  // appeal and accounts use their own auth (Bearer token / ban check).
+  // All other admin modes require the shared secret.
+  const adminOnlyModes = ['evaluate', 'sweep', 'approve', 'reject'];
+  if (adminOnlyModes.includes(mode)) {
+    const adminKey = req.headers['x-admin-key'];
+    if (!process.env.ADMIN_API_KEY || adminKey !== process.env.ADMIN_API_KEY) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
   }
 
-  const mode = (req.query?.mode || 'evaluate').toString();
   const db = getDb();
 
   try {
