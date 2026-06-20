@@ -143,6 +143,195 @@ Upgrade anytime from the dashboard. Plans are monthly, cancel anytime.
 - When a customer seems frustrated, acknowledge first, then solve.
 - Always use dollar amounts with $ symbol.`;
 
+// ── Batch moderation system ─────────────────────────────────────────────
+// Messages are sent immediately (no pre-send blocking). Every chat message
+// is written to Firebase with `moderated:false`. This handler is triggered
+// by the client at most once per 60s (gated via meta/lastModerationRun) and
+// scans the WHOLE database for unmoderated messages, batches up to 30 of
+// them into a SINGLE Groq call (so we never burn more than 1 request per
+// run regardless of how many messages are pending), marks each reviewed
+// message moderated:true so the AI never re-reads it, deletes any flagged
+// as unsafe from both inbox copies, and applies warnings/strikes/bans.
+//
+// Strike ladder (reuses existing ban gate fields on users/{uid}):
+//   Unsafe #1, #2, #3  -> warnings++ (no lockout, yellow toast only)
+//   Unsafe #4          -> strikes=1 -> banStatus:'suspended', bannedUntil:+1h
+//   Unsafe #5          -> strikes=2 -> bannedUntil:+5h
+//   Unsafe #6          -> strikes=3 -> bannedUntil:+12h
+//   Unsafe #7          -> strikes=4 -> banStatus:'permanent', no bannedUntil
+//
+// POST body: { _action: 'runModeration' }
+// Returns:   { ran: true, reviewed: N, flagged: N } or { ran: false, reason }
+
+const MODERATION_BATCH_SIZE = 30;
+const MODERATION_INTERVAL_MS = 60 * 1000;
+const STRIKE_BAN_HOURS = [1, 5, 12]; // strike 1, 2, 3 — strike 4 is permanent
+
+const MODERATION_SYSTEM_PROMPT = `You are a content moderation classifier for Siterifty, a marketplace for buying/selling websites.
+You will receive a numbered list of chat messages. For EACH message, decide if it violates platform rules.
+Flag a message as UNSAFE if it contains:
+- Sexual content, sexual solicitation, or explicit material
+- Scam attempts: requests for payment outside the platform, fake deals, phishing, requests for passwords/2FA codes/login credentials
+- Attempts to move the conversation off-platform (sharing phone numbers, WhatsApp, Telegram, email specifically to bypass escrow/fees)
+- Threats, harassment, or hate speech
+
+Otherwise mark it SAFE. Respond ONLY with a JSON array, no other text, no markdown fences. Each element:
+{"i": <message number>, "safe": true|false, "reason": "<short reason if unsafe, omit if safe>"}`;
+
+async function runBatchModeration() {
+  initFirebase();
+  const db = getDatabase();
+
+  // ── 60s gate — only one run allowed per interval, checked atomically ──
+  const lastRunRef = db.ref('meta/lastModerationRun');
+  const gate = await lastRunRef.transaction(current => {
+    const now = Date.now();
+    if (current && now - current < MODERATION_INTERVAL_MS) return; // abort, too soon
+    return now;
+  });
+  if (!gate.committed) {
+    return { ran: false, reason: 'cooldown' };
+  }
+
+  // ── Collect unmoderated messages across the whole DB ──
+  // Messages live at users/{uid}/inbox/{key} (written twice, once per
+  // participant, sharing the same key).
+  const pending = []; // { key, message, fromUid, paths: [...] }
+
+  const usersSnap = await db.ref('users').get();
+  if (usersSnap.exists()) {
+    const users = usersSnap.val();
+    outer:
+    for (const uid of Object.keys(users)) {
+      const inbox = users[uid]?.inbox;
+      if (!inbox) continue;
+      for (const key of Object.keys(inbox)) {
+        const msg = inbox[key];
+        if (!msg || msg.moderated) continue;
+        if (typeof msg.message !== 'string' || !msg.message.trim()) continue;
+        // Dedup: this same key exists under both fromUid and toUid inboxes.
+        let entry = pending.find(p => p.key === key);
+        if (!entry) {
+          entry = { key, message: msg.message, fromUid: msg.fromUid, paths: [] };
+          pending.push(entry);
+        }
+        entry.paths.push(`users/${uid}/inbox/${key}`);
+        if (pending.length >= MODERATION_BATCH_SIZE) break outer;
+      }
+    }
+  }
+
+  if (pending.length === 0) {
+    return { ran: true, reviewed: 0, flagged: 0 };
+  }
+
+  const batch = pending.slice(0, MODERATION_BATCH_SIZE);
+
+  // ── Single Groq call covering the whole batch ──
+  const listText = batch.map((m, i) => `${i + 1}. ${m.message.slice(0, 500)}`).join('\n');
+  let results = [];
+  try {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'llama-3.1-8b-instant',
+        max_tokens: 2048,
+        temperature: 0,
+        messages: [
+          { role: 'system', content: MODERATION_SYSTEM_PROMPT },
+          { role: 'user', content: listText }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      console.error('[runBatchModeration] Groq error:', await response.text());
+      return { ran: false, reason: 'groq_error' };
+    }
+
+    const data = await response.json();
+    const raw = (data.choices?.[0]?.message?.content || '').trim()
+      .replace(/^```json\s*/i, '').replace(/```$/, '').trim();
+    results = JSON.parse(raw);
+  } catch (e) {
+    console.error('[runBatchModeration] parse/fetch error:', e);
+    // Fail open — mark batch moderated as safe rather than leaving it stuck
+    // re-querying forever; an admin can still review via the admin panel.
+    results = batch.map((_, i) => ({ i: i + 1, safe: true }));
+  }
+
+  const resultByIndex = {};
+  for (const r of results) resultByIndex[r.i] = r;
+
+  const dbUpdates = {};
+  let flaggedCount = 0;
+
+  for (let i = 0; i < batch.length; i++) {
+    const entry = batch[i];
+    const verdict = resultByIndex[i + 1] || { safe: true };
+
+    if (verdict.safe) {
+      for (const path of entry.paths) {
+        dbUpdates[path + '/moderated'] = true;
+        dbUpdates[path + '/safe'] = true;
+      }
+    } else {
+      flaggedCount++;
+      // Delete both copies of the flagged message entirely.
+      for (const path of entry.paths) {
+        dbUpdates[path] = null;
+      }
+      await applyStrike(db, entry.fromUid, verdict.reason || 'Violation of community guidelines.');
+    }
+  }
+
+  if (Object.keys(dbUpdates).length > 0) {
+    await db.ref('/').update(dbUpdates);
+  }
+
+  return { ran: true, reviewed: batch.length, flagged: flaggedCount };
+}
+
+// ── Apply a warning or strike to a user after a flagged message ──────────
+async function applyStrike(db, uid, reason) {
+  if (!uid) return;
+  const userRef = db.ref('users/' + uid);
+
+  await userRef.transaction(user => {
+    if (!user) return user;
+    const warnings = (user.warnings || 0);
+    const strikes  = (user.strikes || 0);
+
+    if (warnings < 3) {
+      // Still in the warning phase — no ban yet.
+      user.warnings = warnings + 1;
+      user.lastModerationReason = reason;
+    } else {
+      // Warnings exhausted — escalate to a strike/ban.
+      const newStrikeCount = strikes + 1;
+      user.strikes = newStrikeCount;
+      user.lastModerationReason = reason;
+
+      if (newStrikeCount <= STRIKE_BAN_HOURS.length) {
+        const hours = STRIKE_BAN_HOURS[newStrikeCount - 1];
+        user.banStatus = 'suspended';
+        user.bannedUntil = Date.now() + hours * 60 * 60 * 1000;
+        user.banReason = reason;
+      } else {
+        // Strike 4+ — permanent, no bannedUntil.
+        user.banStatus = 'permanent';
+        user.bannedUntil = null;
+        user.banReason = reason;
+      }
+    }
+    return user;
+  });
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST']);
@@ -150,7 +339,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { messages, deviceId, _systemOverride } = req.body;
+    const { messages, deviceId, _systemOverride, _action } = req.body;
+
+    // ── Batch moderation route — triggered by the client at most once/60s ──
+    if (_action === 'runModeration') {
+      const result = await runBatchModeration();
+      return res.status(200).json(result);
+    }
 
     if (!messages || !Array.isArray(messages)) {
       return res.status(400).json({ reply: 'Malformed request: messages array is required.' });
