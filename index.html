@@ -1433,28 +1433,34 @@
             100% { transform: translateX(260%)  skewX(-18deg); }
         }
 
-        /* Primary CTA — flat indigo solid, matches screenshot */
+        /* Primary CTA — glassy dark, matches ghost but bolder/brighter */
         .btn-primary {
             display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-            background: #5b4fd6;
-            color: rgba(255,255,255,0.94);
-            font-family: 'Syne', sans-serif; font-weight: 800; font-size: 14px;
+            background: linear-gradient(160deg,
+                rgba(255,255,255,0.14) 0%,
+                rgba(255,255,255,0.05) 40%,
+                rgba(255,255,255,0.09) 100%);
+            color: #fff;
+            font-family: 'Inter', -apple-system, sans-serif; font-weight: 700; font-size: 14px;
             padding: 15px 24px; border-radius: 14px;
-            border: none;
+            border: 1px solid rgba(255,255,255,0.18);
+            border-top-color: rgba(255,255,255,0.32);
+            border-bottom-color: rgba(255,255,255,0.08);
             cursor: pointer;
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
             box-shadow:
-                0 1px 0 rgba(255,255,255,0.15) inset,
-                0 -1px 0 rgba(0,0,0,0.15) inset,
-                0 6px 20px rgba(91,79,214,0.25),
-                0 2px 8px rgba(0,0,0,0.25);
-            transition: box-shadow 0.18s, transform 0.12s, opacity 0.18s;
+                0 1px 0 rgba(255,255,255,0.18) inset,
+                0 -1px 0 rgba(0,0,0,0.25) inset,
+                0 8px 28px rgba(0,0,0,0.45),
+                0 2px 8px rgba(0,0,0,0.3);
+            transition: background 0.18s, color 0.18s, border-color 0.18s, transform 0.12s, box-shadow 0.18s;
             text-decoration: none; letter-spacing: 0.01em;
             position: relative; overflow: hidden;
         }
         /* Continuous shimmer sweep — same as plan cards */
         .btn-primary::before {
             content: ''; position: absolute; inset: 0;
-            background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.13) 50%, transparent 70%);
+            background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.16) 50%, transparent 70%);
             transform: translateX(-100%) skewX(-12deg);
             animation: shimmer-slide 3.2s ease-in-out infinite;
             pointer-events: none; border-radius: inherit;
@@ -1462,16 +1468,18 @@
         /* Top metal edge */
         .btn-primary::after {
             content: ''; position: absolute; top: 0; left: 8%; right: 8%; height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(220,200,255,0.6), transparent);
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent);
             border-radius: 999px; pointer-events: none;
         }
         .btn-primary:hover {
+            background: linear-gradient(160deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.07) 100%);
+            border-color: rgba(255,255,255,0.28);
+            border-top-color: rgba(255,255,255,0.45);
             box-shadow:
-                0 1px 0 rgba(255,255,255,0.3) inset,
-                0 -1px 0 rgba(0,0,0,0.15) inset,
-                0 10px 28px rgba(91,79,214,0.35),
-                0 4px 12px rgba(0,0,0,0.3);
-            opacity: 0.92;
+                0 1px 0 rgba(255,255,255,0.25) inset,
+                0 -1px 0 rgba(0,0,0,0.25) inset,
+                0 10px 32px rgba(0,0,0,0.5),
+                0 4px 12px rgba(0,0,0,0.35);
             transform: translateY(-1px);
         }
         .btn-primary:active { transform: scale(0.97); }
@@ -3708,22 +3716,97 @@
         /*  Chat bubble  */
         .chat-bubble {
             position: fixed;
-            bottom: 24px;
-            right: 24px;
+            bottom: 20px;
+            right: 20px;
             z-index: 200;
-            width: 48px;
-            height: 48px;
-            border-radius: 999px;
-            background: var(--surface2);
-            border: 1px solid rgba(255,255,255,0.1);
+            width: 64px;
+            height: 64px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: background 0.18s, border-color 0.18s, transform 0.15s;
+            background: transparent;
+            border: none;
+            filter: drop-shadow(0 8px 18px rgba(168,85,247,0.35));
+            transition: transform 0.15s, filter 0.18s;
+            animation: chatBotFloat 3.2s ease-in-out infinite;
         }
-        .chat-bubble:hover { background: var(--surface); border-color: rgba(255,255,255,0.18); transform: scale(1.08); }
-        .chat-bubble.open { background: var(--surface); border-color: rgba(168,85,247,0.35); }
+        .chat-bubble:hover {
+            transform: scale(1.08);
+            filter: drop-shadow(0 10px 22px rgba(168,85,247,0.5));
+        }
+        .chat-bubble.open {
+            animation: none;
+        }
+        @keyframes chatBotFloat {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            25%      { transform: translateY(-5px) rotate(-3deg); }
+            50%      { transform: translateY(-1px) rotate(0deg); }
+            75%      { transform: translateY(-5px) rotate(3deg); }
+        }
+        .chat-bubble-close-bg {
+            position: absolute; inset: 0; margin: auto; width: 44px; height: 44px;
+            border-radius: 999px; background: var(--surface2); border: 1px solid rgba(255,255,255,0.1);
+            display: none; align-items: center; justify-content: center;
+        }
+        .chat-bubble.open .chat-bubble-close-bg { display: flex; }
+
+        /*  Chat bubble — first-visit greeting tooltip  */
+        .chat-bubble-greet {
+            position: fixed;
+            bottom: 32px;
+            right: 92px;
+            z-index: 199;
+            max-width: 200px;
+            padding: 10px 14px;
+            border-radius: 14px;
+            background: var(--surface2);
+            border: 1px solid rgba(168,85,247,0.3);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+            font-size: 12.5px;
+            line-height: 1.4;
+            color: var(--text);
+            cursor: pointer;
+            opacity: 0;
+            transform: translateY(6px) scale(0.96);
+            pointer-events: none;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+        .chat-bubble-greet.show {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
+        .chat-bubble-greet::after {
+            content: '';
+            position: absolute;
+            right: -6px;
+            bottom: 16px;
+            width: 12px;
+            height: 12px;
+            background: var(--surface2);
+            border-right: 1px solid rgba(168,85,247,0.3);
+            border-bottom: 1px solid rgba(168,85,247,0.3);
+            transform: rotate(-45deg);
+        }
+        .chat-bubble-greet-close {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            width: 18px;
+            height: 18px;
+            border-radius: 999px;
+            background: var(--surface);
+            border: 1px solid rgba(255,255,255,0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        @media (max-width: 480px) {
+            .chat-bubble-greet { right: 16px; bottom: 92px; max-width: none; left: 16px; }
+            .chat-bubble-greet::after { display: none; }
+        }
 
         /*  Floating Messages pill — bottom left  */
         .msgs-fab {
@@ -3742,10 +3825,10 @@
             box-shadow: 0 8px 28px rgba(0,0,0,0.35);
             transition: background 0.18s, border-color 0.18s, transform 0.15s;
         }
-        .msgs-fab:hover { background: var(--surface); border-color: rgba(168,85,247,0.3); transform: translateY(-1px); }
+        .msgs-fab:hover { background: var(--surface); border-color: rgba(168,255,107,0.32); transform: translateY(-1px); }
         .msgs-fab-icon {
             width: 30px; height: 30px; border-radius: 999px; flex-shrink: 0;
-            background: linear-gradient(135deg,#a855f7,#818cf8);
+            background: linear-gradient(135deg,#a8ff6b,#4fbe45);
             display: flex; align-items: center; justify-content: center;
             position: relative;
         }
@@ -3758,9 +3841,13 @@
         }
         .msgs-fab-badge {
             position: absolute; top: -4px; right: -4px; min-width: 16px; height: 16px;
-            border-radius: 999px; background: #818cf8; color: #fff; font-size: 9px;
+            border-radius: 999px; background: #ff8a8a; color: #1a1a1a; font-size: 9px;
             font-weight: 800; display: none; align-items: center; justify-content: center;
             padding: 0 4px; border: 2px solid var(--surface2); font-family: 'Syne', sans-serif;
+            transition: background .18s, opacity .18s;
+        }
+        .msgs-fab-badge.msgs-fab-badge-zero {
+            background: #ff8a8a; color: #1a1a1a; opacity: 0.75;
         }
         @media (max-width: 480px) {
             .msgs-fab { left: 12px; bottom: 80px; padding: 10px; }
@@ -4686,7 +4773,13 @@
         }
 
         /* ── PayPal wrap ── */
-        .tu-paypal-wrap { margin-bottom: 4px; }
+        .tu-paypal-wrap {
+            margin-bottom: 4px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 14px 14px 12px;
+        }
         .tu-paypal-label {
             font-size: 10px; font-weight: 700;
             letter-spacing: 0.1em; text-transform: uppercase;
@@ -4694,14 +4787,17 @@
             margin-bottom: 10px;
         }
         #paypal-button-container {
-            background: #fff; border-radius: 14px;
-            padding: 8px; overflow: hidden; width: 100%;
-            box-shadow: 0 2px 20px rgba(0,0,0,0.3);
+            background: #fff;
+            border-radius: 10px;
+            padding: 6px;
+            overflow: hidden;
+            width: 100%;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.06);
         }
         .pp-loading-placeholder {
-            width: 100%; height: 48px;
+            width: 100%; height: 46px;
             background: linear-gradient(135deg, #f5c518 0%, #f0a500 100%);
-            border-radius: 8px; display: flex; align-items: center;
+            border-radius: 6px; display: flex; align-items: center;
             justify-content: center; gap: 8px;
             font-family: 'Plus Jakarta Sans','Syne',sans-serif; font-size: 13px; font-weight: 700; color: #000;
             animation: ppPulse 1.4s ease-in-out infinite;
@@ -4710,7 +4806,7 @@
 
         .tu-min-text { text-align: center; font-size: 10px; color: rgba(255,255,255,0.18); margin-top: 12px; }
 
-
+        #topupResult {
             display: none;
             position: fixed;
             inset: 0;
@@ -5129,10 +5225,66 @@
         .final-cta-title .grad { background: linear-gradient(135deg, #a855f7, #818cf8, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
         .final-cta-body { font-size: 14px; color: var(--muted); line-height: 1.75; margin-bottom: 36px; max-width: 460px; margin-left: auto; margin-right: auto; }
         .final-cta-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 32px; }
-        .final-cta-btn-primary { display: inline-flex; align-items: center; gap: 8px; font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: .02em; padding: 14px 28px; border-radius: 14px; background: linear-gradient(135deg, #a855f7, #818cf8); border: none; color: #fff; cursor: pointer; box-shadow: 0 4px 24px rgba(168,85,247,0.35); transition: opacity .15s, transform .12s; animation: cta-float 4s ease-in-out infinite; }
-        .final-cta-btn-primary:hover { opacity: .88; transform: scale(0.98); }
-        .final-cta-btn-ghost { display: inline-flex; align-items: center; gap: 8px; font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: .02em; padding: 14px 28px; border-radius: 14px; background: transparent; border: 1px solid rgba(255,255,255,0.14); color: rgba(255,255,255,0.7); cursor: pointer; transition: border-color .2s, color .2s; }
-        .final-cta-btn-ghost:hover { border-color: rgba(255,255,255,0.28); color: #fff; }
+        .final-cta-btn-primary {
+            display: inline-flex; align-items: center; gap: 8px;
+            font-family: 'Inter', -apple-system, sans-serif; font-size: 13px; font-weight: 700; letter-spacing: .01em;
+            padding: 14px 28px; border-radius: 14px;
+            background: linear-gradient(160deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.05) 40%, rgba(255,255,255,0.09) 100%);
+            border: 1px solid rgba(255,255,255,0.18);
+            border-top-color: rgba(255,255,255,0.32);
+            border-bottom-color: rgba(255,255,255,0.08);
+            color: #fff; cursor: pointer;
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            box-shadow:
+                0 1px 0 rgba(255,255,255,0.18) inset,
+                0 -1px 0 rgba(0,0,0,0.25) inset,
+                0 8px 28px rgba(0,0,0,0.45),
+                0 2px 8px rgba(0,0,0,0.3);
+            transition: background .18s, border-color .18s, transform .12s, box-shadow .18s;
+            animation: cta-float 4s ease-in-out infinite;
+            position: relative; overflow: hidden;
+        }
+        .final-cta-btn-primary::before {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.16) 50%, transparent 70%);
+            transform: translateX(-100%) skewX(-12deg);
+            animation: shimmer-slide 3.2s ease-in-out infinite;
+            pointer-events: none; border-radius: inherit;
+        }
+        .final-cta-btn-primary:hover {
+            background: linear-gradient(160deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.07) 100%);
+            border-color: rgba(255,255,255,0.28);
+            box-shadow:
+                0 1px 0 rgba(255,255,255,0.25) inset,
+                0 -1px 0 rgba(0,0,0,0.25) inset,
+                0 10px 32px rgba(0,0,0,0.5),
+                0 4px 12px rgba(0,0,0,0.35);
+            transform: translateY(-1px) scale(1);
+        }
+        .final-cta-btn-ghost {
+            display: inline-flex; align-items: center; gap: 8px;
+            font-family: 'Inter', -apple-system, sans-serif; font-size: 13px; font-weight: 700; letter-spacing: .01em;
+            padding: 14px 28px; border-radius: 14px;
+            background: linear-gradient(160deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0.03) 40%, rgba(255,255,255,0.06) 100%);
+            border: 1px solid rgba(255,255,255,0.13);
+            border-top-color: rgba(255,255,255,0.25);
+            border-bottom-color: rgba(255,255,255,0.06);
+            color: rgba(255,255,255,0.82); cursor: pointer;
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            box-shadow:
+                0 1px 0 rgba(255,255,255,0.14) inset,
+                0 -1px 0 rgba(0,0,0,0.25) inset,
+                0 8px 28px rgba(0,0,0,0.4),
+                0 2px 8px rgba(0,0,0,0.3);
+            transition: background .18s, color .18s, border-color .18s, transform .12s;
+        }
+        .final-cta-btn-ghost:hover {
+            background: linear-gradient(160deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.05) 100%);
+            border-color: rgba(255,255,255,0.22);
+            border-top-color: rgba(255,255,255,0.4);
+            color: #fff;
+            transform: translateY(-1px);
+        }
         .final-cta-trust { display: flex; align-items: center; justify-content: center; gap: 20px; flex-wrap: wrap; }
         .final-cta-trust-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: rgba(255,255,255,0.3); }
 
@@ -8404,6 +8556,23 @@
                 </div>
 
                 <div class="imsg-thread-list" id="imsgThreadList">
+                    <div class="imsg-thread-row imsg-thread-row-pinned" id="imsgGroupChatRow" onclick="openGroupChat()" style="border-color:rgba(168,85,247,0.25);background:rgba(168,85,247,0.05);">
+                        <div class="imsg-thread-avatar-wrap">
+                            <div class="imsg-thread-avatar" style="display:flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:999px;background:linear-gradient(135deg,#a855f7,#38bdf8);flex-shrink:0;">
+                                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                            </div>
+                        </div>
+                        <div class="imsg-thread-body">
+                            <div class="imsg-thread-top">
+                                <h4 class="imsg-thread-name" style="display:flex;align-items:center;gap:5px;">
+                                    <svg width="10" height="10" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;opacity:0.6;"><path d="M8 1.5 9.3 4.4l3.2.46-2.3 2.24.54 3.18L8 8.74l-2.84 1.54.54-3.18L3.4 4.86l3.2-.46Z" fill="rgba(168,85,247,0.8)"/></svg>
+                                    GROUP CHAT
+                                </h4>
+                                <span class="imsg-thread-time" id="imsgGroupChatTime"></span>
+                            </div>
+                            <p class="imsg-thread-preview" id="imsgGroupChatPreview">Everyone on Siterifty — say hi 👋</p>
+                        </div>
+                    </div>
                     <div class="imsg-thread-empty" id="imsgThreadEmpty" style="display:none;padding:32px 0;text-align:center;color:var(--muted,#6b6890);font-size:13px;">No messages yet.</div>
                 </div>
             </div>
@@ -8432,9 +8601,9 @@
                                     <span id="chatTargetStatus" class="imsg-chat-status"></span>
                                 </div>
                             </div>
-                            <button onclick="openDonateModal(_currentChatUid, _currentChatName, _currentChatPhoto)" class="imsg-donate-btn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:3px;vertical-align:-1px;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8.25v13.5m0-13.5a2.25 2.25 0 1 0-2.25-2.25v.75M12 8.25a2.25 2.25 0 1 0 2.25-2.25v.75M5.106 8.25H18.894a1.5 1.5 0 0 1 1.5 1.5v1.5a1.5 1.5 0 0 1-1.5 1.5H5.106a1.5 1.5 0 0 1-1.5-1.5v-1.5a1.5 1.5 0 0 1 1.5-1.5Zm.394 4.5h12v8.25a1.5 1.5 0 0 1-1.5 1.5h-9a1.5 1.5 0 0 1-1.5-1.5V12.75Z"/></svg> DONATE</button>
+                            <button onclick="openDonateModal(_currentChatUid, _currentChatName, _currentChatPhoto)" class="imsg-donate-btn" id="imsgDonateBtn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:3px;vertical-align:-1px;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8.25v13.5m0-13.5a2.25 2.25 0 1 0-2.25-2.25v.75M12 8.25a2.25 2.25 0 1 0 2.25-2.25v.75M5.106 8.25H18.894a1.5 1.5 0 0 1 1.5 1.5v1.5a1.5 1.5 0 0 1-1.5 1.5H5.106a1.5 1.5 0 0 1-1.5-1.5v-1.5a1.5 1.5 0 0 1 1.5-1.5Zm.394 4.5h12v8.25a1.5 1.5 0 0 1-1.5 1.5h-9a1.5 1.5 0 0 1-1.5-1.5V12.75Z"/></svg> DONATE</button>
                         </div>
-                        <div class="imsg-merchant-row">
+                        <div class="imsg-merchant-row" id="imsgMerchantRow">
                             <span class="imsg-merchant-label">Verified Marketplace Merchant</span>
                             <span class="as-chat-badge" id="asChatBadge"><svg width="9" height="9" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.8"/><path d="M7 10l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> AI Active</span>
                             <button onclick="viewChatSeller()" class="imsg-view-seller-btn">VIEW SELLER</button>
@@ -8456,7 +8625,7 @@
                     <!-- messages loaded dynamically from Firebase inbox -->
                 </div>
 
-                <div class="imsg-action-bar">
+                <div class="imsg-action-bar" id="imsgActionBar">
                     <button onclick="openDealSelectionModal('send')" class="imsg-action-btn send-deal"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:4px;vertical-align:-1px;"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.1a2 2 0 0 1-2 2H5.75a2 2 0 0 1-2-2v-4.1M16 6.5l-4-4-4 4m4-4v12.5"/></svg>SEND A DEAL</button>
                     <button onclick="openDealSelectionModal('request')" class="imsg-action-btn request-deal"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:4px;vertical-align:-1px;"><path stroke-linecap="round" stroke-linejoin="round" d="M8 17.5v-12.5l4 4 4-4v12.5M4 19.5h16"/></svg>REQUEST DEAL</button>
                 </div>
@@ -8639,19 +8808,31 @@
         </div>
     </div>
 
-<!--  CHAT BUBBLE  -->
-    <div class="chat-bubble" id="chatBubble" onclick="toggleChat()" title="Chat with us" aria-label="Open support chat">
-        <!-- chat icon (shown when closed) -->
-        <svg id="chatIconOpen" width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <path d="M10 2C5.58 2 2 5.24 2 9.2c0 2.08.92 3.95 2.4 5.3L3.5 17.5l3.3-1.4C7.84 16.35 8.9 16.4 10 16.4c4.42 0 8-3.24 8-7.2S14.42 2 10 2Z" fill="#a855f7"/>
-            <circle cx="7" cy="9.5" r="1" fill="#fff"/>
-            <circle cx="10" cy="9.5" r="1" fill="#fff"/>
-            <circle cx="13" cy="9.5" r="1" fill="#fff"/>
+<!--  CHAT BUBBLE (AI bot)  -->
+    <div class="chat-bubble" id="chatBubble" onclick="toggleChat()" title="Chat with our AI assistant" aria-label="Open AI assistant">
+        <!-- bot icon (shown when closed) -->
+        <svg id="chatIconOpen" width="40" height="40" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2v3" stroke="#a855f7" stroke-width="1.7" stroke-linecap="round"/>
+            <circle cx="12" cy="3.6" r="1.3" fill="#a855f7"/>
+            <rect x="4" y="6.5" width="16" height="13" rx="5" fill="#a855f7"/>
+            <circle cx="9" cy="13" r="1.6" fill="#fff"/>
+            <circle cx="15" cy="13" r="1.6" fill="#fff"/>
+            <path d="M9.5 16.6c.8.55 1.7.55 2.5.55s1.7 0 2.5-.55" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/>
+            <path d="M1.5 12.5h2M20.5 12.5h2" stroke="#a855f7" stroke-width="1.7" stroke-linecap="round"/>
         </svg>
-        <!-- close icon (shown when open) -->
-        <svg id="chatIconClose" width="16" height="16" viewBox="0 0 16 16" fill="none" style="display:none;">
+        <!-- close icon (shown when open) — keeps a small backdrop so the X stays legible -->
+        <div class="chat-bubble-close-bg"></div>
+        <svg id="chatIconClose" width="16" height="16" viewBox="0 0 16 16" fill="none" style="display:none;position:relative;z-index:1;">
             <path d="M2 2l12 12M14 2L2 14" stroke="#a855f7" stroke-width="2" stroke-linecap="round"/>
         </svg>
+    </div>
+
+    <!-- One-time greeting tooltip, points users at the chat bubble on first visit -->
+    <div class="chat-bubble-greet" id="chatBubbleGreet" onclick="window.toggleChat();_dismissChatGreet()">
+        👋 Need help? Chat with our AI assistant
+        <div class="chat-bubble-greet-close" onclick="event.stopPropagation();_dismissChatGreet()">
+            <svg width="9" height="9" viewBox="0 0 16 16" fill="none"><path d="M2 2l12 12M14 2L2 14" stroke="rgba(139,138,168,0.8)" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
     </div>
 
     <!--  CHAT PANEL  -->
@@ -8660,10 +8841,18 @@
         <!-- Header -->
         <div style="flex-shrink:0;height:54px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid rgba(255,255,255,0.13);background:linear-gradient(180deg,rgba(18,18,32,0.98),rgba(14,14,24,0.92));backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);">
             <div style="width:32px;height:32px;border-radius:999px;background:linear-gradient(135deg,#a855f7,#818cf8);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M10 2C5.58 2 2 5.24 2 9.2c0 2.08.92 3.95 2.4 5.3L3.5 17.5l3.3-1.4C7.84 16.35 8.9 16.4 10 16.4c4.42 0 8-3.24 8-7.2S14.42 2 10 2Z" fill="#fff"/><circle cx="7" cy="9.5" r="1" fill="rgba(168,85,247,1)"/><circle cx="10" cy="9.5" r="1" fill="rgba(168,85,247,1)"/><circle cx="13" cy="9.5" r="1" fill="rgba(168,85,247,1)"/></svg>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 2v3" stroke="#fff" stroke-width="1.7" stroke-linecap="round"/>
+                    <circle cx="12" cy="3.6" r="1.3" fill="#fff"/>
+                    <rect x="4" y="6.5" width="16" height="13" rx="5" fill="#fff"/>
+                    <circle cx="9" cy="13" r="1.6" fill="#a855f7"/>
+                    <circle cx="15" cy="13" r="1.6" fill="#a855f7"/>
+                    <path d="M9.5 16.6c.8.55 1.7.55 2.5.55s1.7 0 2.5-.55" stroke="#a855f7" stroke-width="1.3" stroke-linecap="round"/>
+                    <path d="M1.5 12.5h2M20.5 12.5h2" stroke="#fff" stroke-width="1.7" stroke-linecap="round"/>
+                </svg>
             </div>
             <div style="flex:1;min-width:0;">
-                <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#f1f0ff;letter-spacing:-.01em;">Siterifty Support</div>
+                <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#f1f0ff;letter-spacing:-.01em;">Siterifty AI Assistant</div>
                 <div style="font-size:11px;color:#34d399;display:flex;align-items:center;gap:4px;"><span style="width:6px;height:6px;border-radius:999px;background:#34d399;display:inline-block;"></span>Online · replies instantly</div>
             </div>
             <button onclick="toggleChat()" style="width:28px;height:28px;border-radius:999px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.16);display:flex;align-items:center;justify-content:center;cursor:pointer;color:rgba(139,138,168,0.7);flex-shrink:0;transition:background .15s;">
@@ -8858,7 +9047,10 @@
 
                 <!-- PayPal -->
                 <div class="tu-paypal-wrap">
-                    <div class="tu-paypal-label">Pay securely with</div>
+                    <div class="tu-paypal-label">
+                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.28)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:4px;"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        Secure payment via PayPal
+                    </div>
                     <div id="paypal-button-container">
                         <div class="pp-loading-placeholder" id="ppLoadingPlaceholder">
                             <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="8" stroke="rgba(0,0,0,0.2)" stroke-width="1.5"/><path d="M9 3v4.5l2.5 2.5" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -9068,11 +9260,6 @@
 
                     <div class="auth-divider">or sign up with email</div>
 
-                    <label class="auth-label">Username</label>
-                    <div style="position:relative;display:flex;align-items:center;">
-                        <span style="position:absolute;left:14px;font-size:15px;font-weight:700;color:rgba(255,255,255,0.35);pointer-events:none;z-index:1;">@</span>
-                        <input id="suUsername" class="auth-input" type="text" placeholder="coolperson123" autocomplete="off" spellcheck="false" style="padding-left:30px;width:100%;box-sizing:border-box;">
-                    </div>
                     <label class="auth-label">Email</label>
                     <input id="suEmail" class="auth-input" type="email" placeholder="you@example.com" autocomplete="email">
                     <label class="auth-label">Password</label>
@@ -9348,6 +9535,78 @@
   #dashModal .dm-card-title { font-family:'Syne',sans-serif; font-weight:700; font-size:14px; letter-spacing:-.01em; }
   #dashModal .dm-card-sub { font-size:11.5px; color:var(--text-dim); margin-top:2px; line-height:1.5; }
   #dashModal .dm-card-head { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:14px; gap:10px; }
+
+  /* ── Accordion cards ────────────────────────────────── */
+  #dashModal .dm-card.dm-accordion { padding:0; cursor:default; }
+  #dashModal .dm-accordion-head {
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:18px; cursor:pointer; -webkit-tap-highlight-color:transparent;
+  }
+  #dashModal .dm-accordion-head .dm-card-head { margin-bottom:0; flex:1; }
+  #dashModal .dm-accordion-chevron {
+    flex-shrink:0; width:26px; height:26px; border-radius:8px; display:flex; align-items:center; justify-content:center;
+    background: rgba(255,255,255,.04); border:1px solid var(--border); transition: transform .25s ease, background .15s;
+  }
+  #dashModal .dm-accordion.open .dm-accordion-chevron { transform: rotate(180deg); background: rgba(168,255,107,.08); }
+  #dashModal .dm-accordion-body {
+    max-height:0; overflow:hidden; transition: max-height .3s ease;
+  }
+  #dashModal .dm-accordion.open .dm-accordion-body { max-height:1400px; }
+  #dashModal .dm-accordion-body-inner { padding:0 18px 18px; }
+  #dashModal .dm-accordion-badge {
+    flex-shrink:0; font-family:'Syne',sans-serif; font-size:9.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+    padding:3px 9px; border-radius:999px; background: rgba(168,255,107,.1); border:1px solid rgba(168,255,107,.25); color:var(--lime);
+  }
+  #dashModal .dm-accordion-badge.dm-accordion-badge-off { background: rgba(255,255,255,.04); border-color:var(--border); color:var(--text-faint); }
+
+  /* ── Toggle switch ──────────────────────────────────── */
+  #dashModal .dm-switch { position:relative; flex-shrink:0; width:40px; height:23px; cursor:pointer; }
+  #dashModal .dm-switch input { position:absolute; opacity:0; width:100%; height:100%; margin:0; cursor:pointer; }
+  #dashModal .dm-switch-track {
+    position:absolute; inset:0; border-radius:999px; background: rgba(255,255,255,.08); border:1px solid var(--border);
+    transition: background .2s, border-color .2s;
+  }
+  #dashModal .dm-switch-thumb {
+    position:absolute; top:2px; left:2px; width:17px; height:17px; border-radius:50%; background:#fff;
+    box-shadow:0 1px 3px rgba(0,0,0,.4); transition: transform .2s ease;
+  }
+  #dashModal .dm-switch input:checked ~ .dm-switch-track { background: var(--lime); border-color: var(--lime); }
+  #dashModal .dm-switch input:checked ~ .dm-switch-thumb { transform: translateX(17px); }
+
+  /* ── Device / session rows ──────────────────────────── */
+  #dashModal .dm-device-row {
+    display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--border);
+  }
+  #dashModal .dm-device-row:last-of-type { border-bottom:none; }
+  #dashModal .dm-device-icon {
+    flex-shrink:0; width:34px; height:34px; border-radius:10px; background: rgba(255,255,255,.05); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center; color: var(--text-dim);
+  }
+  #dashModal .dm-device-info { flex:1; min-width:0; }
+  #dashModal .dm-device-name { font-size:12.5px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #dashModal .dm-device-meta { font-size:11px; color:var(--text-faint); margin-top:1px; }
+  #dashModal .dm-device-tag {
+    flex-shrink:0; font-size:9.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--lime);
+    background: rgba(168,255,107,.1); border:1px solid rgba(168,255,107,.25); border-radius:999px; padding:3px 8px;
+  }
+
+  /* ── Team member rows ───────────────────────────────── */
+  #dashModal .dm-team-row { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--border); }
+  #dashModal .dm-team-row:last-of-type { border-bottom:none; }
+  #dashModal .dm-team-avatar {
+    flex-shrink:0; width:30px; height:30px; border-radius:50%; background: linear-gradient(135deg,var(--lime),#5fe0a0);
+    display:flex; align-items:center; justify-content:center; font-family:'Syne',sans-serif; font-weight:800; font-size:12px; color:#0a1f12;
+  }
+  #dashModal .dm-team-info { flex:1; min-width:0; }
+  #dashModal .dm-team-email { font-size:12.5px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #dashModal .dm-team-role { font-size:11px; color:var(--text-faint); margin-top:1px; }
+  #dashModal .dm-team-role.pending { color:#facc15; }
+  #dashModal .dm-team-remove {
+    flex-shrink:0; width:26px; height:26px; border-radius:8px; background: rgba(255,144,144,.08); border:1px solid rgba(255,144,144,.2);
+    display:flex; align-items:center; justify-content:center; cursor:pointer; color: var(--danger); transition: background .15s;
+  }
+  #dashModal .dm-team-remove:hover { background: rgba(255,144,144,.16); }
+  #dashModal .dm-team-empty { font-size:12px; color:var(--text-faint); padding:8px 0; text-align:center; }
 
   /* ── Profile hero ───────────────────────────────────── */
   #dashModal .dm-profile-hero { display:flex; flex-direction:column; align-items:center; text-align:center; padding-top:24px; padding-bottom:4px; }
@@ -9930,101 +10189,211 @@
         </div>
 
         <!-- Subscription -->
-        <div class="dm-card">
-          <div class="dm-card-head">
-            <div>
-              <div class="dm-card-title">Subscription</div>
-              <div class="dm-card-sub">Your current plan and billing</div>
+        <div class="dm-card dm-accordion open" id="accCard-sub">
+          <div class="dm-accordion-head" onclick="toggleAccCard('sub')">
+            <div class="dm-card-head">
+              <div>
+                <div class="dm-card-title">Subscription</div>
+                <div class="dm-card-sub">Your current plan and billing</div>
+              </div>
+              <span class="dm-status-chip" id="acPlanBadge">ACTIVE</span>
             </div>
-            <span class="dm-status-chip" id="acPlanBadge">ACTIVE</span>
-          </div>
-          <div class="dm-plan-row">
-            <div>
-              <div class="dm-plan-name" id="acPlanName">Free</div>
-              <div class="dm-plan-price" id="acPlanPrice">$0 / month</div>
+            <div class="dm-accordion-chevron">
+              <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5L6 8l3.5-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
-            <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="openPlansPickerModal()">Manage plan</button>
           </div>
-          <div class="dm-billing-row" id="acBillingRow" style="display:none;">
-            <span>Next billing date</span>
-            <b id="acNextBill">—</b>
-          </div>
+          <div class="dm-accordion-body">
+            <div class="dm-accordion-body-inner">
+              <div class="dm-plan-row">
+                <div>
+                  <div class="dm-plan-name" id="acPlanName">Free</div>
+                  <div class="dm-plan-price" id="acPlanPrice">$0 / month</div>
+                </div>
+                <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="event.stopPropagation();openPlansPickerModal()">Manage plan</button>
+              </div>
+              <div class="dm-billing-row" id="acBillingRow" style="display:none;">
+                <span>Next billing date</span>
+                <b id="acNextBill">—</b>
+              </div>
 
-          <!-- Plan picker — hidden for now, full styling comes with the Settings/Plans step -->
-          <div id="acPlanPicker" style="display:none;">
-            <div id="acPlanRows" class="dm-plan-grid"></div>
-            <div id="acPlanWarn">
-              <div id="acPlanWarnText"></div>
-              <button id="acPlanWarnConfirm" onclick="confirmPlanSwitch()"></button>
+              <!-- Plan picker — hidden for now, full styling comes with the Settings/Plans step -->
+              <div id="acPlanPicker" style="display:none;">
+                <div id="acPlanRows" class="dm-plan-grid"></div>
+                <div id="acPlanWarn">
+                  <div id="acPlanWarnText"></div>
+                  <button id="acPlanWarnConfirm" onclick="confirmPlanSwitch()"></button>
+                </div>
+                <div id="acCurrentPlanChip" style="display:none;"></div>
+              </div>
             </div>
-            <div id="acCurrentPlanChip" style="display:none;"></div>
           </div>
         </div>
 
         <!-- Profile names -->
-        <div class="dm-card">
-          <div class="dm-card-head">
-            <div>
-              <div class="dm-card-title">Profile details</div>
-              <div class="dm-card-sub">Your public name, handle and bio</div>
+        <div class="dm-card dm-accordion open" id="accCard-profile">
+          <div class="dm-accordion-head" onclick="toggleAccCard('profile')">
+            <div class="dm-card-head">
+              <div>
+                <div class="dm-card-title">Profile details</div>
+                <div class="dm-card-sub">Your public name, handle and bio</div>
+              </div>
+            </div>
+            <div class="dm-accordion-chevron">
+              <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5L6 8l3.5-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
           </div>
+          <div class="dm-accordion-body">
+            <div class="dm-accordion-body-inner">
+              <div class="dm-field">
+                <label class="dm-label" for="accUsername">Display name</label>
+                <input id="accUsername" class="dm-input" type="text" placeholder="e.g. Alex Rivera" autocomplete="name">
+              </div>
 
-          <div class="dm-field">
-            <label class="dm-label" for="accUsername">Display name</label>
-            <input id="accUsername" class="dm-input" type="text" placeholder="e.g. Alex Rivera" autocomplete="name">
+              <div class="dm-field">
+                <label class="dm-label" for="accBio">Bio</label>
+                <textarea id="accBio" class="dm-textarea" maxlength="160" placeholder="Tell people a little about yourself or your sites…"></textarea>
+                <div class="dm-char-count"><span id="accBioCount">0</span>/160</div>
+              </div>
+
+              <div class="dm-field">
+                <label class="dm-label" for="accEmail">Email</label>
+                <input id="accEmail" class="dm-input" type="email" disabled>
+              </div>
+
+              <div class="dm-alert dm-alert-err" id="accErr"></div>
+              <div class="dm-alert dm-alert-ok" id="accOk"></div>
+              <button class="dm-btn dm-btn-primary" id="btnSaveAccount" onclick="saveAccount()">Save changes</button>
+            </div>
           </div>
-
-          <div class="dm-field">
-            <label class="dm-label" for="accBio">Bio</label>
-            <textarea id="accBio" class="dm-textarea" maxlength="160" placeholder="Tell people a little about yourself or your sites…"></textarea>
-            <div class="dm-char-count"><span id="accBioCount">0</span>/160</div>
-          </div>
-
-          <div class="dm-field">
-            <label class="dm-label" for="accEmail">Email</label>
-            <input id="accEmail" class="dm-input" type="email" disabled>
-          </div>
-
-          <div class="dm-alert dm-alert-err" id="accErr"></div>
-          <div class="dm-alert dm-alert-ok" id="accOk"></div>
-          <button class="dm-btn dm-btn-primary" id="btnSaveAccount" onclick="saveAccount()">Save changes</button>
         </div>
 
         <!-- Password -->
-        <div class="dm-card">
-          <div class="dm-card-head" style="margin-bottom:14px;">
-            <div>
-              <div class="dm-card-title">Password</div>
-              <div class="dm-card-sub">Change your login password</div>
+        <div class="dm-card dm-accordion" id="accCard-pw">
+          <div class="dm-accordion-head" onclick="toggleAccCard('pw')">
+            <div class="dm-card-head">
+              <div>
+                <div class="dm-card-title">Password</div>
+                <div class="dm-card-sub">Change your login password</div>
+              </div>
+            </div>
+            <div class="dm-accordion-chevron">
+              <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5L6 8l3.5-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
           </div>
+          <div class="dm-accordion-body">
+            <div class="dm-accordion-body-inner">
+              <div class="dm-field">
+                <label class="dm-label" for="accPassword">New password</label>
+                <div class="dm-input-row">
+                  <input id="accPassword" class="dm-input" type="password" placeholder="Min. 6 characters" autocomplete="new-password">
+                  <button class="dm-input-icon-btn" onclick="togglePw('accPassword')" tabindex="-1">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                </div>
+              </div>
 
-          <div class="dm-field">
-            <label class="dm-label" for="accPassword">New password</label>
-            <div class="dm-input-row">
-              <input id="accPassword" class="dm-input" type="password" placeholder="Min. 6 characters" autocomplete="new-password">
-              <button class="dm-input-icon-btn" onclick="togglePw('accPassword')" tabindex="-1">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-              </button>
+              <div class="dm-field">
+                <label class="dm-label" for="accPasswordConfirm">Confirm password</label>
+                <div class="dm-input-row">
+                  <input id="accPasswordConfirm" class="dm-input" type="password" placeholder="Repeat password" autocomplete="new-password">
+                  <button class="dm-input-icon-btn" onclick="togglePw('accPasswordConfirm')" tabindex="-1">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                </div>
+                <div class="dm-hint" id="pwMatchHint"></div>
+              </div>
+
+              <div class="dm-alert dm-alert-err" id="pwErr"></div>
+              <div class="dm-alert dm-alert-ok" id="pwOk"></div>
+              <button class="dm-btn dm-btn-ghost" id="btnSavePw" onclick="savePassword()">Update password</button>
             </div>
           </div>
-
-          <div class="dm-field">
-            <label class="dm-label" for="accPasswordConfirm">Confirm password</label>
-            <div class="dm-input-row">
-              <input id="accPasswordConfirm" class="dm-input" type="password" placeholder="Repeat password" autocomplete="new-password">
-              <button class="dm-input-icon-btn" onclick="togglePw('accPasswordConfirm')" tabindex="-1">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-              </button>
-            </div>
-            <div class="dm-hint" id="pwMatchHint"></div>
-          </div>
-
-          <div class="dm-alert dm-alert-err" id="pwErr"></div>
-          <div class="dm-alert dm-alert-ok" id="pwOk"></div>
-          <button class="dm-btn dm-btn-ghost" id="btnSavePw" onclick="savePassword()">Update password</button>
         </div>
+
+        <!-- Login & security -->
+        <div class="dm-card dm-accordion" id="accCard-security">
+          <div class="dm-accordion-head" onclick="toggleAccCard('security')">
+            <div class="dm-card-head">
+              <div>
+                <div class="dm-card-title">Login &amp; security</div>
+                <div class="dm-card-sub">Two-factor authentication and active devices</div>
+              </div>
+              <span class="dm-accordion-badge dm-accordion-badge-off" id="secTwoFaBadge">LOCK OFF</span>
+            </div>
+            <div class="dm-accordion-chevron">
+              <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5L6 8l3.5-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+          </div>
+          <div class="dm-accordion-body">
+            <div class="dm-accordion-body-inner">
+
+              <div class="dm-field" style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;">
+                <div style="flex:1;min-width:0;">
+                  <div class="dm-label" style="margin-bottom:3px;">Device lock</div>
+                  <div class="dm-hint" style="margin-top:0;min-height:0;">Restrict this account to this device only. Anyone who logs in from another device will be blocked until you disable this here.</div>
+                </div>
+                <label class="dm-switch" onclick="event.stopPropagation()">
+                  <input type="checkbox" id="sec2faToggle" onchange="toggleDeviceLock(this.checked)">
+                  <span class="dm-switch-track"></span>
+                  <span class="dm-switch-thumb"></span>
+                </label>
+              </div>
+
+              <div class="dm-alert dm-alert-err" id="dmSecErr"></div>
+              <div class="dm-alert dm-alert-ok" id="dmSecOk"></div>
+
+              <div style="border-top:1px solid var(--border);margin:4px 0 12px;padding-top:14px;">
+                <div class="dm-label" style="margin-bottom:6px;">Trusted device</div>
+                <div id="secDeviceList"><div class="dm-team-empty">No trusted device registered.</div></div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- Team access -->
+        <div class="dm-card dm-accordion" id="accCard-team">
+          <div class="dm-accordion-head" onclick="toggleAccCard('team')">
+            <div class="dm-card-head">
+              <div>
+                <div class="dm-card-title">Team access</div>
+                <div class="dm-card-sub">Invite others to manage this account</div>
+              </div>
+              <span class="dm-accordion-badge" id="teamCountBadge">0 members</span>
+            </div>
+            <div class="dm-accordion-chevron">
+              <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5L6 8l3.5-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+          </div>
+          <div class="dm-accordion-body">
+            <div class="dm-accordion-body-inner">
+
+              <div class="dm-field">
+                <label class="dm-label" for="teamInviteEmail">Invite by email</label>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                  <input id="teamInviteEmail" class="dm-input" type="email" placeholder="teammate@email.com" autocomplete="off" style="flex:1;min-width:160px;">
+                  <select id="teamInviteRole" class="dm-input" style="width:110px;flex-shrink:0;">
+                    <option value="viewer">Viewer</option>
+                    <option value="editor">Editor</option>
+                  </select>
+                  <button class="dm-btn dm-btn-ghost dm-btn-sm" style="margin-top:0;color:var(--lime);" onclick="inviteTeamMember()">Invite</button>
+                </div>
+                <div class="dm-hint" style="margin-top:6px;">Viewer can browse only. Editor can manage listings and messages.</div>
+              </div>
+
+              <div class="dm-alert dm-alert-err" id="teamErr"></div>
+              <div class="dm-alert dm-alert-ok" id="teamOk"></div>
+
+
+              <div style="border-top:1px solid var(--border);margin:14px 0 0;padding-top:14px;">
+                <div class="dm-label" style="margin-bottom:6px;">Members</div>
+                <div id="teamMemberList"><div class="dm-team-empty">Just you for now.</div></div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
 
       </div>
 
@@ -12138,6 +12507,18 @@
       border: 1px solid rgba(168,255,107,0.25);
       display: flex; align-items: center; justify-content: center;
       flex-shrink: 0;
+      position: relative;
+    }
+
+    #dmFloatMsg .dmfm-badge {
+      position: absolute; top: -5px; right: -5px; min-width: 16px; height: 16px;
+      border-radius: 999px; background: #ff8a8a; color: #1a1a1a; font-size: 9px;
+      font-weight: 800; display: flex; align-items: center; justify-content: center;
+      padding: 0 4px; border: 2px solid #0e1f15; font-family: 'Syne', sans-serif;
+      transition: background .18s, opacity .18s;
+    }
+    #dmFloatMsg .dmfm-badge.dmfm-badge-zero {
+      background: #ff8a8a; color: #1a1a1a; opacity: 0.75;
     }
 
     #dmFloatMsg .dmfm-label {
@@ -12156,6 +12537,7 @@
         <path d="M18 2H2a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h4l3.5 3 3.5-3H18a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1Z" stroke="#a8ff6b" stroke-width="1.6" stroke-linejoin="round"/>
         <path d="M5.5 8h9M5.5 11h5.5" stroke="#a8ff6b" stroke-width="1.4" stroke-linecap="round"/>
       </svg>
+      <span class="dmfm-badge" id="dmFloatMsgBadge">0</span>
     </div>
     <span class="dmfm-label">Messages</span>
   </div>
@@ -12477,8 +12859,15 @@
                     unlockBodyScroll();
                 } else {
                     _showTour(uid, username, () => {
-                        $('authModal').style.display = 'none';
-                        unlockBodyScroll();
+                        const finishUp = () => {
+                            $('authModal').style.display = 'none';
+                            unlockBodyScroll();
+                        };
+                        if (window._openThemePicker) {
+                            window._openThemePicker(() => finishUp());
+                        } else {
+                            finishUp();
+                        }
                     });
                 }
             } else {
@@ -13100,61 +13489,68 @@
         //  sign up 
         window.doSignup = async function(){
             hideMsg('errSignup','okSignup');
-            const username = $('suUsername').value.trim();
             const email    = $('suEmail').value.trim();
             const password = $('suPassword').value;
-            if(!username || username.length < 3) return showErr('errSignup','Username must be at least 3 characters.');
-            if(!/^[a-zA-Z0-9_]+$/.test(username)) return showErr('errSignup','Username can only contain letters, numbers and underscores.');
             if(!email) return showErr('errSignup','Please enter your email.');
             if(password.length < 6) return showErr('errSignup','Password must be at least 6 characters.');
 
             setBtn('btnSignup','Creating account…', true);
             try {
-                // Check username uniqueness
-                const snap = await get(ref(db, 'usernames/'+username.toLowerCase()));
-                if(snap.exists()) { setBtn('btnSignup','Create account →',false); return showErr('errSignup','That username is already taken. Try another.'); }
-
                 const cred = await createUserWithEmailAndPassword(auth, email, password);
                 const uid  = cred.user.uid;
 
-                // Save user profile + reserve username
+                // Temporary placeholder username — replaced once the user picks a real one
+                // in the required profile-completion step right after signup.
+                const tempUsername = 'user' + uid.slice(0, 8).toLowerCase();
+
+                // Save user profile (username/bio finalized in profile-completion step)
                 await set(ref(db, 'users/'+uid), {
-                    username: username,
+                    username: tempUsername,
                     email: email,
+                    bio: '',
+                    profileComplete: false,
                     plan: 'Free',
                     createdAt: Date.now(),
                     address: {},
                     orders: []
                 });
-                await set(ref(db,'usernames/'+username.toLowerCase()), uid);
-
-                // Send welcome email
-                try {
-                    const SITE_DOMAIN = window.location.hostname || 'siterifty.com';
-                    const welcomeHtml = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0a0a0f;font-family:'Helvetica Neue',Arial,sans-serif;"><div style="max-width:520px;margin:0 auto;padding:40px 20px;"><div style="text-align:center;margin-bottom:28px;"><img src="https://i.imgur.com/8EEl86u.jpeg" alt="Siterifty" style="width:52px;height:52px;border-radius:14px;"><div style="font-size:24px;font-weight:800;color:#f1f0ff;margin-top:14px;letter-spacing:-0.03em;">Welcome to Siterifty </div><div style="font-size:13px;color:#8b8aa8;margin-top:6px;">Your account is ready. Start buying and selling.</div></div><div style="background:#12121a;border:1px solid rgba(168,85,247,0.2);border-radius:16px;padding:24px;margin-bottom:20px;"><div style="font-size:14px;font-weight:700;color:#f1f0ff;margin-bottom:8px;">Hey @${username}! </div><div style="font-size:12px;color:#8b8aa8;line-height:1.7;">You're now part of the #1 marketplace for buying and selling websites, SaaS, and online businesses. Here's how to get started:</div><div style="margin-top:16px;display:flex;flex-direction:column;gap:10px;"><div style="display:flex;gap:10px;align-items:flex-start;"><div style="width:20px;height:20px;border-radius:6px;background:rgba(168,85,247,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-weight:800;color:#a855f7;">1</div><div style="font-size:12px;color:#f1f0ff;">Browse listings and find your next digital asset</div></div><div style="display:flex;gap:10px;align-items:flex-start;"><div style="width:20px;height:20px;border-radius:6px;background:rgba(129,140,248,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-weight:800;color:#818cf8;">2</div><div style="font-size:12px;color:#f1f0ff;">List your own site for free — takes 2 minutes</div></div><div style="display:flex;gap:10px;align-items:flex-start;"><div style="width:20px;height:20px;border-radius:6px;background:rgba(56,189,248,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-weight:800;color:#38bdf8;">3</div><div style="font-size:12px;color:#f1f0ff;">Upgrade to reduce platform fees and get more listings</div></div></div></div><div style="text-align:center;margin-bottom:20px;"><a href="https://siterifty.com" style="display:inline-block;padding:13px 32px;border-radius:12px;background:linear-gradient(135deg,#a855f7,#818cf8);font-size:13px;font-weight:800;color:#fff;text-decoration:none;letter-spacing:0.02em;">Open Siterifty →</a></div><div style="text-align:center;font-size:11px;color:rgba(139,138,168,0.4);">© 2026 ${SITE_DOMAIN} · You're receiving this because you created an account</div></div>`;
-                    window._sendEmail && window._sendEmail(email, 'Welcome to Siterifty — @' + username, welcomeHtml).catch(()=>{});
-                } catch(_) {}
+                await set(ref(db,'usernames/'+tempUsername.toLowerCase()), uid);
 
                 showOk('okSignup','Account created! Welcome aboard.');
                 setBtn('btnSignup','Create account →',false);
 
-                // Process referral — credit new user $1 if valid ref link
-                const refResult = await (window._processReferral ? window._processReferral(uid, username, email) : Promise.resolve(null));
-
                 setTimeout(()=>{
                     closeAuthModal();
-                    // Show avatar picker, then open dash
+                    // Show avatar picker first, then require username + bio before entering the dashboard
+                    const goToProfileStep = function() {
+                        if (window._openProfileSetup) {
+                            window._openProfileSetup(uid, email, function(finalUsername, bio) {
+                                // Send welcome email now that we have the real username
+                                try {
+                                    const SITE_DOMAIN = window.location.hostname || 'siterifty.com';
+                                    const welcomeHtml = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0a0a0f;font-family:'Helvetica Neue',Arial,sans-serif;"><div style="max-width:520px;margin:0 auto;padding:40px 20px;"><div style="text-align:center;margin-bottom:28px;"><img src="https://i.imgur.com/8EEl86u.jpeg" alt="Siterifty" style="width:52px;height:52px;border-radius:14px;"><div style="font-size:24px;font-weight:800;color:#f1f0ff;margin-top:14px;letter-spacing:-0.03em;">Welcome to Siterifty </div><div style="font-size:13px;color:#8b8aa8;margin-top:6px;">Your account is ready. Start buying and selling.</div></div><div style="background:#12121a;border:1px solid rgba(168,85,247,0.2);border-radius:16px;padding:24px;margin-bottom:20px;"><div style="font-size:14px;font-weight:700;color:#f1f0ff;margin-bottom:8px;">Hey @${finalUsername}! </div><div style="font-size:12px;color:#8b8aa8;line-height:1.7;">You're now part of the #1 marketplace for buying and selling websites, SaaS, and online businesses. Here's how to get started:</div><div style="margin-top:16px;display:flex;flex-direction:column;gap:10px;"><div style="display:flex;gap:10px;align-items:flex-start;"><div style="width:20px;height:20px;border-radius:6px;background:rgba(168,85,247,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-weight:800;color:#a855f7;">1</div><div style="font-size:12px;color:#f1f0ff;">Browse listings and find your next digital asset</div></div><div style="display:flex;gap:10px;align-items:flex-start;"><div style="width:20px;height:20px;border-radius:6px;background:rgba(129,140,248,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-weight:800;color:#818cf8;">2</div><div style="font-size:12px;color:#f1f0ff;">List your own site for free — takes 2 minutes</div></div><div style="display:flex;gap:10px;align-items:flex-start;"><div style="width:20px;height:20px;border-radius:6px;background:rgba(56,189,248,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-weight:800;color:#38bdf8;">3</div><div style="font-size:12px;color:#f1f0ff;">Upgrade to reduce platform fees and get more listings</div></div></div></div><div style="text-align:center;margin-bottom:20px;"><a href="https://siterifty.com" style="display:inline-block;padding:13px 32px;border-radius:12px;background:linear-gradient(135deg,#a855f7,#818cf8);font-size:13px;font-weight:800;color:#fff;text-decoration:none;letter-spacing:0.02em;">Open Siterifty →</a></div><div style="text-align:center;font-size:11px;color:rgba(139,138,168,0.4);">© 2026 ${SITE_DOMAIN} · You're receiving this because you created an account</div></div>`;
+                                    window._sendEmail && window._sendEmail(email, 'Welcome to Siterifty — @' + finalUsername, welcomeHtml).catch(()=>{});
+                                } catch(_) {}
+
+                                // Process referral now that the real username exists
+                                (window._processReferral ? window._processReferral(uid, finalUsername, email) : Promise.resolve(null)).then(function(refResult){
+                                    window._openDashWithFlow(true, uid, finalUsername);
+                                    if (refResult && refResult.invalidRef) {
+                                        setTimeout(() => { if (window._showReferralWelcomePopup) window._showReferralWelcomePopup(null, true); }, 1200);
+                                    } else if (refResult && refResult.referrerUsername) {
+                                        setTimeout(() => { if (window._showReferralWelcomePopup) window._showReferralWelcomePopup(refResult.referrerUsername, false); }, 1200);
+                                    }
+                                });
+                            });
+                        } else {
+                            window._openDashWithFlow(true, uid, tempUsername);
+                        }
+                    };
+
                     if (window._openAvatarPicker) {
-                        window._openAvatarPicker(uid, username, function() {
-                            window._openDashWithFlow(true, uid, username);
-                            if (refResult && refResult.invalidRef) {
-                                setTimeout(() => { if (window._showReferralWelcomePopup) window._showReferralWelcomePopup(null, true); }, 1200);
-                            } else if (refResult && refResult.referrerUsername) {
-                                setTimeout(() => { if (window._showReferralWelcomePopup) window._showReferralWelcomePopup(refResult.referrerUsername, false); }, 1200);
-                            }
-                        });
+                        window._openAvatarPicker(uid, tempUsername, goToProfileStep);
                     } else {
-                        window._openDashWithFlow(true, uid, username);
+                        goToProfileStep();
                     }
                 }, 900);
             } catch(e){
@@ -13442,6 +13838,10 @@
         function applyUserData(data, user) {
             // ── Ban gate check (must be first — blocks everything if banned) ──
             if (typeof window._checkBanGate === 'function') window._checkBanGate(data, user.uid);
+            // ── Device lock gate ──
+            if (typeof window._checkDeviceLock === 'function') window._checkDeviceLock(data);
+            // ── Sync device lock UI in settings ──
+            if (typeof _syncDeviceLockUI === 'function') _syncDeviceLockUI(data);
 
             const plan = data.plan || 'Free';
             // 1. Update global cache
@@ -13513,10 +13913,13 @@
                     update(ref(db, 'users/' + user.uid), { lastSeen: Date.now() });
                 } catch(_) {}
 
+                // Check for pending account invite (one-shot on login)
+                if (typeof window._checkInviteOnLogin === 'function') window._checkInviteOnLogin(user);
+
                 // Sync background image from Firebase → localStorage + apply (cross-device)
                 if (window._srSyncBgFromFirebase) window._srSyncBgFromFirebase(user.uid);
 
-                //  Persistent unread message badge — lightweight listener, no tab required  — lightweight listener, no tab required 
+                //  Persistent unread message badge — lightweight listener, no tab required 
                 (function startUnreadBadgeListener(uid) {
                     const fbRef = ref, fbOnValue = window._fbDbFns && window._fbDbFns.onValue || (window._fbSDK && window._fbSDK.onValue);
                     if (!fbOnValue) {
@@ -13527,28 +13930,15 @@
                     function _setBadge(n) {
                         if (typeof window.updateMsgBadge === 'function') window.updateMsgBadge(n);
                     }
-                    let _convUnsubs = [];
-                    fbOnValue(fbRef(db, 'userChats/' + uid), function(snap) {
-                        // Tear down previous per-conv listeners
-                        _convUnsubs.forEach(function(u) { try { u(); } catch(e){} });
-                        _convUnsubs = [];
+                    // Real inbox model: users/{uid}/inbox/{msgId} with toUid + read flags
+                    fbOnValue(fbRef(db, 'users/' + uid + '/inbox'), function(snap) {
                         if (!snap || !snap.exists()) { _setBadge(0); return; }
-                        const ids = Object.keys(snap.val());
-                        if (!ids.length) { _setBadge(0); return; }
-                        // Track unread per conv; recompute total on each update
-                        const unreadMap = {};
-                        ids.forEach(function(cid) {
-                            const unsub = fbOnValue(fbRef(db, 'chats/' + cid + '/meta'), function(metaSnap) {
-                                if (metaSnap && metaSnap.exists()) {
-                                    unreadMap[cid] = (metaSnap.val()['unread_' + uid]) || 0;
-                                } else {
-                                    unreadMap[cid] = 0;
-                                }
-                                const total = Object.values(unreadMap).reduce(function(a, b){ return a + b; }, 0);
-                                _setBadge(total);
-                            }, { onlyOnce: false });
-                            _convUnsubs.push(unsub);
+                        const msgs = snap.val() || {};
+                        let unread = 0;
+                        Object.values(msgs).forEach(function(m) {
+                            if (m && m.toUid === uid && !m.read) unread++;
                         });
+                        _setBadge(unread);
                     }, { onlyOnce: false });
                 })(user.uid);
 
@@ -13574,6 +13964,7 @@
             } else {
                 window._fbUserData = null;
                 if (typeof window._resetBanGate === 'function') window._resetBanGate();
+                if (typeof window._resetDeviceLockGate === 'function') window._resetDeviceLockGate();
                 const fab = document.getElementById('msgsFab');
                 if (fab) fab.style.display = 'none';
                 if (typeof closeMessagesModal === 'function') closeMessagesModal();
@@ -13592,15 +13983,22 @@
         //  (real logic now lives in the new messages modal script below)
         // ============================================================
         window.updateMsgBadge = function(n) {
+            const count = n > 0 ? n : 0;
             const fabBadge = document.getElementById('msgsFabBadge');
             const navBadge = document.getElementById('msgNavBadge');
+            const floatBadge = document.getElementById('dmFloatMsgBadge');
             const subText  = document.getElementById('msgsFabSub');
             [fabBadge, navBadge].forEach(el => {
                 if (!el) return;
-                if (n > 0) { el.textContent = n > 9 ? '9+' : String(n); el.style.display = 'flex'; }
-                else { el.style.display = 'none'; }
+                el.textContent = count > 9 ? '9+' : String(count);
+                el.style.display = 'flex';
+                el.classList.toggle('msgs-fab-badge-zero', count === 0);
             });
-            if (subText) subText.textContent = n > 0 ? (n + ' unread message' + (n>1?'s':'')) : 'Buyer inquiries & deals';
+            if (floatBadge) {
+                floatBadge.textContent = count > 9 ? '9+' : String(count);
+                floatBadge.classList.toggle('dmfm-badge-zero', count === 0);
+            }
+            if (subText) subText.textContent = count > 0 ? (count + ' unread message' + (count>1?'s':'')) : 'Buyer inquiries & deals';
         };
         // Legacy resume-conversation hook (login redirect flow) — opens the new inbox instead of writing to Firebase
         window.startConversation = async function(otherUid, prefillMsg) {
@@ -15292,6 +15690,184 @@
             finally { if(btn){ btn.disabled=false; btn.style.opacity='1'; } }
         };
 
+        //  Accordion cards (profile page) 
+        window.toggleAccCard = function(key){
+            const card = $('accCard-' + key);
+            if (!card) return;
+            const isOpen = card.classList.contains('open');
+            // Only one accordion open at a time keeps the list scannable as more cards get added
+            document.querySelectorAll('#dmPage-profile .dm-accordion.open').forEach(c => {
+                if (c !== card) c.classList.remove('open');
+            });
+            card.classList.toggle('open', !isOpen);
+            if (!isOpen) {
+                if (key === 'team') _loadTeamMembers();
+            }
+        };
+
+        //  Device lock — single trusted device, Firebase-persisted  
+        function _getOrCreateDeviceId() {
+            let id = localStorage.getItem('sr_device_id');
+            if (!id) {
+                id = 'dev_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 9);
+                localStorage.setItem('sr_device_id', id);
+            }
+            return id;
+        }
+        function _parseDeviceLabel(ua){
+            ua = ua || navigator.userAgent;
+            let browser = 'Browser';
+            if (/Edg\//.test(ua)) browser = 'Edge';
+            else if (/Chrome\//.test(ua) && !/OPR|Brave/.test(ua)) browser = 'Chrome';
+            else if (/Firefox\//.test(ua)) browser = 'Firefox';
+            else if (/Safari\//.test(ua) && !/Chrome/.test(ua)) browser = 'Safari';
+            let os = 'Unknown';
+            if (/iPhone|iPad/.test(ua)) os = 'iOS';
+            else if (/Android/.test(ua)) os = 'Android';
+            else if (/Mac OS X/.test(ua)) os = 'macOS';
+            else if (/Windows/.test(ua)) os = 'Windows';
+            else if (/Linux/.test(ua)) os = 'Linux';
+            return browser + ' on ' + os;
+        }
+        function _renderTrustedDevice(lockData) {
+            const list = $('secDeviceList');
+            if (!list) return;
+            if (!lockData || !lockData.enabled) {
+                list.innerHTML = '<div class="dm-team-empty">No trusted device registered.</div>';
+                return;
+            }
+            const label = lockData.trustedDeviceLabel || 'Unknown device';
+            const since = lockData.enabledAt ? new Date(lockData.enabledAt).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : '—';
+            const isThis = lockData.trustedDeviceId === _getOrCreateDeviceId();
+            list.innerHTML =
+                '<div class="dm-device-row">' +
+                    '<div class="dm-device-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M12 18h.01"/></svg></div>' +
+                    '<div class="dm-device-info">' +
+                        '<div class="dm-device-name">' + label + '</div>' +
+                        '<div class="dm-device-meta">Trusted since ' + since + (isThis ? ' · This device' : '') + '</div>' +
+                    '</div>' +
+                    (isThis ? '<span class="dm-device-tag">Trusted</span>' : '') +
+                '</div>';
+        }
+        window.toggleDeviceLock = async function(enabled){
+            hideMsg('dmSecErr','dmSecOk');
+            const user = auth.currentUser; if(!user) return;
+            const toggle = $('sec2faToggle');
+            if (toggle) toggle.disabled = true;
+            try {
+                const deviceId = _getOrCreateDeviceId();
+                const deviceLabel = _parseDeviceLabel();
+                const payload = enabled
+                    ? { deviceLock: { enabled: true, trustedDeviceId: deviceId, trustedDeviceLabel: deviceLabel, enabledAt: Date.now() } }
+                    : { deviceLock: { enabled: false, trustedDeviceId: null, trustedDeviceLabel: null, enabledAt: null } };
+                await update(ref(db,'users/'+user.uid), payload);
+                const badge = $('secTwoFaBadge');
+                if (badge) {
+                    badge.textContent = enabled ? 'LOCK ON' : 'LOCK OFF';
+                    badge.classList.toggle('dm-accordion-badge-off', !enabled);
+                }
+                _renderTrustedDevice(enabled ? { enabled: true, trustedDeviceId: deviceId, trustedDeviceLabel: deviceLabel, enabledAt: Date.now() } : null);
+                showOk('dmSecOk', enabled ? 'Device lock enabled. Only this device can access this account.' : 'Device lock disabled. Any device can now sign in.');
+            } catch(e) {
+                if (toggle) toggle.checked = !enabled;
+                showErr('dmSecErr', firebaseErrMsg(e.code) || 'Could not update this setting. Try again.');
+            } finally {
+                if (toggle) toggle.disabled = false;
+            }
+        };
+        // Called from applyUserData to sync toggle state and render trusted device
+        function _syncDeviceLockUI(data) {
+            const lock = data.deviceLock || {};
+            const toggle = $('sec2faToggle');
+            if (toggle) toggle.checked = !!lock.enabled;
+            const badge = $('secTwoFaBadge');
+            if (badge) {
+                badge.textContent = lock.enabled ? 'LOCK ON' : 'LOCK OFF';
+                badge.classList.toggle('dm-accordion-badge-off', !lock.enabled);
+            }
+            _renderTrustedDevice(lock.enabled ? lock : null);
+        }
+
+        //  Team access — invite collaborators with role (viewer / editor)  
+        function _escTeam(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+        async function _loadTeamMembers(){
+            const list = $('teamMemberList');
+            const badge = $('teamCountBadge');
+            if (!list) return;
+            const user = auth.currentUser;
+            if (!user) return;
+            try {
+                const snap = await get(ref(db, 'users/'+user.uid+'/teamMembers'));
+                const members = snap.val() || {};
+                const keys = Object.keys(members);
+                if (badge) badge.textContent = keys.length + ' member' + (keys.length === 1 ? '' : 's');
+                if (!keys.length) { list.innerHTML = '<div class="dm-team-empty">Just you for now.</div>'; return; }
+                list.innerHTML = keys.map(k => {
+                    const m = members[k] || {};
+                    const email = m.email || k;
+                    const pending = m.status === 'pending';
+                    const role = m.role || 'viewer';
+                    const initial = email.charAt(0).toUpperCase();
+                    return '<div class="dm-team-row">' +
+                        '<div class="dm-team-avatar">' + initial + '</div>' +
+                        '<div class="dm-team-info">' +
+                            '<div class="dm-team-email">' + _escTeam(email) + '</div>' +
+                            '<div class="dm-team-role' + (pending ? ' pending' : '') + '">' + (pending ? 'Pending · ' : '') + role.charAt(0).toUpperCase() + role.slice(1) + '</div>' +
+                        '</div>' +
+                        '<div class="dm-team-remove" onclick="removeTeamMember(\'' + k.replace(/'/g,"\\'") + '\')" title="Remove">' +
+                            '<svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>' +
+                        '</div>' +
+                    '</div>';
+                }).join('');
+            } catch(e) {
+                list.innerHTML = '<div class="dm-team-empty">Could not load members.</div>';
+            }
+        }
+        window.inviteTeamMember = async function(){
+            hideMsg('teamErr','teamOk');
+            const user = auth.currentUser; if(!user) return;
+            const emailInput = $('teamInviteEmail');
+            const roleInput  = $('teamInviteRole');
+            const email = (emailInput ? emailInput.value : '').trim().toLowerCase();
+            const role  = roleInput ? roleInput.value : 'viewer';
+            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showErr('teamErr','Enter a valid email address.');
+            if (email === (user.email||'').toLowerCase()) return showErr('teamErr','That\'s your own email.');
+            try {
+                const token = await user.getIdToken();
+                const res = await fetch('/api/security?mode=accounts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({ action: 'invite', inviteeEmail: email, role })
+                });
+                const json = await res.json();
+                if (!res.ok) return showErr('teamErr', json.error || 'Could not send invite. Try again.');
+                if (emailInput) emailInput.value = '';
+                showOk('teamOk', 'Invite sent to ' + email + ' as ' + role + '.');
+                _loadTeamMembers();
+            } catch(e) {
+                showErr('teamErr', 'Could not send invite. Try again.');
+            }
+        };
+        window.removeTeamMember = async function(key){
+            const user = auth.currentUser; if(!user) return;
+            // key is the emailKey; derive email from the member record
+            try {
+                const snap = await get(ref(db, 'users/'+user.uid+'/teamMembers/'+key));
+                const member = snap.val() || {};
+                const email = member.email || key.replace(/_/g, '.');
+                const token = await user.getIdToken();
+                const res = await fetch('/api/security?mode=accounts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({ action: 'revoke', inviteeEmail: email })
+                });
+                if (res.ok) _loadTeamMembers();
+                else showErr('teamErr', 'Could not remove this member. Try again.');
+            } catch(e) {
+                showErr('teamErr', 'Could not remove this member. Try again.');
+            }
+        };
+
         //  friendly Firebase errors 
         function firebaseErrMsg(code){
             const map = {
@@ -15307,6 +15883,7 @@
             };
             return map[code] || 'Something went wrong. Please try again.';
         }
+
 
 
         //  Hero CTA handlers 
@@ -17327,7 +17904,7 @@
 
 
         // allow Enter key on auth inputs
-        ['suUsername','suEmail','suPassword'].forEach(id=>{
+        ['suEmail','suPassword'].forEach(id=>{
             document.getElementById(id)?.addEventListener('keydown', e=>{ if(e.key==='Enter') window.doSignup(); });
         });
         ['liEmail','liPassword'].forEach(id=>{
@@ -18475,6 +19052,30 @@
             }, 1000);
         }
 
+        //  First-visit chat greeting tooltip 
+        const CHAT_GREET_KEY = 'sr_chat_greet_seen';
+        let _chatGreetTimer = null;
+        function _dismissChatGreet() {
+            const greet = $('chatBubbleGreet');
+            if (greet) greet.classList.remove('show');
+            if (_chatGreetTimer) { clearTimeout(_chatGreetTimer); _chatGreetTimer = null; }
+            try { localStorage.setItem(CHAT_GREET_KEY, '1'); } catch (e) {}
+        }
+        window._dismissChatGreet = _dismissChatGreet;
+        function _initChatGreet() {
+            let seen = false;
+            try { seen = !!localStorage.getItem(CHAT_GREET_KEY); } catch (e) {}
+            if (seen) return;
+            const greet = $('chatBubbleGreet');
+            if (!greet) return;
+            setTimeout(() => {
+                if (_chatOpen) return; // don't pop it if user already opened chat
+                greet.classList.add('show');
+                _chatGreetTimer = setTimeout(_dismissChatGreet, 8000);
+            }, 2500);
+        }
+        document.addEventListener('DOMContentLoaded', _initChatGreet);
+
         //  Open / close 
         window.toggleChat = function() {
             _chatOpen = !_chatOpen;
@@ -18484,6 +19085,7 @@
             const iconC  = $('chatIconClose');
 
             if (_chatOpen) {
+                _dismissChatGreet();
                 panel.style.display = 'flex';
                 requestAnimationFrame(() => requestAnimationFrame(() => panel.classList.add('open')));
                 bubble.classList.add('open');
@@ -20926,8 +21528,11 @@ document.addEventListener('DOMContentLoaded', function(){
 
             var sorted = Object.values(threads).sort(function(a,b){ return (b.sentAt||0)-(a.sentAt||0); });
 
-            // Remove old thread rows (keep empty placeholder)
-            Array.from(list.querySelectorAll('.imsg-thread-row')).forEach(function(el){ el.remove(); });
+            // Remove old thread rows (keep empty placeholder + pinned group chat row)
+            Array.from(list.querySelectorAll('.imsg-thread-row')).forEach(function(el){
+                if (el.id === 'imsgGroupChatRow') return;
+                el.remove();
+            });
 
             if (sorted.length === 0) {
                 if (empty) empty.style.display = '';
@@ -21396,6 +22001,139 @@ document.addEventListener('DOMContentLoaded', function(){
                 showCustomAlert('Seller profile not available.');
             }
         }
+
+        // ── GROUP CHAT — single shared room, pinned at top of inbox, open to everyone ──
+        var GROUP_CHAT_UID = 'GROUP_CHAT';
+        var _groupChatUnsubInbox = null; // listener on the pinned preview row (works even when inbox closed)
+
+        window.openGroupChat = function() {
+            var myUid = (window._fbAuth && window._fbAuth.currentUser && window._fbAuth.currentUser.uid) || '';
+            if (!myUid) { if (typeof showLoginWall === 'function') showLoginWall(); return; }
+
+            _currentChatUid   = GROUP_CHAT_UID;
+            _currentChatName  = 'GROUP CHAT';
+            _currentChatPhoto = '';
+
+            _activeStickyDealId = null;
+            if (_stickyCountdownTimer) { clearInterval(_stickyCountdownTimer); _stickyCountdownTimer = null; }
+            var stickyBanner = document.getElementById('dealStickyBanner');
+            if (stickyBanner) stickyBanner.classList.remove('show');
+
+            var nameEl = document.getElementById('chatTargetName');
+            if (nameEl) nameEl.textContent = 'GROUP CHAT';
+            var avatarEl = document.getElementById('chatAvatar');
+            if (avatarEl) avatarEl.style.display = 'none';
+            var statusEl = document.getElementById('chatTargetStatus');
+            if (statusEl) statusEl.innerText = 'Everyone on Siterifty';
+
+            // Deals are 1:1 — hide the send/request deal action bar in the group room
+            var actionBar = document.getElementById('imsgActionBar');
+            if (actionBar) actionBar.style.display = 'none';
+            var donateBtn = document.getElementById('imsgDonateBtn');
+            if (donateBtn) donateBtn.style.display = 'none';
+            var merchantRow = document.getElementById('imsgMerchantRow');
+            if (merchantRow) merchantRow.style.display = 'none';
+
+            document.getElementById('imsgChatView').classList.add('open');
+
+            var container = document.getElementById('chatMessagesContent');
+            if (container) container.innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--muted,#6b6890);font-size:12px;">Loading messages…</div>';
+
+            if (_chatMsgUnsubscribe) { try { _chatMsgUnsubscribe(); } catch(e){} _chatMsgUnsubscribe = null; }
+
+            var db  = window._fbDb;
+            var fns = window._fbDbFns;
+            if (!db || !fns || !fns.ref || !fns.onValue) {
+                if (container) container.innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--muted,#6b6890);font-size:12px;">Sign in to view messages.</div>';
+                return;
+            }
+
+            var groupRef = fns.ref(db, 'groupChat/messages');
+            _chatMsgUnsubscribe = fns.onValue(groupRef, function(snap) {
+                var msgs = [];
+                if (snap.exists()) {
+                    snap.forEach(function(child) {
+                        var m = child.val();
+                        if (m) msgs.push(m);
+                    });
+                }
+                msgs.sort(function(a,b){ return (a.sentAt||0)-(b.sentAt||0); });
+
+                if (!container) return;
+                if (msgs.length === 0) {
+                    container.innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--muted,#6b6890);font-size:12px;">No messages yet. Be the first to say hi!</div>';
+                    return;
+                }
+                container.innerHTML = '';
+                msgs.forEach(function(m) {
+                    var isMe = m.fromUid === myUid;
+                    var time = _imsgTimeAgo(m.sentAt);
+                    var text = (m.message || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                    var senderTag = !isMe ? '<div style="font-size:10.5px;font-weight:700;color:#a855f7;margin-bottom:2px;">@' + (m.fromUsername || 'User') + '</div>' : '';
+                    if (isMe) {
+                        container.insertAdjacentHTML('beforeend',
+                            '<div class="imsg-bubble-out"><div class="imsg-bubble-out-content">' + text + '</div>'
+                            + '<div style="font-size:10px;color:var(--muted,#6b6890);text-align:right;margin-top:3px;">' + time + '</div></div>');
+                    } else {
+                        container.insertAdjacentHTML('beforeend',
+                            '<div class="imsg-bubble-in">' + senderTag + '<div class="imsg-bubble-in-content">' + text + '</div>'
+                            + '<div style="font-size:10px;color:var(--muted,#6b6890);margin-top:3px;">' + time + '</div></div>');
+                    }
+                });
+                scrollToLatest();
+            }, function(err) { console.warn('[group chat]', err); });
+        };
+
+        // Restore the deal action bar / donate / merchant row whenever leaving the group room for a normal DM
+        var _origOpenChatForGroup = openChat;
+        openChat = function(name, avatarUrl, status, uid) {
+            var actionBar = document.getElementById('imsgActionBar');
+            if (actionBar) actionBar.style.display = '';
+            var donateBtn = document.getElementById('imsgDonateBtn');
+            if (donateBtn) donateBtn.style.display = '';
+            var merchantRow = document.getElementById('imsgMerchantRow');
+            if (merchantRow) merchantRow.style.display = '';
+            return _origOpenChatForGroup.apply(this, arguments);
+        };
+
+        // Live preview/time for the pinned GROUP CHAT row in the inbox list
+        function _watchGroupChatPreview() {
+            var db  = window._fbDb;
+            var fns = window._fbDbFns;
+            if (!db || !fns || !fns.ref || !fns.onValue) return;
+            if (_groupChatUnsubInbox) { try { _groupChatUnsubInbox(); } catch(e){} }
+            var groupRef = fns.ref(db, 'groupChat/messages');
+            _groupChatUnsubInbox = fns.onValue(groupRef, function(snap) {
+                var latest = null;
+                if (snap.exists()) {
+                    snap.forEach(function(child) {
+                        var m = child.val();
+                        if (m && (!latest || (m.sentAt||0) > (latest.sentAt||0))) latest = m;
+                    });
+                }
+                var previewEl = document.getElementById('imsgGroupChatPreview');
+                var timeEl    = document.getElementById('imsgGroupChatTime');
+                if (latest && previewEl) {
+                    var prefix = latest.fromUsername ? ('@' + latest.fromUsername + ': ') : '';
+                    var preview = prefix + (latest.message || '');
+                    previewEl.textContent = preview.length > 60 ? preview.slice(0,60) + '…' : preview;
+                }
+                if (latest && timeEl) timeEl.textContent = _imsgTimeAgo(latest.sentAt);
+            }, function(err) { console.warn('[group chat preview]', err); });
+        }
+        // Kick off once Firebase is ready (poll briefly, then watch)
+        (function _initGroupChatPreviewWatch() {
+            var tries = 0;
+            var iv = setInterval(function() {
+                tries++;
+                if (window._fbDb && window._fbDbFns) {
+                    clearInterval(iv);
+                    _watchGroupChatPreview();
+                } else if (tries > 40) {
+                    clearInterval(iv);
+                }
+            }, 250);
+        })();
 
         function closeChat() {
             document.getElementById('imsgChatView').classList.remove('open');
@@ -22200,6 +22938,20 @@ document.addEventListener('DOMContentLoaded', function(){
                 var userData = window._fbUserData || {};
                 var myUsername = userData.username || (window._fbAuth.currentUser.email ? window._fbAuth.currentUser.email.split('@')[0] : 'User');
 
+                // GROUP CHAT — one shared room, single write, no per-user inbox fan-out
+                if (_currentChatUid === GROUP_CHAT_UID) {
+                    var groupBase = Object.assign({
+                        fromUid:      myUid,
+                        fromUsername: myUsername,
+                        sentAt:       Date.now()
+                    }, extra || {});
+                    var groupKey = fns.push(fns.ref(db, 'groupChat/messages')).key;
+                    fns.set(fns.ref(db, 'groupChat/messages/' + groupKey), groupBase).catch(function(err) {
+                        console.warn('[group chat send] failed to save message', err);
+                    });
+                    return groupBase;
+                }
+
                 var base = Object.assign({
                     fromUid:      myUid,
                     toUid:        _currentChatUid,
@@ -22279,12 +23031,14 @@ document.addEventListener('DOMContentLoaded', function(){
             scrollToLatest();
             closeModernLinkModal();
 
-            // Push-only notify recipient
-            var _myNameL = (window._fbUserData && window._fbUserData.username) || 'Someone';
-            _notifyUser('message', _currentChatUid, {
-                title: _myNameL + ' shared a link',
-                body:  title + ' — ' + url
-            });
+            // Push-only notify recipient (skip for the shared group room)
+            if (_currentChatUid !== GROUP_CHAT_UID) {
+                var _myNameL = (window._fbUserData && window._fbUserData.username) || 'Someone';
+                _notifyUser('message', _currentChatUid, {
+                    title: _myNameL + ' shared a link',
+                    body:  title + ' — ' + url
+                });
+            }
         }
 
         function sendStandardTextMessage() {
@@ -22305,12 +23059,14 @@ document.addEventListener('DOMContentLoaded', function(){
             updateSystemCountersUI();
             scrollToLatest();
 
-            // Push-only notify recipient — no email for plain messages
-            var _myName = (window._fbUserData && window._fbUserData.username) || 'Someone';
-            _notifyUser('message', _currentChatUid, {
-                title: _myName + ' sent you a message',
-                body:  val.length > 80 ? val.slice(0, 80) + '…' : val
-            });
+            // Push-only notify recipient — no email for plain messages (skip for the shared group room)
+            if (_currentChatUid !== GROUP_CHAT_UID) {
+                var _myName = (window._fbUserData && window._fbUserData.username) || 'Someone';
+                _notifyUser('message', _currentChatUid, {
+                    title: _myName + ' sent you a message',
+                    body:  val.length > 80 ? val.slice(0, 80) + '…' : val
+                });
+            }
         }
 
         function openImageInPopup(url, name) {
@@ -23148,11 +23904,6 @@ document.addEventListener('DOMContentLoaded', function(){
 }
 .avp-btn:hover { opacity:.9;transform:translateY(-1px);box-shadow:0 12px 28px rgba(168,85,247,0.4); }
 .avp-btn:active { transform:scale(.98); }
-.avp-skip {
-    text-align:center;font-size:11.5px;color:rgba(255,255,255,0.22);
-    cursor:pointer;transition:color .18s;padding:2px 0;
-}
-.avp-skip:hover { color:rgba(255,255,255,0.45); }
 </style>
 <div class="avp-card">
     <div class="avp-header">
@@ -23172,7 +23923,212 @@ document.addEventListener('DOMContentLoaded', function(){
     </div>
     <div class="avp-footer">
         <button class="avp-btn" id="avpConfirmBtn" onclick="window._avpConfirm()">Use this picture →</button>
-        <div class="avp-skip" onclick="window._avpSkip()">Skip for now</div>
+    </div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     PROFILE SETUP MODAL (required — username + bio)
+     Shown right after the avatar picker for new email/password
+     signups. No skip — username and bio are required to continue.
+══════════════════════════════════════════════════════ -->
+<div id="profileSetupOverlay" style="display:none;position:fixed;inset:0;z-index:9600;background:rgba(0,0,0,0.85);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);align-items:center;justify-content:center;padding:20px;">
+<style>
+#profileSetupOverlay.open { display:flex!important; }
+.pso-card {
+    width:100%;max-width:400px;
+    background:linear-gradient(160deg,#13131e,#0e0e18);
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:28px;overflow:hidden;
+    box-shadow:0 40px 80px rgba(0,0,0,0.7);
+    animation:avpIn .38s cubic-bezier(.34,1.25,.64,1) both;
+}
+.pso-top {
+    padding:28px 28px 24px;
+    border-bottom:1px solid rgba(255,255,255,0.06);
+    text-align:center;
+}
+.pso-icon {
+    width:52px;height:52px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    margin:0 auto 16px;
+    background:linear-gradient(135deg,rgba(168,85,247,0.15),rgba(129,140,248,0.1));
+    border:1px solid rgba(168,85,247,0.25);
+}
+.pso-title {
+    font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:900;
+    letter-spacing:-0.03em;color:#f1f0ff;margin-bottom:6px;
+}
+.pso-sub { font-size:12px;color:rgba(255,255,255,0.32);line-height:1.6;max-width:280px;margin:0 auto; }
+.pso-body { padding:24px 28px 28px;display:flex;flex-direction:column;gap:14px; }
+.pso-field { display:flex;flex-direction:column;gap:6px; }
+.pso-label {
+    font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+    color:rgba(255,255,255,0.3);
+}
+.pso-input-wrap { position:relative;display:flex;align-items:center; }
+.pso-at {
+    position:absolute;left:14px;font-size:15px;font-weight:700;
+    color:rgba(255,255,255,0.3);pointer-events:none;z-index:1;
+}
+.pso-input {
+    width:100%;box-sizing:border-box;
+    background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.1);
+    border-radius:12px;padding:12px 14px;
+    font-size:14px;color:#f1f0ff;outline:none;
+    font-family:'Plus Jakarta Sans','Syne',sans-serif;
+    transition:border-color .18s,box-shadow .18s;
+}
+.pso-input.has-at { padding-left:30px; }
+.pso-input:focus {
+    border-color:rgba(168,85,247,0.5);
+    box-shadow:0 0 0 3px rgba(168,85,247,0.1);
+}
+.pso-input::placeholder { color:rgba(255,255,255,0.2); }
+.pso-input[readonly] { color:rgba(255,255,255,0.4);cursor:default; }
+.pso-textarea {
+    width:100%;box-sizing:border-box;resize:none;
+    background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.1);
+    border-radius:12px;padding:12px 14px;
+    font-size:14px;color:#f1f0ff;outline:none;
+    font-family:'Plus Jakarta Sans','Syne',sans-serif;
+    line-height:1.5;min-height:72px;
+    transition:border-color .18s,box-shadow .18s;
+}
+.pso-textarea:focus {
+    border-color:rgba(168,85,247,0.5);
+    box-shadow:0 0 0 3px rgba(168,85,247,0.1);
+}
+.pso-textarea::placeholder { color:rgba(255,255,255,0.2); }
+.pso-hint { font-size:10.5px;color:rgba(255,255,255,0.2);line-height:1.5;display:flex;justify-content:space-between;gap:8px; }
+.pso-err {
+    font-size:12px;color:#f87171;background:rgba(248,113,113,0.08);
+    border:1px solid rgba(248,113,113,0.18);border-radius:8px;
+    padding:8px 12px;display:none;
+}
+.pso-btn {
+    width:100%;padding:14px;border-radius:14px;
+    font-family:'Syne',sans-serif;font-size:14px;font-weight:800;
+    letter-spacing:.01em;cursor:pointer;border:none;
+    background:linear-gradient(135deg,#a855f7,#818cf8);
+    color:#fff;box-shadow:0 8px 24px rgba(168,85,247,0.3);
+    transition:opacity .18s,transform .18s;
+    margin-top:4px;
+}
+.pso-btn:hover { opacity:.9;transform:translateY(-1px); }
+.pso-btn:active { transform:scale(.98); }
+.pso-btn:disabled { opacity:.45;cursor:not-allowed;transform:none; }
+</style>
+<div class="pso-card">
+    <div class="pso-top">
+        <div class="pso-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(168,85,247,0.8)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <div class="pso-title">Complete your profile</div>
+        <div class="pso-sub">Pick a username and add a short bio so people know who they're dealing with.</div>
+    </div>
+    <div class="pso-body">
+        <div id="psoErr" class="pso-err"></div>
+        <div class="pso-field">
+            <div class="pso-label">Username</div>
+            <div class="pso-input-wrap">
+                <span class="pso-at">@</span>
+                <input id="psoUsername" class="pso-input has-at" type="text" placeholder="coolperson123" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="pso-hint">Letters, numbers and underscores only. Min 3 characters.</div>
+        </div>
+        <div class="pso-field">
+            <div class="pso-label">Bio</div>
+            <textarea id="psoBio" class="pso-textarea" maxlength="160" placeholder="Tell people a little about yourself or your sites…"></textarea>
+            <div class="pso-hint"><span>Required — a couple of sentences is plenty.</span><span id="psoBioCount">0/160</span></div>
+        </div>
+        <div class="pso-field">
+            <div class="pso-label">Email address</div>
+            <div class="pso-input-wrap">
+                <input id="psoEmail" class="pso-input" type="email" readonly>
+            </div>
+        </div>
+        <button class="pso-btn" id="psoSubmitBtn" onclick="window._psoSubmit()">Finish setting up my account →</button>
+    </div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     THEME PICKER MODAL (shown after the tour)
+     Grid of background "theme" images. Skip → random theme.
+══════════════════════════════════════════════════════ -->
+<div id="themePickerOverlay" style="display:none;position:fixed;inset:0;z-index:9700;background:rgba(0,0,0,0.85);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);align-items:center;justify-content:center;padding:20px;">
+<style>
+#themePickerOverlay.open { display:flex!important; }
+.tpk-card {
+    width:100%;max-width:420px;max-height:88vh;
+    display:flex;flex-direction:column;
+    background:linear-gradient(160deg,#13131e,#0e0e18);
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:28px;overflow:hidden;
+    box-shadow:0 40px 80px rgba(0,0,0,0.7);
+    animation:avpIn .38s cubic-bezier(.34,1.25,.64,1) both;
+}
+.tpk-header {
+    padding:28px 28px 18px;
+    border-bottom:1px solid rgba(255,255,255,0.06);
+    flex-shrink:0;
+}
+.tpk-title {
+    font-family:'Syne',sans-serif;font-size:1.25rem;font-weight:900;
+    letter-spacing:-0.03em;color:#f1f0ff;margin-bottom:4px;
+}
+.tpk-sub { font-size:12px;color:rgba(255,255,255,0.35);line-height:1.5; }
+.tpk-body {
+    padding:20px 24px;overflow-y:auto;flex:1;
+    -webkit-overflow-scrolling:touch;
+}
+.tpk-grid {
+    display:grid;grid-template-columns:repeat(3,1fr);gap:10px;
+}
+.tpk-option {
+    position:relative;border-radius:14px;overflow:hidden;cursor:pointer;
+    border:2px solid transparent;aspect-ratio:9/16;
+    transition:border-color .2s,transform .18s,box-shadow .18s;
+}
+.tpk-option:hover { transform:scale(1.03); }
+.tpk-option.selected {
+    border-color:#a855f7;transform:scale(0.97);
+    box-shadow:0 0 0 3px rgba(168,85,247,0.3);
+}
+.tpk-option img { width:100%;height:100%;object-fit:cover;display:block; }
+.tpk-option-fade { position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.65) 0%,transparent 55%);pointer-events:none; }
+.tpk-option-label { position:absolute;bottom:6px;left:0;right:0;text-align:center;font-size:9px;font-weight:800;color:rgba(255,255,255,0.85);letter-spacing:.05em;text-transform:uppercase; }
+.tpk-option-check {
+    display:none;position:absolute;top:6px;right:6px;width:18px;height:18px;border-radius:50%;
+    background:linear-gradient(135deg,#a855f7,#818cf8);align-items:center;justify-content:center;
+}
+.tpk-option.selected .tpk-option-check { display:flex; }
+.tpk-footer { padding:18px 28px 24px;display:flex;flex-direction:column;gap:10px;flex-shrink:0; }
+.tpk-btn {
+    width:100%;padding:14px;border-radius:14px;
+    font-family:'Syne',sans-serif;font-size:14px;font-weight:800;
+    letter-spacing:.01em;cursor:pointer;border:none;
+    background:linear-gradient(135deg,#a855f7,#818cf8);
+    color:#fff;box-shadow:0 8px 24px rgba(168,85,247,0.3);
+    transition:opacity .18s,transform .18s,box-shadow .18s;
+}
+.tpk-btn:hover { opacity:.9;transform:translateY(-1px);box-shadow:0 12px 28px rgba(168,85,247,0.4); }
+.tpk-btn:active { transform:scale(.98); }
+.tpk-btn:disabled { opacity:.45;cursor:not-allowed;transform:none; }
+</style>
+<div class="tpk-card">
+    <div class="tpk-header">
+        <div class="tpk-title">Pick a theme</div>
+        <div class="tpk-sub">Choose a background to make Siterifty feel like yours. You can change it anytime in Settings.</div>
+    </div>
+    <div class="tpk-body">
+        <div class="tpk-grid" id="tpkGrid"></div>
+    </div>
+    <div class="tpk-footer">
+        <button class="tpk-btn" id="tpkConfirmBtn" onclick="window._tpkConfirm()">Use this theme →</button>
     </div>
 </div>
 </div>
@@ -23340,7 +24296,7 @@ document.addEventListener('DOMContentLoaded', function(){
         }
 
         document.getElementById('avatarPickerOverlay').classList.add('open');
-        document.body.style.overflow = 'hidden';
+        if (window._lockBodyScroll) window._lockBodyScroll(); else document.body.style.overflow = 'hidden';
     };
 
     window._avpConfirm = async function() {
@@ -23356,25 +24312,167 @@ document.addEventListener('DOMContentLoaded', function(){
             if (window._applyPhotoURL) window._applyPhotoURL(_avpSelectedUrl);
         } catch(e) { console.warn('[avp]', e); }
         document.getElementById('avatarPickerOverlay').classList.remove('open');
-        document.body.style.overflow = '';
+        if (window._unlockBodyScroll) window._unlockBodyScroll(); else document.body.style.overflow = '';
         btn.disabled = false;
         btn.textContent = 'Use this picture →';
         if (_avpOnDone) _avpOnDone(_avpSelectedUrl);
     };
 
-    window._avpSkip = function() {
-        // Auto-assign a random avatar silently
-        const randomUrl = _randomAvatar();
+    // ── PROFILE SETUP (required — username + bio, shown after avatar picker) ──
+    let _psoUid = '';
+    let _psoOnDone = null;
+
+    window._openProfileSetup = function(uid, email, onDone) {
+        _psoUid = uid;
+        _psoOnDone = onDone || null;
+
+        // Email is auto-rendered, read-only — it was already captured at signup
+        const emailInput = document.getElementById('psoEmail');
+        if (emailInput) emailInput.value = email || '';
+
+        const usernameInput = document.getElementById('psoUsername');
+        if (usernameInput) usernameInput.value = '';
+        const bioInput = document.getElementById('psoBio');
+        if (bioInput) bioInput.value = '';
+        const bioCount = document.getElementById('psoBioCount');
+        if (bioCount) bioCount.textContent = '0/160';
+        if (bioInput && bioCount) {
+            bioInput.oninput = function() { bioCount.textContent = bioInput.value.length + '/160'; };
+        }
+
+        const errEl = document.getElementById('psoErr');
+        if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+
+        document.getElementById('profileSetupOverlay').classList.add('open');
+        if (window._lockBodyScroll) window._lockBodyScroll(); else document.body.style.overflow = 'hidden';
+        setTimeout(function() { if (usernameInput) usernameInput.focus(); }, 200);
+    };
+
+    window._psoSubmit = async function() {
+        const btn = document.getElementById('psoSubmitBtn');
+        const errEl = document.getElementById('psoErr');
+        const username = (document.getElementById('psoUsername').value || '').trim();
+        const bio      = (document.getElementById('psoBio').value || '').trim();
+
+        errEl.style.display = 'none';
+
+        if (!username || username.length < 3) { errEl.textContent = 'Username must be at least 3 characters.'; errEl.style.display='block'; return; }
+        if (!/^[a-zA-Z0-9_]+$/.test(username)) { errEl.textContent = 'Username can only contain letters, numbers and underscores.'; errEl.style.display='block'; return; }
+        if (!bio) { errEl.textContent = 'Bio is required — tell people a little about yourself.'; errEl.style.display='block'; return; }
+
+        btn.disabled = true;
+        btn.textContent = 'Checking…';
+
         try {
-            if (_avpUid && window._fbDb && window._fbDbFns) {
-                const { ref, update } = window._fbDbFns;
-                update(ref(window._fbDb, 'users/' + _avpUid), { photoURL: randomUrl });
+            if (window._fbDb && window._fbDbFns) {
+                const { ref, get, set, update } = window._fbDbFns;
+                const db = window._fbDb;
+
+                // Check username uniqueness
+                const snap = await get(ref(db, 'usernames/' + username.toLowerCase()));
+                if (snap.exists() && snap.val() !== _psoUid) {
+                    errEl.textContent = 'That username is already taken. Try another.';
+                    errEl.style.display = 'block';
+                    btn.disabled = false;
+                    btn.textContent = 'Finish setting up my account →';
+                    return;
+                }
+
+                btn.textContent = 'Saving…';
+
+                // Release the temp username reservation, claim the real one
+                const userSnap = await get(ref(db, 'users/' + _psoUid + '/username'));
+                const oldUsername = userSnap.exists() ? userSnap.val() : null;
+                if (oldUsername && oldUsername.toLowerCase() !== username.toLowerCase()) {
+                    await set(ref(db, 'usernames/' + oldUsername.toLowerCase()), null);
+                }
+
+                await update(ref(db, 'users/' + _psoUid), { username: username, bio: bio, profileComplete: true });
+                await set(ref(db, 'usernames/' + username.toLowerCase()), _psoUid);
             }
-            if (window._applyPhotoURL) window._applyPhotoURL(randomUrl);
-        } catch(e) {}
-        document.getElementById('avatarPickerOverlay').classList.remove('open');
-        document.body.style.overflow = '';
-        if (_avpOnDone) _avpOnDone(randomUrl);
+
+            document.getElementById('profileSetupOverlay').classList.remove('open');
+            if (window._unlockBodyScroll) window._unlockBodyScroll(); else document.body.style.overflow = '';
+
+            btn.disabled = false;
+            btn.textContent = 'Finish setting up my account →';
+
+            if (_psoOnDone) _psoOnDone(username, bio);
+
+        } catch(e) {
+            console.warn('[pso]', e);
+            errEl.textContent = 'Something went wrong. Please try again.';
+            errEl.style.display = 'block';
+            btn.disabled = false;
+            btn.textContent = 'Finish setting up my account →';
+        }
+    };
+
+    // ── THEME PICKER (shown after the tour) ───────────────────────
+    const THEME_OPTIONS = [
+        { url: 'https://plus.unsplash.com/premium_photo-1710962184823-907ade6b3783?q=80&w=774&auto=format&fit=crop&ixlib=rb-4.1.0', label: 'Minimal' },
+        { url: 'https://plus.unsplash.com/premium_photo-1711136314696-b27c2a148d55?q=80&w=774&auto=format&fit=crop&ixlib=rb-4.1.0', label: 'Noir' },
+        { url: 'https://plus.unsplash.com/premium_photo-1710962184909-f9f8dc2c9f5f?q=80&w=774&auto=format&fit=crop&ixlib=rb-4.1.0', label: 'Shadow' },
+        { url: 'https://plus.unsplash.com/premium_photo-1710030733204-6816ffb0a1b2?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0', label: 'Dusk' },
+        { url: 'https://plus.unsplash.com/premium_photo-1710965560034-778eedc929ff?q=80&w=830&auto=format&fit=crop&ixlib=rb-4.1.0', label: 'Slate' },
+        { url: 'https://plus.unsplash.com/premium_photo-1711434824963-ca894373272e?q=80&w=830&auto=format&fit=crop&ixlib=rb-4.1.0', label: 'Smoke' },
+        { url: 'https://plus.unsplash.com/premium_photo-1673292293042-cafd9c8a3ab3?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.1.0', label: 'Forest' },
+        { url: 'https://images.unsplash.com/photo-1502318217862-aa4e294ba657?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.1.0', label: 'Nebula' },
+        { url: 'https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.1.0', label: 'Galaxy' },
+        { url: 'https://images.unsplash.com/photo-1725615357444-6123528686cf?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.1.0', label: 'Aurora' },
+        { url: 'https://m.media-amazon.com/images/I/81SNLEuNQuL._UF1000,1000_QL80_.jpg', label: 'Anime' },
+        { url: 'https://i.pinimg.com/736x/0e/86/ec/0e86ec1c8b5bcbebcff97fde58530db5.jpg', label: 'Default' }
+    ];
+    let _tpkSelected = null;
+    let _tpkOnDone = null;
+
+    function _tpkApplyAndSave(theme) {
+        if (window.srSelectBg) {
+            window.srSelectBg(theme ? { dataset: { bg: theme.url, label: theme.label } } : null);
+        } else {
+            // Fallback if srSelectBg isn't available yet
+            try { localStorage.setItem('sr_bg_img', theme ? theme.url : '__none__'); } catch(_) {}
+            if (window._srApplyBg) window._srApplyBg(theme ? theme.url : '');
+        }
+    }
+
+    window._openThemePicker = function(onDone) {
+        _tpkOnDone = onDone || null;
+        _tpkSelected = THEME_OPTIONS[0];
+
+        const grid = document.getElementById('tpkGrid');
+        if (grid) {
+            grid.innerHTML = '';
+            THEME_OPTIONS.forEach(function(theme, i) {
+                const opt = document.createElement('div');
+                opt.className = 'tpk-option' + (i === 0 ? ' selected' : '');
+                opt.innerHTML = '<img src="' + theme.url + '" alt="' + theme.label + '" loading="lazy">' +
+                    '<div class="tpk-option-fade"></div>' +
+                    '<div class="tpk-option-label">' + theme.label + '</div>' +
+                    '<div class="tpk-option-check"><svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>';
+                opt.onclick = function() {
+                    _tpkSelected = theme;
+                    grid.querySelectorAll('.tpk-option').forEach(function(t) { t.classList.remove('selected'); });
+                    opt.classList.add('selected');
+                };
+                grid.appendChild(opt);
+            });
+        }
+
+        document.getElementById('themePickerOverlay').classList.add('open');
+        if (window._lockBodyScroll) window._lockBodyScroll(); else document.body.style.overflow = 'hidden';
+    };
+
+    window._tpkConfirm = function() {
+        const btn = document.getElementById('tpkConfirmBtn');
+        btn.disabled = true;
+        btn.textContent = 'Saving…';
+        try { _tpkApplyAndSave(_tpkSelected); } catch(e) { console.warn('[tpk]', e); }
+        document.getElementById('themePickerOverlay').classList.remove('open');
+        if (window._unlockBodyScroll) window._unlockBodyScroll(); else document.body.style.overflow = '';
+        btn.disabled = false;
+        btn.textContent = 'Use this theme →';
+        if (_tpkOnDone) _tpkOnDone(_tpkSelected);
     };
 
     // ── SOCIAL PROFILE SETUP (Google / GitHub new users) ──────────
@@ -23415,7 +24513,7 @@ document.addEventListener('DOMContentLoaded', function(){
         if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
 
         document.getElementById('socialProfileOverlay').classList.add('open');
-        document.body.style.overflow = 'hidden';
+        if (window._lockBodyScroll) window._lockBodyScroll(); else document.body.style.overflow = 'hidden';
         setTimeout(function() { if (usernameInput) usernameInput.focus(); }, 200);
     };
 
@@ -23457,7 +24555,7 @@ document.addEventListener('DOMContentLoaded', function(){
             }
 
             document.getElementById('socialProfileOverlay').classList.remove('open');
-            document.body.style.overflow = '';
+            if (window._unlockBodyScroll) window._unlockBodyScroll(); else document.body.style.overflow = '';
 
             // Now show avatar picker
             window._openAvatarPicker(_spoUid, username, function(avatarUrl) {
@@ -26405,4 +27503,500 @@ window.selectLibraryAvatar = async function(url) {
         } catch(e) {}
         window.location.reload();
     };
+</script>
+
+<!-- ═══════════════════════════════════════════════════════
+     DEVICE LOCK GATE — full-page overlay
+     Fires when users/{uid}/deviceLock.enabled = true
+     and the local sr_device_id ≠ trustedDeviceId
+     Only the trusted device can disable it (settings toggle)
+═══════════════════════════════════════════════════════ -->
+<style>
+#deviceLockOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 99998;
+    background: rgba(0,0,0,0.93);
+    backdrop-filter: blur(20px) saturate(1.5);
+    -webkit-backdrop-filter: blur(20px) saturate(1.5);
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    overflow-y: auto;
+}
+#deviceLockOverlay.visible { display: flex; }
+.dlock-card {
+    background: rgba(28,28,30,0.88);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 24px;
+    padding: 40px 36px 36px;
+    max-width: 480px;
+    width: 100%;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04) inset;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+.dlock-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #38bdf8, #818cf8);
+    border-radius: 24px 24px 0 0;
+}
+.dlock-icon {
+    width: 56px; height: 56px;
+    border-radius: 18px;
+    background: rgba(56,189,248,0.1);
+    border: 1px solid rgba(56,189,248,0.22);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 20px;
+}
+.dlock-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    color: #38bdf8;
+    background: rgba(56,189,248,0.08);
+    border: 1px solid rgba(56,189,248,0.18);
+    border-radius: 999px; padding: 5px 12px;
+    margin-bottom: 18px;
+}
+.dlock-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px; font-weight: 800;
+    color: #f1f0ff;
+    letter-spacing: -0.03em;
+    margin-bottom: 10px;
+}
+.dlock-subtitle {
+    font-size: 13px; color: rgba(139,138,168,0.85);
+    line-height: 1.65; margin-bottom: 28px;
+}
+.dlock-info-box {
+    background: rgba(56,189,248,0.06);
+    border: 1px solid rgba(56,189,248,0.15);
+    border-radius: 14px;
+    padding: 16px 18px;
+    text-align: left;
+    margin-bottom: 28px;
+}
+.dlock-info-label { font-size: 10px; font-weight: 700; letter-spacing: 0.07em; color: #38bdf8; text-transform: uppercase; margin-bottom: 6px; }
+.dlock-info-text  { font-size: 13px; color: rgba(241,240,255,0.8); line-height: 1.55; }
+.dlock-signout {
+    font-size: 12px; color: rgba(139,138,168,0.6);
+    text-decoration: underline; text-underline-offset: 3px;
+    cursor: pointer; background: none; border: none;
+    padding: 0; margin-top: 4px;
+}
+.dlock-signout:hover { color: rgba(139,138,168,0.9); }
+</style>
+
+<div id="deviceLockOverlay" role="alertdialog" aria-modal="true" aria-labelledby="dlockTitle">
+    <div class="dlock-card">
+        <div class="dlock-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="5" y="11" width="14" height="10" rx="2"/>
+                <path d="M8 11V7a4 4 0 018 0v4"/>
+            </svg>
+        </div>
+        <div class="dlock-badge">
+            <svg width="7" height="7" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#38bdf8"/></svg>
+            Device Restricted
+        </div>
+        <div class="dlock-title" id="dlockTitle">Access restricted to another device</div>
+        <div class="dlock-subtitle">This account has device lock enabled. Only the trusted device can access this account.</div>
+        <div class="dlock-info-box">
+            <div class="dlock-info-label">How to regain access</div>
+            <div class="dlock-info-text">Go to your original device → open Settings → Security → and turn off Device lock. You'll then be able to sign in here.</div>
+        </div>
+        <button class="dlock-signout" onclick="dlockSignOut()">Sign out of this account</button>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     ACCOUNT INVITE MODAL
+     Shown when pendingInvites/{emailKey} exists for this user
+     Lets them accept (viewer/editor) or reject
+═══════════════════════════════════════════════════════ -->
+<style>
+#accountInviteModal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 99997;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+#accountInviteModal.visible { display: flex; }
+.ainv-card {
+    background: rgba(18,18,26,0.96);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 22px;
+    padding: 36px 32px 30px;
+    max-width: 440px;
+    width: 100%;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+    position: relative;
+    overflow: hidden;
+}
+.ainv-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #a78bfa, #38bdf8);
+    border-radius: 22px 22px 0 0;
+}
+.ainv-avatar {
+    width: 48px; height: 48px; border-radius: 14px;
+    background: linear-gradient(135deg, #a78bfa, #38bdf8);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800;
+    color: #fff; margin: 0 auto 16px;
+}
+.ainv-pretitle { font-size: 11px; color: #a78bfa; font-weight: 700; letter-spacing: 0.07em; text-align: center; margin-bottom: 8px; text-transform: uppercase; }
+.ainv-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; color: #f1f0ff; letter-spacing: -0.03em; text-align: center; margin-bottom: 8px; }
+.ainv-sub { font-size: 13px; color: rgba(139,138,168,0.8); text-align: center; line-height: 1.6; margin-bottom: 22px; }
+.ainv-role-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.05em;
+    padding: 4px 11px; border-radius: 999px;
+    background: rgba(167,139,250,0.12); border: 1px solid rgba(167,139,250,0.22);
+    color: #a78bfa; margin: 0 auto 22px; text-transform: uppercase;
+}
+.ainv-perms {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 22px;
+    font-size: 12px;
+    color: rgba(241,240,255,0.7);
+    line-height: 1.7;
+}
+.ainv-perms strong { color: #f1f0ff; }
+.ainv-actions { display: flex; gap: 10px; }
+.ainv-btn-accept {
+    flex: 1; padding: 12px; border-radius: 12px;
+    background: linear-gradient(135deg, #a78bfa, #818cf8);
+    color: #fff; font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700;
+    border: none; cursor: pointer; transition: opacity .15s;
+}
+.ainv-btn-accept:hover { opacity: 0.88; }
+.ainv-btn-reject {
+    flex: 1; padding: 12px; border-radius: 12px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.10);
+    color: rgba(241,240,255,0.6); font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: background .15s;
+}
+.ainv-btn-reject:hover { background: rgba(255,255,255,0.1); }
+.ainv-status { font-size: 12px; color: rgba(139,138,168,0.6); text-align: center; margin-top: 14px; min-height: 16px; }
+
+/* Account switcher pill — shown in header if managing another account */
+#acctSwitcherBar {
+    display: none;
+    position: fixed;
+    bottom: 80px; left: 50%; transform: translateX(-50%);
+    z-index: 9999;
+    background: rgba(18,18,26,0.96);
+    border: 1px solid rgba(167,139,250,0.3);
+    border-radius: 999px;
+    padding: 8px 18px 8px 12px;
+    display: none;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    backdrop-filter: blur(12px);
+    font-size: 12px;
+    color: rgba(241,240,255,0.8);
+    white-space: nowrap;
+}
+#acctSwitcherBar.visible { display: flex; }
+#acctSwitcherBar .asb-dot { width: 7px; height: 7px; border-radius: 999px; background: #a78bfa; flex-shrink: 0; }
+#acctSwitcherBar .asb-label { font-size: 11px; color: rgba(139,138,168,0.7); }
+#acctSwitcherBar .asb-name  { font-family: 'Syne', sans-serif; font-weight: 700; color: #f1f0ff; }
+#acctSwitcherBar .asb-switch { margin-left: 6px; font-size: 11px; font-weight: 700; color: #a78bfa; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+#acctSwitcherBar .asb-exit   { margin-left: 2px; font-size: 11px; color: rgba(139,138,168,0.5); cursor: pointer; }
+#acctSwitcherBar .asb-exit:hover { color: rgba(139,138,168,0.9); }
+</style>
+
+<div id="accountInviteModal" role="dialog" aria-modal="true" aria-labelledby="ainvTitle">
+    <div class="ainv-card">
+        <div class="ainv-avatar" id="ainvAvatar">?</div>
+        <div class="ainv-pretitle">Account invitation</div>
+        <div class="ainv-title" id="ainvTitle">You've been invited</div>
+        <div class="ainv-sub" id="ainvSub">Someone invited you to help manage their Siterifty account.</div>
+        <div class="ainv-role-pill" id="ainvRolePill">
+            <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="#a78bfa" stroke-width="1.3"/></svg>
+            <span id="ainvRoleText">Viewer</span>
+        </div>
+        <div class="ainv-perms" id="ainvPerms">
+            <strong>As a Viewer</strong> you can browse listings and view analytics on this account, but cannot make changes.
+        </div>
+        <div class="ainv-actions">
+            <button class="ainv-btn-accept" onclick="acceptAccountInvite()">Accept</button>
+            <button class="ainv-btn-reject" onclick="rejectAccountInvite()">Decline</button>
+        </div>
+        <div class="ainv-status" id="ainvStatus"></div>
+    </div>
+</div>
+
+<!-- Floating account switcher bar -->
+<div id="acctSwitcherBar">
+    <div class="asb-dot"></div>
+    <div>
+        <div class="asb-label">Managing account</div>
+        <div class="asb-name" id="asbName">—</div>
+    </div>
+    <span class="asb-switch" onclick="switchToOwnAccount()">Switch to mine</span>
+    <span class="asb-exit" onclick="exitManagedAccount()" title="Stop managing">✕</span>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+//  DEVICE LOCK GATE
+// ══════════════════════════════════════════════════════════════
+(function() {
+    'use strict';
+
+    function _getDeviceId() {
+        let id = localStorage.getItem('sr_device_id');
+        if (!id) {
+            id = 'dev_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 9);
+            localStorage.setItem('sr_device_id', id);
+        }
+        return id;
+    }
+
+    window._checkDeviceLock = function(data) {
+        const lock = data.deviceLock || {};
+        if (!lock.enabled) { _hideDlock(); return; }
+        const myId = _getDeviceId();
+        if (lock.trustedDeviceId && lock.trustedDeviceId !== myId) {
+            _showDlock();
+        } else {
+            _hideDlock();
+        }
+    };
+
+    function _showDlock() {
+        const el = document.getElementById('deviceLockOverlay');
+        if (el) { el.classList.add('visible'); document.body.style.overflow = 'hidden'; }
+    }
+    function _hideDlock() {
+        const el = document.getElementById('deviceLockOverlay');
+        if (el) { el.classList.remove('visible'); document.body.style.overflow = ''; }
+    }
+
+    window._resetDeviceLockGate = function() { _hideDlock(); };
+
+    window.dlockSignOut = async function() {
+        try {
+            const a = window._fbAuth || (window._auth && window._auth());
+            if (a && a.signOut) await a.signOut();
+        } catch(e) {}
+        window.location.reload();
+    };
+})();
+
+// ══════════════════════════════════════════════════════════════
+//  ACCOUNT INVITE SYSTEM
+//  pendingInvites/{emailKey} → modal on login → accept writes
+//  users/{myUid}/managedAccounts/{ownerUid} = { role, ownerEmail, ownerName }
+//  users/{ownerUid}/teamMembers/{emailKey}.status = 'active'
+// ══════════════════════════════════════════════════════════════
+(function() {
+    'use strict';
+
+    var _pendingInviteKey  = null;
+    var _pendingInviteData = null;
+    var _managedUid        = null;   // uid of account currently being managed
+    var _ownUid            = null;   // user's own uid
+
+    // ── helpers ──────────────────────────────────────────────
+    function $id(id) { return document.getElementById(id); }
+    function _esc(s) {
+        const d = document.createElement('div');
+        d.textContent = String(s || '');
+        return d.innerHTML;
+    }
+    function _fbRef() { return window._fbDB || (window.db); }
+    function _fbUpdate(path, val) {
+        const { ref, update } = window._fbSDK || {};
+        if (!ref || !update) return Promise.reject('SDK not ready');
+        return update(ref(_fbRef(), path), val);
+    }
+    function _fbSet(path, val) {
+        const { ref, set } = window._fbSDK || {};
+        if (!ref || !set) return Promise.reject('SDK not ready');
+        return set(ref(_fbRef(), path), val);
+    }
+    function _fbGet(path) {
+        const { ref, get } = window._fbSDK || {};
+        if (!ref || !get) return Promise.reject('SDK not ready');
+        return get(ref(_fbRef(), path));
+    }
+
+    // ── Check for pending invite on login ──────────────────────
+    window._checkPendingInvite = async function(user) {
+        if (!user || !user.email) return;
+        _ownUid = user.uid;
+        const emailKey = user.email.toLowerCase().replace(/[.#$\[\]]/g, '_');
+        try {
+            const snap = await _fbGet('pendingInvites/' + emailKey);
+            if (!snap.exists()) return;
+            const inv = snap.val();
+            if (!inv || inv.status !== 'pending') return;
+            _pendingInviteKey  = emailKey;
+            _pendingInviteData = inv;
+            _showInviteModal(inv);
+        } catch(e) {
+            console.warn('[invite check]', e);
+        }
+    };
+
+    function _showInviteModal(inv) {
+        const role      = inv.role || 'viewer';
+        const ownerName = inv.ownerName || inv.ownerEmail || 'Someone';
+        const initial   = ownerName.charAt(0).toUpperCase();
+
+        const avatarEl = $id('ainvAvatar');
+        if (avatarEl) avatarEl.textContent = initial;
+
+        const titleEl = $id('ainvTitle');
+        if (titleEl) titleEl.textContent = _esc(ownerName) + ' invited you';
+
+        const subEl = $id('ainvSub');
+        if (subEl) subEl.textContent = _esc(ownerName) + ' (' + _esc(inv.ownerEmail) + ') has invited you to help manage their Siterifty account.';
+
+        const roleTextEl = $id('ainvRoleText');
+        if (roleTextEl) roleTextEl.textContent = role.charAt(0).toUpperCase() + role.slice(1);
+
+        const permsEl = $id('ainvPerms');
+        if (permsEl) {
+            if (role === 'editor') {
+                permsEl.innerHTML = '<strong>As an Editor</strong> you can manage listings, respond to messages, and handle offers on this account. You cannot change account settings or billing.';
+            } else {
+                permsEl.innerHTML = '<strong>As a Viewer</strong> you can browse listings and view analytics on this account, but cannot make changes.';
+            }
+        }
+
+        const el = $id('accountInviteModal');
+        if (el) { el.classList.add('visible'); document.body.style.overflow = 'hidden'; }
+    }
+
+    function _hideInviteModal() {
+        const el = $id('accountInviteModal');
+        if (el) { el.classList.remove('visible'); document.body.style.overflow = ''; }
+    }
+
+    window.acceptAccountInvite = async function() {
+        if (!_pendingInviteData || !_ownUid) return;
+        const statusEl = $id('ainvStatus');
+        if (statusEl) statusEl.textContent = 'Accepting…';
+        const inv = _pendingInviteData;
+        try {
+            const token = await (window._fbAuth && window._fbAuth.currentUser
+                ? window._fbAuth.currentUser.getIdToken()
+                : Promise.reject('no auth'));
+            const res = await fetch('/api/security?mode=accounts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: JSON.stringify({ action: 'accept', ownerUid: inv.ownerUid })
+            });
+            const json = await res.json();
+            if (!res.ok) { if (statusEl) statusEl.textContent = json.error || 'Something went wrong.'; return; }
+            _pendingInviteData = null;
+            _hideInviteModal();
+            _showSwitcherBar(inv.ownerUid, inv.ownerName || inv.ownerEmail);
+        } catch(e) {
+            console.error('[invite accept]', e);
+            if (statusEl) statusEl.textContent = 'Something went wrong. Try again.';
+        }
+    };
+
+    window.rejectAccountInvite = async function() {
+        if (!_pendingInviteKey) return;
+        const statusEl = $id('ainvStatus');
+        if (statusEl) statusEl.textContent = 'Declining…';
+        try {
+            const token = await (window._fbAuth && window._fbAuth.currentUser
+                ? window._fbAuth.currentUser.getIdToken()
+                : Promise.reject('no auth'));
+            await fetch('/api/security?mode=accounts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: JSON.stringify({ action: 'reject', ownerUid: _pendingInviteData && _pendingInviteData.ownerUid })
+            });
+            _pendingInviteData = null;
+            _hideInviteModal();
+        } catch(e) {
+            if (statusEl) statusEl.textContent = 'Something went wrong. Try again.';
+        }
+    };
+
+    // ── Account switcher bar ──────────────────────────────────
+    function _showSwitcherBar(uid, name) {
+        _managedUid = uid;
+        const bar = $id('acctSwitcherBar');
+        const nameEl = $id('asbName');
+        if (nameEl) nameEl.textContent = name || 'Unknown account';
+        if (bar) bar.classList.add('visible');
+        // Notify rest of app that we're in managed mode
+        window._managedAccountUid  = uid;
+        window._managedAccountName = name;
+    }
+
+    window.switchToOwnAccount = function() {
+        _managedUid = null;
+        window._managedAccountUid  = null;
+        window._managedAccountName = null;
+        const bar = $id('acctSwitcherBar');
+        if (bar) bar.classList.remove('visible');
+        // TODO: trigger a re-load of UI scoped to own uid
+        if (typeof window._reloadUserScope === 'function') window._reloadUserScope(_ownUid);
+    };
+
+    window.exitManagedAccount = function() {
+        window.switchToOwnAccount();
+    };
+
+    // ── Wire into onAuthStateChanged via hook ─────────────────
+    // applyUserData already fires after login — we add a one-shot invite check
+    const _origApply = window._applyUserDataHook;
+    window._checkInviteOnLogin = function(user) {
+        window._checkPendingInvite(user);
+        // Also load any existing managed accounts and show switcher if any
+        _loadManagedAccounts(user);
+    };
+
+    async function _loadManagedAccounts(user) {
+        if (!user) return;
+        try {
+            const snap = await _fbGet('users/' + user.uid + '/managedAccounts');
+            if (!snap.exists()) return;
+            const accounts = snap.val() || {};
+            const uids = Object.keys(accounts);
+            if (!uids.length) return;
+            // For now, surface the first one if user is not already managing one
+            if (!_managedUid) {
+                const first = accounts[uids[0]];
+                // Don't auto-switch — just let them know via the switcher bar
+                // User explicitly switches by clicking
+                // We store them so the UI can show a "switch account" option
+                window._availableManagedAccounts = accounts;
+            }
+        } catch(e) {
+            console.warn('[managed accounts]', e);
+        }
+    }
+})();
 </script>
