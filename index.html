@@ -378,6 +378,7 @@
             --accent3: #38bdf8;
             --text: #ffffff;
             --muted: #b8b7d4;
+            --bg-img: none;   /* set by Design panel */
         }
 
         /*  Native app reset — zero browser chrome  */
@@ -472,6 +473,22 @@
             z-index: 0;
             opacity: 0.5;
         }
+
+        /* ── Shared bg-image skeleton — used by hero/profile/plans/messages bg images ── */
+        @keyframes bgImgSkeletonPulse {
+            0%   { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        .bg-img-skeleton {
+            position: absolute; inset: 0; z-index: 2;
+            background: linear-gradient(100deg, rgba(255,255,255,0.04) 30%, rgba(255,255,255,0.10) 50%, rgba(255,255,255,0.04) 70%);
+            background-size: 200% 100%;
+            animation: bgImgSkeletonPulse 1.4s ease-in-out infinite;
+            opacity: 1;
+            transition: opacity .25s ease;
+            pointer-events: none;
+        }
+        .bg-img-skeleton.is-loaded { opacity: 0; }
 
         /*  Spinner blades  */
         @keyframes blade-chase {
@@ -3757,9 +3774,17 @@
     display: none;
     position: fixed; inset: 0; z-index: 7000;
     align-items: center; justify-content: center;
-    background: linear-gradient(180deg,#06140d,#020b06 60%,#000);
-    padding: 0;
+    padding: 0; overflow: hidden;
 }
+#messagesOverlay-bg-img { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+#messagesOverlay-bg-img img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; opacity: 0.45; filter: saturate(0.7) brightness(0.9); }
+#messagesOverlay::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: rgba(10,10,15,0.78);
+    z-index: 0;
+}
+#messagesOverlay > * { position: relative; z-index: 1; }
 #messagesOverlay.open { display: flex; }
 @media (min-width: 640px) { #messagesOverlay { padding: 16px; } }
 
@@ -3767,7 +3792,7 @@
     position: relative;
     width: 100%; height: 100%;
     display: flex; flex-direction: column;
-    background: linear-gradient(155deg, rgba(168,255,107,0.05) 0%, rgba(255,255,255,0.01) 50%, rgba(168,255,107,0.05) 100%);
+    background: transparent;
     border: 0; border-radius: 0;
     box-shadow: 0 25px 50px -12px rgba(0,0,0,0.85);
     overflow: hidden;
@@ -3790,14 +3815,12 @@
     position: relative;
     border-bottom: 1px solid rgba(52,211,153,0.1);
     padding: 24px 24px 16px;
-    background-size: cover; background-position: center; background-repeat: no-repeat;
-    background-image: url('https://i.pinimg.com/originals/0b/fe/94/0bfe94a9416ec150cc7912d9172561ab.gif');
+    background: #020b06;
     flex-shrink: 0;
 }
 .imsg-inbox-header-overlay {
     position: absolute; inset: 0;
-    background: linear-gradient(180deg, rgba(6,20,13,0.85) 0%, rgba(2,11,6,0.9) 60%, rgba(2,11,6,0.98) 100%);
-    backdrop-filter: blur(1px); -webkit-backdrop-filter: blur(1px);
+    background: linear-gradient(180deg, rgba(6,20,13,0.6) 0%, rgba(2,11,6,0.85) 100%);
 }
 .imsg-inbox-header-content { position: relative; z-index: 1; }
 
@@ -3928,11 +3951,12 @@
 
 .imsg-chat-header {
     position: relative; border-bottom: 1px solid rgba(52,211,153,0.1);
-    padding: 16px; background-size: cover; background-position: center; background-repeat: no-repeat;
-    background-image: url('https://i.pinimg.com/originals/0b/fe/94/0bfe94a9416ec150cc7912d9172561ab.gif');
-    flex-shrink: 0;
+    padding: 16px; background: #020b06;
+    flex-shrink: 0; overflow: hidden;
 }
-.imsg-chat-header-overlay { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(6,20,13,0.9) 0%, rgba(2,11,6,0.95) 60%, #020b06 100%); }
+.imsg-chat-header-img { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.imsg-chat-header-img img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; opacity: 0.45; filter: saturate(0.7) brightness(0.9); }
+.imsg-chat-header-overlay { position: absolute; inset: 0; background: rgba(2,11,6,0.7); z-index: 0; }
 .imsg-chat-header-content { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 12px; }
 .imsg-chat-back {
     height: 36px; width: 36px; border-radius: 50%; flex-shrink: 0;
@@ -4354,15 +4378,13 @@
         .wm2-banner {
             position: relative;
             padding: 22px 22px 18px;
-            background-image: url('https://i.pinimg.com/originals/0b/fe/94/0bfe94a9416ec150cc7912d9172561ab.gif');
-            background-size: cover; background-position: center; background-repeat: no-repeat;
+            background: #020b06;
             overflow: hidden;
             flex-shrink: 0;
         }
         .wm2-banner-overlay {
             position: absolute; inset: 0;
-            background: linear-gradient(180deg, rgba(6,20,13,0.82) 0%, rgba(2,11,6,0.88) 60%, rgba(2,11,6,0.96) 100%);
-            backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+            background: rgba(6,20,13,0.5);
         }
         .wm2-banner-content { position: relative; z-index: 1; }
         .wm2-avatar {
@@ -5075,9 +5097,7 @@
         justify-content: space-between;
         border-bottom: 1px solid rgba(255, 255, 255, 0.12);
         overflow: hidden;
-        background-image: url('https://i.pinimg.com/originals/0b/fe/94/0bfe94a9416ec150cc7912d9172561ab.gif');
-        background-size: cover;
-        background-position: center;
+        background: rgba(9,13,16,0.95);
         border-radius: 24px 24px 0 0;
         flex-shrink: 0;
     }
@@ -5141,10 +5161,23 @@
         border-radius: 16px;
         position: relative;
         overflow: hidden;
-        background-image: url('https://i.pinimg.com/originals/b9/de/c6/b9dec6676e8fa03674971f635b90498d.gif');
-        background-size: cover;
-        background-position: center;
         border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .psw-title-area-img {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 0;
+        pointer-events: none;
+        overflow: hidden;
+    }
+    .psw-title-area-img img {
+        width: 100%; height: 100%;
+        object-fit: cover; object-position: center;
+        display: block;
+        opacity: 0.45;
+        filter: saturate(0.7) brightness(0.9);
     }
     .psw-title-area::before {
         content: '';
@@ -5252,6 +5285,8 @@
 </style>
 </head>
 <body class="loader-lock">
+<!-- Global background image layer — controlled by Design panel -->
+<div id="srBgLayer" style="position:fixed;inset:0;z-index:0;pointer-events:none;background-size:cover;background-position:center;background-repeat:no-repeat;opacity:0;transition:opacity .5s ease;"></div>
 
     <!--  LOADING SCREEN  -->
     <div id="loadingScreen">
@@ -5554,7 +5589,8 @@
     <section class="hero">
         <!-- Background image — 1:1 square anchored top-right, fades toward content -->
         <div class="hero-bg-img" aria-hidden="true">
-            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRANmB5Hwth7loc_aHJGTJKHYOImvhr_emj-1Yy5ABw3XCXxennbcSEaAw9&s=10" alt="Siterifty marketplace — buy and sell websites, web templates and online businesses" loading="eager" fetchpriority="high" width="900" height="900">
+            <img id="srHeroBgImg" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRANmB5Hwth7loc_aHJGTJKHYOImvhr_emj-1Yy5ABw3XCXxennbcSEaAw9&s=10" alt="Siterifty marketplace — buy and sell websites, web templates and online businesses" loading="eager" fetchpriority="high" width="900" height="900">
+            <div class="bg-img-skeleton" id="srHeroBgSkeleton"></div>
         </div>
         <!-- Ambient background elements -->
         <div class="hero-orb hero-orb-1" aria-hidden="true"></div>
@@ -8141,6 +8177,10 @@
 
     <!--  MESSAGES MODAL (Inbox + Chat)  -->
     <div id="messagesOverlay">
+        <div id="messagesOverlay-bg-img" aria-hidden="true">
+            <img id="msgOverlayBgImg" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRANmB5Hwth7loc_aHJGTJKHYOImvhr_emj-1Yy5ABw3XCXxennbcSEaAw9&s=10" alt="" loading="lazy">
+            <div class="bg-img-skeleton" id="msgOverlayBgSkeleton"></div>
+        </div>
         <div id="messagesModal">
             <input type="file" id="photoInput" accept="image/*" class="imsg-hidden" onchange="processFileSelection(this, 'image')">
             <input type="file" id="genericFileInput" accept="application/pdf, text/html" class="imsg-hidden" onchange="processFileSelection(this, 'document')">
@@ -8292,6 +8332,10 @@
             <!-- ── Chat view ── -->
             <div id="imsgChatView">
                 <div class="imsg-chat-header">
+                    <div class="imsg-chat-header-img" aria-hidden="true">
+                        <img id="imsgChatHeaderImg" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRANmB5Hwth7loc_aHJGTJKHYOImvhr_emj-1Yy5ABw3XCXxennbcSEaAw9&s=10" alt="" loading="lazy">
+                        <div class="bg-img-skeleton" id="imsgChatHeaderSkeleton"></div>
+                    </div>
                     <div class="imsg-chat-header-overlay"></div>
                     <div class="imsg-chat-header-content">
                         <div class="imsg-row-between" style="margin-bottom:0;">
@@ -8767,7 +8811,8 @@
     </div>
 
     <!--  AUTH MODAL  -->
-    <div id="authModal" style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,0.75); backdrop-filter:blur(22px) saturate(160%); -webkit-backdrop-filter:blur(22px) saturate(160%); overflow:hidden;">
+    <div id="authModal" style="display:none; position:fixed; inset:0; z-index:1000; overflow:hidden;">
+        <div id="authModalBg" style="position:absolute;inset:0;background-image:url('https://i.pinimg.com/736x/0e/86/ec/0e86ec1c8b5bcbebcff97fde58530db5.jpg');background-size:cover;background-position:center;filter:blur(12px) brightness(0.45) saturate(1.3);transform:scale(1.06);transition:background-image .4s;"></div>
         <style>
             .auth-wrap {
                 height: 100%;
@@ -8863,6 +8908,10 @@
             .auth-divider::before,.auth-divider::after { content:''; flex:1; height:1px; background:rgba(255,255,255,0.08); }
             /*  Dashboard (these are overridden by the dashModal's own style block below)  */
             #dashModal { display:none; position:fixed; inset:0; z-index:1000; background:rgba(8,8,14,0.97); backdrop-filter:blur(28px) saturate(160%); -webkit-backdrop-filter:blur(28px) saturate(160%); overflow:hidden; }
+            #dashModal-bg-img { position:absolute; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
+            #dashModal-bg-img img { width:100%; height:100%; object-fit:cover; object-position:center; display:block; opacity:0.32; filter:saturate(0.7) brightness(0.8); }
+            #dashModal-bg-img::after { content:''; position:absolute; inset:0; background:rgba(8,8,14,0.85); }
+            #dashModal .dm-shell { position:relative; z-index:1; }
             .dash-wrap { height:100%; display:flex; flex-direction:column;  }
             .dash-body { flex:1; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; padding-bottom:env(safe-area-inset-bottom,24px); }
             .dash-greeting { font-family:'Syne',sans-serif; font-weight:800; font-size:1.5rem; letter-spacing:-0.04em; color:var(--text); margin-bottom:4px; }
@@ -9668,6 +9717,10 @@
         #dashModal #acPlanWarnConfirm:hover { background: rgba(240,192,64,.22); }
     </style>
 
+  <div id="dashModal-bg-img" aria-hidden="true">
+      <img id="dashModalBgImg" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRANmB5Hwth7loc_aHJGTJKHYOImvhr_emj-1Yy5ABw3XCXxennbcSEaAw9&s=10" alt="" loading="lazy">
+      <div class="bg-img-skeleton" id="dashModalBgSkeleton"></div>
+  </div>
   <div class="dm-shell">
 
     <!-- ════════ HEADER (persistent across all pages) ════════ -->
@@ -10391,6 +10444,15 @@
             <svg class="dm-settings-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none"><path d="M1 1l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
           <div class="dm-settings-divider"></div>
+          <div class="dm-settings-row" onclick="openSettingsPanel('design')">
+            <div class="dm-settings-icon" style="background:rgba(168,85,247,.1);border-color:rgba(168,85,247,.2);">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1.5" y="1.5" width="5.5" height="8" rx="1.2" stroke="#a855f7" stroke-width="1.3"/><rect x="9" y="1.5" width="5.5" height="5.5" rx="1.2" stroke="#a855f7" stroke-width="1.3"/><rect x="9" y="9" width="5.5" height="5.5" rx="1.2" stroke="#a855f7" stroke-width="1.3"/><rect x="1.5" y="11.5" width="5.5" height="3" rx="1.2" stroke="#a855f7" stroke-width="1.3"/></svg>
+            </div>
+            <div class="dm-settings-body"><div class="dm-settings-row-label">Design</div><div class="dm-settings-row-sub">Background image &amp; visual style</div></div>
+            <span class="dm-settings-value" id="settingsDesignVal">Default</span>
+            <svg class="dm-settings-chevron" width="7" height="12" viewBox="0 0 7 12" fill="none"><path d="M1 1l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="dm-settings-divider"></div>
           <div class="dm-settings-row" onclick="openSettingsPanel('notifications')">
             <div class="dm-settings-icon" style="background:rgba(168,255,107,.1);border-color:rgba(168,255,107,.2);">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2a5 5 0 0 0-5 5v2.5L1.5 11h13L13 9.5V7a5 5 0 0 0-5-5Z" stroke="#A8FF6B" stroke-width="1.3" stroke-linejoin="round"/><path d="M6.5 13a1.5 1.5 0 0 0 3 0" stroke="#A8FF6B" stroke-width="1.3"/></svg>
@@ -10824,6 +10886,134 @@
                                         <svg class="settings-row-check hidden" id="themeCheckBlack" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7l3.5 3.5 6.5-7" stroke="#00cfaa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- Design sub-panel -->
+                        <div class="settings-sub-panel" id="subDesign">
+                            <div class="settings-sub-header">
+                                <button class="settings-back-btn" onclick="closeSettingsPanel('subDesign')">
+                                    <svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7l6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                </button>
+                                <span class="settings-sub-title">Design</span>
+                            </div>
+                            <div class="settings-sub-body" style="padding-bottom:32px;">
+
+                                <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;">Background Image</div>
+                                <div style="font-size:12px;color:rgba(255,255,255,0.35);margin-bottom:16px;line-height:1.6;">
+                                    Choose a background that appears on the home screen, login screen, and message panels.
+                                </div>
+
+                                <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;margin-top:4px;">Minimal & Dark</div>
+                                <div id="srBgPickerGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:20px;">
+
+                                    <div class="sr-bg-option" id="srBgOpt0" data-bg="https://plus.unsplash.com/premium_photo-1710962184823-907ade6b3783?q=80&w=774&auto=format&fit=crop&ixlib=rb-4.1.0" data-label="Minimal" onclick="srSelectBg(this)" style="position:relative;border-radius:12px;overflow:hidden;cursor:pointer;border:2px solid transparent;transition:border-color .2s,transform .18s,box-shadow .18s;aspect-ratio:9/16;">
+                                        <img src="https://plus.unsplash.com/premium_photo-1710962184823-907ade6b3783?q=80&w=774&auto=format&fit=crop&ixlib=rb-4.1.0" alt="Minimal" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;">
+                                        <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.6) 0%,transparent 55%);pointer-events:none;"></div>
+                                        <div style="position:absolute;bottom:5px;left:0;right:0;text-align:center;font-size:8px;font-weight:800;color:rgba(255,255,255,0.8);letter-spacing:.05em;text-transform:uppercase;">Minimal</div>
+                                        <div class="sr-bg-check" style="display:none;position:absolute;top:5px;right:5px;width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#a855f7,#818cf8);align-items:center;justify-content:center;"><svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                                    </div>
+
+                                    <div class="sr-bg-option" id="srBgOpt1" data-bg="https://plus.unsplash.com/premium_photo-1711136314696-b27c2a148d55?q=80&w=774&auto=format&fit=crop&ixlib=rb-4.1.0" data-label="Noir" onclick="srSelectBg(this)" style="position:relative;border-radius:12px;overflow:hidden;cursor:pointer;border:2px solid transparent;transition:border-color .2s,transform .18s,box-shadow .18s;aspect-ratio:9/16;">
+                                        <img src="https://plus.unsplash.com/premium_photo-1711136314696-b27c2a148d55?q=80&w=774&auto=format&fit=crop&ixlib=rb-4.1.0" alt="Noir" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;">
+                                        <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.6) 0%,transparent 55%);pointer-events:none;"></div>
+                                        <div style="position:absolute;bottom:5px;left:0;right:0;text-align:center;font-size:8px;font-weight:800;color:rgba(255,255,255,0.8);letter-spacing:.05em;text-transform:uppercase;">Noir</div>
+                                        <div class="sr-bg-check" style="display:none;position:absolute;top:5px;right:5px;width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#a855f7,#818cf8);align-items:center;justify-content:center;"><svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                                    </div>
+
+                                    <div class="sr-bg-option" id="srBgOpt2" data-bg="https://plus.unsplash.com/premium_photo-1710962184909-f9f8dc2c9f5f?q=80&w=774&auto=format&fit=crop&ixlib=rb-4.1.0" data-label="Shadow" onclick="srSelectBg(this)" style="position:relative;border-radius:12px;overflow:hidden;cursor:pointer;border:2px solid transparent;transition:border-color .2s,transform .18s,box-shadow .18s;aspect-ratio:9/16;">
+                                        <img src="https://plus.unsplash.com/premium_photo-1710962184909-f9f8dc2c9f5f?q=80&w=774&auto=format&fit=crop&ixlib=rb-4.1.0" alt="Shadow" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;">
+                                        <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.6) 0%,transparent 55%);pointer-events:none;"></div>
+                                        <div style="position:absolute;bottom:5px;left:0;right:0;text-align:center;font-size:8px;font-weight:800;color:rgba(255,255,255,0.8);letter-spacing:.05em;text-transform:uppercase;">Shadow</div>
+                                        <div class="sr-bg-check" style="display:none;position:absolute;top:5px;right:5px;width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#a855f7,#818cf8);align-items:center;justify-content:center;"><svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                                    </div>
+
+                                    <div class="sr-bg-option" id="srBgOpt3" data-bg="https://plus.unsplash.com/premium_photo-1710030733204-6816ffb0a1b2?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0" data-label="Dusk" onclick="srSelectBg(this)" style="position:relative;border-radius:12px;overflow:hidden;cursor:pointer;border:2px solid transparent;transition:border-color .2s,transform .18s,box-shadow .18s;aspect-ratio:9/16;">
+                                        <img src="https://plus.unsplash.com/premium_photo-1710030733204-6816ffb0a1b2?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0" alt="Dusk" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;">
+                                        <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.6) 0%,transparent 55%);pointer-events:none;"></div>
+                                        <div style="position:absolute;bottom:5px;left:0;right:0;text-align:center;font-size:8px;font-weight:800;color:rgba(255,255,255,0.8);letter-spacing:.05em;text-transform:uppercase;">Dusk</div>
+                                        <div class="sr-bg-check" style="display:none;position:absolute;top:5px;right:5px;width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#a855f7,#818cf8);align-items:center;justify-content:center;"><svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                                    </div>
+
+                                    <div class="sr-bg-option" id="srBgOpt4" data-bg="https://plus.unsplash.com/premium_photo-1710965560034-778eedc929ff?q=80&w=830&auto=format&fit=crop&ixlib=rb-4.1.0" data-label="Slate" onclick="srSelectBg(this)" style="position:relative;border-radius:12px;overflow:hidden;cursor:pointer;border:2px solid transparent;transition:border-color .2s,transform .18s,box-shadow .18s;aspect-ratio:9/16;">
+                                        <img src="https://plus.unsplash.com/premium_photo-1710965560034-778eedc929ff?q=80&w=830&auto=format&fit=crop&ixlib=rb-4.1.0" alt="Slate" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;">
+                                        <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.6) 0%,transparent 55%);pointer-events:none;"></div>
+                                        <div style="position:absolute;bottom:5px;left:0;right:0;text-align:center;font-size:8px;font-weight:800;color:rgba(255,255,255,0.8);letter-spacing:.05em;text-transform:uppercase;">Slate</div>
+                                        <div class="sr-bg-check" style="display:none;position:absolute;top:5px;right:5px;width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#a855f7,#818cf8);align-items:center;justify-content:center;"><svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                                    </div>
+
+                                    <div class="sr-bg-option" id="srBgOpt5" data-bg="https://plus.unsplash.com/premium_photo-1711434824963-ca894373272e?q=80&w=830&auto=format&fit=crop&ixlib=rb-4.1.0" data-label="Smoke" onclick="srSelectBg(this)" style="position:relative;border-radius:12px;overflow:hidden;cursor:pointer;border:2px solid transparent;transition:border-color .2s,transform .18s,box-shadow .18s;aspect-ratio:9/16;">
+                                        <img src="https://plus.unsplash.com/premium_photo-1711434824963-ca894373272e?q=80&w=830&auto=format&fit=crop&ixlib=rb-4.1.0" alt="Smoke" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;">
+                                        <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.6) 0%,transparent 55%);pointer-events:none;"></div>
+                                        <div style="position:absolute;bottom:5px;left:0;right:0;text-align:center;font-size:8px;font-weight:800;color:rgba(255,255,255,0.8);letter-spacing:.05em;text-transform:uppercase;">Smoke</div>
+                                        <div class="sr-bg-check" style="display:none;position:absolute;top:5px;right:5px;width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#a855f7,#818cf8);align-items:center;justify-content:center;"><svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                                    </div>
+
+                                </div>
+
+                                <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Nature & Space</div>
+                                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:20px;">
+
+                                    <div class="sr-bg-option" id="srBgOpt6" data-bg="https://plus.unsplash.com/premium_photo-1673292293042-cafd9c8a3ab3?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.1.0" data-label="Forest" onclick="srSelectBg(this)" style="position:relative;border-radius:12px;overflow:hidden;cursor:pointer;border:2px solid transparent;transition:border-color .2s,transform .18s,box-shadow .18s;aspect-ratio:9/16;">
+                                        <img src="https://plus.unsplash.com/premium_photo-1673292293042-cafd9c8a3ab3?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.1.0" alt="Forest" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;">
+                                        <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.6) 0%,transparent 55%);pointer-events:none;"></div>
+                                        <div style="position:absolute;bottom:5px;left:0;right:0;text-align:center;font-size:8px;font-weight:800;color:rgba(255,255,255,0.8);letter-spacing:.05em;text-transform:uppercase;">Forest</div>
+                                        <div class="sr-bg-check" style="display:none;position:absolute;top:5px;right:5px;width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#a855f7,#818cf8);align-items:center;justify-content:center;"><svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                                    </div>
+
+                                    <div class="sr-bg-option" id="srBgOpt7" data-bg="https://images.unsplash.com/photo-1502318217862-aa4e294ba657?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.1.0" data-label="Nebula" onclick="srSelectBg(this)" style="position:relative;border-radius:12px;overflow:hidden;cursor:pointer;border:2px solid transparent;transition:border-color .2s,transform .18s,box-shadow .18s;aspect-ratio:9/16;">
+                                        <img src="https://images.unsplash.com/photo-1502318217862-aa4e294ba657?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.1.0" alt="Nebula" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;">
+                                        <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.6) 0%,transparent 55%);pointer-events:none;"></div>
+                                        <div style="position:absolute;bottom:5px;left:0;right:0;text-align:center;font-size:8px;font-weight:800;color:rgba(255,255,255,0.8);letter-spacing:.05em;text-transform:uppercase;">Nebula</div>
+                                        <div class="sr-bg-check" style="display:none;position:absolute;top:5px;right:5px;width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#a855f7,#818cf8);align-items:center;justify-content:center;"><svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                                    </div>
+
+                                    <div class="sr-bg-option" id="srBgOpt8" data-bg="https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.1.0" data-label="Galaxy" onclick="srSelectBg(this)" style="position:relative;border-radius:12px;overflow:hidden;cursor:pointer;border:2px solid transparent;transition:border-color .2s,transform .18s,box-shadow .18s;aspect-ratio:9/16;">
+                                        <img src="https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.1.0" alt="Galaxy" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;">
+                                        <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.6) 0%,transparent 55%);pointer-events:none;"></div>
+                                        <div style="position:absolute;bottom:5px;left:0;right:0;text-align:center;font-size:8px;font-weight:800;color:rgba(255,255,255,0.8);letter-spacing:.05em;text-transform:uppercase;">Galaxy</div>
+                                        <div class="sr-bg-check" style="display:none;position:absolute;top:5px;right:5px;width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#a855f7,#818cf8);align-items:center;justify-content:center;"><svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                                    </div>
+
+                                    <div class="sr-bg-option" id="srBgOpt9" data-bg="https://images.unsplash.com/photo-1725615357444-6123528686cf?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.1.0" data-label="Aurora" onclick="srSelectBg(this)" style="position:relative;border-radius:12px;overflow:hidden;cursor:pointer;border:2px solid transparent;transition:border-color .2s,transform .18s,box-shadow .18s;aspect-ratio:9/16;">
+                                        <img src="https://images.unsplash.com/photo-1725615357444-6123528686cf?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.1.0" alt="Aurora" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;">
+                                        <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.6) 0%,transparent 55%);pointer-events:none;"></div>
+                                        <div style="position:absolute;bottom:5px;left:0;right:0;text-align:center;font-size:8px;font-weight:800;color:rgba(255,255,255,0.8);letter-spacing:.05em;text-transform:uppercase;">Aurora</div>
+                                        <div class="sr-bg-check" style="display:none;position:absolute;top:5px;right:5px;width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#a855f7,#818cf8);align-items:center;justify-content:center;"><svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                                    </div>
+
+                                    <div class="sr-bg-option" id="srBgOpt10" data-bg="https://m.media-amazon.com/images/I/81SNLEuNQuL._UF1000,1000_QL80_.jpg" data-label="Anime" onclick="srSelectBg(this)" style="position:relative;border-radius:12px;overflow:hidden;cursor:pointer;border:2px solid transparent;transition:border-color .2s,transform .18s,box-shadow .18s;aspect-ratio:9/16;">
+                                        <img src="https://m.media-amazon.com/images/I/81SNLEuNQuL._UF1000,1000_QL80_.jpg" alt="Anime" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;">
+                                        <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.6) 0%,transparent 55%);pointer-events:none;"></div>
+                                        <div style="position:absolute;bottom:5px;left:0;right:0;text-align:center;font-size:8px;font-weight:800;color:rgba(255,255,255,0.8);letter-spacing:.05em;text-transform:uppercase;">Anime</div>
+                                        <div class="sr-bg-check" style="display:none;position:absolute;top:5px;right:5px;width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#a855f7,#818cf8);align-items:center;justify-content:center;"><svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                                    </div>
+
+                                    <div class="sr-bg-option" id="srBgOpt11" data-bg="https://i.pinimg.com/736x/0e/86/ec/0e86ec1c8b5bcbebcff97fde58530db5.jpg" data-label="Default" onclick="srSelectBg(this)" style="position:relative;border-radius:12px;overflow:hidden;cursor:pointer;border:2px solid transparent;transition:border-color .2s,transform .18s,box-shadow .18s;aspect-ratio:9/16;">
+                                        <img src="https://i.pinimg.com/736x/0e/86/ec/0e86ec1c8b5bcbebcff97fde58530db5.jpg" alt="Default" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;">
+                                        <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.6) 0%,transparent 55%);pointer-events:none;"></div>
+                                        <div style="position:absolute;bottom:5px;left:0;right:0;text-align:center;font-size:8px;font-weight:800;color:rgba(255,255,255,0.8);letter-spacing:.05em;text-transform:uppercase;">Default</div>
+                                        <div class="sr-bg-check" style="display:none;position:absolute;top:5px;right:5px;width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#a855f7,#818cf8);align-items:center;justify-content:center;"><svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                                    </div>
+
+                                </div>
+
+                                <!-- None / reset option -->
+                                <div onclick="srSelectBg(null)" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);cursor:pointer;transition:background .15s;" id="srBgOptNone">
+                                    <div style="width:36px;height:36px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;">
+                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 2l12 12M14 2L2 14" stroke="rgba(255,255,255,0.4)" stroke-width="1.4" stroke-linecap="round"/></svg>
+                                    </div>
+                                    <div>
+                                        <div style="font-size:13px;font-weight:700;color:#fff;">No background</div>
+                                        <div style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:1px;">Use solid color from your theme</div>
+                                    </div>
+                                    <div class="sr-bg-check" id="srBgNoneCheck" style="display:none;margin-left:auto;width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#a855f7,#818cf8);align-items:center;justify-content:center;">
+                                        <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    </div>
+                                </div>
+
+                                <div id="srBgSaveStatus" style="margin-top:14px;font-size:11px;color:rgba(255,255,255,0.3);text-align:center;min-height:16px;"></div>
+
                             </div>
                         </div>
 
@@ -11978,6 +12168,7 @@
         window._fbStorageFns = { storageRef, uploadBytes, getDownloadURL };
         window._fbDbFns = { ref, get, set, update, onValue, push };
         window._fbSDK  = { onValue };  // used by realtime plan listener
+        window._fb = function() { return { db: window._fbDb, ref: window._fbDbFns.ref, get: window._fbDbFns.get, set: window._fbDbFns.set, update: window._fbDbFns.update, onValue: window._fbDbFns.onValue }; };
         //  Expose primitives so plain <script> blocks can call Firebase 
         window._db     = db;
         window._auth   = auth;
@@ -12160,20 +12351,599 @@
         function openDash(){
             $('authModal').style.display='none';
             $('dashModal').style.display='block';
-            // Auth modal already held a lock — release it then re-acquire
-            // so the count stays accurate (1 modal open = count of 1)
             unlockBodyScroll();
             lockBodyScroll();
-            // Reset spinner — clear any inline styles so CSS class can control it
             const spinner = $('dashSpinner');
             if(spinner) {
                 spinner.style.opacity = '';
                 spinner.style.pointerEvents = '';
                 spinner.classList.remove('hidden');
             }
-            // Always start on plan tab
             switchTab('plan');
             loadDash();
+        }
+
+        // ─── TOUR + WELCOME-BACK ────────────────────────────────────────────────
+        // Called from doSignup (new) and doLogin / doGoogleAuth / doGithubAuth (returning).
+        // New user  → show animated gamified tour instead of opening dash immediately.
+        // Returning → if lastExitAt exists and was >30 min ago, show "What you missed".
+        // Exit time is persisted to Firebase users/{uid}/lastExitAt on pagehide/visibilitychange.
+
+        window._openDashWithFlow = async function(isNewUser, uid, username) {
+            if (isNewUser) {
+                // Double-check tourComplete flag — handles edge cases like re-login after completing tour
+                let alreadyDone = false;
+                try {
+                    const snap = await get(ref(db, 'users/' + uid));
+                    if (snap.exists() && snap.val().tourComplete) alreadyDone = true;
+                } catch(_) {}
+
+                if (alreadyDone) {
+                    $('authModal').style.display = 'none';
+                    openDash();
+                } else {
+                    _showTour(uid, username, () => {
+                        $('authModal').style.display = 'none';
+                        openDash();
+                    });
+                }
+            } else {
+                // Returning: open dash immediately, then maybe show welcome-back
+                $('authModal').style.display = 'none';
+                openDash();
+                try {
+                    const snap = await get(ref(db, 'users/' + uid));
+                    const data = snap.exists() ? snap.val() : {};
+                    const lastExit = data.lastExitAt || 0;
+                    const away = Date.now() - lastExit;
+                    if (lastExit && away >= 30 * 60 * 1000) {
+                        setTimeout(() => _showWelcomeBack(uid, username || data.username, lastExit), 700);
+                    }
+                } catch(_) {}
+            }
+        };
+
+        // ── Track exit time in Firebase ─────────────────────────────────────────
+        (function _attachExitTracker() {
+            function _writeExit() {
+                const u = auth && auth.currentUser;
+                if (!u) return;
+                try { update(ref(db, 'users/' + u.uid), { lastExitAt: Date.now() }); } catch(_) {}
+            }
+            window.addEventListener('pagehide', _writeExit);
+            document.addEventListener('visibilitychange', function() {
+                if (document.visibilityState === 'hidden') _writeExit();
+            });
+        })();
+
+        // ── Tour ────────────────────────────────────────────────────────────────
+        function _showTour(uid, username, onDone) {
+            // Remove any existing tour
+            const old = document.getElementById('srTourOverlay');
+            if (old) old.remove();
+
+            const steps = [
+                {
+                    icon: '<svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="url(#tg1)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="tg1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#a855f7"/><stop offset="100%" stop-color="#818cf8"/></linearGradient></defs><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+                    badge: 'Welcome',
+                    color: '#a855f7',
+                    title: 'Hey ' + (username || 'there') + '! 👋',
+                    body: 'You just joined <strong>Siterifty</strong> — the marketplace where indie hackers buy and sell websites, SaaS, and online businesses. Let\'s take 30 seconds to show you around.',
+                    xp: '+10 XP — Account created',
+                    cta: 'Let\'s go →',
+                },
+                {
+                    icon: '<svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="url(#tg2)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="tg2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#38bdf8"/><stop offset="100%" stop-color="#34d399"/></linearGradient></defs><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+                    badge: 'Browse',
+                    color: '#38bdf8',
+                    title: 'Discover live listings',
+                    body: 'Browse <strong>hundreds of verified websites</strong> for sale — filter by price, revenue, traffic, and category. Find your next digital asset in minutes.',
+                    xp: '+20 XP — Explorer unlocked',
+                    cta: 'Got it →',
+                },
+                {
+                    icon: '<svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="url(#tg3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="tg3" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#f87171"/></linearGradient></defs><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2M8 12h.01M12 12h4"/></svg>',
+                    badge: 'Sell',
+                    color: '#f59e0b',
+                    title: 'List your site for free',
+                    body: 'Got a side project collecting dust? <strong>List it in 2 minutes</strong> — free. Set your price, add your stats, and let thousands of qualified buyers find you.',
+                    xp: '+30 XP — Seller badge ready',
+                    cta: 'Awesome →',
+                },
+                {
+                    icon: '<svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="url(#tg4)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="tg4" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#34d399"/><stop offset="100%" stop-color="#38bdf8"/></linearGradient></defs><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M7 15h.01M11 15h2"/></svg>',
+                    badge: 'Escrow',
+                    color: '#34d399',
+                    title: 'Safe deals, every time',
+                    body: 'Every deal on Siterifty goes through <strong>secure escrow</strong>. Funds are held safely until both parties confirm transfer — no risk, no surprises.',
+                    xp: '+40 XP — Trust badge unlocked',
+                    cta: 'Nice →',
+                },
+                {
+                    icon: '<svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="url(#tg5)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="tg5" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#f87171"/><stop offset="100%" stop-color="#a855f7"/></linearGradient></defs><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+                    badge: 'You\'re ready!',
+                    color: '#f87171',
+                    title: 'You\'re all set! 🎉',
+                    body: 'Your account is fully set up. Explore listings, list your site for free, and close deals — the indie web is yours.',
+                    xp: '+50 XP — Siterifty Explorer unlocked',
+                    cta: null,
+                    isLast: true,
+                },
+            ];
+
+            let _step = 0;
+            let _totalXp = 0;
+
+            const overlay = document.createElement('div');
+            overlay.id = 'srTourOverlay';
+            overlay.innerHTML = `
+<style>
+#srTourOverlay {
+    position:fixed;inset:0;z-index:9999;
+    background:rgba(4,6,12,0.96);
+    backdrop-filter:blur(22px) saturate(160%);
+    -webkit-backdrop-filter:blur(22px) saturate(160%);
+    display:flex;align-items:center;justify-content:center;
+    padding:20px;
+    animation:srTourFadeIn .35s ease;
+}
+@keyframes srTourFadeIn { from{opacity:0;transform:scale(.97)} to{opacity:1;transform:scale(1)} }
+#srTourCard {
+    width:100%;max-width:420px;
+    background:linear-gradient(145deg,rgba(18,18,28,0.98),rgba(12,12,20,0.98));
+    border:1px solid rgba(255,255,255,0.09);
+    border-radius:24px;
+    padding:32px 28px 26px;
+    position:relative;
+    overflow:hidden;
+    box-shadow:0 40px 80px rgba(0,0,0,0.7),0 0 0 1px rgba(255,255,255,0.04) inset;
+}
+#srTourCard::before {
+    content:'';position:absolute;inset:0;
+    background:radial-gradient(ellipse 70% 50% at 50% -10%,var(--tour-color,#a855f7) 0%,transparent 70%);
+    opacity:.12;pointer-events:none;
+    transition:--tour-color .5s;
+}
+.sr-tour-progress {
+    display:flex;gap:6px;margin-bottom:28px;
+}
+.sr-tour-pip {
+    flex:1;height:3px;border-radius:999px;
+    background:rgba(255,255,255,0.1);
+    transition:background .4s ease,transform .2s;
+    overflow:hidden;position:relative;
+}
+.sr-tour-pip.done { background:rgba(255,255,255,0.5); }
+.sr-tour-pip.active::after {
+    content:'';position:absolute;inset:0;
+    background:linear-gradient(90deg,var(--tour-color,#a855f7),#818cf8);
+    animation:srPipFill .5s ease forwards;
+}
+@keyframes srPipFill { from{width:0} to{width:100%} }
+.sr-tour-badge {
+    display:inline-flex;align-items:center;gap:5px;
+    font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--tour-color,#a855f7);
+    background:rgba(168,85,247,0.1);
+    border:1px solid rgba(168,85,247,0.2);
+    border-radius:999px;padding:3px 10px;
+    margin-bottom:18px;
+    transition:color .4s,background .4s,border-color .4s;
+}
+.sr-tour-icon {
+    width:72px;height:72px;border-radius:20px;
+    background:rgba(255,255,255,0.04);
+    border:1px solid rgba(255,255,255,0.08);
+    display:flex;align-items:center;justify-content:center;
+    margin-bottom:20px;
+    position:relative;
+    animation:srIconPop .45s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes srIconPop { from{transform:scale(0.5) rotate(-10deg);opacity:0} to{transform:scale(1) rotate(0);opacity:1} }
+.sr-tour-title {
+    font-family:'Syne','Plus Jakarta Sans',sans-serif;
+    font-size:22px;font-weight:800;color:#fff;
+    letter-spacing:-.03em;line-height:1.2;
+    margin-bottom:10px;
+}
+.sr-tour-body {
+    font-size:13.5px;color:rgba(255,255,255,0.52);
+    line-height:1.7;margin-bottom:22px;
+}
+.sr-tour-body strong { color:rgba(255,255,255,0.85);font-weight:600; }
+.sr-tour-xp {
+    display:flex;align-items:center;gap:7px;
+    font-size:11px;font-weight:700;
+    color:var(--tour-color,#a855f7);
+    background:rgba(168,85,247,0.08);
+    border:1px solid rgba(168,85,247,0.15);
+    border-radius:10px;padding:8px 12px;
+    margin-bottom:22px;
+    transition:color .4s,background .4s,border-color .4s;
+}
+.sr-tour-xp svg { flex-shrink:0; }
+.sr-xp-bar-wrap {
+    margin:0 0 22px;
+}
+.sr-xp-bar-label {
+    display:flex;justify-content:space-between;
+    font-size:10px;font-weight:700;color:rgba(255,255,255,0.3);
+    margin-bottom:6px;letter-spacing:.04em;text-transform:uppercase;
+}
+.sr-xp-bar-track {
+    height:5px;border-radius:999px;
+    background:rgba(255,255,255,0.07);
+    overflow:hidden;
+}
+.sr-xp-bar-fill {
+    height:100%;border-radius:999px;
+    background:linear-gradient(90deg,var(--tour-color,#a855f7),#818cf8);
+    transition:width .7s cubic-bezier(.34,1.2,.64,1);
+}
+.sr-tour-btn {
+    width:100%;padding:14px;border-radius:14px;
+    background:linear-gradient(135deg,var(--tour-color,#a855f7),#818cf8);
+    color:#fff;font-size:14px;font-weight:800;
+    border:none;cursor:pointer;letter-spacing:.01em;
+    transition:opacity .18s,transform .18s,background .4s;
+    box-shadow:0 8px 24px rgba(168,85,247,0.3);
+}
+.sr-tour-btn:hover { opacity:.92;transform:translateY(-1px); }
+.sr-tour-btn:active { transform:scale(.98); }
+.sr-tour-skip {
+    text-align:center;margin-top:14px;
+    font-size:11px;color:rgba(255,255,255,0.2);
+    cursor:pointer;
+    transition:color .18s;
+}
+.sr-tour-skip:hover { color:rgba(255,255,255,0.45); }
+.sr-tour-confetti {
+    position:absolute;inset:0;pointer-events:none;overflow:hidden;
+}
+.sr-confetti-piece {
+    position:absolute;top:-10px;
+    width:7px;height:7px;border-radius:2px;
+    animation:srConfettiFall linear forwards;
+}
+@keyframes srConfettiFall {
+    0%   { transform:translateY(0) rotate(0deg);   opacity:1; }
+    100% { transform:translateY(500px) rotate(720deg); opacity:0; }
+}
+.sr-tour-step-enter {
+    animation:srStepIn .35s cubic-bezier(.34,1.15,.64,1);
+}
+@keyframes srStepIn { from{transform:translateX(40px);opacity:0} to{transform:translateX(0);opacity:1} }
+.sr-bg-check { display:none; }
+.sr-bg-option:hover { transform:scale(0.97) !important; }
+#srBgOptNone:hover { background:rgba(255,255,255,0.06) !important; }
+</style>
+<div id="srTourCard">
+    <div class="sr-tour-confetti" id="srTourConfetti"></div>
+    <div class="sr-tour-progress" id="srTourPips"></div>
+    <div id="srTourBadge" class="sr-tour-badge"></div>
+    <div class="sr-tour-icon" id="srTourIcon"></div>
+    <div class="sr-tour-title" id="srTourTitle"></div>
+    <div class="sr-tour-body" id="srTourBody"></div>
+    <div class="sr-tour-xp" id="srTourXp">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <span id="srTourXpText"></span>
+    </div>
+    <div class="sr-xp-bar-wrap">
+        <div class="sr-xp-bar-label">
+            <span>XP Progress</span>
+            <span id="srXpBarNum">0 / 150 XP</span>
+        </div>
+        <div class="sr-xp-bar-track">
+            <div class="sr-xp-bar-fill" id="srXpBarFill" style="width:0%"></div>
+        </div>
+    </div>
+    <button class="sr-tour-btn" id="srTourBtn"></button>
+    <div id="srTourLaunch" style="display:none;">
+        <div style="border:1px solid rgba(248,113,113,0.2);border-radius:16px;padding:16px;margin-bottom:14px;background:rgba(248,113,113,0.05);text-align:center;">
+            <div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(248,113,113,0.7);margin-bottom:10px;">Ready to explore?</div>
+            <button onclick="document.getElementById('srTourOverlay')._launchDash()" style="width:100%;padding:15px;border-radius:13px;background:linear-gradient(135deg,#f87171,#a855f7);color:#fff;font-size:15px;font-weight:900;border:none;cursor:pointer;letter-spacing:.01em;box-shadow:0 10px 30px rgba(248,113,113,0.35);transition:opacity .18s,transform .18s;" onmouseover="this.style.opacity='.9';this.style.transform='translateY(-1px)'" onmouseout="this.style.opacity='1';this.style.transform='none'">
+                Open my dashboard →
+            </button>
+            <div style="font-size:10.5px;color:rgba(255,255,255,0.25);margin-top:10px;">Tap whenever you're ready — no rush</div>
+        </div>
+    </div>
+    <div class="sr-tour-skip" id="srTourSkip">Skip tour</div>
+</div>`;
+
+            document.body.appendChild(overlay);
+
+            const card     = document.getElementById('srTourCard');
+            const pipsEl   = document.getElementById('srTourPips');
+            const badgeEl  = document.getElementById('srTourBadge');
+            const iconEl   = document.getElementById('srTourIcon');
+            const titleEl  = document.getElementById('srTourTitle');
+            const bodyEl   = document.getElementById('srTourBody');
+            const xpEl     = document.getElementById('srTourXp');
+            const xpTextEl = document.getElementById('srTourXpText');
+            const xpNumEl  = document.getElementById('srXpBarNum');
+            const xpBarEl  = document.getElementById('srXpBarFill');
+            const btnEl    = document.getElementById('srTourBtn');
+            const skipEl   = document.getElementById('srTourSkip');
+            const confEl   = document.getElementById('srTourConfetti');
+
+            const TOTAL_XP = 150;
+            const xpPerStep = [10, 20, 30, 40, 50];
+
+            // Build progress pips
+            steps.forEach(function(_, i) {
+                const pip = document.createElement('div');
+                pip.className = 'sr-tour-pip';
+                pip.id = 'srPip' + i;
+                pipsEl.appendChild(pip);
+            });
+
+            function _spawnConfetti(color) {
+                const colors = [color, '#a855f7', '#818cf8', '#38bdf8', '#34d399', '#f87171', '#fbbf24'];
+                for (let i = 0; i < 22; i++) {
+                    const p = document.createElement('div');
+                    p.className = 'sr-confetti-piece';
+                    p.style.left = Math.random() * 100 + '%';
+                    p.style.background = colors[Math.floor(Math.random() * colors.length)];
+                    p.style.animationDuration = (0.9 + Math.random() * 1.2) + 's';
+                    p.style.animationDelay    = (Math.random() * 0.4) + 's';
+                    p.style.width  = (5 + Math.random() * 7) + 'px';
+                    p.style.height = (5 + Math.random() * 7) + 'px';
+                    confEl.appendChild(p);
+                    setTimeout(() => p.remove(), 2500);
+                }
+            }
+
+            function _renderStep(i) {
+                const s = steps[i];
+
+                // Update CSS custom property for colour
+                card.style.setProperty('--tour-color', s.color);
+
+                // Update pip states
+                steps.forEach(function(_, j) {
+                    const pip = document.getElementById('srPip' + j);
+                    if (!pip) return;
+                    pip.className = 'sr-tour-pip' + (j < i ? ' done' : j === i ? ' active' : '');
+                });
+
+                // Badge
+                badgeEl.textContent = s.badge;
+                badgeEl.style.color = s.color;
+                badgeEl.style.background = s.color + '18';
+                badgeEl.style.borderColor = s.color + '35';
+
+                // Icon
+                iconEl.innerHTML = s.icon;
+                iconEl.style.animation = 'none';
+                void iconEl.offsetWidth; // reflow
+                iconEl.style.animation = '';
+
+                // Content
+                titleEl.textContent = s.title;
+                bodyEl.innerHTML    = s.body;
+
+                // XP
+                xpTextEl.textContent = s.xp;
+                xpEl.style.color        = s.color;
+                xpEl.style.background   = s.color + '15';
+                xpEl.style.borderColor  = s.color + '30';
+
+                // XP bar
+                _totalXp = xpPerStep.slice(0, i + 1).reduce(function(a, b){ return a + b; }, 0);
+                const pct = Math.min(100, Math.round((_totalXp / TOTAL_XP) * 100));
+                setTimeout(function() {
+                    xpBarEl.style.width = pct + '%';
+                    xpNumEl.textContent = _totalXp + ' / ' + TOTAL_XP + ' XP';
+                }, 120);
+
+                // Button / launch card
+                const launchEl = document.getElementById('srTourLaunch');
+                if (s.isLast) {
+                    btnEl.style.display = 'none';
+                    if (launchEl) launchEl.style.display = 'block';
+                    skipEl.style.display = 'none';
+                } else {
+                    btnEl.style.display = 'block';
+                    if (launchEl) launchEl.style.display = 'none';
+                    btnEl.textContent = s.cta;
+                    btnEl.style.background = 'linear-gradient(135deg,' + s.color + ',#818cf8)';
+                    btnEl.style.boxShadow  = '0 8px 24px ' + s.color + '45';
+                    skipEl.style.display = 'block';
+                }
+
+                // Step-in animation
+                titleEl.classList.remove('sr-tour-step-enter');
+                bodyEl.classList.remove('sr-tour-step-enter');
+                void titleEl.offsetWidth;
+                titleEl.classList.add('sr-tour-step-enter');
+                bodyEl.classList.add('sr-tour-step-enter');
+
+                if (i === steps.length - 1) _spawnConfetti(s.color);
+            }
+
+            function _advance() {
+                if (_step < steps.length - 1) {
+                    _step++;
+                    _renderStep(_step);
+                } else {
+                    _finish();
+                }
+            }
+
+            function _launch() {
+                // Mark tour complete in Firebase
+                try { update(ref(db, 'users/' + uid), { tourComplete: true, lastExitAt: 0 }); } catch(_) {}
+                overlay.style.animation = 'srTourFadeIn .3s ease reverse forwards';
+                setTimeout(function() { overlay.remove(); onDone(); }, 320);
+            }
+
+            function _skip() {
+                // Mark tour complete but don't open dash — user dismissed
+                try { update(ref(db, 'users/' + uid), { tourComplete: true, lastExitAt: 0 }); } catch(_) {}
+                overlay.style.animation = 'srTourFadeIn .3s ease reverse forwards';
+                setTimeout(function() { overlay.remove(); }, 320);
+                // Show a subtle toast so they know where to find the dashboard
+                if (window.showToast) window.showToast('Tap your avatar or the top-right chip to open your dashboard anytime');
+            }
+
+            // Expose launch to the inline button onclick
+            overlay._launchDash = _launch;
+
+            btnEl.addEventListener('click', _advance);
+            skipEl.addEventListener('click', _skip);
+
+            _renderStep(0);
+        }
+
+        // ── Welcome Back modal ──────────────────────────────────────────────────
+        async function _showWelcomeBack(uid, username, lastExitTs) {
+            const old = document.getElementById('srWelcomeBackOverlay');
+            if (old) old.remove();
+
+            const awayMs   = Date.now() - lastExitTs;
+            const awayMins = Math.floor(awayMs / 60000);
+            const awayStr  = awayMins >= 1440
+                ? Math.floor(awayMins / 1440) + (Math.floor(awayMins / 1440) === 1 ? ' day' : ' days')
+                : awayMins >= 60
+                ? Math.floor(awayMins / 60) + 'h ' + (awayMins % 60 > 0 ? (awayMins % 60) + 'm' : '')
+                : awayMins + ' min';
+
+            // Fetch "what you missed" — new global notifications since lastExitTs
+            let missedItems = [];
+            try {
+                const fns = window._fbDbFns || {};
+                if (fns.get && fns.ref) {
+                    const snap = await fns.get(fns.ref(window._fbDb, 'notifications/global'));
+                    if (snap && snap.exists && snap.exists()) {
+                        snap.forEach(function(child) {
+                            const v = child.val();
+                            if (v && (v.createdAt || v.timestamp || 0) > lastExitTs) {
+                                missedItems.push(v);
+                            }
+                        });
+                    }
+                }
+            } catch(_) {}
+            // Also count new personal notifications
+            let newPersonal = 0;
+            try {
+                const fns = window._fbDbFns || {};
+                if (fns.get && fns.ref) {
+                    const snap = await fns.get(fns.ref(window._fbDb, 'notifications/' + uid));
+                    if (snap && snap.exists && snap.exists()) {
+                        snap.forEach(function(child) {
+                            const v = child.val();
+                            if (v && !v.read && (v.createdAt || v.timestamp || 0) > lastExitTs) newPersonal++;
+                        });
+                    }
+                }
+            } catch(_) {}
+
+            const typeIcons = {
+                sale   : '💰', offer: '🤝', payout: '💳',
+                update : '📣', system: '⚙️', promo: '🎁',
+                message: '💬', default: '🔔',
+            };
+
+            const overlay = document.createElement('div');
+            overlay.id = 'srWelcomeBackOverlay';
+
+            const missedHtml = missedItems.length === 0 && newPersonal === 0
+                ? '<div style="font-size:12px;color:rgba(255,255,255,0.3);text-align:center;padding:14px 0;">All quiet — no new activity while you were away.</div>'
+                : (missedItems.slice(0, 4).map(function(m) {
+                    const ic = typeIcons[m.type] || typeIcons.default;
+                    const t  = m.title || 'Notification';
+                    const b  = m.body  || m.message || '';
+                    return '<div style="display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);">'
+                        + '<div style="font-size:16px;flex-shrink:0;margin-top:1px;">' + ic + '</div>'
+                        + '<div><div style="font-size:12.5px;font-weight:700;color:#fff;margin-bottom:2px;">' + t + '</div>'
+                        + '<div style="font-size:11px;color:rgba(255,255,255,0.4);line-height:1.5;">' + b + '</div></div></div>';
+                }).join('')
+                + (newPersonal > 0 ? '<div style="font-size:11px;color:#a855f7;font-weight:700;margin-top:10px;">+ ' + newPersonal + ' personal notification' + (newPersonal > 1 ? 's' : '') + ' waiting in your inbox</div>' : '')
+                + (missedItems.length > 4 ? '<div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:8px;">+ ' + (missedItems.length - 4) + ' more in Notifications</div>' : ''));
+
+            overlay.innerHTML = `
+<style>
+#srWelcomeBackOverlay {
+    position:fixed;inset:0;z-index:9998;
+    display:flex;align-items:flex-end;justify-content:center;
+    padding:0 16px 24px;
+    pointer-events:none;
+}
+#srWbSheet {
+    width:100%;max-width:400px;
+    background:linear-gradient(145deg,rgba(16,16,26,0.99),rgba(10,10,18,0.99));
+    border:1px solid rgba(255,255,255,0.09);
+    border-radius:22px;
+    padding:22px 22px 20px;
+    pointer-events:all;
+    box-shadow:0 24px 60px rgba(0,0,0,0.6),0 0 0 1px rgba(255,255,255,0.04) inset;
+    animation:srWbSlideUp .4s cubic-bezier(.34,1.2,.64,1);
+    position:relative;overflow:hidden;
+}
+@keyframes srWbSlideUp { from{transform:translateY(60px);opacity:0} to{transform:translateY(0);opacity:1} }
+#srWbSheet::before {
+    content:'';position:absolute;top:0;left:0;right:0;height:2px;
+    background:linear-gradient(90deg,#a855f7,#818cf8,#38bdf8);
+    border-radius:22px 22px 0 0;
+}
+.sr-wb-header { display:flex;align-items:center;gap:11px;margin-bottom:16px; }
+.sr-wb-avatar {
+    width:42px;height:42px;border-radius:12px;
+    background:linear-gradient(135deg,#a855f7,#818cf8);
+    display:flex;align-items:center;justify-content:center;
+    font-size:18px;font-weight:800;color:#fff;
+    flex-shrink:0;font-family:'Syne',sans-serif;
+}
+.sr-wb-title { font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:#fff;letter-spacing:-.02em; }
+.sr-wb-sub { font-size:11px;color:rgba(255,255,255,0.35);margin-top:1px; }
+.sr-wb-dismiss {
+    margin-left:auto;width:26px;height:26px;border-radius:50%;
+    background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.09);
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;flex-shrink:0;color:rgba(255,255,255,0.35);
+    transition:background .15s;
+}
+.sr-wb-dismiss:hover { background:rgba(255,255,255,0.12); }
+.sr-wb-missed-label {
+    font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+    color:rgba(255,255,255,0.2);margin-bottom:10px;
+}
+.sr-wb-cta {
+    width:100%;padding:12px;border-radius:12px;margin-top:16px;
+    background:linear-gradient(135deg,#a855f7,#818cf8);
+    color:#fff;font-size:13px;font-weight:800;border:none;cursor:pointer;
+    transition:opacity .18s;
+}
+.sr-wb-cta:hover { opacity:.88; }
+</style>
+<div id="srWbSheet">
+    <div class="sr-wb-header">
+        <div class="sr-wb-avatar" id="srWbAvatar">${(username || '?').charAt(0).toUpperCase()}</div>
+        <div>
+            <div class="sr-wb-title">Welcome back, ${username || 'there'}!</div>
+            <div class="sr-wb-sub">You were away for ${awayStr}</div>
+        </div>
+        <div class="sr-wb-dismiss" onclick="document.getElementById('srWelcomeBackOverlay').remove()">
+            <svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M1.5 1.5l9 9M10.5 1.5l-9 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+    </div>
+    <div class="sr-wb-missed-label">While you were away</div>
+    <div id="srWbMissed">${missedHtml}</div>
+    <button class="sr-wb-cta" onclick="document.getElementById('srWelcomeBackOverlay').remove();window.openNotifPanel&&openNotifPanel()">See all notifications →</button>
+</div>`;
+
+            document.body.appendChild(overlay);
+
+            // Auto-dismiss after 12s
+            setTimeout(function() {
+                const el = document.getElementById('srWelcomeBackOverlay');
+                if (el) {
+                    el.style.transition = 'opacity .4s';
+                    el.style.opacity = '0';
+                    setTimeout(function(){ if (el.parentNode) el.remove(); }, 400);
+                }
+            }, 12000);
         }
         window.doSignOut = function(){
             // Show confirmation modal instead of signing out immediately
@@ -12272,13 +13042,11 @@
 
                 setTimeout(()=>{
                     closeAuthModal();
-                    openDash();
+                    window._openDashWithFlow(true, uid, username);
                     if (refResult && refResult.invalidRef) {
-                        // Invalid referral link — show red invalid popup
-                        setTimeout(() => { if (window._showReferralWelcomePopup) window._showReferralWelcomePopup(null, true); }, 600);
+                        setTimeout(() => { if (window._showReferralWelcomePopup) window._showReferralWelcomePopup(null, true); }, 1200);
                     } else if (refResult && refResult.referrerUsername) {
-                        // Valid referral — show green welcome popup
-                        setTimeout(() => { if (window._showReferralWelcomePopup) window._showReferralWelcomePopup(refResult.referrerUsername, false); }, 600);
+                        setTimeout(() => { if (window._showReferralWelcomePopup) window._showReferralWelcomePopup(refResult.referrerUsername, false); }, 1200);
                     }
                 }, 900);
             } catch(e){
@@ -12298,8 +13066,9 @@
             try {
                 await signInWithEmailAndPassword(auth, email, password);
                 setBtn('btnLogin','Sign in →',false);
+                const _liUser = auth.currentUser;
                 closeAuthModal();
-                openDash();
+                window._openDashWithFlow(false, _liUser ? _liUser.uid : null, null);
             } catch(e){
                 setBtn('btnLogin','Sign in →',false);
                 showErr('errLogin', firebaseErrMsg(e.code));
@@ -12351,15 +13120,15 @@
                     // Process referral for Google new users
                     const _gRefResult = await (window._processReferral ? window._processReferral(uid, username, user.email||'') : Promise.resolve(null));
                     closeAuthModal();
-                    openDash();
+                    window._openDashWithFlow(true, uid, username);
                     if (_gRefResult && _gRefResult.invalidRef) {
-                        setTimeout(() => { if (window._showReferralWelcomePopup) window._showReferralWelcomePopup(null, true); }, 600);
+                        setTimeout(() => { if (window._showReferralWelcomePopup) window._showReferralWelcomePopup(null, true); }, 1200);
                     } else if (_gRefResult && _gRefResult.referrerUsername) {
-                        setTimeout(() => { if (window._showReferralWelcomePopup) window._showReferralWelcomePopup(_gRefResult.referrerUsername, false); }, 600);
+                        setTimeout(() => { if (window._showReferralWelcomePopup) window._showReferralWelcomePopup(_gRefResult.referrerUsername, false); }, 1200);
                     }
                 } else {
                     closeAuthModal();
-                    openDash();
+                    window._openDashWithFlow(false, uid, null);
                 }
             } catch(e){
                 const errEl = $('errLogin') || $('errSignup');
@@ -12416,19 +13185,19 @@
                     // Referral processing
                     const _ghRefResult = await (window._processReferral ? window._processReferral(uid, username, user.email||'') : Promise.resolve(null));
                     closeAuthModal();
-                    openDash();
+                    window._openDashWithFlow(true, uid, username);
                     // After login, also link GitHub to AutoSell if token available
                     if (ghToken && ghUsername) {
                         _linkGithubToAutoSell(uid, ghToken, ghUsername, user.photoURL || '');
                     }
                     if (_ghRefResult && _ghRefResult.invalidRef) {
-                        setTimeout(() => { if (window._showReferralWelcomePopup) window._showReferralWelcomePopup(null, true); }, 600);
+                        setTimeout(() => { if (window._showReferralWelcomePopup) window._showReferralWelcomePopup(null, true); }, 1200);
                     } else if (_ghRefResult && _ghRefResult.referrerUsername) {
-                        setTimeout(() => { if (window._showReferralWelcomePopup) window._showReferralWelcomePopup(_ghRefResult.referrerUsername, false); }, 600);
+                        setTimeout(() => { if (window._showReferralWelcomePopup) window._showReferralWelcomePopup(_ghRefResult.referrerUsername, false); }, 1200);
                     }
                 } else {
                     closeAuthModal();
-                    openDash();
+                    window._openDashWithFlow(false, uid, null);
                     // Existing user — link GitHub to AutoSell and open repo picker
                     if (ghToken && ghUsername) {
                         _linkGithubToAutoSell(uid, ghToken, ghUsername, user.photoURL || '');
@@ -12547,6 +13316,7 @@
         //  Expose DB + helpers globally (used by Imgur upload script) 
         window._fbDb = db;
         window._fbDbFns = { ref, get, update, set, onValue, push };
+        window._fb = function() { return { db: window._fbDb, ref: window._fbDbFns.ref, get: window._fbDbFns.get, set: window._fbDbFns.set, update: window._fbDbFns.update, onValue: window._fbDbFns.onValue }; };
 
         //  auth state 
         //  Global realtime user data listener 
@@ -12647,7 +13417,10 @@
                     update(ref(db, 'users/' + user.uid), { lastSeen: Date.now() });
                 } catch(_) {}
 
-                //  Persistent unread message badge — lightweight listener, no tab required 
+                // Sync background image from Firebase → localStorage + apply (cross-device)
+                if (window._srSyncBgFromFirebase) window._srSyncBgFromFirebase(user.uid);
+
+                //  Persistent unread message badge — lightweight listener, no tab required  — lightweight listener, no tab required 
                 (function startUnreadBadgeListener(uid) {
                     const fbRef = ref, fbOnValue = window._fbDbFns && window._fbDbFns.onValue || (window._fbSDK && window._fbSDK.onValue);
                     if (!fbOnValue) {
@@ -14895,6 +15668,7 @@
             profile:       'subProfile',
             billing:       'subBilling',
             appearance:    'subAppearance',
+            design:        'subDesign',
             notifications: 'subNotifications',
             contact:       'subContact',
             about:         'subAbout',
@@ -14934,6 +15708,7 @@
                     el.classList.add('open');
                     // Init notifications panel state after slide-in
                     if (name === 'notifications' && window.initNotifPanel) window.initNotifPanel();
+                    if (name === 'design') window._srInitDesignPanel && window._srInitDesignPanel();
                     // Load live data for dynamic panels
                     if (name === 'offers')          _loadOffersPanel();
                     if (name === 'sellerAnalytics') _loadSellerAnalyticsPanel();
@@ -14943,7 +15718,150 @@
             });
         };
 
-        // ── OFFERS / PURCHASES PANEL (real Firebase data) ──
+        // ── DESIGN PANEL — background image picker ──────────────────────────────
+        // 3 wallpapers + "none". Persisted to localStorage (survives logout) AND
+        // Firebase users/{uid}/bgImage (syncs across devices).
+        (function() {
+            const DEFAULT_BG = 'https://i.pinimg.com/736x/0e/86/ec/0e86ec1c8b5bcbebcff97fde58530db5.jpg';
+            const LS_KEY = 'sr_bg_img';
+
+            // Collect all options dynamically from DOM at runtime
+            function _getAllOptions() {
+                return Array.from(document.querySelectorAll('.sr-bg-option[data-bg]'));
+            }
+
+            const HERO_DEFAULT = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRANmB5Hwth7loc_aHJGTJKHYOImvhr_emj-1Yy5ABw3XCXxennbcSEaAw9&s=10';
+
+            // Apply a bg URL (or '' for none) to all surfaces
+            window._srApplyBg = function(url) {
+                const bgLayer   = document.getElementById('srBgLayer');
+                const authBg    = document.getElementById('authModalBg');
+                const heroBg    = document.getElementById('srHeroBgImg');
+                const root      = document.documentElement;
+
+                if (url) {
+                    if (bgLayer) {
+                        bgLayer.style.backgroundImage = 'url(' + url + ')';
+                        bgLayer.style.opacity = '0.18';
+                    }
+                    if (authBg) authBg.style.backgroundImage = 'url(' + url + ')';
+                    if (heroBg) { heroBg.style.transition = 'opacity .4s'; heroBg.style.opacity = '0'; setTimeout(function(){ heroBg.src = url; heroBg.style.opacity = ''; }, 350); }
+                } else {
+                    if (bgLayer) { bgLayer.style.opacity = '0'; bgLayer.style.backgroundImage = 'none'; }
+                    if (authBg)  authBg.style.backgroundImage = "url('" + DEFAULT_BG + "')";
+                    if (heroBg) { heroBg.style.transition = 'opacity .4s'; heroBg.style.opacity = '0'; setTimeout(function(){ heroBg.src = HERO_DEFAULT; heroBg.style.opacity = ''; }, 350); }
+                }
+            };
+
+            // Save + apply
+            window.srSelectBg = function(optEl) {
+                const url = optEl ? (optEl.dataset ? optEl.dataset.bg : '') : '';
+
+                try { localStorage.setItem(LS_KEY, url || '__none__'); } catch(_) {}
+
+                try {
+                    const u = window._fbAuth && window._fbAuth.currentUser;
+                    if (u && window._fbDb) {
+                        const fns = window._fbDbFns || {};
+                        if (fns.update && fns.ref) {
+                            fns.update(fns.ref(window._fbDb, 'users/' + u.uid), { bgImage: url || '__none__' });
+                        }
+                    }
+                } catch(_) {}
+
+                window._srApplyBg(url);
+                _updatePickerUI(url);
+
+                // Update settings row value label
+                const valEl = document.getElementById('settingsDesignVal');
+                if (valEl) {
+                    if (!url) {
+                        valEl.textContent = 'None';
+                    } else {
+                        const matchEl = (document.querySelectorAll('.sr-bg-option[data-bg]') || []);
+                        let found = 'Custom';
+                        matchEl.forEach(function(el) { if (el.dataset.bg === url) found = el.dataset.label || 'Custom'; });
+                        valEl.textContent = found;
+                    }
+                }
+
+                const statusEl = document.getElementById('srBgSaveStatus');
+                if (statusEl) {
+                    statusEl.textContent = '✓ Saved';
+                    statusEl.style.color = '#34d399';
+                    setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2000);
+                }
+            };
+
+            function _updatePickerUI(activeUrl) {
+                _getAllOptions().forEach(function(opt) {
+                    const check = opt.querySelector('.sr-bg-check');
+                    const isActive = (activeUrl && opt.dataset.bg === activeUrl);
+                    opt.style.borderColor = isActive ? '#a855f7' : 'transparent';
+                    opt.style.transform   = isActive ? 'scale(0.96)' : '';
+                    opt.style.boxShadow   = isActive ? '0 0 0 3px rgba(168,85,247,0.25)' : 'none';
+                    if (check) check.style.display = isActive ? 'flex' : 'none';
+                });
+                // None option
+                const noneEl    = document.getElementById('srBgOptNone');
+                const noneCheck = document.getElementById('srBgNoneCheck');
+                const noneActive = !activeUrl;
+                if (noneEl)    { noneEl.style.background = noneActive ? 'rgba(168,85,247,0.08)' : 'rgba(255,255,255,0.03)'; noneEl.style.borderColor = noneActive ? 'rgba(168,85,247,0.3)' : 'rgba(255,255,255,0.07)'; }
+                if (noneCheck) noneCheck.style.display = noneActive ? 'flex' : 'none';
+            }
+
+            // Called when design panel is opened — sync UI to current selection
+            window._srInitDesignPanel = function() {
+                const current = _getCurrentBg();
+                _updatePickerUI(current);
+                const valEl = document.getElementById('settingsDesignVal');
+                if (valEl) {
+                    if (!current) {
+                        valEl.textContent = 'None';
+                    } else {
+                        let found = 'Default';
+                        document.querySelectorAll('.sr-bg-option[data-bg]').forEach(function(el) {
+                            if (el.dataset.bg === current) found = el.dataset.label || 'Custom';
+                        });
+                        valEl.textContent = found;
+                    }
+                }
+            };
+
+            function _getCurrentBg() {
+                try {
+                    const v = localStorage.getItem(LS_KEY);
+                    if (v === '__none__') return '';
+                    if (v) return v;
+                } catch(_) {}
+                return DEFAULT_BG; // default
+            }
+
+            // Boot: apply from localStorage immediately (fast, before Firebase)
+            (function _bootApply() {
+                const saved = _getCurrentBg();
+                window._srApplyBg(saved);
+                // Label update happens in _srInitDesignPanel when panel opens
+            })();
+
+            // After auth: sync from Firebase (covers "different phone" case)
+            // Called from onAuthStateChanged in the auth block below
+            window._srSyncBgFromFirebase = async function(uid) {
+                try {
+                    const fns = window._fbDbFns || {};
+                    if (!fns.get || !fns.ref || !window._fbDb) return;
+                    const snap = await fns.get(fns.ref(window._fbDb, 'users/' + uid + '/bgImage'));
+                    if (!snap || !snap.exists || !snap.exists()) return;
+                    const fbVal = snap.val();
+                    if (!fbVal) return;
+                    const url = fbVal === '__none__' ? '' : fbVal;
+                    // Write to localStorage so it persists offline
+                    try { localStorage.setItem(LS_KEY, fbVal); } catch(_) {}
+                    window._srApplyBg(url);
+                    window._srInitDesignPanel && window._srInitDesignPanel();
+                } catch(_) {}
+            };
+        })();
 
         // Statuses that belong to the "Purchases" tab (funded/in-flight/complete escrow)
         const PURCHASE_STATUSES = new Set(['funded','inspection','assets_transferred','released','disputed']);
@@ -16967,6 +17885,10 @@
             <!-- Scrollable body -->
             <div class="psw-body">
                 <div class="psw-title-area">
+                    <div class="psw-title-area-img" aria-hidden="true">
+                        <img id="pswTitleAreaImg" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRANmB5Hwth7loc_aHJGTJKHYOImvhr_emj-1Yy5ABw3XCXxennbcSEaAw9&s=10" alt="" loading="lazy">
+                        <div class="bg-img-skeleton" id="pswTitleAreaSkeleton"></div>
+                    </div>
                     <h3>Choose a plan</h3>
                     <p>Cancel anytime · billed monthly via PayPal</p>
                 </div>
@@ -22028,6 +22950,30 @@ document.addEventListener('DOMContentLoaded', function(){
 })();
 </script>
 
+<script>
+// ── Global: keep bg-image skeletons visible until each image has actually loaded ──
+(function() {
+    function wireBgSkeleton(imgId, skeletonId) {
+        var img = document.getElementById(imgId);
+        var skel = document.getElementById(skeletonId);
+        if (!img || !skel) return;
+        function reveal() { skel.classList.add('is-loaded'); }
+        if (img.complete && img.naturalWidth > 0) {
+            // Already loaded from cache (e.g. hero loaded it first) — reveal immediately
+            reveal();
+        } else {
+            img.addEventListener('load', reveal, { once: true });
+            img.addEventListener('error', reveal, { once: true }); // don't block forever on a broken image
+        }
+    }
+    wireBgSkeleton('srHeroBgImg', 'srHeroBgSkeleton');
+    wireBgSkeleton('pswTitleAreaImg', 'pswTitleAreaSkeleton');
+    wireBgSkeleton('msgOverlayBgImg', 'msgOverlayBgSkeleton');
+    wireBgSkeleton('imsgChatHeaderImg', 'imsgChatHeaderSkeleton');
+    wireBgSkeleton('dashModalBgImg', 'dashModalBgSkeleton');
+})();
+</script>
+
 </body>
 <script>
 window._avatarFallback = function(img, kind) {
@@ -22348,8 +23294,8 @@ window.selectLibraryAvatar = async function(url) {
     <!-- Switcher -->
     <div style="padding:12px 18px 0;flex-shrink:0;">
       <div class="np-switcher">
-        <button class="np-tab active" id="npTabGlobal" onclick="npSwitchTab('global')">GLOBAL</button>
-        <button class="np-tab" id="npTabMe" onclick="npSwitchTab('me')">ME</button>
+        <button class="np-tab active" id="npTabMe" onclick="npSwitchTab('me')">ME</button>
+        <button class="np-tab" id="npTabGlobal" onclick="npSwitchTab('global')">GLOBAL</button>
       </div>
     </div>
 
@@ -22364,7 +23310,7 @@ window.selectLibraryAvatar = async function(url) {
 <script>
 (function(){
   // ── State ──────────────────────────────────────────────────────────
-  var _npTab       = 'global';   // 'global' | 'me'
+  var _npTab       = 'me';       // 'global' | 'me'
   var _npItems     = { global: [], me: [] };
   var _npLoaded    = { global: false, me: false };
   var _npUnsubGlob = null;
@@ -22435,7 +23381,7 @@ window.selectLibraryAvatar = async function(url) {
         + '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>'
         + '<div class="np-empty-title">No notifications</div>'
         + '<div class="np-empty-sub">'
-        + (_npTab === 'global' ? 'Platform-wide announcements will appear here.' : 'Your personal alerts — offers, payouts, messages — will show here.')
+        + (_npTab === 'global' ? 'Platform-wide announcements will appear here.' : 'Your personal alerts — offers, payouts, messages, transactions — will show here.')
         + '</div></div>';
       return;
     }
@@ -22509,6 +23455,84 @@ window.selectLibraryAvatar = async function(url) {
     }
   }
 
+  // ── Transaction → notification synthesiser ─────────────────────────
+  function _txnToNotif(key, txn) {
+    var uid    = _uid();
+    var amt    = txn.amount != null ? '$' + Number(txn.amount).toLocaleString() : '';
+    var label  = txn.title  || txn.description || txn.note || '';
+    var ts     = txn.createdAt || txn.timestamp || txn.ts
+                   ? new Date(txn.createdAt || txn.timestamp || txn.ts).toISOString()
+                   : new Date().toISOString();
+
+    // Determine direction & type
+    var isSender   = txn.fromUid === uid || txn.senderUid === uid;
+    var isReceiver = txn.toUid   === uid || txn.recipientUid === uid;
+
+    var kind = (txn.type || '').toLowerCase();
+    var title, body, notifType;
+
+    if (kind === 'donation' || kind === 'donate') {
+      if (isSender) {
+        notifType = 'payout';
+        title     = 'Donation sent' + (amt ? ' · ' + amt : '');
+        body      = label || 'You sent a donation.';
+      } else {
+        notifType = 'sale';
+        title     = 'Donation received' + (amt ? ' · ' + amt : '');
+        body      = label || 'You received a donation.';
+      }
+    } else if (kind === 'message' || kind === 'msg') {
+      notifType = 'message';
+      title     = 'Message received';
+      body      = label || 'You have a new message.';
+    } else if (kind === 'sale' || kind === 'purchase' || kind === 'escrow') {
+      if (isSender) {
+        notifType = 'payout';
+        title     = 'Payment sent' + (amt ? ' · ' + amt : '');
+        body      = label || 'Your payment has been processed.';
+      } else {
+        notifType = 'sale';
+        title     = 'Payment received' + (amt ? ' · ' + amt : '');
+        body      = label || 'You received a payment.';
+      }
+    } else if (kind === 'transfer' || kind === 'wallet' || kind === 'withdrawal' || kind === 'payout') {
+      if (isSender || txn.direction === 'out') {
+        notifType = 'payout';
+        title     = 'Money sent' + (amt ? ' · ' + amt : '');
+        body      = label || 'Funds were sent from your wallet.';
+      } else {
+        notifType = 'sale';
+        title     = 'Money received' + (amt ? ' · ' + amt : '');
+        body      = label || 'Funds were added to your wallet.';
+      }
+    } else {
+      // generic fallback — still show something useful
+      if (isSender) {
+        notifType = 'payout';
+        title     = 'Money sent' + (amt ? ' · ' + amt : '');
+        body      = label || 'A transaction was sent from your account.';
+      } else if (isReceiver) {
+        notifType = 'sale';
+        title     = 'Money received' + (amt ? ' · ' + amt : '');
+        body      = label || 'A transaction was received on your account.';
+      } else {
+        notifType = 'update';
+        title     = 'Transaction' + (amt ? ' · ' + amt : '');
+        body      = label || 'A transaction was recorded on your account.';
+      }
+    }
+
+    return {
+      _key      : 'txn_' + key,
+      _isTxn    : true,        // flag so mark-read skips Firebase write on txn items
+      type      : notifType,
+      title     : title,
+      body      : body,
+      createdAt : ts,
+      read      : !!txn.read,
+    };
+  }
+
   function npLoadMe() {
     var uid = _uid();
     if (!uid) { _npItems.me = []; _npLoaded.me = true; npRender(); return; }
@@ -22516,6 +23540,18 @@ window.selectLibraryAvatar = async function(url) {
     var db = _db(); var fns = _fns();
     if (!db || !fns.ref || !fns.onValue) { _npLoaded.me = true; npRender(); return; }
     npShowSkeleton();
+
+    var _notifItems = null;
+    var _txnItems   = null;
+
+    function _merge() {
+      if (_notifItems === null || _txnItems === null) return; // wait for both
+      _npItems.me  = _notifItems.concat(_txnItems);
+      _npLoaded.me = true;
+      if (_npTab === 'me') npRender();
+    }
+
+    // 1. Personal notifications node
     try {
       if (_npUnsubMe) _npUnsubMe();
       _npUnsubMe = fns.onValue(fns.ref(db, 'notifications/' + uid), function(snap) {
@@ -22526,18 +23562,39 @@ window.selectLibraryAvatar = async function(url) {
             if (v) items.push(Object.assign({ _key: child.key }, v));
           });
         }
-        _npItems.me = items;
-        _npLoaded.me = true;
-        if (_npTab === 'me') npRender();
+        _notifItems = items;
+        _merge();
       }, function(err) {
-        console.warn('[notifPanel] me error', err);
-        _npLoaded.me = true;
-        if (_npTab === 'me') npRender();
+        console.warn('[notifPanel] me notif error', err);
+        _notifItems = [];
+        _merge();
       });
     } catch(e) {
-      console.warn('[notifPanel] me catch', e);
-      _npLoaded.me = true;
-      npRender();
+      console.warn('[notifPanel] me notif catch', e);
+      _notifItems = [];
+    }
+
+    // 2. Transactions node — synthesise as typed notification items
+    try {
+      fns.onValue(fns.ref(db, 'transactions/' + uid), function(snap) {
+        var items = [];
+        if (snap && snap.exists && snap.exists()) {
+          snap.forEach(function(child) {
+            var v = child.val();
+            if (v) items.push(_txnToNotif(child.key, v));
+          });
+        }
+        _txnItems = items;
+        _merge();
+      }, function(err) {
+        console.warn('[notifPanel] me txn error', err);
+        _txnItems = [];
+        _merge();
+      });
+    } catch(e) {
+      console.warn('[notifPanel] me txn catch', e);
+      _txnItems = [];
+      _merge();
     }
   }
 
@@ -22545,8 +23602,8 @@ window.selectLibraryAvatar = async function(url) {
   window.openNotifPanel = function() {
     var panel = document.getElementById('notifPanel');
     if (!panel) return;
-    // reset to global tab
-    npSwitchTab('global', true);
+    // reset to me tab
+    npSwitchTab('me', true);
     panel.classList.add('open');
     if (window._lockBodyScroll) window._lockBodyScroll();
   };
@@ -22580,10 +23637,12 @@ window.selectLibraryAvatar = async function(url) {
     arr.forEach(function(x){ if (x._key === key) x.read = true; });
     npRender();
 
-    // persist to Firebase
+    // persist to Firebase (skip synthesised transaction items)
     var uid  = _uid();
     var db   = _db();
     var fns  = _fns();
+    var item = (_npItems[tab] || []).find(function(x){ return x._key === key; });
+    if (item && item._isTxn) return; // txn items live under transactions/, not notifications/
     if (!db || !fns.ref || !fns.update || !uid) return;
     var path = tab === 'global'
       ? 'notifications/global/' + key + '/read'
@@ -22602,7 +23661,7 @@ window.selectLibraryAvatar = async function(url) {
     if (!db || !fns.ref || !fns.update) return;
     var base = _npTab === 'global' ? 'notifications/global' : 'notifications/' + uid;
     arr.forEach(function(x){
-      if (x._key) {
+      if (x._key && !x._isTxn) {
         try { fns.update(fns.ref(db, base + '/' + x._key), { read: true }); }
         catch(e){}
       }
@@ -22611,17 +23670,19 @@ window.selectLibraryAvatar = async function(url) {
 
   // ── Expose bell-dot init (call after auth ready) ───────────────────
   window._initNotifBellDot = function() {
-    // just start the global listener to show unread dot
     var db = _db(); var fns = _fns();
     if (!db || !fns.ref || !fns.onValue) return;
+    // Watch global notifications
     try {
       fns.onValue(fns.ref(db, 'notifications/global'), function(snap) {
         var unread = 0;
         if (snap && snap.exists && snap.exists()) {
           snap.forEach(function(c){ var v=c.val(); if(v && !v.read) unread++; });
         }
+        _npItems.global.forEach(function(){ }); // already tracked in _npItems
         var dot = document.getElementById('dmBellDot');
-        if (dot) dot.style.display = unread > 0 ? 'block' : 'none';
+        var meUnread = (_npItems.me||[]).filter(function(x){ return !x.read; }).length;
+        if (dot) dot.style.display = (unread + meUnread) > 0 ? 'block' : 'none';
       });
     } catch(e){}
   };
