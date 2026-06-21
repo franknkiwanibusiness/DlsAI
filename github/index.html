@@ -1,298 +1,162 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Workspace | Direct Asset Pipeline</title>
-    <style>
-        :root {
-            --bg-main: #0d1117;
-            --bg-surface: #161b22;
-            --bg-input: #21262d;
-            --accent: #2f81f7;
-            --accent-success: #238636;
-            --text-main: #c9d1d9;
-            --text-muted: #8b949e;
-            --border: #30363d;
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
-        
-        body { 
-            background-color: var(--bg-main); 
-            color: var(--text-main); 
-            display: flex; 
-            flex-direction: column; 
-            min-height: 100vh;
-            overflow-y: auto; 
-        }
-
-        .workspace { 
-            flex: 1; 
-            padding: 20px; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 20px; 
-            border-bottom: 1px solid var(--border); 
-        }
-        
-        h2 { font-size: 1.35rem; font-weight: 600; margin-bottom: 5px; }
-        
-        .input-group { display: flex; flex-direction: column; gap: 8px; }
-        label { font-size: 0.85rem; color: var(--text-muted); font-weight: 500; }
-        
-        select, input[type="text"] { 
-            background: var(--bg-input); 
-            border: 1px solid var(--border); 
-            padding: 12px; 
-            border-radius: 6px; 
-            color: white; 
-            font-size: 0.9rem; 
-            transition: border 0.2s; 
-            width: 100%;
-            outline: none;
-        }
-        select:focus, input[type="text"]:focus { border-color: var(--accent); }
-        select { cursor: pointer; }
-
-        .drop-zone { border: 2px dashed var(--border); border-radius: 8px; padding: 35px 20px; text-align: center; background: var(--bg-surface); cursor: pointer; transition: background 0.2s, border-color 0.2s; }
-        .drop-zone.dragover { background: rgba(47, 129, 247, 0.1); border-color: var(--accent); }
-        .drop-zone p { color: var(--text-muted); font-size: 0.9rem; line-height: 1.4; }
-
-        /* New Verification Layout Area */
-        .file-verification-box { display: none; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 6px; padding: 15px; flex-direction: column; gap: 12px; }
-        .file-display-badge { display: flex; align-items: center; background: var(--bg-main); border: 1px solid var(--border); padding: 10px 14px; border-radius: 4px; font-size: 0.85rem; font-family: monospace; color: #56d364; }
-
-        .btn-push { background-color: var(--accent-success); border: none; color: white; padding: 14px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.95rem; transition: background 0.2s; width: 100%; }
-        .btn-push:hover { background-color: #2ea043; }
-        #status { font-size: 0.85rem; text-align: center; color: var(--text-muted); line-height: 1.4; }
-
-        .chat-sidebar { 
-            flex: 1; 
-            background-color: var(--bg-surface); 
-            display: flex; 
-            flex-direction: column; 
-            height: 500px; 
-        }
-        
-        .chat-header { padding: 15px 20px; border-bottom: 1px solid var(--border); font-weight: 600; display: flex; justify-content: space-between; align-items: center; font-size: 0.95rem; }
-        .chat-header span { font-size: 0.7rem; color: #56d364; background: rgba(56, 211, 100, 0.1); padding: 3px 8px; border-radius: 12px; }
-        .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
-        
-        .msg { max-width: 85%; padding: 12px 16px; border-radius: 12px; font-size: 0.9rem; line-height: 1.5; word-wrap: break-word; white-space: pre-line; }
-        .msg.user { background: var(--accent); color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
-        .msg.ai { background: var(--bg-input); color: var(--text-main); align-self: flex-start; border-bottom-left-radius: 2px; border: 1px solid var(--border); }
-        
-        .chat-input-area { padding: 15px 20px; border-top: 1px solid var(--border); display: flex; gap: 10px; background: var(--bg-main); }
-        .chat-input-area textarea { flex: 1; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; padding: 12px; color: white; font-size: 0.9rem; resize: none; height: 44px; }
-        .chat-input-area textarea:focus { border-color: var(--accent); outline: none; }
-        .btn-send { background: var(--accent); border: none; color: white; padding: 0 18px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
-        .btn-send:hover { background-color: #1f6feb; }
-
-        @media (min-width: 768px) {
-            body { flex-direction: row; height: 100vh; overflow: hidden; }
-            .workspace { flex: 1; padding: 30px; border-bottom: none; border-right: 1px solid var(--border); overflow-y: auto; }
-            .chat-sidebar { width: 420px; flex: none; height: 100%; }
-            h2 { font-size: 1.5rem; }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Chat Application</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Smooth custom scrollbar for clean aesthetics */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f1f1; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
 </head>
-<body>
+<body class="bg-slate-50 text-slate-900 font-sans antialiased flex justify-center min-h-screen">
 
-    <div class="workspace">
-        <h2>Production Pipeline</h2>
-        
-        <div class="input-group">
-            <label for="repo-select">Target Repository</label>
-            <select id="repo-select">
-                <option value="">Loading your repositories...</option>
-            </select>
+  <div class="w-full max-w-md bg-white flex flex-col min-h-screen shadow-xl border-x border-slate-200 relative">
+    
+    <header class="sticky top-0 z-50 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between shadow-sm">
+      <div class="flex items-center space-x-3">
+        <div class="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
+        <span class="font-bold tracking-tight text-lg text-slate-800">System Chat</span>
+      </div>
+      <span class="text-xs font-semibold uppercase tracking-wider text-slate-400 bg-slate-100 px-2 py-1 rounded">Flash 3.5</span>
+    </header>
+
+    <main id="chat-feed" class="flex-1 overflow-y-auto p-4 space-y-4 pb-32">
+      <div class="flex flex-col items-start max-w-[85%]">
+        <div class="bg-slate-100 text-slate-800 text-sm p-3 rounded-2xl rounded-tl-none border border-slate-200 shadow-sm">
+          Connection established. Ready to process text data and attachments.
         </div>
+      </div>
+    </main>
 
-        <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-slot').click()">
-            <p>Drag & drop your code file here, or click to browse</p>
-            <input type="file" id="file-slot" style="display: none;" onchange="processIncomingFile(this.files[0])">
+    <div class="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-3 z-40">
+      
+      <div id="file-preview" class="hidden mb-2 p-2 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between text-xs text-slate-600">
+        <div class="flex items-center space-x-2 truncate">
+          <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+          <span id="file-name" class="truncate font-medium">filename.pdf</span>
         </div>
+        <button id="remove-file" class="text-slate-400 hover:text-slate-600 font-bold px-1">✕</button>
+      </div>
 
-        <div class="file-verification-box" id="verification-box">
-            <div class="input-group">
-                <label for="file-name-input">Save File As (Include Extension):</label>
-                <input type="text" id="file-name-input" value="index.html" placeholder="e.g., index.html or index.htm">
-            </div>
-            <label>Staged File Status:</label>
-            <div class="file-display-badge" id="file-preview-status">Ready to deploy raw code structure</div>
-        </div>
+      <form id="chat-form" class="flex items-center space-x-2">
+        <label class="cursor-pointer p-2.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition border border-slate-200">
+          <input type="file" id="file-input" class="hidden" accept="image/*,application/pdf,text/*">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+        </label>
 
-        <button class="btn-push" onclick="deployProjectData()">Push To Repository</button>
-        <p id="status"></p>
+        <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off" required
+          class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-800 focus:bg-white transition text-slate-800 placeholder-slate-400">
+
+        <button type="submit" class="bg-slate-900 hover:bg-slate-800 text-white p-2.5 rounded-xl transition shadow-sm shrink-0">
+          <svg class="w-5 h-5 transform rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9-2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+        </button>
+      </form>
     </div>
 
-    <div class="chat-sidebar">
-        <div class="chat-header">
-            Workspace Copilot <span>Llama 3.1 8B Active</span>
-        </div>
-        <div class="chat-messages" id="chat-box">
-            <div class="msg ai">Yo! Drop your raw code files here. You have absolute control over the save destination and filenames before we push anything out. What are we hacking together?</div>
-        </div>
-        <div class="chat-input-area">
-            <textarea id="chat-msg-input" placeholder="Tell Llama to modify or save changes..."></textarea>
-            <button class="btn-send" onclick="sendChatMessage()">Send</button>
-        </div>
-    </div>
+  </div>
 
-    <script>
-        // Holds your code exactly as it is written—no splitting!
-        let rawCodePayload = "";
-        let aiProjectContext = "No files uploaded to workspace yet.";
-        
-        const VERCEL_BACKEND = "/api/edit-file"; 
-        const VERCEL_CHAT_BACKEND = "/api/chat-groq";
+  <script>
+    const chatForm = document.getElementById('chat-form');
+    const messageInput = document.getElementById('message-input');
+    const fileInput = document.getElementById('file-input');
+    const filePreview = document.getElementById('file-preview');
+    const fileNameSpan = document.getElementById('file-name');
+    const removeFileBtn = document.getElementById('remove-file');
+    const chatFeed = document.getElementById('chat-feed');
 
-        window.addEventListener('DOMContentLoaded', fetchUserRepositories);
+    let attachedFile = null;
 
-        async function fetchUserRepositories() {
-            const dropdown = document.getElementById('repo-select');
-            try {
-                const response = await fetch(`${VERCEL_BACKEND}?fetchRepos=true`);
-                if (!response.ok) throw new Error("Failed to get repositories.");
-                
-                const repos = await response.json();
-                dropdown.innerHTML = ""; 
+    // Handle File Selection
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          attachedFile = {
+            name: file.name,
+            mimeType: file.type,
+            base64: event.target.result.split(',')[1] // Strip data URL prefix
+          };
+          fileNameSpan.textContent = file.name;
+          filePreview.classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+      }
+    });
 
-                if (repos.length === 0) {
-                    dropdown.innerHTML = '<option value="">No repositories found</option>';
-                    return;
-                }
+    // Clear File Selection
+    removeFileBtn.addEventListener('click', () => {
+      attachedFile = null;
+      fileInput.value = '';
+      filePreview.classList.add('hidden');
+    });
 
-                repos.forEach(repo => {
-                    const option = document.createElement('option');
-                    option.value = repo.full_name;
-                    option.innerText = repo.name;
-                    dropdown.appendChild(option);
-                });
-            } catch (err) {
-                dropdown.innerHTML = '<option value="">Failed to load repositories</option>';
-                console.error(err);
-            }
+    // Append Messages Helper
+    function appendMessage(text, isUser = false) {
+      const wrapper = document.createElement('div');
+      wrapper.className = `flex flex-col ${isUser ? 'items-end ml-auto' : 'items-start'} max-w-[85%]`;
+
+      const bubble = document.createElement('div');
+      bubble.className = isUser 
+        ? 'bg-slate-900 text-white text-sm p-3 rounded-2xl rounded-tr-none border border-slate-900 shadow-sm'
+        : 'bg-slate-100 text-slate-800 text-sm p-3 rounded-2xl rounded-tl-none border border-slate-200 shadow-sm';
+      
+      bubble.textContent = text;
+      wrapper.appendChild(bubble);
+      chatFeed.appendChild(wrapper);
+      chatFeed.scrollTop = chatFeed.scrollHeight;
+    }
+
+    // Submit Handler
+    chatForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const message = messageInput.value.trim();
+      if (!message && !attachedFile) return;
+
+      // Render user message instantly
+      let userDisplay = message;
+      if (attachedFile) userDisplay += ` [Attachment: ${attachedFile.name}]`;
+      appendMessage(userDisplay, true);
+
+      // Cache request data & clear inputs
+      const requestPayload = { message, file: attachedFile };
+      messageInput.value = '';
+      attachedFile = null;
+      fileInput.value = '';
+      filePreview.classList.add('hidden');
+
+      // Set temporary loading response state
+      const loadingWrapper = document.createElement('div');
+      loadingWrapper.className = 'flex flex-col items-start max-w-[85%]';
+      loadingWrapper.innerHTML = `<div class="bg-slate-100 text-slate-400 text-sm p-3 rounded-2xl rounded-tl-none border border-slate-200 italic animate-pulse">Processing...</div>`;
+      chatFeed.appendChild(loadingWrapper);
+      chatFeed.scrollTop = chatFeed.scrollHeight;
+
+      try {
+        const response = await fetch('/api/ai.js', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestPayload)
+        });
+
+        const data = await response.json();
+        loadingWrapper.remove();
+
+        if (data.reply) {
+          appendMessage(data.reply, false);
+        } else {
+          appendMessage("Error parsing structural response metadata.", false);
         }
-
-        const dropZone = document.getElementById('drop-zone');
-        ['dragenter', 'dragover'].forEach(name => dropZone.addEventListener(name, e => { e.preventDefault(); dropZone.classList.add('dragover'); }, false));
-        ['dragleave', 'drop'].forEach(name => dropZone.addEventListener(name, e => { e.preventDefault(); dropZone.classList.remove('dragover'); }, false));
-        dropZone.addEventListener('drop', e => processIncomingFile(e.dataTransfer.files[0]));
-
-        function processIncomingFile(file) {
-            if (!file) return;
-            
-            // Auto-detect dropped filename so you don't even have to type it if it matches
-            document.getElementById('file-name-input').value = file.name;
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                // Keep the exact code layout intact
-                rawCodePayload = e.target.result;
-
-                updateAIContext();
-
-                document.getElementById('verification-box').style.display = "flex";
-                document.getElementById('status').innerText = "File parsed into memory successfully!";
-            };
-            reader.readAsText(file);
-        }
-
-        function updateAIContext() {
-            const currentFileName = document.getElementById('file-name-input').value || "index.html";
-            aiProjectContext = `
-The user has loaded a project file into memory.
-
---- Current Active Filename ---
-${currentFileName}
-
---- File Raw Content ---
-${rawCodePayload}
-`;
-        }
-
-        // Manual upload functionality execution
-        async function deployProjectData() {
-            const repo = document.getElementById('repo-select').value;
-            const filename = document.getElementById('file-name-input').value.trim();
-            const status = document.getElementById('status');
-            
-            if(!repo || !rawCodePayload) { alert("Please select a repository and drop a file first."); return; }
-            if(!filename) { alert("Please specify what to name your file (e.g., index.html)."); return; }
-
-            status.innerText = `Deploying ${filename} directly to GitHub...`;
-            try {
-                // Sends the file with the exact name you typed in the input box
-                await pushToBackend(repo, filename, btoa(unescape(encodeURIComponent(rawCodePayload))));
-                status.innerText = `Success! ${filename} pushed directly to your repo with zero changes to its structure.`;
-            } catch (err) {
-                status.innerText = "Deployment error: " + err.message;
-            }
-        }
-
-        async function pushToBackend(repo, path, b64Content) {
-            let sha = "";
-            const getRes = await fetch(`${VERCEL_BACKEND}?repo=${repo}&path=${path}`);
-            if(getRes.ok) {
-                const data = await getRes.json();
-                sha = data.sha;
-            }
-            await fetch(VERCEL_BACKEND, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ repo, path, content: b64Content, sha })
-            });
-        }
-
-        async function sendChatMessage() {
-            const txtInput = document.getElementById('chat-msg-input');
-            const chatBox = document.getElementById('chat-box');
-            const repo = document.getElementById('repo-select').value;
-            const filename = document.getElementById('file-name-input').value.trim() || "index.html";
-            const userMsg = txtInput.value.trim();
-            if(!userMsg) return;
-            if(!repo) { alert("Please choose a repository from the selection dropdown first."); return; }
-
-            // Make sure context is synced with the latest typed filename before passing to AI
-            updateAIContext();
-
-            const userDiv = document.createElement('div');
-            userDiv.className = "msg user";
-            userDiv.innerText = userMsg;
-            chatBox.appendChild(userDiv);
-            txtInput.value = "";
-            chatBox.scrollTop = chatBox.scrollHeight;
-
-            try {
-                const response = await fetch(VERCEL_CHAT_BACKEND, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        message: userMsg,
-                        repo: repo, 
-                        systemPrompt: `You are an expert developer workspace copilot. You have direct write access to the user's GitHub repository. The user is currently tracking a file named '${filename}'. When they ask you to modify, add features, or update things, keep everything cleanly combined in one single file payload and save it back using the name they typed. Active file text:\n${aiProjectContext}`
-                    })
-                });
-                
-                const data = await response.json();
-                
-                const aiDiv = document.createElement('div');
-                aiDiv.className = "msg ai";
-                aiDiv.innerHTML = data.aiResponse;
-                chatBox.appendChild(aiDiv);
-                chatBox.scrollTop = chatBox.scrollHeight;
-
-                // Sync code data locally if Llama triggers a change
-                if (data.updatedFiles && data.updatedFiles.html) {
-                    rawCodePayload = data.updatedFiles.html;
-                    updateAIContext();
-                }
-            } catch(e) {
-                console.error(e);
-            }
-        }
-    </script>
+      } catch (err) {
+        loadingWrapper.remove();
+        appendMessage("Network connection anomaly detected.", false);
+      }
+    });
+  </script>
 </body>
 </html>
